@@ -349,13 +349,13 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	const size_t offSpawnType = currOffset;
 	currOffset += sizeof(spawnType);
 
-	std::vector<uint8_t> visMemNodesP1(sizeLargestVisNodes);
+	std::vector<uint32_t> visMemNodesP1(sizeLargestVisNodes);
 	const size_t offVisMemNodesP1 = currOffset;
-	currOffset += visMemNodesP1.size();
+	currOffset += visMemNodesP1.size() * sizeof(uint32_t);
 
-	std::vector<uint8_t> visMemQuadsP1(sizeLargestVisQuads);
+	std::vector<uint32_t> visMemQuadsP1(sizeLargestVisQuads);
 	const size_t offVisMemQuadsP1 = currOffset;
-	currOffset += visMemQuadsP1.size();
+	currOffset += visMemQuadsP1.size() * sizeof(uint32_t);
 
 	std::vector<uint32_t> visMemBSPP1(bspNodes.size() * 2);
 	const size_t offVisMemBSPP1 = currOffset;
@@ -453,8 +453,8 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	for (const auto& serializedBSP : serializedBSPs) { Write(file, serializedBSP.data(), serializedBSP.size()); }
 	for (const auto& serializedCheckpoint : serializedCheckpoints) { Write(file, serializedCheckpoint.data(), serializedCheckpoint.size()); }
 	Write(file, &spawnType, sizeof(spawnType));
-	Write(file, visMemNodesP1.data(), visMemNodesP1.size());
-	Write(file, visMemQuadsP1.data(), visMemQuadsP1.size());
+	Write(file, visMemNodesP1.data(), visMemNodesP1.size() * sizeof(uint32_t));
+	Write(file, visMemQuadsP1.data(), visMemQuadsP1.size() * sizeof(uint32_t));
 	Write(file, visMemBSPP1.data(), visMemBSPP1.size() * sizeof(uint32_t));
 	Write(file, &visMem, sizeof(visMem));
 	Write(file, &pointerMapBytes, sizeof(uint32_t));
