@@ -1,0 +1,9 @@
+[submodule "third_party/imgui"]
+	path = third_party/imgui
+	url = git@github.com:ocornut/imgui.git
+[submodule "third_party/portable-file-dialogs"]
+	path = third_party/portable-file-dialogs
+	url = git@github.com:samhocevar/portable-file-dialogs.git
+[submodule "third_party/json"]
+	path = third_party/json
+	url = git@github.com:nlohmann/json.git
