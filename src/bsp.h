@@ -34,7 +34,6 @@ public:
 	BSP(NodeType type, const std::vector<size_t>& quadblockIndexes);
 	size_t Id() const;
 	bool Empty() const;
-	size_t Size() const;
 	bool IsBranch() const;
 	const std::string& GetType() const;
 	const std::string& GetAxis() const;
@@ -44,14 +43,15 @@ public:
 	const BSP* GetRightChildren() const;
 	void SetQuadblockIndexes(const std::vector<size_t>& quadblockIndexes);
 	void Clear();
-	void Generate(const std::vector<Quadblock>& quadblocks, const size_t maxQuadsPerLeaf);
+	void Generate(const std::vector<Quadblock>& quadblocks, const size_t maxQuadsPerLeaf, const float maxAxisLength);
 	std::vector<uint8_t> Serialize(size_t offQuads) const;
+	void RenderUI(size_t& index, const std::vector<Quadblock>& quadblocks);
 
 private:
 	float GetAxisMidpoint(const AxisSplit axis) const;
-	void ComputeBoundingBox(const std::vector<Quadblock>& quadblocks);
+	BoundingBox ComputeBoundingBox(const std::vector<Quadblock>& quadblocks, const std::vector<size_t>& quadblockIndexes) const;
 	float Split(std::vector<size_t>& left, std::vector<size_t>& right, const AxisSplit axis, const std::vector<Quadblock>& quadblocks) const;
-	void GenerateOffspring(std::vector<size_t>& left, std::vector<size_t>& right, const std::vector<Quadblock>& quadblocks, const size_t maxQuadsPerLeaf);
+	void GenerateOffspring(std::vector<size_t>& left, std::vector<size_t>& right, const std::vector<Quadblock>& quadblocks, const size_t maxQuadsPerLeaf, const float maxAxisLength);
 	std::vector<uint8_t> SerializeBranch() const;
 	std::vector<uint8_t> SerializeLeaf(size_t offQuads) const;
 

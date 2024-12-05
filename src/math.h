@@ -37,12 +37,14 @@ struct Vec3
 	Vec3(float x, float y, float z) : x(x), y(y), z(z) {};
 	float* Data() { return &x; }
 	inline float Length() const { return std::sqrtf((x * x) + (y * y) + (z * z)); }
-	inline Vec3 Cross(const Vec3 v) const { return { y * v.z - z * v.y, z * v.x - x * v.z, x * v.y - v.x * y }; }
+	inline Vec3 Cross(const Vec3& v) const { return { y * v.z - z * v.y, z * v.x - x * v.z, x * v.y - v.x * y }; }
 
 	inline Vec3 operator+(const Vec3& v) const { return { x + v.x, y + v.y, z + v.z}; }
 	inline Vec3 operator-(const Vec3& v) const { return {x - v.x, y - v.y, z - v.z}; }
 	inline Vec3 operator*(float n) const { return { x * n, y * n, z * n }; }
 	inline Vec3 operator/(float n) const { return {x / n, y / n, z / n}; }
+	inline bool operator>(float n) const { return x > n && y > n && z > n; }
+	inline bool operator<(float n) const { return x < n && y < n && z < n; }
 	inline bool operator==(const Vec3& v) const { return (x == v.x) && (y == v.y) && (z == v.z); }
 
 	float x;
@@ -64,6 +66,8 @@ struct BoundingBox
 	Vec3 min;
 	Vec3 max;
 
+	float Area() const;
+	float SemiPerimeter() const;
 	void RenderUI() const;
 };
 

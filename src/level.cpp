@@ -10,6 +10,7 @@
 #include <unordered_map>
 
 static constexpr size_t MAX_QUADBLOCKS_LEAF = 32;
+static constexpr float MAX_LEAF_AXIS_LENGTH = 60.0f;
 
 bool Level::Load(const std::filesystem::path& filename)
 {
@@ -138,22 +139,7 @@ void Level::RenderUI()
 			if (!m_bsp.Empty())
 			{
 				size_t bspIndex = 0;
-				auto BSPUI = [&bspIndex](const BSP* bsp, auto& FuncUI)
-					{
-						if (!bsp || bsp->Empty()) { return; }
-						std::string title = bsp->GetType() + " " + std::to_string(bspIndex++);
-						if (ImGui::TreeNode(title.c_str()))
-						{
-							if (bsp->IsBranch()) { ImGui::Text(("Axis:  " + bsp->GetAxis()).c_str()); }
-							ImGui::Text(("Quads: " + std::to_string(bsp->Size())).c_str());
-							ImGui::Text("Bounding Box:");
-							bsp->GetBoundingBox().RenderUI();
-							FuncUI(bsp->GetLeftChildren(), FuncUI);
-							FuncUI(bsp->GetRightChildren(), FuncUI);
-							ImGui::TreePop();
-						}
-					};
-				BSPUI(&m_bsp, BSPUI);
+				m_bsp.RenderUI(bspIndex, m_quadblocks);
 			}
 			if (ImGui::Button("Generate"))
 			{
@@ -161,7 +147,7 @@ void Level::RenderUI()
 				for (size_t i = 0; i < m_quadblocks.size(); i++) { quadIndexes.push_back(i); }
 				m_bsp.Clear();
 				m_bsp.SetQuadblockIndexes(quadIndexes);
-				m_bsp.Generate(m_quadblocks, MAX_QUADBLOCKS_LEAF);
+				m_bsp.Generate(m_quadblocks, MAX_QUADBLOCKS_LEAF, MAX_LEAF_AXIS_LENGTH);
 			}
 			ImGui::TreePop();
 		}

@@ -7,6 +7,18 @@ Quad::Quad(const Vec3& p0, const Vec3& p1, const Vec3& p2, const Vec3& p3)
 	p[0] = p0; p[1] = p1; p[2] = p2; p[3] = p3;
 }
 
+float BoundingBox::Area() const
+{
+	Vec3 dist = max - min;
+	return dist.x * dist.y * dist.z;
+}
+
+float BoundingBox::SemiPerimeter() const
+{
+	Vec3 dist = max - min;
+	return dist.x + dist.y + dist.z;
+}
+
 void BoundingBox::RenderUI() const
 {
 	ImGui::Text("Max:"); ImGui::SameLine();

@@ -183,12 +183,12 @@ Vec3 Quadblock::ComputeNormalVector(size_t id0, size_t id1, size_t id2) const
 void Quadblock::ComputeBoundingBox()
 {
 	Vec3 min = Vec3(std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
-	Vec3 max = Vec3(std::numeric_limits<float>::min(), std::numeric_limits<float>::min(), std::numeric_limits<float>::min());
+	Vec3 max = Vec3(-std::numeric_limits<float>::max(), -std::numeric_limits<float>::max(), -std::numeric_limits<float>::max());
 	for (size_t i = 0; i < NUM_VERTICES_QUADBLOCK; i++)
 	{
-		if (m_p[i].m_pos.x < min.x) { min.x = m_p[i].m_pos.x; } if (m_p[i].m_pos.x > max.x) { max.x = m_p[i].m_pos.x; }
-		if (m_p[i].m_pos.y < min.y) { min.y = m_p[i].m_pos.y; } if (m_p[i].m_pos.y > max.y) { max.y = m_p[i].m_pos.y; }
-		if (m_p[i].m_pos.z < min.z) { min.z = m_p[i].m_pos.z; } if (m_p[i].m_pos.z > max.z) { max.z = m_p[i].m_pos.z; }
+		min.x = std::min(min.x, m_p[i].m_pos.x); max.x = std::max(max.x, m_p[i].m_pos.x);
+		min.y = std::min(min.y, m_p[i].m_pos.y); max.y = std::max(max.y, m_p[i].m_pos.y);
+		min.z = std::min(min.z, m_p[i].m_pos.z); max.z = std::max(max.z, m_p[i].m_pos.z);
 	}
 	m_bbox.min = min;
 	m_bbox.max = max;
