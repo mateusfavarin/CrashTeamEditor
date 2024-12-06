@@ -26,6 +26,11 @@ bool Level::Save(const std::filesystem::path& path)
 	return SaveLEV(path);
 }
 
+bool Level::Ready()
+{
+	return !m_bsp.Empty();
+}
+
 void Level::Clear()
 {
 	for (size_t i = 0; i < NUM_DRIVERS; i++) { m_spawn[i] = Spawn(); }
@@ -41,27 +46,45 @@ void Level::Clear()
 void Level::RenderUI()
 {
 	if (m_name.empty()) { return; }
-	if (ImGui::Begin(m_name.c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+
+	static bool w_spawn = false;
+	static bool w_level = false;
+	static bool w_quadblocks = false;
+	static bool w_checkpoints = false;
+	static bool w_bsp = false;
+
+	if (ImGui::BeginMainMenuBar())
 	{
-		if (ImGui::TreeNode("Spawn"))
+		if (ImGui::MenuItem("Spawn")) { w_spawn = !w_spawn; }
+		if (ImGui::MenuItem("Level")) { w_level = !w_level; }
+		if (ImGui::MenuItem("Quadblocks")) { w_quadblocks = !w_quadblocks; }
+		if (ImGui::MenuItem("Checkpoints")) { w_checkpoints = !w_checkpoints; }
+		if (ImGui::MenuItem("BSP Tree")) { w_bsp = !w_bsp; }
+		ImGui::EndMainMenuBar();
+	}
+
+	if (w_spawn && ImGui::Begin("Spawn", &w_spawn, ImGuiWindowFlags_AlwaysAutoResize))
+	{
+		for (size_t i = 0; i < NUM_DRIVERS; i++)
 		{
-			for (size_t i = 0; i < NUM_DRIVERS; i++)
+			if (ImGui::TreeNode(("Driver " + std::to_string(i)).c_str()))
 			{
-				if (ImGui::TreeNode(("Driver " + std::to_string(i)).c_str()))
+				ImGui::Text("Pos:"); ImGui::SameLine(); ImGui::InputFloat3("##pos", m_spawn[i].pos.Data());
+				ImGui::Text("Rot:"); ImGui::SameLine();
+				if (ImGui::InputFloat3("##rot", m_spawn[i].rot.Data()))
 				{
-					ImGui::Text("Pos:"); ImGui::SameLine(); ImGui::InputFloat3("##pos", m_spawn[i].pos.Data());
-					ImGui::Text("Rot:"); ImGui::SameLine();
-					if (ImGui::InputFloat3("##rot", m_spawn[i].rot.Data()))
-					{
-						m_spawn[i].rot.x = Clamp(m_spawn[i].rot.x, -360.0f, 360.0f);
-						m_spawn[i].rot.y = Clamp(m_spawn[i].rot.y, -360.0f, 360.0f);
-						m_spawn[i].rot.z = Clamp(m_spawn[i].rot.z, -360.0f, 360.0f);
-					};
-					ImGui::TreePop();
-				}
+					m_spawn[i].rot.x = Clamp(m_spawn[i].rot.x, -360.0f, 360.0f);
+					m_spawn[i].rot.y = Clamp(m_spawn[i].rot.y, -360.0f, 360.0f);
+					m_spawn[i].rot.z = Clamp(m_spawn[i].rot.z, -360.0f, 360.0f);
+				};
+				ImGui::TreePop();
 			}
-			ImGui::TreePop();
 		}
+		ImGui::End();
+	}
+
+	if (w_level && ImGui::Begin("Level", &w_level, ImGuiWindowFlags_AlwaysAutoResize))
+	{
 		if (ImGui::TreeNode("Config Flags"))
 		{
 			static bool flagOptions[NUM_LEV_CONFIG_FLAGS] = {};
@@ -99,60 +122,63 @@ void Level::RenderUI()
 			ImGui::ColorEdit3("##color", m_clearColor.Data());
 			ImGui::TreePop();
 		}
-		if (ImGui::TreeNode("Quadblocks"))
+		ImGui::End();
+	}
+
+	if (w_quadblocks && ImGui::Begin("Quadblocks", &w_quadblocks, ImGuiWindowFlags_AlwaysAutoResize))
+	{
+		for (Quadblock& quadblock : m_quadblocks)
 		{
-			for (Quadblock& quadblock : m_quadblocks)
-			{
-				quadblock.RenderUI(m_checkpoints.size() - 1);
-			}
-			ImGui::TreePop();
+			quadblock.RenderUI(m_checkpoints.size() - 1);
 		}
-		if (ImGui::TreeNode("Checkpoints"))
+		ImGui::End();
+	}
+
+	if (w_checkpoints && ImGui::Begin("Checkpoints", &w_checkpoints, ImGuiWindowFlags_AlwaysAutoResize))
+	{
+		std::vector<int> checkpointsDelete;
+		for (int i = 0; i < m_checkpoints.size(); i++)
 		{
-			std::vector<int> checkpointsDelete;
+			m_checkpoints[i].RenderUI(m_checkpoints.size(), m_quadblocks);
+			if (m_checkpoints[i].GetDelete()) { checkpointsDelete.push_back(i); }
+		}
+		if (!checkpointsDelete.empty())
+		{
+			for (int i = static_cast<int>(checkpointsDelete.size()) - 1; i >= 0; i--)
+			{
+				m_checkpoints.erase(m_checkpoints.begin() + checkpointsDelete[i]);
+			}
 			for (int i = 0; i < m_checkpoints.size(); i++)
 			{
-				m_checkpoints[i].RenderUI(m_checkpoints.size(), m_quadblocks);
-				if (m_checkpoints[i].GetDelete()) { checkpointsDelete.push_back(i); }
+				m_checkpoints[i].RemoveInvalidCheckpoints(checkpointsDelete);
+				m_checkpoints[i].UpdateInvalidCheckpoints(checkpointsDelete);
+				m_checkpoints[i].UpdateIndex(i);
 			}
-			if (!checkpointsDelete.empty())
-			{
-				for (int i = static_cast<int>(checkpointsDelete.size()) - 1; i >= 0; i--)
-				{
-					m_checkpoints.erase(m_checkpoints.begin() + checkpointsDelete[i]);
-				}
-				for (int i = 0; i < m_checkpoints.size(); i++)
-				{
-					m_checkpoints[i].RemoveInvalidCheckpoints(checkpointsDelete);
-					m_checkpoints[i].UpdateInvalidCheckpoints(checkpointsDelete);
-					m_checkpoints[i].UpdateIndex(i);
-				}
-			}
-			if (ImGui::Button("Add Checkpoint"))
-			{
-				m_checkpoints.emplace_back(static_cast<int>(m_checkpoints.size()));
-			}
-			ImGui::TreePop();
 		}
-		if (ImGui::TreeNode("BSP Tree"))
+		if (ImGui::Button("Add Checkpoint"))
 		{
-			if (!m_bsp.Empty())
-			{
-				size_t bspIndex = 0;
-				m_bsp.RenderUI(bspIndex, m_quadblocks);
-			}
-			if (ImGui::Button("Generate"))
-			{
-				std::vector<size_t> quadIndexes;
-				for (size_t i = 0; i < m_quadblocks.size(); i++) { quadIndexes.push_back(i); }
-				m_bsp.Clear();
-				m_bsp.SetQuadblockIndexes(quadIndexes);
-				m_bsp.Generate(m_quadblocks, MAX_QUADBLOCKS_LEAF, MAX_LEAF_AXIS_LENGTH);
-			}
-			ImGui::TreePop();
+			m_checkpoints.emplace_back(static_cast<int>(m_checkpoints.size()));
 		}
+		ImGui::End();
 	}
-	ImGui::End();
+
+	if (w_bsp && ImGui::Begin("BSP Tree", &w_bsp, ImGuiWindowFlags_AlwaysAutoResize))
+	{
+		if (!m_bsp.Empty())
+		{
+			size_t bspIndex = 0;
+			m_bsp.RenderUI(bspIndex, m_quadblocks);
+		}
+		if (ImGui::Button("Generate"))
+		{
+			std::vector<size_t> quadIndexes;
+			for (size_t i = 0; i < m_quadblocks.size(); i++) { quadIndexes.push_back(i); }
+			m_bsp.Clear();
+			m_bsp.SetQuadblockIndexes(quadIndexes);
+			m_bsp.Generate(m_quadblocks, MAX_QUADBLOCKS_LEAF, MAX_LEAF_AXIS_LENGTH);
+		}
+		ImGui::End();
+	}
 }
 
 bool Level::LoadLEV(const std::filesystem::path& levFile)

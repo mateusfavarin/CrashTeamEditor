@@ -14,6 +14,7 @@ class Level
 public:
 	bool Load(const std::filesystem::path& filename);
 	bool Save(const std::filesystem::path& path);
+	bool Ready();
 	void Clear();
 	void RenderUI();
 

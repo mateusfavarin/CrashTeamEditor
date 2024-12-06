@@ -26,7 +26,8 @@ void UI::MainMenu()
 					m_lev.Load(levPath);
 				}
 			}
-			if (ImGui::MenuItem("Save"))
+			bool ready = m_lev.Ready();
+			if (ImGui::MenuItem("Save", nullptr, nullptr, ready))
 			{
 				auto selection = pfd::select_folder("Level Folder").result();
 				if (!selection.empty())
@@ -35,6 +36,7 @@ void UI::MainMenu()
 					m_lev.Save(path);
 				}
 			}
+			if (!ready) { ImGui::SetItemTooltip("BSP Tree must be generated before saving the level. "); }
 			ImGui::EndMenu();
 		}
 		ImGui::EndMainMenuBar();
