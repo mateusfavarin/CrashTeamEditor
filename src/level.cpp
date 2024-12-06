@@ -7,7 +7,6 @@
 #include <imgui.h>
 
 #include <fstream>
-#include <unordered_map>
 
 static constexpr size_t MAX_QUADBLOCKS_LEAF = 32;
 static constexpr float MAX_LEAF_AXIS_LENGTH = 60.0f;
@@ -41,6 +40,8 @@ void Level::Clear()
 	m_quadblocks.clear();
 	m_checkpoints.clear();
 	m_bsp.Clear();
+	m_materialToQuadblocks.clear();
+	m_materialTerrainPreview.clear();
 }
 
 void Level::RenderUI()
@@ -49,6 +50,7 @@ void Level::RenderUI()
 
 	static bool w_spawn = false;
 	static bool w_level = false;
+	static bool w_material = false;
 	static bool w_quadblocks = false;
 	static bool w_checkpoints = false;
 	static bool w_bsp = false;
@@ -57,6 +59,7 @@ void Level::RenderUI()
 	{
 		if (ImGui::MenuItem("Spawn")) { w_spawn = !w_spawn; }
 		if (ImGui::MenuItem("Level")) { w_level = !w_level; }
+		if (ImGui::MenuItem("Material")) { w_material = !w_material; }
 		if (ImGui::MenuItem("Quadblocks")) { w_quadblocks = !w_quadblocks; }
 		if (ImGui::MenuItem("Checkpoints")) { w_checkpoints = !w_checkpoints; }
 		if (ImGui::MenuItem("BSP Tree")) { w_bsp = !w_bsp; }
@@ -85,7 +88,7 @@ void Level::RenderUI()
 
 	if (w_level && ImGui::Begin("Level", &w_level, ImGuiWindowFlags_AlwaysAutoResize))
 	{
-		if (ImGui::TreeNode("Config Flags"))
+		if (ImGui::TreeNode("Flags"))
 		{
 			static bool flagOptions[NUM_LEV_CONFIG_FLAGS] = {};
 			auto FlagOptionsUI = [](uint32_t& config, bool* toggle, const uint32_t flag, const std::string& title)
@@ -123,6 +126,59 @@ void Level::RenderUI()
 			ImGui::TreePop();
 		}
 		ImGui::End();
+	}
+
+	static bool resetMaterialPreview = false;
+	if (w_material && ImGui::Begin("Material", &w_material, ImGuiWindowFlags_AlwaysAutoResize))
+	{
+		for (const auto& [material, quadblockIndexes] : m_materialToQuadblocks)
+		{
+			if (ImGui::TreeNode(material.c_str()))
+			{
+				if (ImGui::TreeNode("Quadblocks"))
+				{
+					constexpr size_t QUADS_PER_LINE = 10;
+					for (size_t i = 0; i < quadblockIndexes.size(); i++)
+					{
+						ImGui::Text((m_quadblocks[quadblockIndexes[i]].Name() + ", ").c_str());
+						if (((i + 1) % QUADS_PER_LINE) == 0 || i == quadblockIndexes.size() - 1) { continue; }
+						ImGui::SameLine();
+					}
+					ImGui::TreePop();
+				}
+				ImGui::Text("Terrain:"); ImGui::SameLine();
+				if (ImGui::BeginCombo("##terrain", m_materialTerrainPreview[material].c_str()))
+				{
+					for (const auto&[label, terrain] : TerrainType::LABELS)
+					{
+						if (ImGui::Selectable(label.c_str()))
+						{
+							m_materialTerrainPreview[material] = label;
+							resetMaterialPreview = true;
+						}
+					}
+					ImGui::EndCombo();
+				} ImGui::SameLine();
+				if (ImGui::Button("Apply"))
+				{
+					for (const size_t index : quadblockIndexes)
+					{
+						m_quadblocks[index].SetTerrain(TerrainType::LABELS.at(m_materialTerrainPreview[material]));
+					}
+					m_materialTerrainBackup[material] = m_materialTerrainPreview[material];
+				}
+				ImGui::TreePop();
+			}
+		}
+		ImGui::End();
+	}
+	if (resetMaterialPreview && !w_material)
+	{
+		for (const auto& [material, quadblockIndexes] : m_materialToQuadblocks)
+		{
+			m_materialTerrainPreview[material] = m_materialTerrainBackup[material];
+		}
+		resetMaterialPreview = false;
 	}
 
 	if (w_quadblocks && ImGui::Begin("Quadblocks", &w_quadblocks, ImGuiWindowFlags_AlwaysAutoResize))
@@ -553,7 +609,15 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 					averageNormal = averageNormal + normal;
 				}
 				averageNormal = averageNormal / averageNormal.Length();
-				m_quadblocks.emplace_back(currQuadblockName, q0, q1, q2, q3, averageNormal);
+				std::string material;
+				if (materialMap.contains(currQuadblockName))
+				{
+					material = materialMap[currQuadblockName];
+					m_materialToQuadblocks[material].push_back(m_quadblocks.size());
+					m_materialTerrainPreview[material] = "Asphalt";
+					m_materialTerrainBackup[material] = "Asphalt";
+				}
+				m_quadblocks.emplace_back(currQuadblockName, q0, q1, q2, q3, averageNormal, material);
 			}
 		}
 	}

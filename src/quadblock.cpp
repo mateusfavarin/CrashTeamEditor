@@ -95,6 +95,16 @@ const Vec3& Quadblock::Center() const
 	return m_p[4].m_pos;
 }
 
+uint8_t Quadblock::Terrain() const
+{
+	return m_terrain;
+}
+
+void Quadblock::SetTerrain(uint8_t terrain)
+{
+	m_terrain = terrain;
+}
+
 const BoundingBox& Quadblock::GetBoundingBox() const
 {
 	return m_bbox;

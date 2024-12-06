@@ -153,9 +153,12 @@ void BSP::RenderUI(size_t& index, const std::vector<Quadblock>& quadblocks)
 		ImGui::Text(("Quads: " + std::to_string(m_quadblockIndexes.size())).c_str());
 		if (ImGui::TreeNode("Quadblock List:"))
 		{
-			for (const size_t index : m_quadblockIndexes)
+			constexpr size_t QUADS_PER_LINE = 10;
+			for (size_t i = 0; i < m_quadblockIndexes.size(); i++)
 			{
-				ImGui::Text(quadblocks[index].Name().c_str());
+				ImGui::Text((quadblocks[m_quadblockIndexes[i]].Name() + ", ").c_str());
+				if (((i + 1) % QUADS_PER_LINE) == 0 || i == m_quadblockIndexes.size() - 1) { continue; }
+				ImGui::SameLine();
 			}
 			ImGui::TreePop();
 		}

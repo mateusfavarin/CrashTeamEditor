@@ -7,6 +7,7 @@
 #include "bsp.h"
 
 #include <vector>
+#include <unordered_map>
 #include <filesystem>
 
 class Level
@@ -32,4 +33,7 @@ private:
 	std::vector<Quadblock> m_quadblocks;
 	std::vector<Checkpoint> m_checkpoints;
 	BSP m_bsp;
+	std::unordered_map<std::string, std::vector<size_t>> m_materialToQuadblocks;
+	std::unordered_map<std::string, std::string> m_materialTerrainPreview;
+	std::unordered_map<std::string, std::string> m_materialTerrainBackup;
 };

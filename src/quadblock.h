@@ -4,6 +4,7 @@
 #include "vertex.h"
 
 #include <string>
+#include <unordered_map>
 #include <cstdint>
 
 static constexpr size_t NUM_VERTICES_QUADBLOCK = 9;
@@ -48,14 +49,23 @@ namespace TerrainType
 	static constexpr uint8_t OCEAN_ASPHALT = 18;
 	static constexpr uint8_t SLOW_GRASS = 19;
 	static constexpr uint8_t SLOW_DIRT = 20;
+	static const std::unordered_map<std::string, uint8_t> LABELS = {
+		{"Asphalt", 0}, {"Dirt", 1}, {"Grass", 2}, {"Wood", 3}, {"Water", 4}, {"Stone", 5},
+		{"Ice", 6}, {"Track (?)", 7}, {"Icy Road", 8}, {"Snow", 9}, {"None (?)", 10},
+		{"Hard Pack (?)", 11}, {"Metal", 12}, {"Fast Water", 13}, {"Mud", 14}, {"Side Slip", 15},
+		{"River Asphalt", 16}, {"Steam Asphalt", 17}, {"Ocean Asphalt", 18}, {"Slow Grass", 19},
+		{"Slow Dirt", 20},
+	};
 };
 
 class Quadblock
 {
 public:
-	Quadblock(const std::string& name, Quad& q0, Quad& q1, Quad& q2, Quad& q3, const Vec3& normal, const std::string& material = "");
+	Quadblock(const std::string& name, Quad& q0, Quad& q1, Quad& q2, Quad& q3, const Vec3& normal, const std::string& material);
 	const std::string& Name() const;
 	const Vec3& Center() const;
+	uint8_t Terrain() const;
+	void SetTerrain(uint8_t terrain);
 	const BoundingBox& GetBoundingBox() const;
 	std::vector<Vertex> GetVertices() const;
 	std::vector<uint8_t> Serialize(size_t id, size_t offTextures, size_t offVisibleSet, const std::vector<size_t>& vertexIndexes) const;
