@@ -7,11 +7,12 @@
 struct Color
 {
 	Color() : r(0.0f), g(0.0f), b(0.0f), a(false) {};
-	Color(unsigned red, unsigned green, unsigned blue) : a(false)
+	Color(float r, float g, float b) : r(r), g(g), b(b), a(false) {};
+	Color(unsigned r, unsigned g, unsigned b) : a(false)
 	{
-		r = static_cast<float>(red) / 255.0f;
-		g = static_cast<float>(green) / 255.0f;
-		b = static_cast<float>(blue) / 255.0f;
+		this->r = static_cast<float>(r) / 255.0f;
+		this->g = static_cast<float>(g) / 255.0f;
+		this->b = static_cast<float>(b) / 255.0f;
 	};
 	float* Data() { return &r; }
 	inline bool operator==(const Color& color) const { return (r == color.r) && (g == color.g) && (b == color.b) && (a == color.a); }
@@ -71,12 +72,30 @@ struct BoundingBox
 	void RenderUI() const;
 };
 
+struct Point
+{
+	Vec3 pos;
+	Color color;
+
+	Point() {};
+	Point(float x, float y, float z)
+	{
+		pos = Vec3(x, y, z);
+		color = Color(255u, 255u, 255u);
+	};
+	Point(float x, float y, float z, unsigned r, unsigned g, unsigned b)
+	{
+		pos = Vec3(x, y, z);
+		color = Color(r, g, b);
+	};
+};
+
 struct Quad
 {
 	Quad() : p() {};
-	Quad(const Vec3& p0, const Vec3& p1, const Vec3& p2, const Vec3& p3);
+	Quad(const Point& p0, const Point& p1, const Point& p2, const Point& p3);
 
-	Vec3 p[4];
+	Point p[4];
 };
 
 template<typename T>

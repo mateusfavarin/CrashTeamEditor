@@ -11,7 +11,7 @@ Quadblock::Quadblock(const std::string& name, Quad& q0, Quad& q1, Quad& q2, Quad
 	std::unordered_map<Vec3, unsigned> vRefCount;
 	for (size_t i = 0; i < 4; i++)
 	{
-		vRefCount[q0.p[i]]++; vRefCount[q1.p[i]]++; vRefCount[q2.p[i]]++; vRefCount[q3.p[i]]++;
+		vRefCount[q0.p[i].pos]++; vRefCount[q1.p[i].pos]++; vRefCount[q2.p[i].pos]++; vRefCount[q3.p[i].pos]++;
 	}
 
 	Vec3 centerVertex;
@@ -22,29 +22,35 @@ Quadblock::Quadblock(const std::string& name, Quad& q0, Quad& q1, Quad& q2, Quad
 		else if (count == 4) { centerVertex = v; }
 	}
 
+	bool foundCenter = false;
 	for (size_t i = 0; i < 4; i++)
 	{
-		if (uniqueVertices.contains(q0.p[i])) { m_p[0] = Vertex(q0.p[i]); }
-		if (uniqueVertices.contains(q1.p[i])) { m_p[2] = Vertex(q1.p[i]); }
-		if (uniqueVertices.contains(q2.p[i])) { m_p[6] = Vertex(q2.p[i]); }
-		if (uniqueVertices.contains(q3.p[i])) { m_p[8] = Vertex(q3.p[i]); }
+		if (uniqueVertices.contains(q0.p[i].pos)) { m_p[0] = Vertex(q0.p[i]); }
+		if (uniqueVertices.contains(q1.p[i].pos)) { m_p[2] = Vertex(q1.p[i]); }
+		if (uniqueVertices.contains(q2.p[i].pos)) { m_p[6] = Vertex(q2.p[i]); }
+		if (uniqueVertices.contains(q3.p[i].pos)) { m_p[8] = Vertex(q3.p[i]); }
+		if (!foundCenter && uniqueVertices.contains(q0.p[i].pos))
+		{
+			m_p[4] = Vertex(q0.p[i]);
+			foundCenter = true;
+		}
 	}
 
-	auto FindAdjacentVec = [](const Quad& from, const Quad& to, const Vec3& ignore) -> const Vec3*
+	auto FindAdjacentPoint = [](const Quad& from, const Quad& to, const Vec3& ignore) -> const Point*
 		{
 			for (size_t i = 0; i < 4; i++)
 			{
-				if (from.p[i] == ignore) { continue; }
+				if (from.p[i].pos == ignore) { continue; }
 				for (size_t j = 0; j < 4; j++)
 				{
-					if (from.p[i] == to.p[j]) { return &from.p[i]; }
+					if (from.p[i].pos == to.p[j].pos) { return &from.p[i]; }
 				}
 			}
 			return nullptr;
 		};
 
-	const Vec3* p1 = FindAdjacentVec(q0, q1, centerVertex);
-	const Vec3* p3 = FindAdjacentVec(q0, q2, centerVertex);
+	const Point* p1 = FindAdjacentPoint(q0, q1, centerVertex);
+	const Point* p3 = FindAdjacentPoint(q0, q2, centerVertex);
 	if (!p1)
 	{
 		Swap(m_p[2], m_p[8]);
@@ -56,11 +62,10 @@ Quadblock::Quadblock(const std::string& name, Quad& q0, Quad& q1, Quad& q2, Quad
 		Swap(q2, q3);
 	}
 
-	m_p[1] = p1 ? Vertex(*p1) : Vertex(*FindAdjacentVec(q0, q1, centerVertex));
-	m_p[3] = p3 ? Vertex(*p3) : Vertex(*FindAdjacentVec(q0, q2, centerVertex));
-	m_p[5] = Vertex(*FindAdjacentVec(q1, q3, centerVertex));
-	m_p[7] = Vertex(*FindAdjacentVec(q2, q3, centerVertex));
-	m_p[4] = Vertex(centerVertex);
+	m_p[1] = p1 ? Vertex(*p1) : Vertex(*FindAdjacentPoint(q0, q1, centerVertex));
+	m_p[3] = p3 ? Vertex(*p3) : Vertex(*FindAdjacentPoint(q0, q2, centerVertex));
+	m_p[5] = Vertex(*FindAdjacentPoint(q1, q3, centerVertex));
+	m_p[7] = Vertex(*FindAdjacentPoint(q2, q3, centerVertex));
 
 	Vec3 quadNormal = ComputeNormalVector(0, 2, 6);
 	quadNormal = quadNormal / quadNormal.Length();

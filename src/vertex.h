@@ -13,7 +13,9 @@ class Vertex
 {
 public:
 	Vertex();
+	Vertex(const Point& point);
 	Vertex(const Vec3& pos);
+	Vertex(const Vec3& pos, const Color& color);
 	bool IsEdited() const;
 	void RenderUI(size_t index);
 	std::vector<uint8_t> Serialize() const;

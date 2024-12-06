@@ -9,8 +9,17 @@ Vertex::Vertex()
 {
 	m_pos = Vec3();
 	m_flags = VertexFlags::NONE;
-	m_colorHigh = Color(255, 255, 255);
-	m_colorLow = Color(255, 255, 255);
+	m_colorHigh = Color(255u, 255u, 255u);
+	m_colorLow = Color(255u, 255u, 255u);
+	m_editedPos = false;
+}
+
+Vertex::Vertex(const Point& point)
+{
+	m_pos = point.pos;
+	m_flags = VertexFlags::NONE;
+	m_colorHigh = point.color;
+	m_colorLow = point.color;
 	m_editedPos = false;
 }
 
@@ -18,8 +27,17 @@ Vertex::Vertex(const Vec3& pos)
 {
 	m_pos = pos;
 	m_flags = VertexFlags::NONE;
-	m_colorHigh = Color(255, 255, 255);
-	m_colorLow = Color(255, 255, 255);
+	m_colorHigh = Color(255u, 255u, 255u);
+	m_colorLow = Color(255u, 255u, 255u);
+	m_editedPos = false;
+}
+
+Vertex::Vertex(const Vec3& pos, const Color& color)
+{
+	m_pos = pos;
+	m_flags = VertexFlags::NONE;
+	m_colorHigh = color;
+	m_colorLow = color;
 	m_editedPos = false;
 }
 

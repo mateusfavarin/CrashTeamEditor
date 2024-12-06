@@ -459,7 +459,7 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 
 	std::unordered_map<std::string, std::vector<Quad>> vertexIndexMap;
 	std::unordered_map<std::string, std::vector<Vec3>> normalIndexMap;
-	std::vector<Vec3> vertices;
+	std::vector<Point> vertices;
 	std::vector<Vec3> normals;
 	std::string currQuadblockName;
 	while (std::getline(file, line))
@@ -469,19 +469,25 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 		const std::string& command = tokens[0];
 		if (command == "v")
 		{
+			if (tokens.size() < 4) { continue; }
 			vertices.emplace_back(std::stof(tokens[1]), std::stof(tokens[2]), std::stof(tokens[3]));
+			if (tokens.size() < 7) { continue; }
+			vertices.back().color = Color(std::stof(tokens[4]), std::stof(tokens[5]), std::stof(tokens[6]));
 		}
 		else if (command == "vn")
 		{
+			if (tokens.size() < 4) { continue; }
 			normals.emplace_back(std::stof(tokens[1]), std::stof(tokens[2]), std::stof(tokens[3]));
 		}
 		else if (command == "o")
 		{
+			if (tokens.size() < 2) { continue; }
 			currQuadblockName = tokens[1];
 		}
 		else if (command == "f")
 		{
 			if (currQuadblockName.empty()) { return false; }
+			if (tokens.size() < 5) { continue; }
 			if (!vertexIndexMap.contains(currQuadblockName)) { vertexIndexMap[currQuadblockName] = std::vector<Quad>(); }
 
 			std::vector<std::string> token0 = Split(tokens[1], '/');
