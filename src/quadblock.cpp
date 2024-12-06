@@ -29,7 +29,7 @@ Quadblock::Quadblock(const std::string& name, Quad& q0, Quad& q1, Quad& q2, Quad
 		if (uniqueVertices.contains(q1.p[i].pos)) { m_p[2] = Vertex(q1.p[i]); }
 		if (uniqueVertices.contains(q2.p[i].pos)) { m_p[6] = Vertex(q2.p[i]); }
 		if (uniqueVertices.contains(q3.p[i].pos)) { m_p[8] = Vertex(q3.p[i]); }
-		if (!foundCenter && uniqueVertices.contains(q0.p[i].pos))
+		if (!foundCenter && centerVertex == q0.p[i].pos)
 		{
 			m_p[4] = Vertex(q0.p[i]);
 			foundCenter = true;
