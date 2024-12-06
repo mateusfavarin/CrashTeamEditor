@@ -66,112 +66,122 @@ void Level::RenderUI()
 		ImGui::EndMainMenuBar();
 	}
 
-	if (w_spawn && ImGui::Begin("Spawn", &w_spawn, ImGuiWindowFlags_AlwaysAutoResize))
+	if (w_spawn)
 	{
-		for (size_t i = 0; i < NUM_DRIVERS; i++)
+		if (ImGui::Begin("Spawn", &w_spawn, ImGuiWindowFlags_AlwaysAutoResize))
 		{
-			if (ImGui::TreeNode(("Driver " + std::to_string(i)).c_str()))
+			for (size_t i = 0; i < NUM_DRIVERS; i++)
 			{
-				ImGui::Text("Pos:"); ImGui::SameLine(); ImGui::InputFloat3("##pos", m_spawn[i].pos.Data());
-				ImGui::Text("Rot:"); ImGui::SameLine();
-				if (ImGui::InputFloat3("##rot", m_spawn[i].rot.Data()))
+				if (ImGui::TreeNode(("Driver " + std::to_string(i)).c_str()))
 				{
-					m_spawn[i].rot.x = Clamp(m_spawn[i].rot.x, -360.0f, 360.0f);
-					m_spawn[i].rot.y = Clamp(m_spawn[i].rot.y, -360.0f, 360.0f);
-					m_spawn[i].rot.z = Clamp(m_spawn[i].rot.z, -360.0f, 360.0f);
-				};
-				ImGui::TreePop();
+					ImGui::Text("Pos:"); ImGui::SameLine(); ImGui::InputFloat3("##pos", m_spawn[i].pos.Data());
+					ImGui::Text("Rot:"); ImGui::SameLine();
+					if (ImGui::InputFloat3("##rot", m_spawn[i].rot.Data()))
+					{
+						m_spawn[i].rot.x = Clamp(m_spawn[i].rot.x, -360.0f, 360.0f);
+						m_spawn[i].rot.y = Clamp(m_spawn[i].rot.y, -360.0f, 360.0f);
+						m_spawn[i].rot.z = Clamp(m_spawn[i].rot.z, -360.0f, 360.0f);
+					};
+					ImGui::TreePop();
+				}
 			}
 		}
 		ImGui::End();
 	}
 
-	if (w_level && ImGui::Begin("Level", &w_level, ImGuiWindowFlags_AlwaysAutoResize))
+	if (w_level)
 	{
-		if (ImGui::TreeNode("Flags"))
+		if (ImGui::Begin("Level", &w_level, ImGuiWindowFlags_AlwaysAutoResize))
 		{
-			static bool flagOptions[NUM_LEV_CONFIG_FLAGS] = {};
-			auto FlagOptionsUI = [](uint32_t& config, bool* toggle, const uint32_t flag, const std::string& title)
-				{
-					if (ImGui::Checkbox(title.c_str(), toggle))
-					{
-						if (toggle) { config |= flag; }
-						else { config &= ~flag; }
-					}
-				};
-
-			FlagOptionsUI(m_configFlags, &flagOptions[0], LevConfigFlags::ENABLE_SKYBOX_GRADIENT, "Enable Skybox Gradient");
-			FlagOptionsUI(m_configFlags, &flagOptions[1], LevConfigFlags::MASK_GRAB_UNDERWATER, "Mask Grab Underwater");
-			FlagOptionsUI(m_configFlags, &flagOptions[2], LevConfigFlags::ANIMATE_WATER_VERTEX, "Animate Water Vertex");
-			ImGui::TreePop();
-		}
-		if (ImGui::TreeNode("Sky Gradient"))
-		{
-			for (size_t i = 0; i < NUM_GRADIENT; i++)
+			if (ImGui::TreeNode("Flags"))
 			{
-				if (ImGui::TreeNode(("Gradient " + std::to_string(i)).c_str()))
-				{
-					ImGui::Text("From:"); ImGui::SameLine(); ImGui::InputFloat("##pos_from", &m_skyGradient[i].posFrom);
-					ImGui::Text("To:  "); ImGui::SameLine(); ImGui::InputFloat("##pos_to", &m_skyGradient[i].posTo);
-					ImGui::Text("From:"); ImGui::SameLine(); ImGui::ColorEdit3("##color_from", m_skyGradient[i].colorFrom.Data());
-					ImGui::Text("To:  "); ImGui::SameLine(); ImGui::ColorEdit3("##color_to", m_skyGradient[i].colorTo.Data());
-					ImGui::TreePop();
-				}
+				static bool flagOptions[NUM_LEV_CONFIG_FLAGS] = {};
+				auto FlagOptionsUI = [](uint32_t& config, bool* toggle, const uint32_t flag, const std::string& title)
+					{
+						if (ImGui::Checkbox(title.c_str(), toggle))
+						{
+							if (toggle) { config |= flag; }
+							else { config &= ~flag; }
+						}
+					};
+
+				FlagOptionsUI(m_configFlags, &flagOptions[0], LevConfigFlags::ENABLE_SKYBOX_GRADIENT, "Enable Skybox Gradient");
+				FlagOptionsUI(m_configFlags, &flagOptions[1], LevConfigFlags::MASK_GRAB_UNDERWATER, "Mask Grab Underwater");
+				FlagOptionsUI(m_configFlags, &flagOptions[2], LevConfigFlags::ANIMATE_WATER_VERTEX, "Animate Water Vertex");
+				ImGui::TreePop();
 			}
-			ImGui::TreePop();
-		}
-		if (ImGui::TreeNode("Clear Color"))
-		{
-			ImGui::ColorEdit3("##color", m_clearColor.Data());
-			ImGui::TreePop();
+			if (ImGui::TreeNode("Sky Gradient"))
+			{
+				for (size_t i = 0; i < NUM_GRADIENT; i++)
+				{
+					if (ImGui::TreeNode(("Gradient " + std::to_string(i)).c_str()))
+					{
+						ImGui::Text("From:"); ImGui::SameLine(); ImGui::InputFloat("##pos_from", &m_skyGradient[i].posFrom);
+						ImGui::Text("To:  "); ImGui::SameLine(); ImGui::InputFloat("##pos_to", &m_skyGradient[i].posTo);
+						ImGui::Text("From:"); ImGui::SameLine(); ImGui::ColorEdit3("##color_from", m_skyGradient[i].colorFrom.Data());
+						ImGui::Text("To:  "); ImGui::SameLine(); ImGui::ColorEdit3("##color_to", m_skyGradient[i].colorTo.Data());
+						ImGui::TreePop();
+					}
+				}
+				ImGui::TreePop();
+			}
+			if (ImGui::TreeNode("Clear Color"))
+			{
+				ImGui::ColorEdit3("##color", m_clearColor.Data());
+				ImGui::TreePop();
+			}
 		}
 		ImGui::End();
 	}
 
 	static bool resetMaterialPreview = false;
-	if (w_material && ImGui::Begin("Material", &w_material, ImGuiWindowFlags_AlwaysAutoResize))
+	if (w_material)
 	{
-		for (const auto& [material, quadblockIndexes] : m_materialToQuadblocks)
+		if (ImGui::Begin("Material", &w_material, ImGuiWindowFlags_AlwaysAutoResize))
 		{
-			if (ImGui::TreeNode(material.c_str()))
+			for (const auto& [material, quadblockIndexes] : m_materialToQuadblocks)
 			{
-				if (ImGui::TreeNode("Quadblocks"))
+				if (ImGui::TreeNode(material.c_str()))
 				{
-					constexpr size_t QUADS_PER_LINE = 10;
-					for (size_t i = 0; i < quadblockIndexes.size(); i++)
+					if (ImGui::TreeNode("Quadblocks"))
 					{
-						ImGui::Text((m_quadblocks[quadblockIndexes[i]].Name() + ", ").c_str());
-						if (((i + 1) % QUADS_PER_LINE) == 0 || i == quadblockIndexes.size() - 1) { continue; }
-						ImGui::SameLine();
+						constexpr size_t QUADS_PER_LINE = 10;
+						for (size_t i = 0; i < quadblockIndexes.size(); i++)
+						{
+							ImGui::Text((m_quadblocks[quadblockIndexes[i]].Name() + ", ").c_str());
+							if (((i + 1) % QUADS_PER_LINE) == 0 || i == quadblockIndexes.size() - 1) { continue; }
+							ImGui::SameLine();
+						}
+						ImGui::TreePop();
+					}
+					ImGui::Text("Terrain:"); ImGui::SameLine();
+					if (ImGui::BeginCombo("##terrain", m_materialTerrainPreview[material].c_str()))
+					{
+						for (const auto&[label, terrain] : TerrainType::LABELS)
+						{
+							if (ImGui::Selectable(label.c_str()))
+							{
+								m_materialTerrainPreview[material] = label;
+								resetMaterialPreview = true;
+							}
+						}
+						ImGui::EndCombo();
+					} ImGui::SameLine();
+					if (ImGui::Button("Apply"))
+					{
+						for (const size_t index : quadblockIndexes)
+						{
+							m_quadblocks[index].SetTerrain(TerrainType::LABELS.at(m_materialTerrainPreview[material]));
+						}
+						m_materialTerrainBackup[material] = m_materialTerrainPreview[material];
 					}
 					ImGui::TreePop();
 				}
-				ImGui::Text("Terrain:"); ImGui::SameLine();
-				if (ImGui::BeginCombo("##terrain", m_materialTerrainPreview[material].c_str()))
-				{
-					for (const auto&[label, terrain] : TerrainType::LABELS)
-					{
-						if (ImGui::Selectable(label.c_str()))
-						{
-							m_materialTerrainPreview[material] = label;
-							resetMaterialPreview = true;
-						}
-					}
-					ImGui::EndCombo();
-				} ImGui::SameLine();
-				if (ImGui::Button("Apply"))
-				{
-					for (const size_t index : quadblockIndexes)
-					{
-						m_quadblocks[index].SetTerrain(TerrainType::LABELS.at(m_materialTerrainPreview[material]));
-					}
-					m_materialTerrainBackup[material] = m_materialTerrainPreview[material];
-				}
-				ImGui::TreePop();
 			}
 		}
 		ImGui::End();
 	}
+
 	if (resetMaterialPreview && !w_material)
 	{
 		for (const auto& [material, quadblockIndexes] : m_materialToQuadblocks)
@@ -181,57 +191,63 @@ void Level::RenderUI()
 		resetMaterialPreview = false;
 	}
 
-	if (w_quadblocks && ImGui::Begin("Quadblocks", &w_quadblocks, ImGuiWindowFlags_AlwaysAutoResize))
+	if (w_quadblocks)
 	{
-		for (Quadblock& quadblock : m_quadblocks)
+		if (ImGui::Begin("Quadblocks", &w_quadblocks, ImGuiWindowFlags_AlwaysAutoResize))
 		{
-			quadblock.RenderUI(m_checkpoints.size() - 1);
+			for (Quadblock& quadblock : m_quadblocks) { quadblock.RenderUI(m_checkpoints.size() - 1); }
 		}
 		ImGui::End();
 	}
 
-	if (w_checkpoints && ImGui::Begin("Checkpoints", &w_checkpoints, ImGuiWindowFlags_AlwaysAutoResize))
+	if (w_checkpoints)
 	{
-		std::vector<int> checkpointsDelete;
-		for (int i = 0; i < m_checkpoints.size(); i++)
+		if (ImGui::Begin("Checkpoints", &w_checkpoints, ImGuiWindowFlags_AlwaysAutoResize))
 		{
-			m_checkpoints[i].RenderUI(m_checkpoints.size(), m_quadblocks);
-			if (m_checkpoints[i].GetDelete()) { checkpointsDelete.push_back(i); }
-		}
-		if (!checkpointsDelete.empty())
-		{
-			for (int i = static_cast<int>(checkpointsDelete.size()) - 1; i >= 0; i--)
-			{
-				m_checkpoints.erase(m_checkpoints.begin() + checkpointsDelete[i]);
-			}
+			std::vector<int> checkpointsDelete;
 			for (int i = 0; i < m_checkpoints.size(); i++)
 			{
-				m_checkpoints[i].RemoveInvalidCheckpoints(checkpointsDelete);
-				m_checkpoints[i].UpdateInvalidCheckpoints(checkpointsDelete);
-				m_checkpoints[i].UpdateIndex(i);
+				m_checkpoints[i].RenderUI(m_checkpoints.size(), m_quadblocks);
+				if (m_checkpoints[i].GetDelete()) { checkpointsDelete.push_back(i); }
 			}
-		}
-		if (ImGui::Button("Add Checkpoint"))
-		{
-			m_checkpoints.emplace_back(static_cast<int>(m_checkpoints.size()));
+			if (!checkpointsDelete.empty())
+			{
+				for (int i = static_cast<int>(checkpointsDelete.size()) - 1; i >= 0; i--)
+				{
+					m_checkpoints.erase(m_checkpoints.begin() + checkpointsDelete[i]);
+				}
+				for (int i = 0; i < m_checkpoints.size(); i++)
+				{
+					m_checkpoints[i].RemoveInvalidCheckpoints(checkpointsDelete);
+					m_checkpoints[i].UpdateInvalidCheckpoints(checkpointsDelete);
+					m_checkpoints[i].UpdateIndex(i);
+				}
+			}
+			if (ImGui::Button("Add Checkpoint"))
+			{
+				m_checkpoints.emplace_back(static_cast<int>(m_checkpoints.size()));
+			}
 		}
 		ImGui::End();
 	}
 
-	if (w_bsp && ImGui::Begin("BSP Tree", &w_bsp, ImGuiWindowFlags_AlwaysAutoResize))
+	if (w_bsp)
 	{
-		if (!m_bsp.Empty())
+		if (ImGui::Begin("BSP Tree", &w_bsp, ImGuiWindowFlags_AlwaysAutoResize))
 		{
-			size_t bspIndex = 0;
-			m_bsp.RenderUI(bspIndex, m_quadblocks);
-		}
-		if (ImGui::Button("Generate"))
-		{
-			std::vector<size_t> quadIndexes;
-			for (size_t i = 0; i < m_quadblocks.size(); i++) { quadIndexes.push_back(i); }
-			m_bsp.Clear();
-			m_bsp.SetQuadblockIndexes(quadIndexes);
-			m_bsp.Generate(m_quadblocks, MAX_QUADBLOCKS_LEAF, MAX_LEAF_AXIS_LENGTH);
+			if (!m_bsp.Empty())
+			{
+				size_t bspIndex = 0;
+				m_bsp.RenderUI(bspIndex, m_quadblocks);
+			}
+			if (ImGui::Button("Generate"))
+			{
+				std::vector<size_t> quadIndexes;
+				for (size_t i = 0; i < m_quadblocks.size(); i++) { quadIndexes.push_back(i); }
+				m_bsp.Clear();
+				m_bsp.SetQuadblockIndexes(quadIndexes);
+				m_bsp.Generate(m_quadblocks, MAX_QUADBLOCKS_LEAF, MAX_LEAF_AXIS_LENGTH);
+			}
 		}
 		ImGui::End();
 	}
