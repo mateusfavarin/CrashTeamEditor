@@ -4,9 +4,9 @@
 
 #include <cstdint>
 
-enum class VertexFlags : uint16_t
+namespace VertexFlags
 {
-	NONE = 0,
+	static constexpr uint16_t NONE = 0;
 };
 
 class Vertex
@@ -25,7 +25,7 @@ public:
 	Vec3 m_pos;
 
 private:
-	VertexFlags m_flags;
+	uint16_t m_flags;
 	Color m_colorHigh;
 	Color m_colorLow;
 	bool m_editedPos;
@@ -38,6 +38,6 @@ struct std::hash<Vertex>
 {
 	inline std::size_t operator()(const Vertex& key) const
 	{
-		return ((((std::hash<Vec3>()(key.m_pos) ^ (std::hash<VertexFlags>()(key.m_flags) << 1)) >> 1) ^ (std::hash<Color>()(key.m_colorHigh) << 1)) >> 2) ^ (std::hash<Color>()(key.m_colorLow) << 2);
+		return ((((std::hash<Vec3>()(key.m_pos) ^ (std::hash<uint16_t>()(key.m_flags) << 1)) >> 1) ^ (std::hash<Color>()(key.m_colorHigh) << 1)) >> 2) ^ (std::hash<Color>()(key.m_colorLow) << 2);
 	}
 };

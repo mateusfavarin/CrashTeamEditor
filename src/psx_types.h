@@ -109,7 +109,7 @@ namespace PSX
 		uint32_t offUnk_0xD0; // 0xD0
 		uint32_t offLowTexArray; // 0xD4
 		PSX::Color clear; // 0xD8
-		LevConfigFlags config; // 0xDC
+		uint32_t config; // 0xDC
 		uint32_t offBuildStart; // 0xE0
 		uint32_t offBuildEnd; // 0xE4
 		uint32_t offBuildType; // 0xE8
@@ -157,7 +157,7 @@ namespace PSX
 	struct Vertex
 	{
 		PSX::Vec3 pos;
-		VertexFlags flags;
+		uint16_t flags;
 		PSX::Color colorHi;
 		PSX::Color colorLo;
 	};
@@ -165,12 +165,12 @@ namespace PSX
 	struct Quadblock
 	{
 		uint16_t index[NUM_VERTICES_QUADBLOCK]; // 0x0
-		QuadFlags flags; // 0x12
+		uint16_t flags; // 0x12
 		uint32_t drawOrderLow; // 0x14
 		uint32_t drawOrderHigh; // 0x18
 		uint32_t offMidTextures[4]; // 0x1C
 		PSX::BoundingBox bbox; // 0x2C
-		TerrainType terrain; // 0x38
+		uint8_t terrain; // 0x38
 		uint8_t weatherIntensity; // 0x39
 		uint8_t weatherVanishRate; // 0x3A
 		int8_t speedImpact; // 0x3B

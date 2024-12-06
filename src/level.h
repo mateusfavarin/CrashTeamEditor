@@ -25,7 +25,7 @@ private:
 private:
 	std::string m_name;
 	Spawn m_spawn[NUM_DRIVERS];
-	LevConfigFlags m_configFlags;
+	uint32_t m_configFlags;
 	ColorGradient m_skyGradient[NUM_GRADIENT];
 	Color m_clearColor;
 	std::vector<Quadblock> m_quadblocks;

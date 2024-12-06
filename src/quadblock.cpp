@@ -6,7 +6,7 @@
 #include <unordered_map>
 #include <unordered_set>
 
-Quadblock::Quadblock(const std::string& name, Quad& q0, Quad& q1, Quad& q2, Quad& q3, const Vec3& normal)
+Quadblock::Quadblock(const std::string& name, Quad& q0, Quad& q1, Quad& q2, Quad& q3, const Vec3& normal, const std::string& material)
 {
 	std::unordered_map<Vec3, unsigned> vRefCount;
 	for (size_t i = 0; i < 4; i++)
@@ -79,6 +79,7 @@ Quadblock::Quadblock(const std::string& name, Quad& q0, Quad& q1, Quad& q2, Quad
 
 	ComputeBoundingBox();
 	m_name = name;
+	m_material = material;
 	m_checkpointIndex = -1;
 	m_flags = QuadFlags::GROUND | QuadFlags::TRIGGER_COLLISION;
 	m_terrain = TerrainType::ASPHALT;

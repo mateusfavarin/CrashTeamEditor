@@ -65,7 +65,7 @@ void Level::RenderUI()
 		if (ImGui::TreeNode("Config Flags"))
 		{
 			static bool flagOptions[NUM_LEV_CONFIG_FLAGS] = {};
-			auto FlagOptionsUI = [](LevConfigFlags& config, bool* toggle, const LevConfigFlags flag, const std::string& title)
+			auto FlagOptionsUI = [](uint32_t& config, bool* toggle, const uint32_t flag, const std::string& title)
 				{
 					if (ImGui::Checkbox(title.c_str(), toggle))
 					{
@@ -459,6 +459,7 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 
 	std::unordered_map<std::string, std::vector<Quad>> vertexIndexMap;
 	std::unordered_map<std::string, std::vector<Vec3>> normalIndexMap;
+	std::unordered_map<std::string, std::string> materialMap;
 	std::vector<Point> vertices;
 	std::vector<Vec3> normals;
 	std::string currQuadblockName;
@@ -483,6 +484,12 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 		{
 			if (tokens.size() < 2) { continue; }
 			currQuadblockName = tokens[1];
+		}
+		else if (command == "usemtl")
+		{
+			if (tokens.size() < 2) { continue; }
+			if (currQuadblockName.empty() || materialMap.contains(currQuadblockName)) { return false; }
+			materialMap[currQuadblockName] = tokens[1];
 		}
 		else if (command == "f")
 		{

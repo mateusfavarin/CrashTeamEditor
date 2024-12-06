@@ -8,79 +8,52 @@
 
 static constexpr size_t NUM_VERTICES_QUADBLOCK = 9;
 
-enum class QuadFlags : uint16_t
+namespace QuadFlags
 {
-	NONE = 0,
-	INVISIBLE = 1 << 0,
-	MOON_GRAVITY = 1 << 1,
-	REFLECTION = 1 << 2,
-	KICKERS = 1 << 3,
-	OUT_OF_BOUNDS = 1 << 4,
-	TRIGGER = 1 << 6,
-	REVERB = 1 << 7,
-	MASK_GRAB = 1 << 9,
-	TRIGGER_COLLISION = 1 << 11,
-	GROUND = 1 << 12,
-	WALL = 1 << 13,
-	NO_COLLISION = 1 << 14,
+	static constexpr uint16_t NONE = 0;
+	static constexpr uint16_t INVISIBLE = 1 << 0;
+	static constexpr uint16_t MOON_GRAVITY = 1 << 1;
+	static constexpr uint16_t REFLECTION = 1 << 2;
+	static constexpr uint16_t KICKERS = 1 << 3;
+	static constexpr uint16_t OUT_OF_BOUNDS = 1 << 4;
+	static constexpr uint16_t TRIGGER = 1 << 6;
+	static constexpr uint16_t REVERB = 1 << 7;
+	static constexpr uint16_t MASK_GRAB = 1 << 9;
+	static constexpr uint16_t TRIGGER_COLLISION = 1 << 11;
+	static constexpr uint16_t GROUND = 1 << 12;
+	static constexpr uint16_t WALL = 1 << 13;
+	static constexpr uint16_t NO_COLLISION = 1 << 14;
 };
 
-inline QuadFlags& operator|=(QuadFlags& a, const QuadFlags& b)
+namespace TerrainType
 {
-	a = static_cast<QuadFlags>(static_cast<uint32_t>(a) | static_cast<uint32_t>(b));
-	return a;
-}
-
-inline QuadFlags& operator&=(QuadFlags& a, const QuadFlags& b)
-{
-	a = static_cast<QuadFlags>(static_cast<uint32_t>(a) & static_cast<uint32_t>(b));
-	return a;
-}
-
-inline QuadFlags operator~(const QuadFlags& a)
-{
-	return static_cast<QuadFlags>(~static_cast<uint32_t>(a));
-}
-
-inline QuadFlags operator|(const QuadFlags& a, const QuadFlags& b)
-{
-	return static_cast<QuadFlags>(static_cast<uint32_t>(a) | static_cast<uint32_t>(b));
-}
-
-inline QuadFlags operator&(const QuadFlags& a, const QuadFlags& b)
-{
-	return static_cast<QuadFlags>(static_cast<uint32_t>(a) & static_cast<uint32_t>(b));
-}
-
-enum class TerrainType : uint8_t
-{
-	ASPHALT = 0,
-	DIRT = 1,
-	GRASS = 2,
-	WOOD = 3,
-	WATER = 4,
-	STONE = 5,
-	ICE = 6,
-	TRACK = 7,
-	ICY_ROAD = 8,
-	SNOW = 9,
-	NONE = 10,
-	HARD_PACK = 11,
-	METAL = 12,
-	FAST_WATER = 13,
-	MUD = 14,
-	SIDE_SLIP = 15,
-	RIVER_ASPHALT = 16,
-	STEAM_ASPHALT = 17,
-	OCEAN_ASPHALT = 18,
-	SLOW_GRASS = 19,
-	SLOW_DIRT = 20,
+	static constexpr uint8_t ASPHALT = 0;
+	static constexpr uint8_t DIRT = 1;
+	static constexpr uint8_t GRASS = 2;
+	static constexpr uint8_t WOOD = 3;
+	static constexpr uint8_t WATER = 4;
+	static constexpr uint8_t STONE = 5;
+	static constexpr uint8_t ICE = 6;
+	static constexpr uint8_t TRACK = 7;
+	static constexpr uint8_t ICY_ROAD = 8;
+	static constexpr uint8_t SNOW = 9;
+	static constexpr uint8_t NONE = 10;
+	static constexpr uint8_t HARD_PACK = 11;
+	static constexpr uint8_t METAL = 12;
+	static constexpr uint8_t FAST_WATER = 13;
+	static constexpr uint8_t MUD = 14;
+	static constexpr uint8_t SIDE_SLIP = 15;
+	static constexpr uint8_t RIVER_ASPHALT = 16;
+	static constexpr uint8_t STEAM_ASPHALT = 17;
+	static constexpr uint8_t OCEAN_ASPHALT = 18;
+	static constexpr uint8_t SLOW_GRASS = 19;
+	static constexpr uint8_t SLOW_DIRT = 20;
 };
 
 class Quadblock
 {
 public:
-	Quadblock(const std::string& name, Quad& q0, Quad& q1, Quad& q2, Quad& q3, const Vec3& normal);
+	Quadblock(const std::string& name, Quad& q0, Quad& q1, Quad& q2, Quad& q3, const Vec3& normal, const std::string& material = "");
 	const std::string& Name() const;
 	const Vec3& Center() const;
 	const BoundingBox& GetBoundingBox() const;
@@ -103,7 +76,8 @@ private:
 	Vertex m_p[NUM_VERTICES_QUADBLOCK];
 	BoundingBox m_bbox;
 	std::string m_name;
+	std::string m_material;
 	int m_checkpointIndex;
-	QuadFlags m_flags;
-	TerrainType m_terrain;
+	uint16_t m_flags;
+	uint8_t m_terrain;
 };
