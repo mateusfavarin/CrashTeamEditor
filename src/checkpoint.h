@@ -6,6 +6,9 @@
 #include <string>
 #include <vector>
 
+static constexpr int NONE_CHECKPOINT_INDEX = std::numeric_limits<int>::max();
+static const std::string DEFAULT_UI_CHECKBOX_LABEL = "None";
+
 class Checkpoint
 {
 public:

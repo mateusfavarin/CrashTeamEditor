@@ -23,6 +23,7 @@
     <ClCompile Include="src\bsp.cpp" />
     <ClCompile Include="src\checkpoint.cpp" />
     <ClCompile Include="src\level.cpp" />
+    <ClCompile Include="src\levelui.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\math.cpp" />
     <ClCompile Include="src\quadblock.cpp" />

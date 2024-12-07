@@ -1,8 +1,6 @@
 #include "bsp.h"
 #include "psx_types.h"
 
-#include <imgui.h>
-
 static size_t g_id = 0;
 
 BSP::BSP()
@@ -142,32 +140,6 @@ void BSP::Generate(const std::vector<Quadblock>& quadblocks, const size_t maxQua
 std::vector<uint8_t> BSP::Serialize(size_t offQuads) const
 {
 	return m_type == NodeType::BRANCH ? SerializeBranch() : SerializeLeaf(offQuads);
-}
-
-void BSP::RenderUI(size_t& index, const std::vector<Quadblock>& quadblocks)
-{
-	std::string title = GetType() + " " + std::to_string(index++);
-	if (ImGui::TreeNode(title.c_str()))
-	{
-		if (IsBranch()) { ImGui::Text(("Axis:  " + GetAxis()).c_str()); }
-		ImGui::Text(("Quads: " + std::to_string(m_quadblockIndexes.size())).c_str());
-		if (ImGui::TreeNode("Quadblock List:"))
-		{
-			constexpr size_t QUADS_PER_LINE = 10;
-			for (size_t i = 0; i < m_quadblockIndexes.size(); i++)
-			{
-				ImGui::Text((quadblocks[m_quadblockIndexes[i]].Name() + ", ").c_str());
-				if (((i + 1) % QUADS_PER_LINE) == 0 || i == m_quadblockIndexes.size() - 1) { continue; }
-				ImGui::SameLine();
-			}
-			ImGui::TreePop();
-		}
-		ImGui::Text("Bounding Box:");
-		m_bbox.RenderUI();
-		if (m_left) { m_left->RenderUI(++index, quadblocks); }
-		if (m_right) { m_right->RenderUI(++index, quadblocks); }
-		ImGui::TreePop();
-	}
 }
 
 float BSP::GetAxisMidpoint(const AxisSplit axis) const

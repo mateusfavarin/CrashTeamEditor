@@ -50,11 +50,11 @@ namespace TerrainType
 	static constexpr uint8_t SLOW_GRASS = 19;
 	static constexpr uint8_t SLOW_DIRT = 20;
 	static const std::unordered_map<std::string, uint8_t> LABELS = {
-		{"Asphalt", 0}, {"Dirt", 1}, {"Grass", 2}, {"Wood", 3}, {"Water", 4}, {"Stone", 5},
-		{"Ice", 6}, {"Track (?)", 7}, {"Icy Road", 8}, {"Snow", 9}, {"None (?)", 10},
-		{"Hard Pack (?)", 11}, {"Metal", 12}, {"Fast Water", 13}, {"Mud", 14}, {"Side Slip", 15},
-		{"River Asphalt", 16}, {"Steam Asphalt", 17}, {"Ocean Asphalt", 18}, {"Slow Grass", 19},
-		{"Slow Dirt", 20},
+		{"Asphalt", ASPHALT}, {"Dirt", DIRT}, {"Grass", GRASS}, {"Wood", WOOD}, {"Water", WATER}, {"Stone", STONE},
+		{"Ice", ICE}, {"Track (?)", TRACK}, {"Icy Road", ICY_ROAD}, {"Snow", SNOW}, {"None (?)", NONE},
+		{"Hard Pack (?)", HARD_PACK}, {"Metal", METAL}, {"Fast Water", FAST_WATER}, {"Mud", MUD}, {"Side Slip", SIDE_SLIP},
+		{"River Asphalt", RIVER_ASPHALT}, {"Steam Asphalt", STEAM_ASPHALT}, {"Ocean Asphalt", OCEAN_ASPHALT},
+		{"Slow Grass", SLOW_GRASS}, {"Slow Dirt", SLOW_DIRT},
 	};
 };
 

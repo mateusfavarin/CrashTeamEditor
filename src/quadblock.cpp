@@ -1,8 +1,6 @@
 #include "quadblock.h"
 #include "psx_types.h"
 
-#include <imgui.h>
-
 #include <unordered_map>
 #include <unordered_set>
 
@@ -162,31 +160,6 @@ std::vector<uint8_t> Quadblock::Serialize(size_t id, size_t offTextures, size_t 
 	quadblock.triNormalVecDividend[9] = CalculateNormalDividend(2, 8, 6, scaler);
 	std::memcpy(buffer.data(), &quadblock, sizeof(quadblock));
 	return buffer;
-}
-
-void Quadblock::RenderUI(size_t checkpointCount)
-{
-	if (ImGui::TreeNode(m_name.c_str()))
-	{
-		if (ImGui::TreeNode("Vertices"))
-		{
-			for (size_t i = 0; i < NUM_VERTICES_QUADBLOCK; i++)
-			{
-				m_p[i].RenderUI(i);
-				if (m_p[i].IsEdited()) { ComputeBoundingBox(); }
-			}
-			ImGui::TreePop();
-		}
-		if (ImGui::TreeNode("Bounding Box"))
-		{
-			m_bbox.RenderUI();
-			ImGui::TreePop();
-		}
-		ImGui::Text("Checkpoint Index: ");
-		ImGui::SameLine();
-		if (ImGui::InputInt("##cp", &m_checkpointIndex)) { m_checkpointIndex = Clamp(m_checkpointIndex, -1, static_cast<int>(checkpointCount)); }
-		ImGui::TreePop();
-	}
 }
 
 Vec3 Quadblock::ComputeNormalVector(size_t id0, size_t id1, size_t id2) const
