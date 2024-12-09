@@ -5,10 +5,12 @@
 
 #include <vector>
 
-enum class NodeType
+enum class BSPNode
 {
-	BRANCH = 0,
-	LEAF = 1
+	BRANCH,
+	LEAF,
+	FAILED_SUBDIVISION,
+	FAILED_BBOX_LENGTH
 };
 
 enum class AxisSplit
@@ -31,9 +33,10 @@ class BSP
 {
 public:
 	BSP();
-	BSP(NodeType type, const std::vector<size_t>& quadblockIndexes);
+	BSP(BSPNode type, const std::vector<size_t>& quadblockIndexes);
 	size_t Id() const;
 	bool Empty() const;
+	bool Valid() const;
 	bool IsBranch() const;
 	const std::string& GetType() const;
 	const std::string& GetAxis() const;
@@ -41,6 +44,7 @@ public:
 	const std::vector<size_t>& GetQuadblockIndexes() const;
 	const BSP* GetLeftChildren() const;
 	const BSP* GetRightChildren() const;
+	const std::vector<const BSP*> GetTree() const;
 	void SetQuadblockIndexes(const std::vector<size_t>& quadblockIndexes);
 	void Clear();
 	void Generate(const std::vector<Quadblock>& quadblocks, const size_t maxQuadsPerLeaf, const float maxAxisLength);
@@ -57,7 +61,7 @@ private:
 
 private:
 	size_t m_id;
-	NodeType m_type;
+	BSPNode m_node;
 	AxisSplit m_axis;
 	BSPFlags m_flags;
 	BSP* m_left;

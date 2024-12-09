@@ -16,3 +16,13 @@ float BoundingBox::SemiPerimeter() const
 	Vec3 dist = max - min;
 	return dist.x + dist.y + dist.z;
 }
+
+Vec3 BoundingBox::AxisLength() const
+{
+	return max - min;
+}
+
+Vec3 BoundingBox::Midpoint() const
+{
+	return (max + min) / 2;
+}

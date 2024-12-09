@@ -26,6 +26,7 @@ private:
 
 private:
 	std::string m_name;
+	std::string m_bspStatusMessage;
 	Spawn m_spawn[NUM_DRIVERS];
 	uint32_t m_configFlags;
 	ColorGradient m_skyGradient[NUM_GRADIENT];

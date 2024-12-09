@@ -22,7 +22,7 @@ bool Level::Save(const std::filesystem::path& path)
 
 bool Level::Ready()
 {
-	return !m_bsp.Empty();
+	return !m_bsp.Valid();
 }
 
 void Level::Clear()
@@ -32,6 +32,7 @@ void Level::Clear()
 	m_configFlags = LevConfigFlags::NONE;
 	m_clearColor = Color();
 	m_name.clear();
+	m_bspStatusMessage.clear();
 	m_quadblocks.clear();
 	m_checkpoints.clear();
 	m_bsp.Clear();
@@ -73,17 +74,7 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	std::filesystem::path filepath = path / (m_name + ".lev");
 	std::ofstream file(filepath, std::ios::binary);
 
-	std::vector<const BSP*> bspNodes = {&m_bsp};
-	size_t i = 0;
-	while (i < bspNodes.size())
-	{
-		const BSP* currNode = bspNodes[i++];
-		const BSP* leftNode = currNode->GetLeftChildren();
-		if (leftNode) { bspNodes.push_back(leftNode); }
-		const BSP* rightNode = currNode->GetRightChildren();
-		if (rightNode) { bspNodes.push_back(rightNode); }
-	}
-
+	std::vector<const BSP*> bspNodes = m_bsp.GetTree();
 	std::vector<const BSP*> orderedBSPNodes(bspNodes.size());
 	for (const BSP* bsp : bspNodes) { orderedBSPNodes[bsp->Id()] = bsp; }
 

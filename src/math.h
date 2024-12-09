@@ -69,6 +69,8 @@ struct BoundingBox
 
 	float Area() const;
 	float SemiPerimeter() const;
+	Vec3 AxisLength() const;
+	Vec3 Midpoint() const;
 	void RenderUI() const;
 };
 

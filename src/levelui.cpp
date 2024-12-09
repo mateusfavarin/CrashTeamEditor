@@ -306,7 +306,14 @@ void Level::RenderUI()
 				m_bsp.Clear();
 				m_bsp.SetQuadblockIndexes(quadIndexes);
 				m_bsp.Generate(m_quadblocks, MAX_QUADBLOCKS_LEAF, MAX_LEAF_AXIS_LENGTH);
+				if (m_bsp.Valid()) { m_bspStatusMessage = "Successfully generated the BSP tree."; }
+				else
+				{
+					m_bsp.Clear();
+					m_bspStatusMessage = "Failed generating the BSP tree.";
+				}
 			}
+			if (!m_bspStatusMessage.empty()) { ImGui::Text(m_bspStatusMessage.c_str()); }
 		}
 		ImGui::End();
 	}
