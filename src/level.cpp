@@ -22,7 +22,7 @@ bool Level::Save(const std::filesystem::path& path)
 
 bool Level::Ready()
 {
-	return !m_bsp.Valid();
+	return m_bsp.Valid();
 }
 
 void Level::Clear()
@@ -407,8 +407,10 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 				{
 					material = materialMap[currQuadblockName];
 					m_materialToQuadblocks[material].push_back(m_quadblocks.size());
-					m_materialTerrainPreview[material] = "Asphalt";
-					m_materialTerrainBackup[material] = "Asphalt";
+					m_materialTerrainPreview[material] = TerrainType::DEFAULT;
+					m_materialTerrainBackup[material] = TerrainType::DEFAULT;
+					m_materialQuadflagsPreview[material] = QuadFlags::DEFAULT;
+					m_materialQuadflagsBackup[material] = QuadFlags::DEFAULT;
 				}
 				m_quadblocks.emplace_back(currQuadblockName, q0, q1, q2, q3, averageNormal, material);
 			}

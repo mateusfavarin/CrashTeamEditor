@@ -24,6 +24,13 @@ namespace QuadFlags
 	static constexpr uint16_t GROUND = 1 << 12;
 	static constexpr uint16_t WALL = 1 << 13;
 	static constexpr uint16_t NO_COLLISION = 1 << 14;
+	static constexpr uint16_t DEFAULT = GROUND | TRIGGER_COLLISION;
+	static const std::unordered_map<std::string, uint16_t> LABELS = {
+		{"None", NONE}, {"Invisible", INVISIBLE}, {"Moon Gravity", MOON_GRAVITY}, {"Reflection", REFLECTION},
+		{"Kickers (?)", KICKERS}, {"Out of Bounds", OUT_OF_BOUNDS}, {"Trigger", TRIGGER}, {"Reverb", REVERB},
+		{"Mask Grab", MASK_GRAB}, {"Trigger Collision", TRIGGER_COLLISION}, {"Ground", GROUND}, {"Wall", WALL},
+		{"No Colision", NO_COLLISION}
+	};
 };
 
 namespace TerrainType
@@ -49,6 +56,7 @@ namespace TerrainType
 	static constexpr uint8_t OCEAN_ASPHALT = 18;
 	static constexpr uint8_t SLOW_GRASS = 19;
 	static constexpr uint8_t SLOW_DIRT = 20;
+	static const std::string DEFAULT = "Asphalt";
 	static const std::unordered_map<std::string, uint8_t> LABELS = {
 		{"Asphalt", ASPHALT}, {"Dirt", DIRT}, {"Grass", GRASS}, {"Wood", WOOD}, {"Water", WATER}, {"Stone", STONE},
 		{"Ice", ICE}, {"Track (?)", TRACK}, {"Icy Road", ICY_ROAD}, {"Snow", SNOW}, {"None (?)", NONE},
@@ -66,6 +74,7 @@ public:
 	const Vec3& Center() const;
 	uint8_t Terrain() const;
 	void SetTerrain(uint8_t terrain);
+	void SetFlag(uint16_t flag);
 	const BoundingBox& GetBoundingBox() const;
 	std::vector<Vertex> GetVertices() const;
 	std::vector<uint8_t> Serialize(size_t id, size_t offTextures, size_t offVisibleSet, const std::vector<size_t>& vertexIndexes) const;

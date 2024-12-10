@@ -79,8 +79,8 @@ Quadblock::Quadblock(const std::string& name, Quad& q0, Quad& q1, Quad& q2, Quad
 	m_name = name;
 	m_material = material;
 	m_checkpointIndex = -1;
-	m_flags = QuadFlags::GROUND | QuadFlags::TRIGGER_COLLISION;
-	m_terrain = TerrainType::ASPHALT;
+	m_flags = QuadFlags::DEFAULT;
+	m_terrain = TerrainType::LABELS.at(TerrainType::DEFAULT);
 }
 
 const std::string& Quadblock::Name() const
@@ -101,6 +101,11 @@ uint8_t Quadblock::Terrain() const
 void Quadblock::SetTerrain(uint8_t terrain)
 {
 	m_terrain = terrain;
+}
+
+void Quadblock::SetFlag(uint16_t flag)
+{
+	m_flags = flag;
 }
 
 const BoundingBox& Quadblock::GetBoundingBox() const

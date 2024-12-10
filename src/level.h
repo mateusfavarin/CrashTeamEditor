@@ -37,4 +37,6 @@ private:
 	std::unordered_map<std::string, std::vector<size_t>> m_materialToQuadblocks;
 	std::unordered_map<std::string, std::string> m_materialTerrainPreview;
 	std::unordered_map<std::string, std::string> m_materialTerrainBackup;
+	std::unordered_map<std::string, uint16_t> m_materialQuadflagsPreview;
+	std::unordered_map<std::string, uint16_t> m_materialQuadflagsBackup;
 };

@@ -10,6 +10,19 @@
 static constexpr size_t MAX_QUADBLOCKS_LEAF = 32;
 static constexpr float MAX_LEAF_AXIS_LENGTH = 60.0f;
 
+template<typename T>
+static bool UIFlagCheckbox(T& var, const T flag, const std::string& title)
+{
+	bool active = var & flag;
+	if (ImGui::Checkbox(title.c_str(), &active))
+	{
+		if (active) { var |= flag; }
+		else { var &= ~flag; }
+		return true;
+	}
+	return false;
+}
+
 void BoundingBox::RenderUI() const
 {
 	ImGui::Text("Max:"); ImGui::SameLine();
@@ -154,19 +167,9 @@ void Level::RenderUI()
 		{
 			if (ImGui::TreeNode("Flags"))
 			{
-				auto FlagOptionsUI = [](uint32_t& config, const uint32_t flag, const std::string& title)
-					{
-						bool active = config & flag;
-						if (ImGui::Checkbox(title.c_str(), &active))
-						{
-							if (active) { config |= flag; }
-							else { config &= ~flag; }
-						}
-					};
-
-				FlagOptionsUI(m_configFlags, LevConfigFlags::ENABLE_SKYBOX_GRADIENT, "Enable Skybox Gradient");
-				FlagOptionsUI(m_configFlags, LevConfigFlags::MASK_GRAB_UNDERWATER, "Mask Grab Underwater");
-				FlagOptionsUI(m_configFlags, LevConfigFlags::ANIMATE_WATER_VERTEX, "Animate Water Vertex");
+				UIFlagCheckbox(m_configFlags, LevConfigFlags::ENABLE_SKYBOX_GRADIENT, "Enable Skybox Gradient");
+				UIFlagCheckbox(m_configFlags, LevConfigFlags::MASK_GRAB_UNDERWATER, "Mask Grab Underwater");
+				UIFlagCheckbox(m_configFlags, LevConfigFlags::ANIMATE_WATER_VERTEX, "Animate Water Vertex");
 				ImGui::TreePop();
 			}
 			if (ImGui::TreeNode("Sky Gradient"))
@@ -193,7 +196,8 @@ void Level::RenderUI()
 		ImGui::End();
 	}
 
-	static bool resetMaterialPreview = false;
+	static bool resetTerrainPreview = false;
+	static bool resetQuadflagPreview = false;
 	if (w_material)
 	{
 		if (ImGui::Begin("Material", &w_material, ImGuiWindowFlags_AlwaysAutoResize))
@@ -221,18 +225,37 @@ void Level::RenderUI()
 							if (ImGui::Selectable(label.c_str()))
 							{
 								m_materialTerrainPreview[material] = label;
-								resetMaterialPreview = true;
+								resetTerrainPreview = true;
 							}
 						}
 						ImGui::EndCombo();
 					} ImGui::SameLine();
 					if (ImGui::Button("Apply"))
 					{
+						const std::string& terrain = m_materialTerrainPreview[material];
 						for (const size_t index : quadblockIndexes)
 						{
-							m_quadblocks[index].SetTerrain(TerrainType::LABELS.at(m_materialTerrainPreview[material]));
+							m_quadblocks[index].SetTerrain(TerrainType::LABELS.at(terrain));
 						}
-						m_materialTerrainBackup[material] = m_materialTerrainPreview[material];
+						m_materialTerrainBackup[material] = terrain;
+					}
+					if (ImGui::TreeNode("Quad Flags"))
+					{
+						for (const auto& [label, flag] : QuadFlags::LABELS)
+						{
+							UIFlagCheckbox(m_materialQuadflagsPreview[material], flag, label);
+							resetQuadflagPreview = true;
+						}
+						if (ImGui::Button("Apply"))
+						{
+							uint16_t flag = m_materialQuadflagsPreview[material];
+							for (const size_t index : quadblockIndexes)
+							{
+								m_quadblocks[index].SetFlag(flag);
+							}
+							m_materialQuadflagsBackup[material] = flag;
+						}
+						ImGui::TreePop();
 					}
 					ImGui::TreePop();
 				}
@@ -241,13 +264,22 @@ void Level::RenderUI()
 		ImGui::End();
 	}
 
-	if (resetMaterialPreview && !w_material)
+	if (resetTerrainPreview && !w_material)
 	{
 		for (const auto& [material, quadblockIndexes] : m_materialToQuadblocks)
 		{
 			m_materialTerrainPreview[material] = m_materialTerrainBackup[material];
 		}
-		resetMaterialPreview = false;
+		resetTerrainPreview = false;
+	}
+
+	if (resetQuadflagPreview && !w_material)
+	{
+		for (const auto& [material, quadblockIndexes] : m_materialToQuadblocks)
+		{
+			m_materialQuadflagsPreview[material] = m_materialQuadflagsBackup[material];
+		}
+		resetQuadflagPreview = false;
 	}
 
 	if (w_quadblocks)
