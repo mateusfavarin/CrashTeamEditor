@@ -17,19 +17,24 @@ namespace QuadFlags
 	static constexpr uint16_t REFLECTION = 1 << 2;
 	static constexpr uint16_t KICKERS = 1 << 3;
 	static constexpr uint16_t OUT_OF_BOUNDS = 1 << 4;
-	static constexpr uint16_t TRIGGER = 1 << 6;
+	static constexpr uint16_t NEVER_USED = 1 << 5;
+	static constexpr uint16_t TRIGGER_SCRIPT = 1 << 6;
 	static constexpr uint16_t REVERB = 1 << 7;
+	static constexpr uint16_t KICKERS_TWO = 1 << 8;
 	static constexpr uint16_t MASK_GRAB = 1 << 9;
+	static constexpr uint16_t TIGER_TEMPLE_DOOR = 1 << 10;
 	static constexpr uint16_t TRIGGER_COLLISION = 1 << 11;
 	static constexpr uint16_t GROUND = 1 << 12;
 	static constexpr uint16_t WALL = 1 << 13;
 	static constexpr uint16_t NO_COLLISION = 1 << 14;
+	static constexpr uint16_t INVISIBLE_TRIGGER = 1 << 15;
 	static constexpr uint16_t DEFAULT = GROUND | TRIGGER_COLLISION;
 	static const std::unordered_map<std::string, uint16_t> LABELS = {
 		{"None", NONE}, {"Invisible", INVISIBLE}, {"Moon Gravity", MOON_GRAVITY}, {"Reflection", REFLECTION},
-		{"Kickers (?)", KICKERS}, {"Out of Bounds", OUT_OF_BOUNDS}, {"Trigger", TRIGGER}, {"Reverb", REVERB},
-		{"Mask Grab", MASK_GRAB}, {"Trigger Collision", TRIGGER_COLLISION}, {"Ground", GROUND}, {"Wall", WALL},
-		{"No Colision", NO_COLLISION}
+		{"Kickers (?)", KICKERS}, {"Out of Bounds", OUT_OF_BOUNDS}, {"Never Used (?)", NEVER_USED},
+		{"Trigger Script", TRIGGER_SCRIPT }, {"Reverb", REVERB}, {"Kickers Two (?)", KICKERS_TWO},
+		{ "Mask Grab", MASK_GRAB }, {"Tiger Temple Door", TIGER_TEMPLE_DOOR}, {"Trigger Collision", TRIGGER_COLLISION},
+		{"Ground", GROUND}, {"Wall", WALL}, {"No Colision", NO_COLLISION}, {"Invisible Trigger", INVISIBLE_TRIGGER}
 	};
 };
 
