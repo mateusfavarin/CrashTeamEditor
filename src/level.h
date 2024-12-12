@@ -5,6 +5,7 @@
 #include "checkpoint.h"
 #include "lev.h"
 #include "bsp.h"
+#include "path.h"
 
 #include <vector>
 #include <unordered_map>
@@ -39,4 +40,5 @@ private:
 	std::unordered_map<std::string, std::string> m_materialTerrainBackup;
 	std::unordered_map<std::string, uint16_t> m_materialQuadflagsPreview;
 	std::unordered_map<std::string, uint16_t> m_materialQuadflagsBackup;
+	std::vector<Path> m_checkpointPaths;
 };

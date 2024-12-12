@@ -13,7 +13,20 @@ class Checkpoint
 {
 public:
 	Checkpoint(int index);
+	Checkpoint(float distFinish, const Vec3& pos, const std::string& quadName);
+	int Index() const;
+	float DistFinish() const;
+	const Vec3& Pos() const;
+	int Up() const;
+	int Down() const;
+	int Left() const;
+	int Right() const;
+	void UpdateDistFinish(float dist);
 	void UpdateIndex(int index);
+	void UpdateUp(int up);
+	void UpdateDown(int down);
+	void UpdateLeft(int left);
+	void UpdateRight(int right);
 	bool GetDelete() const;
 	void RemoveInvalidCheckpoints(const std::vector<int>& invalidIndexes);
 	void UpdateInvalidCheckpoints(const std::vector<int>& invalidIndexes);

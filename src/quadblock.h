@@ -23,17 +23,17 @@ namespace QuadFlags
 	static constexpr uint16_t KICKERS_TWO = 1 << 8;
 	static constexpr uint16_t MASK_GRAB = 1 << 9;
 	static constexpr uint16_t TIGER_TEMPLE_DOOR = 1 << 10;
-	static constexpr uint16_t TRIGGER_COLLISION = 1 << 11;
+	static constexpr uint16_t COLLISION_TRIGGER = 1 << 11;
 	static constexpr uint16_t GROUND = 1 << 12;
 	static constexpr uint16_t WALL = 1 << 13;
 	static constexpr uint16_t NO_COLLISION = 1 << 14;
 	static constexpr uint16_t INVISIBLE_TRIGGER = 1 << 15;
-	static constexpr uint16_t DEFAULT = GROUND | TRIGGER_COLLISION;
+	static constexpr uint16_t DEFAULT = GROUND | COLLISION_TRIGGER;
 	static const std::unordered_map<std::string, uint16_t> LABELS = {
 		{"None", NONE}, {"Invisible", INVISIBLE}, {"Moon Gravity", MOON_GRAVITY}, {"Reflection", REFLECTION},
 		{"Kickers (?)", KICKERS}, {"Out of Bounds", OUT_OF_BOUNDS}, {"Never Used (?)", NEVER_USED},
 		{"Trigger Script", TRIGGER_SCRIPT }, {"Reverb", REVERB}, {"Kickers Two (?)", KICKERS_TWO},
-		{ "Mask Grab", MASK_GRAB }, {"Tiger Temple Door", TIGER_TEMPLE_DOOR}, {"Trigger Collision", TRIGGER_COLLISION},
+		{"Mask Grab", MASK_GRAB }, {"Tiger Temple Door", TIGER_TEMPLE_DOOR}, {"Collision Trigger", COLLISION_TRIGGER},
 		{"Ground", GROUND}, {"Wall", WALL}, {"No Colision", NO_COLLISION}, {"Invisible Trigger", INVISIBLE_TRIGGER}
 	};
 };
@@ -78,10 +78,14 @@ public:
 	const std::string& Name() const;
 	const Vec3& Center() const;
 	uint8_t Terrain() const;
+	uint16_t Flags() const;
 	void SetTerrain(uint8_t terrain);
 	void SetFlag(uint16_t flag);
+	void SetCheckpoint(int index);
 	const BoundingBox& GetBoundingBox() const;
 	std::vector<Vertex> GetVertices() const;
+	float DistanceClosestVertex(Vec3& out, const Vec3& v) const;
+	bool Neighbours(const Quadblock& quadblock, float threshold = 0.1f) const;
 	std::vector<uint8_t> Serialize(size_t id, size_t offTextures, size_t offVisibleSet, const std::vector<size_t>& vertexIndexes) const;
 	void RenderUI(size_t checkpointCount);
 

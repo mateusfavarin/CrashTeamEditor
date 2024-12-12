@@ -40,13 +40,17 @@ struct Vec3
 	inline float Length() const { return std::sqrtf((x * x) + (y * y) + (z * z)); }
 	inline Vec3 Cross(const Vec3& v) const { return { y * v.z - z * v.y, z * v.x - x * v.z, x * v.y - v.x * y }; }
 
-	inline Vec3 operator+(const Vec3& v) const { return { x + v.x, y + v.y, z + v.z}; }
-	inline Vec3 operator-(const Vec3& v) const { return {x - v.x, y - v.y, z - v.z}; }
+	inline Vec3 operator+(const Vec3& v) const { return { x + v.x, y + v.y, z + v.z }; }
+	inline Vec3 operator-(const Vec3& v) const { return { x - v.x, y - v.y, z - v.z }; }
 	inline Vec3 operator*(float n) const { return { x * n, y * n, z * n }; }
-	inline Vec3 operator/(float n) const { return {x / n, y / n, z / n}; }
+	inline Vec3 operator/(float n) const { return { x / n, y / n, z / n }; }
 	inline bool operator>(float n) const { return x > n && y > n && z > n; }
 	inline bool operator<(float n) const { return x < n && y < n && z < n; }
 	inline bool operator==(const Vec3& v) const { return (x == v.x) && (y == v.y) && (z == v.z); }
+	inline Vec3& operator+=(const Vec3& v) { x += v.x; y += v.y; z += v.z; return *this; }
+	inline Vec3& operator-=(const Vec3& v) { x -= v.x; y -= v.y; z -= v.z; return *this; }
+	inline Vec3& operator*=(float n) { x *= n; y *= n; z *= n; return *this; }
+	inline Vec3& operator/=(float n) { x /= n; y /= n; z /= n; return *this; }
 
 	float x;
 	float y;

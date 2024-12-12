@@ -38,6 +38,7 @@ void Level::Clear()
 	m_bsp.Clear();
 	m_materialToQuadblocks.clear();
 	m_materialTerrainPreview.clear();
+	m_checkpointPaths.clear();
 }
 
 bool Level::LoadLEV(const std::filesystem::path& levFile)

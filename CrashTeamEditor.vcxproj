@@ -26,6 +26,7 @@
     <ClCompile Include="src\levelui.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\math.cpp" />
+    <ClCompile Include="src\path.cpp" />
     <ClCompile Include="src\quadblock.cpp" />
     <ClCompile Include="src\string.cpp" />
     <ClCompile Include="src\ui.cpp" />
@@ -50,6 +51,7 @@
     <ClInclude Include="src\lev.h" />
     <ClInclude Include="src\level.h" />
     <ClInclude Include="src\math.h" />
+    <ClInclude Include="src\path.h" />
     <ClInclude Include="src\psx_types.h" />
     <ClInclude Include="src\quadblock.h" />
     <ClInclude Include="src\string.h" />

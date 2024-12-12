@@ -18,9 +18,90 @@ Checkpoint::Checkpoint(int index)
 	m_uiLinkRight = DEFAULT_UI_CHECKBOX_LABEL;
 }
 
+Checkpoint::Checkpoint(float distFinish, const Vec3& pos, const std::string& quadName)
+{
+	m_index = NONE_CHECKPOINT_INDEX;
+	m_pos = pos;
+	m_distToFinish = distFinish;
+	m_up = NONE_CHECKPOINT_INDEX;
+	m_down = NONE_CHECKPOINT_INDEX;
+	m_left = NONE_CHECKPOINT_INDEX;
+	m_right = NONE_CHECKPOINT_INDEX;
+	m_delete = false;
+	m_uiPosQuad = quadName;
+	m_uiLinkUp = DEFAULT_UI_CHECKBOX_LABEL;
+	m_uiLinkDown = DEFAULT_UI_CHECKBOX_LABEL;
+	m_uiLinkLeft = DEFAULT_UI_CHECKBOX_LABEL;
+	m_uiLinkRight = DEFAULT_UI_CHECKBOX_LABEL;
+}
+
+int Checkpoint::Index() const
+{
+	return m_index;
+}
+
+float Checkpoint::DistFinish() const
+{
+	return m_distToFinish;
+}
+
+const Vec3& Checkpoint::Pos() const
+{
+	return m_pos;
+}
+
+int Checkpoint::Up() const
+{
+	return m_up;
+}
+
+int Checkpoint::Down() const
+{
+	return m_down;
+}
+
+int Checkpoint::Left() const
+{
+	return m_left;
+}
+
+int Checkpoint::Right() const
+{
+	return m_right;
+}
+
+void Checkpoint::UpdateDistFinish(float dist)
+{
+	m_distToFinish = dist;
+}
+
 void Checkpoint::UpdateIndex(int index)
 {
 	m_index = index;
+}
+
+void Checkpoint::UpdateUp(int up)
+{
+	m_up = up;
+	m_uiLinkUp = "Checkpoint " + std::to_string(m_up);
+}
+
+void Checkpoint::UpdateDown(int down)
+{
+	m_down = down;
+	m_uiLinkDown = "Checkpoint " + std::to_string(m_down);
+}
+
+void Checkpoint::UpdateLeft(int left)
+{
+	m_left = left;
+	m_uiLinkLeft = "Checkpoint " + std::to_string(m_left);
+}
+
+void Checkpoint::UpdateRight(int right)
+{
+	m_right = right;
+	m_uiLinkRight = "Checkpoint " + std::to_string(m_right);
 }
 
 bool Checkpoint::GetDelete() const

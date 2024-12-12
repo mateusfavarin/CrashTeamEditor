@@ -2,6 +2,7 @@
 #include "bsp.h"
 #include "checkpoint.h"
 #include "level.h"
+#include "path.h"
 #include "quadblock.h"
 #include "vertex.h"
 
@@ -295,29 +296,111 @@ void Level::RenderUI()
 	{
 		if (ImGui::Begin("Checkpoints", &w_checkpoints, ImGuiWindowFlags_AlwaysAutoResize))
 		{
-			std::vector<int> checkpointsDelete;
-			for (int i = 0; i < m_checkpoints.size(); i++)
+			if (ImGui::TreeNode("Checkpoints"))
 			{
-				m_checkpoints[i].RenderUI(m_checkpoints.size(), m_quadblocks);
-				if (m_checkpoints[i].GetDelete()) { checkpointsDelete.push_back(i); }
-			}
-			if (!checkpointsDelete.empty())
-			{
-				for (int i = static_cast<int>(checkpointsDelete.size()) - 1; i >= 0; i--)
-				{
-					m_checkpoints.erase(m_checkpoints.begin() + checkpointsDelete[i]);
-				}
+				std::vector<int> checkpointsDelete;
 				for (int i = 0; i < m_checkpoints.size(); i++)
 				{
-					m_checkpoints[i].RemoveInvalidCheckpoints(checkpointsDelete);
-					m_checkpoints[i].UpdateInvalidCheckpoints(checkpointsDelete);
-					m_checkpoints[i].UpdateIndex(i);
+					m_checkpoints[i].RenderUI(m_checkpoints.size(), m_quadblocks);
+					if (m_checkpoints[i].GetDelete()) { checkpointsDelete.push_back(i); }
+				}
+				if (!checkpointsDelete.empty())
+				{
+					for (int i = static_cast<int>(checkpointsDelete.size()) - 1; i >= 0; i--)
+					{
+						m_checkpoints.erase(m_checkpoints.begin() + checkpointsDelete[i]);
+					}
+					for (int i = 0; i < m_checkpoints.size(); i++)
+					{
+						m_checkpoints[i].RemoveInvalidCheckpoints(checkpointsDelete);
+						m_checkpoints[i].UpdateInvalidCheckpoints(checkpointsDelete);
+						m_checkpoints[i].UpdateIndex(i);
+					}
+				}
+				if (ImGui::Button("Add Checkpoint"))
+				{
+					m_checkpoints.emplace_back(static_cast<int>(m_checkpoints.size()));
+				}
+				ImGui::TreePop();
+			}
+		}
+		if (ImGui::TreeNode("Generate"))
+		{
+			for (Path& path : m_checkpointPaths)
+			{
+				path.RenderUI(m_quadblocks);
+			}
+
+			if (ImGui::Button("Create Path"))
+			{
+				m_checkpointPaths.push_back(Path(m_checkpointPaths.size()));
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("Delete Path"))
+			{
+				m_checkpointPaths.pop_back();
+			}
+
+			bool ready = true;
+			for (const Path& path : m_checkpointPaths)
+			{
+				if (!path.Ready()) { ready = false; break; }
+			}
+			ImGui::BeginDisabled(!ready);
+			if (ImGui::Button("Generate"))
+			{
+				size_t checkpointIndex = 0;
+				std::vector<std::vector<Checkpoint>> pathCheckpoints;
+				for (const Path& path : m_checkpointPaths)
+				{
+					pathCheckpoints.push_back(path.GeneratePath(checkpointIndex, m_quadblocks));
+					checkpointIndex += pathCheckpoints.back().size();
+				}
+				/* TODO: Link Paths properly */
+				m_checkpoints.clear();
+				std::vector<size_t> linkNodeIndexes;
+				for (const std::vector<Checkpoint>& checkpoints : pathCheckpoints)
+				{
+					size_t currCheckpointIndex = m_checkpoints.size();
+					for (const Checkpoint& checkpoint : checkpoints)
+					{
+						m_checkpoints.push_back(checkpoint);
+					}
+					if (!checkpoints.empty())
+					{
+						linkNodeIndexes.push_back(currCheckpointIndex);
+						linkNodeIndexes.push_back(m_checkpoints.size() - 1);
+					}
+				}
+				/* TODO: Add a link editor to enable bifurcation paths */
+				for (int i = static_cast<int>(linkNodeIndexes.size()) - 1; i >= 0; i--)
+				{
+					Checkpoint& node = m_checkpoints[linkNodeIndexes[i]];
+					if (i % 2 == 0)
+					{
+						size_t linkDown = (i == 0) ? linkNodeIndexes.size() - 1 : i - 1;
+						node.UpdateDown(static_cast<int>(linkNodeIndexes[linkDown]));
+						if (i > 0)
+						{
+							Checkpoint* currCheckpoint = &m_checkpoints[linkNodeIndexes[linkDown]];
+							float chunkDistFinish = node.DistFinish() + (node.Pos() - currCheckpoint->Pos()).Length();
+							while (true)
+							{
+								currCheckpoint->UpdateDistFinish(currCheckpoint->DistFinish() + chunkDistFinish);
+								if (currCheckpoint->Down() == NONE_CHECKPOINT_INDEX) { break; }
+								currCheckpoint = &m_checkpoints[currCheckpoint->Down()];
+							}
+						}
+					}
+					else
+					{
+						size_t linkUp = (i + 1) % linkNodeIndexes.size();
+						node.UpdateUp(static_cast<int>(linkNodeIndexes[linkUp]));
+					}
 				}
 			}
-			if (ImGui::Button("Add Checkpoint"))
-			{
-				m_checkpoints.emplace_back(static_cast<int>(m_checkpoints.size()));
-			}
+			ImGui::EndDisabled();
+			ImGui::TreePop();
 		}
 		ImGui::End();
 	}
@@ -348,6 +431,68 @@ void Level::RenderUI()
 			if (!m_bspStatusMessage.empty()) { ImGui::Text(m_bspStatusMessage.c_str()); }
 		}
 		ImGui::End();
+	}
+}
+
+void Path::RenderUI(const std::vector<Quadblock>& quadblocks)
+{
+	auto QuadListUI = [](std::vector<size_t>& indexes, size_t& value, std::string& label, const std::string& title, const std::vector<Quadblock>& quadblocks)
+		{
+			if (ImGui::BeginChild(title.c_str(), {0, 0}, ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_AutoResizeX))
+			{
+				ImGui::Text(title.c_str());
+				if (ImGui::TreeNode("Quad list:"))
+				{
+					std::vector<size_t> deleteList;
+					for (size_t i = 0; i < indexes.size(); i++)
+					{
+						ImGui::Text(quadblocks[indexes[i]].Name().c_str()); ImGui::SameLine();
+						if (ImGui::Button(("Remove##" + std::to_string(i)).c_str()))
+						{
+							deleteList.push_back(i);
+						}
+					}
+					if (!deleteList.empty())
+					{
+						for (int i = static_cast<int>(deleteList.size()) - 1; i >= 0; i--)
+						{
+							indexes.erase(indexes.begin() + deleteList[i]);
+						}
+					}
+					ImGui::TreePop();
+				}
+				if (ImGui::BeginCombo(("##" + title).c_str(), label.c_str()))
+				{
+					for (size_t i = 0; i < quadblocks.size(); i++)
+					{
+						if (ImGui::Selectable(quadblocks[i].Name().c_str()))
+						{
+							label = quadblocks[i].Name();
+							value = i;
+						}
+					}
+					ImGui::EndCombo();
+				}
+				if (ImGui::Button("Add"))
+				{
+					bool found = false;
+					for (const size_t index : indexes)
+					{
+						if (index == value) { found = true; break; }
+					}
+					if (!found) { indexes.push_back(value); }
+				}
+			}
+			ImGui::EndChild();
+		};
+
+	const std::string title = "Path " + std::to_string(m_index);
+	if (ImGui::TreeNode(title.c_str()))
+	{
+		QuadListUI(m_quadIndexesStart, m_previewValueStart, m_previewLabelStart, "Start", quadblocks);
+		ImGui::SameLine();
+		QuadListUI(m_quadIndexesEnd, m_previewValueEnd, m_previewLabelEnd, "End", quadblocks);
+		ImGui::TreePop();
 	}
 }
 

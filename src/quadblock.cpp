@@ -98,6 +98,11 @@ uint8_t Quadblock::Terrain() const
 	return m_terrain;
 }
 
+uint16_t Quadblock::Flags() const
+{
+	return m_flags;
+}
+
 void Quadblock::SetTerrain(uint8_t terrain)
 {
 	m_terrain = terrain;
@@ -108,6 +113,11 @@ void Quadblock::SetFlag(uint16_t flag)
 	m_flags = flag;
 }
 
+void Quadblock::SetCheckpoint(int index)
+{
+	m_checkpointIndex = index;
+}
+
 const BoundingBox& Quadblock::GetBoundingBox() const
 {
 	return m_bbox;
@@ -115,9 +125,36 @@ const BoundingBox& Quadblock::GetBoundingBox() const
 
 std::vector<Vertex> Quadblock::GetVertices() const
 {
-	                              /*   0       1       2       3       4       5       6       7       8    */
-	std::vector<Vertex> vertices = { m_p[0], m_p[2], m_p[6], m_p[8], m_p[1], m_p[3], m_p[4], m_p[5], m_p[7] };
+	/*                                0       1       2       3       4       5       6       7       8    */
+	std::vector<Vertex> vertices = {m_p[0], m_p[2], m_p[6], m_p[8], m_p[1], m_p[3], m_p[4], m_p[5], m_p[7]};
 	return vertices;
+}
+
+float Quadblock::DistanceClosestVertex(Vec3& out, const Vec3& v) const
+{
+	float minDist = std::numeric_limits<float>::max();
+	for (size_t i = 0; i < NUM_VERTICES_QUADBLOCK; i++)
+	{
+		float dist = (v - m_p[i].m_pos).Length();
+		if (dist < minDist)
+		{
+			minDist = dist;
+			out = m_p[i].m_pos;
+		}
+	}
+	return minDist;
+}
+
+bool Quadblock::Neighbours(const Quadblock& quadblock, float threshold) const
+{
+	for (size_t i = 0; i < NUM_VERTICES_QUADBLOCK; i++)
+	{
+		for (size_t j = 0; j < NUM_VERTICES_QUADBLOCK; j++)
+		{
+			if ((m_p[i].m_pos - quadblock.m_p[j].m_pos).Length() < threshold) { return true; }
+		}
+	}
+	return false;
 }
 
 std::vector<uint8_t> Quadblock::Serialize(size_t id, size_t offTextures, size_t offVisibleSet, const std::vector<size_t>& vertexIndexes) const
