@@ -328,7 +328,7 @@ void Level::RenderUI()
 		{
 			for (Path& path : m_checkpointPaths)
 			{
-				path.RenderUI(m_quadblocks);
+				path.RenderUI("Path " + std::to_string(path.Index()), m_quadblocks);
 			}
 
 			if (ImGui::Button("Create Path"))
@@ -350,47 +350,39 @@ void Level::RenderUI()
 			if (ImGui::Button("Generate"))
 			{
 				size_t checkpointIndex = 0;
+				std::vector<size_t> linkNodeIndexes;
 				std::vector<std::vector<Checkpoint>> pathCheckpoints;
-				for (const Path& path : m_checkpointPaths)
+				for (Path& path : m_checkpointPaths)
 				{
 					pathCheckpoints.push_back(path.GeneratePath(checkpointIndex, m_quadblocks));
 					checkpointIndex += pathCheckpoints.back().size();
+					linkNodeIndexes.push_back(path.Start());
+					linkNodeIndexes.push_back(path.End());
 				}
-				/* TODO: Link Paths properly */
 				m_checkpoints.clear();
-				std::vector<size_t> linkNodeIndexes;
 				for (const std::vector<Checkpoint>& checkpoints : pathCheckpoints)
 				{
-					size_t currCheckpointIndex = m_checkpoints.size();
 					for (const Checkpoint& checkpoint : checkpoints)
 					{
 						m_checkpoints.push_back(checkpoint);
 					}
-					if (!checkpoints.empty())
-					{
-						linkNodeIndexes.push_back(currCheckpointIndex);
-						linkNodeIndexes.push_back(m_checkpoints.size() - 1);
-					}
 				}
-				/* TODO: Add a link editor to enable bifurcation paths */
-				for (int i = static_cast<int>(linkNodeIndexes.size()) - 1; i >= 0; i--)
+
+				int lastPathIndex = static_cast<int>(m_checkpointPaths.size()) - 1;
+				const Checkpoint* currStartCheckpoint = &m_checkpoints[m_checkpointPaths[lastPathIndex].Start()];
+				for (int i = lastPathIndex - 1; i >= 0; i--)
+				{
+					m_checkpointPaths[i].UpdateDist(currStartCheckpoint->DistFinish(), currStartCheckpoint->Pos(), m_checkpoints);
+					currStartCheckpoint = &m_checkpoints[m_checkpointPaths[i].Start()];
+				}
+
+				for (size_t i = 0; i < linkNodeIndexes.size(); i++)
 				{
 					Checkpoint& node = m_checkpoints[linkNodeIndexes[i]];
 					if (i % 2 == 0)
 					{
 						size_t linkDown = (i == 0) ? linkNodeIndexes.size() - 1 : i - 1;
 						node.UpdateDown(static_cast<int>(linkNodeIndexes[linkDown]));
-						if (i > 0)
-						{
-							Checkpoint* currCheckpoint = &m_checkpoints[linkNodeIndexes[linkDown]];
-							float chunkDistFinish = node.DistFinish() + (node.Pos() - currCheckpoint->Pos()).Length();
-							while (true)
-							{
-								currCheckpoint->UpdateDistFinish(currCheckpoint->DistFinish() + chunkDistFinish);
-								if (currCheckpoint->Down() == NONE_CHECKPOINT_INDEX) { break; }
-								currCheckpoint = &m_checkpoints[currCheckpoint->Down()];
-							}
-						}
 					}
 					else
 					{
@@ -434,9 +426,9 @@ void Level::RenderUI()
 	}
 }
 
-void Path::RenderUI(const std::vector<Quadblock>& quadblocks)
+void Path::RenderUI(const std::string& title, const std::vector<Quadblock>& quadblocks)
 {
-	auto QuadListUI = [](std::vector<size_t>& indexes, size_t& value, std::string& label, const std::string& title, const std::vector<Quadblock>& quadblocks)
+	auto QuadListUI = [this](std::vector<size_t>& indexes, size_t& value, std::string& label, const std::string& title, const std::vector<Quadblock>& quadblocks)
 		{
 			if (ImGui::BeginChild(title.c_str(), {0, 0}, ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_AutoResizeX))
 			{
@@ -482,13 +474,43 @@ void Path::RenderUI(const std::vector<Quadblock>& quadblocks)
 					}
 					if (!found) { indexes.push_back(value); }
 				}
+				if (ImGui::Button("Add Left Path"))
+				{
+					if (!m_left) { m_left = new Path(m_index + 1); }
+				} ImGui::SameLine();
+				if (ImGui::Button("Add Right Path"))
+				{
+					if (!m_right) { m_right = new Path(m_index + 2); }
+				}
+				ImGui::BeginDisabled(m_left == nullptr);
+				if (ImGui::Button("Delete Left Path"))
+				{
+					if (m_left)
+					{
+						delete m_left;
+						m_left = nullptr;
+					}
+				}
+				ImGui::EndDisabled();
+				ImGui::SameLine();
+				ImGui::BeginDisabled(m_right == nullptr);
+				if (ImGui::Button("Delete Right Path"))
+				{
+					if (m_right)
+					{
+						delete m_right;
+						m_right = nullptr;
+					}
+				}
+				ImGui::EndDisabled();
 			}
 			ImGui::EndChild();
 		};
 
-	const std::string title = "Path " + std::to_string(m_index);
 	if (ImGui::TreeNode(title.c_str()))
 	{
+		if (m_left) { m_left->RenderUI("Left Path", quadblocks); }
+		if (m_right) { m_right->RenderUI("Right Path", quadblocks); }
 		QuadListUI(m_quadIndexesStart, m_previewValueStart, m_previewLabelStart, "Start", quadblocks);
 		ImGui::SameLine();
 		QuadListUI(m_quadIndexesEnd, m_previewValueEnd, m_previewLabelEnd, "End", quadblocks);

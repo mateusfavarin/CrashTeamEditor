@@ -18,11 +18,11 @@ Checkpoint::Checkpoint(int index)
 	m_uiLinkRight = DEFAULT_UI_CHECKBOX_LABEL;
 }
 
-Checkpoint::Checkpoint(float distFinish, const Vec3& pos, const std::string& quadName)
+Checkpoint::Checkpoint(int index, const Vec3& pos, const std::string& quadName)
 {
-	m_index = NONE_CHECKPOINT_INDEX;
+	m_index = index;
 	m_pos = pos;
-	m_distToFinish = distFinish;
+	m_distToFinish = 0.0f;
 	m_up = NONE_CHECKPOINT_INDEX;
 	m_down = NONE_CHECKPOINT_INDEX;
 	m_left = NONE_CHECKPOINT_INDEX;

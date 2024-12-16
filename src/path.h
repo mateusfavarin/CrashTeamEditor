@@ -10,12 +10,24 @@ class Path
 {
 public:
 	Path(size_t index);
+	~Path();
+	size_t Index() const;
+	size_t Start() const;
+	size_t End() const;
 	bool Ready() const;
-	std::vector<Checkpoint> GeneratePath(size_t pathStartIndex, std::vector<Quadblock>& quadblocks) const;
-	void RenderUI(const std::vector<Quadblock>& quadblocks);
+	void UpdateDist(float dist, const Vec3& refPoint, std::vector<Checkpoint>& checkpoints);
+	std::vector<Checkpoint> GeneratePath(size_t pathStartIndex, std::vector<Quadblock>& quadblocks);
+	void RenderUI(const std::string& title, const std::vector<Quadblock>& quadblocks);
+
+private:
+	void GetStartEndIndexes(std::vector<size_t>& out) const;
 
 private:
 	size_t m_index;
+	size_t m_start;
+	size_t m_end;
+	Path* m_left;
+	Path* m_right;
 
 	size_t m_previewValueStart;
 	std::string m_previewLabelStart;

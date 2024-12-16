@@ -13,7 +13,7 @@ class Checkpoint
 {
 public:
 	Checkpoint(int index);
-	Checkpoint(float distFinish, const Vec3& pos, const std::string& quadName);
+	Checkpoint(int index, const Vec3& pos, const std::string& quadName);
 	int Index() const;
 	float DistFinish() const;
 	const Vec3& Pos() const;

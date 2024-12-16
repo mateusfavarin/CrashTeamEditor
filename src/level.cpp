@@ -137,9 +137,9 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 			{
 				if (!vertexMap.contains(vertex))
 				{
-					size_t index = orderedVertices.size();
+					size_t vertexIndex = orderedVertices.size();
 					orderedVertices.push_back(vertex);
-					vertexMap[vertex] = index;
+					vertexMap[vertex] = vertexIndex;
 				}
 				verticesIndexes.push_back(vertexMap[vertex]);
 			}
