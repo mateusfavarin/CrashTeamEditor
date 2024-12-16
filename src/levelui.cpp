@@ -474,46 +474,50 @@ void Path::RenderUI(const std::string& title, const std::vector<Quadblock>& quad
 					}
 					if (!found) { indexes.push_back(value); }
 				}
-				if (ImGui::Button("Add Left Path"))
-				{
-					if (!m_left) { m_left = new Path(m_index + 1); }
-				} ImGui::SameLine();
-				if (ImGui::Button("Add Right Path"))
-				{
-					if (!m_right) { m_right = new Path(m_index + 2); }
-				}
-				ImGui::BeginDisabled(m_left == nullptr);
-				if (ImGui::Button("Delete Left Path"))
-				{
-					if (m_left)
-					{
-						delete m_left;
-						m_left = nullptr;
-					}
-				}
-				ImGui::EndDisabled();
-				ImGui::SameLine();
-				ImGui::BeginDisabled(m_right == nullptr);
-				if (ImGui::Button("Delete Right Path"))
-				{
-					if (m_right)
-					{
-						delete m_right;
-						m_right = nullptr;
-					}
-				}
-				ImGui::EndDisabled();
 			}
 			ImGui::EndChild();
 		};
 
 	if (ImGui::TreeNode(title.c_str()))
 	{
-		if (m_left) { m_left->RenderUI("Left Path", quadblocks); }
-		if (m_right) { m_right->RenderUI("Right Path", quadblocks); }
-		QuadListUI(m_quadIndexesStart, m_previewValueStart, m_previewLabelStart, "Start", quadblocks);
-		ImGui::SameLine();
-		QuadListUI(m_quadIndexesEnd, m_previewValueEnd, m_previewLabelEnd, "End", quadblocks);
+		if (ImGui::BeginChild(("##" + title).c_str(), {0, 0}, ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_AutoResizeX))
+		{
+			if (m_left) { m_left->RenderUI("Left Path", quadblocks); }
+			if (m_right) { m_right->RenderUI("Right Path", quadblocks); }
+			QuadListUI(m_quadIndexesStart, m_previewValueStart, m_previewLabelStart, "Start", quadblocks);
+			ImGui::SameLine();
+			QuadListUI(m_quadIndexesEnd, m_previewValueEnd, m_previewLabelEnd, "End", quadblocks);
+			if (ImGui::Button("Add Left Path"))
+			{
+				if (!m_left) { m_left = new Path(m_index + 1); }
+			} ImGui::SameLine();
+			if (ImGui::Button("Add Right Path"))
+			{
+				if (!m_right) { m_right = new Path(m_index + 2); }
+			}
+			ImGui::BeginDisabled(m_left == nullptr);
+			if (ImGui::Button("Delete Left Path"))
+			{
+				if (m_left)
+				{
+					delete m_left;
+					m_left = nullptr;
+				}
+			}
+			ImGui::EndDisabled();
+			ImGui::SameLine();
+			ImGui::BeginDisabled(m_right == nullptr);
+			if (ImGui::Button("Delete Right Path"))
+			{
+				if (m_right)
+				{
+					delete m_right;
+					m_right = nullptr;
+				}
+			}
+			ImGui::EndDisabled();
+			ImGui::EndChild();
+		}
 		ImGui::TreePop();
 	}
 }
