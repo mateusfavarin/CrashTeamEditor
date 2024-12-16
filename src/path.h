@@ -33,6 +33,10 @@ private:
 	std::string m_previewLabelStart;
 	std::vector<size_t> m_quadIndexesStart;
 
+	size_t m_previewValueIgnore;
+	std::string m_previewLabelIgnore;
+	std::vector<size_t> m_quadIndexesIgnore;
+
 	size_t m_previewValueEnd;
 	std::string m_previewLabelEnd;
 	std::vector<size_t> m_quadIndexesEnd;

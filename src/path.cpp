@@ -200,5 +200,6 @@ void Path::GetStartEndIndexes(std::vector<size_t>& out) const
 	if (m_left) { m_left->GetStartEndIndexes(out); }
 	if (m_right) { m_right->GetStartEndIndexes(out); }
 	for (const size_t index : m_quadIndexesStart) { out.push_back(index); }
+	for (const size_t index : m_quadIndexesIgnore) { out.push_back(index); }
 	for (const size_t index : m_quadIndexesEnd) { out.push_back(index); }
 }

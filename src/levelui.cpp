@@ -487,6 +487,8 @@ void Path::RenderUI(const std::string& title, const std::vector<Quadblock>& quad
 			QuadListUI(m_quadIndexesStart, m_previewValueStart, m_previewLabelStart, "Start", quadblocks);
 			ImGui::SameLine();
 			QuadListUI(m_quadIndexesEnd, m_previewValueEnd, m_previewLabelEnd, "End", quadblocks);
+			ImGui::SameLine();
+			QuadListUI(m_quadIndexesIgnore, m_previewValueIgnore, m_previewLabelIgnore, "Ignore", quadblocks);
 
 			if (ImGui::Button("Add Left Path "))
 			{
