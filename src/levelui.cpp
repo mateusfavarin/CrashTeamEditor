@@ -487,16 +487,13 @@ void Path::RenderUI(const std::string& title, const std::vector<Quadblock>& quad
 			QuadListUI(m_quadIndexesStart, m_previewValueStart, m_previewLabelStart, "Start", quadblocks);
 			ImGui::SameLine();
 			QuadListUI(m_quadIndexesEnd, m_previewValueEnd, m_previewLabelEnd, "End", quadblocks);
-			if (ImGui::Button("Add Left Path"))
+
+			if (ImGui::Button("Add Left Path "))
 			{
 				if (!m_left) { m_left = new Path(m_index + 1); }
 			} ImGui::SameLine();
-			if (ImGui::Button("Add Right Path"))
-			{
-				if (!m_right) { m_right = new Path(m_index + 2); }
-			}
 			ImGui::BeginDisabled(m_left == nullptr);
-			if (ImGui::Button("Delete Left Path"))
+			if (ImGui::Button("Delete Left Path "))
 			{
 				if (m_left)
 				{
@@ -505,6 +502,11 @@ void Path::RenderUI(const std::string& title, const std::vector<Quadblock>& quad
 				}
 			}
 			ImGui::EndDisabled();
+
+			if (ImGui::Button("Add Right Path"))
+			{
+				if (!m_right) { m_right = new Path(m_index + 2); }
+			}
 			ImGui::SameLine();
 			ImGui::BeginDisabled(m_right == nullptr);
 			if (ImGui::Button("Delete Right Path"))
@@ -516,6 +518,7 @@ void Path::RenderUI(const std::string& title, const std::vector<Quadblock>& quad
 				}
 			}
 			ImGui::EndDisabled();
+
 			ImGui::EndChild();
 		}
 		ImGui::TreePop();
