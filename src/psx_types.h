@@ -240,6 +240,7 @@ namespace PSX
 
 static constexpr int16_t FP_ONE = 0x1000;
 static constexpr int16_t FP_ONE_GEO = 64;
+static constexpr int16_t FP_ONE_CP = 8;
 static inline int16_t ConvertFloat(float x, int16_t one = FP_ONE) { return static_cast<int16_t>(x * static_cast<float>(one)); };
 static inline PSX::Vec3 ConvertVec3(Vec3 v, int16_t one = FP_ONE)
 {

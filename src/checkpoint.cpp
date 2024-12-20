@@ -136,7 +136,7 @@ std::vector<uint8_t> Checkpoint::Serialize() const
 	PSX::Checkpoint checkpoint;
 	std::vector<uint8_t> buffer(sizeof(checkpoint));
 	checkpoint.pos = ConvertVec3(m_pos, FP_ONE_GEO);
-	checkpoint.distToFinish = ConvertFloat(m_distToFinish, FP_ONE_GEO);
+	checkpoint.distToFinish = ConvertFloat(m_distToFinish, FP_ONE_CP);
 	checkpoint.linkUp = static_cast<uint8_t>(m_up);
 	checkpoint.linkDown = static_cast<uint8_t>(m_down);
 	checkpoint.linkLeft = static_cast<uint8_t>(m_left);

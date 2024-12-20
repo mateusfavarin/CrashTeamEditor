@@ -520,9 +520,8 @@ void Path::RenderUI(const std::string& title, const std::vector<Quadblock>& quad
 				}
 			}
 			ImGui::EndDisabled();
-
-			ImGui::EndChild();
 		}
+		ImGui::EndChild();
 		ImGui::TreePop();
 	}
 }
