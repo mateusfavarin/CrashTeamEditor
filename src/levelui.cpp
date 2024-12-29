@@ -349,6 +349,7 @@ void Level::RenderUI()
 			}
 
 			bool ready = true;
+			if (m_checkpointPaths.empty()) { ready = false; }
 			for (const Path& path : m_checkpointPaths)
 			{
 				if (!path.Ready()) { ready = false; break; }
