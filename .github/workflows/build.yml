@@ -16,5 +16,9 @@ jobs:
               uses: microsoft/setup-msbuild@v2
             - name: Restore Nuget
               run: nuget restore CrashTeamEditor.sln
+            - name: ls
+              run: ls third_party/imgui
             - name: build
               run: msbuild CrashTeamEditor.vcxproj /p:configuration=release
+            - name: ls
+              run: ls
