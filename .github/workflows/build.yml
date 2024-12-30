@@ -12,5 +12,7 @@ jobs:
                 submodules: true
             - name: ls
               run: ls
+            - name: Set up MSBuild
+              uses: microsoft/setup-msbuild@v2
             - name: build
               run: msbuild CrashTeamEditor.vcxproj /p:configuration=release
