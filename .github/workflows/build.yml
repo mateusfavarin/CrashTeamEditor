@@ -19,6 +19,6 @@ jobs:
             - name: ls
               run: ls third_party/imgui
             - name: build
-              run: msbuild CrashTeamEditor.vcxproj /p:configuration=release
+              run: msbuild CrashTeamEditor.vcxproj /p:configuration=release /p:Platform=x64
             - name: ls
               run: ls
