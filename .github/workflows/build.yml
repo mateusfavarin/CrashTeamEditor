@@ -6,6 +6,10 @@ jobs:
         steps:
             #- name: get submodules
             #  run: git submodule update --init --recursive
+            - uses: actions/checkout@v4
+              with:
+                fetch-depth: 0
+                submodules: true
             - name: ls
               run: ls -la
             - name: build
