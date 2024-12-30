@@ -2,7 +2,7 @@ name: Build CTE
 on: [push]
 jobs:
     build:
-        runs-on: ubuntu-latest
+        runs-on: windows-latest
         steps:
             #- name: get submodules
             #  run: git submodule update --init --recursive
