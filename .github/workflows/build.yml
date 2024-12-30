@@ -23,7 +23,7 @@ jobs:
             #    path: x64\release\
             #    if-no-files-found: error
             - name: zip
-              run: tar.exe -c -f CrashTeamEditor.zip x64\release\
+              run: Compress-Archive x64\release\ CrashTeamEditor.zip
             - name: Release
               uses: softprops/action-gh-release@v2
               with:
