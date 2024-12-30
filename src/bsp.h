@@ -8,9 +8,7 @@
 enum class BSPNode
 {
 	BRANCH,
-	LEAF,
-	FAILED_SUBDIVISION,
-	FAILED_BBOX_LENGTH
+	LEAF
 };
 
 enum class AxisSplit

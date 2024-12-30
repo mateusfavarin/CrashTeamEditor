@@ -15,6 +15,9 @@ Path::Path(size_t index)
 	m_previewValueEnd = 0;
 	m_previewLabelEnd = std::string();
 	m_quadIndexesEnd = std::vector<size_t>();
+	m_previewValueIgnore = 0;
+	m_previewLabelIgnore = std::string();
+	m_quadIndexesIgnore = std::vector<size_t>();
 }
 
 Path::~Path()
@@ -42,7 +45,9 @@ size_t Path::End() const
 
 bool Path::Ready() const
 {
-	return !m_quadIndexesStart.empty() && !m_quadIndexesEnd.empty();
+	bool left = true; if (m_left) { left = m_left->Ready(); }
+	bool right = true; if (m_right) { right = m_right->Ready(); }
+	return left && right && !m_quadIndexesStart.empty() && !m_quadIndexesEnd.empty();
 }
 
 void Path::UpdateDist(float dist, const Vec3& refPoint, std::vector<Checkpoint>& checkpoints)
@@ -196,7 +201,6 @@ std::vector<Checkpoint> Path::GeneratePath(size_t pathStartIndex, std::vector<Qu
 
 void Path::GetStartEndIndexes(std::vector<size_t>& out) const
 {
-	std::vector<size_t> ret;
 	if (m_left) { m_left->GetStartEndIndexes(out); }
 	if (m_right) { m_right->GetStartEndIndexes(out); }
 	for (const size_t index : m_quadIndexesStart) { out.push_back(index); }

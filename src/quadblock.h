@@ -74,6 +74,7 @@ namespace TerrainType
 class Quadblock
 {
 public:
+	Quadblock(const std::string& name, Tri& t0, Tri& t1, Tri& t2, const Vec3& normal, const std::string& material);
 	Quadblock(const std::string& name, Quad& q0, Quad& q1, Quad& q2, Quad& q3, const Vec3& normal, const std::string& material);
 	const std::string& Name() const;
 	const Vec3& Center() const;
@@ -101,6 +102,7 @@ private:
 		|  q2 |  q3 |
 		p6 -- p7 -- p8
 	*/
+	bool m_triblock;
 	Vertex m_p[NUM_VERTICES_QUADBLOCK];
 	BoundingBox m_bbox;
 	std::string m_name;

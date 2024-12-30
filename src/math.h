@@ -96,6 +96,14 @@ struct Point
 	};
 };
 
+struct Tri
+{
+	Tri() : p() {};
+	Tri(const Point& p0, const Point& p1, const Point& p2);
+
+	Point p[3];
+};
+
 struct Quad
 {
 	Quad() : p() {};

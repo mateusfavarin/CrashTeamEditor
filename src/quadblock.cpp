@@ -78,6 +78,7 @@ Quadblock::Quadblock(const std::string& name, Quad& q0, Quad& q1, Quad& q2, Quad
 	ComputeBoundingBox();
 	m_name = name;
 	m_material = material;
+	m_triblock = false;
 	m_checkpointIndex = -1;
 	m_flags = QuadFlags::DEFAULT;
 	m_terrain = TerrainType::LABELS.at(TerrainType::DEFAULT);
@@ -125,8 +126,8 @@ const BoundingBox& Quadblock::GetBoundingBox() const
 
 std::vector<Vertex> Quadblock::GetVertices() const
 {
-	/*                                0       1       2       3       4       5       6       7       8    */
-	std::vector<Vertex> vertices = {m_p[0], m_p[2], m_p[6], m_p[8], m_p[1], m_p[3], m_p[4], m_p[5], m_p[7]};
+	/*                                 0       1       2       3       4       5       6       7       8    */
+	std::vector<Vertex> vertices = { m_p[0], m_p[2], m_p[6], m_p[8], m_p[1], m_p[3], m_p[4], m_p[5], m_p[7] };
 	return vertices;
 }
 
@@ -180,7 +181,14 @@ std::vector<uint8_t> Quadblock::Serialize(size_t id, size_t offTextures, size_t 
 	quadblock.speedImpact = 0;
 	quadblock.id = static_cast<uint16_t>((id & 0xffe0) + 0x1f - (id & 0x1f));
 	quadblock.checkpointIndex = static_cast<uint8_t>(m_checkpointIndex);
-	quadblock.triNormalVecBitshift = static_cast<uint8_t>(std::round(std::log2(std::max(ComputeNormalVector(0, 2, 6).Length(), ComputeNormalVector(2, 8, 6).Length()) * 512.0f)));
+	if (m_triblock)
+	{
+		quadblock.triNormalVecBitshift = static_cast<uint8_t>(std::round(std::log2(ComputeNormalVector(0, 2, 6).Length()) * 512.0f));
+	}
+	else
+	{
+		quadblock.triNormalVecBitshift = static_cast<uint8_t>(std::round(std::log2(std::max(ComputeNormalVector(0, 2, 6).Length(), ComputeNormalVector(2, 8, 6).Length()) * 512.0f)));
+	}
 	quadblock.offLowTexture = static_cast<uint32_t>(offTextures);
 	quadblock.offVisibleSet = static_cast<uint32_t>(offVisibleSet);
 
@@ -194,12 +202,15 @@ std::vector<uint8_t> Quadblock::Serialize(size_t id, size_t offTextures, size_t 
 	quadblock.triNormalVecDividend[1] = CalculateNormalDividend(1, 4, 3, scaler);
 	quadblock.triNormalVecDividend[2] = CalculateNormalDividend(4, 1, 2, scaler);
 	quadblock.triNormalVecDividend[3] = CalculateNormalDividend(3, 4, 6, scaler);
-	quadblock.triNormalVecDividend[4] = CalculateNormalDividend(7, 4, 5, scaler);
-	quadblock.triNormalVecDividend[5] = CalculateNormalDividend(5, 8, 7, scaler);
-	quadblock.triNormalVecDividend[6] = CalculateNormalDividend(2, 5, 4, scaler);
-	quadblock.triNormalVecDividend[7] = CalculateNormalDividend(6, 4, 7, scaler);
-	quadblock.triNormalVecDividend[8] = CalculateNormalDividend(0, 2, 6, scaler);
-	quadblock.triNormalVecDividend[9] = CalculateNormalDividend(2, 8, 6, scaler);
+	if (!m_triblock)
+	{
+		quadblock.triNormalVecDividend[4] = CalculateNormalDividend(7, 4, 5, scaler);
+		quadblock.triNormalVecDividend[5] = CalculateNormalDividend(5, 8, 7, scaler);
+		quadblock.triNormalVecDividend[6] = CalculateNormalDividend(2, 5, 4, scaler);
+		quadblock.triNormalVecDividend[7] = CalculateNormalDividend(6, 4, 7, scaler);
+		quadblock.triNormalVecDividend[9] = CalculateNormalDividend(2, 8, 6, scaler); /* low LoD */
+	}
+	quadblock.triNormalVecDividend[8] = CalculateNormalDividend(0, 2, 6, scaler); /* low LoD */
 	std::memcpy(buffer.data(), &quadblock, sizeof(quadblock));
 	return buffer;
 }
