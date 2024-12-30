@@ -5,6 +5,6 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - name: get submodules
-            - run: git submodule update --init --recursive
+              run: git submodule update --init --recursive
             - name: build
-            - run: msbuild CrashTeamEditor.vcxproj /p:configuration=release
+              run: msbuild CrashTeamEditor.vcxproj /p:configuration=release
