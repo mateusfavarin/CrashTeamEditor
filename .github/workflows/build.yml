@@ -4,8 +4,6 @@ jobs:
     build:
         runs-on: windows-latest
         steps:
-            #- name: get submodules
-            #  run: git submodule update --init --recursive
             - uses: actions/checkout@v4
               with:
                 fetch-depth: 0
