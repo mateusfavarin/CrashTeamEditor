@@ -1,5 +1,8 @@
 name: Build CTE
-on: [push]
+on:
+    push:
+        tags:
+            - '*'
 jobs:
     build:
         runs-on: windows-latest
@@ -14,8 +17,14 @@ jobs:
               run: nuget restore CrashTeamEditor.sln
             - name: build
               run: msbuild CrashTeamEditor.vcxproj /p:configuration=release /p:Platform=x64
-            - uses: actions/upload-artifact@v4
+            #- uses: actions/upload-artifact@v4
+            #  with:
+            #    name: CrashTeamEditor
+            #    path: x64\release\
+            #    if-no-files-found: error
+            - name: zip
+              run: tar.exe -c -f CrashTeamEditor.zip x64\release\
+            - name: Release
+              uses: softprops/action-gh-release@v2
               with:
-                name: CrashTeamEditor
-                path: x64\release\
-                if-no-files-found: error
+                files: CrashTeamEditor.zip
