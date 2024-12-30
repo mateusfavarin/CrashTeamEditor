@@ -10,15 +10,14 @@ jobs:
               with:
                 fetch-depth: 0
                 submodules: true
-            - name: ls
-              run: ls
             - name: Set up MSBuild
               uses: microsoft/setup-msbuild@v2
             - name: Restore Nuget
               run: nuget restore CrashTeamEditor.sln
-            - name: ls
-              run: ls third_party/imgui
             - name: build
               run: msbuild CrashTeamEditor.vcxproj /p:configuration=release /p:Platform=x64
-            - name: ls
-              run: ls
+            - uses: actions/upload-artifact@v4
+              with:
+                name: CrashTeamEditor
+                path: CrashTeamEditor\x64\release\
+                if-no-files-found: error
