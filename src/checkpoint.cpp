@@ -1,6 +1,8 @@
 #include "checkpoint.h"
 #include "psx_types.h"
 
+#include <cstring>
+
 Checkpoint::Checkpoint(int index)
 {
 	m_index = index;

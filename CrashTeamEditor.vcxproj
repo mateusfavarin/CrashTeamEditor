@@ -22,14 +22,14 @@
     <ClCompile Include="src\app.cpp" />
     <ClCompile Include="src\bsp.cpp" />
     <ClCompile Include="src\checkpoint.cpp" />
+    <ClCompile Include="src\geo.cpp" />
     <ClCompile Include="src\level.cpp" />
     <ClCompile Include="src\levelui.cpp" />
     <ClCompile Include="src\main.cpp" />
-    <ClCompile Include="src\math.cpp" />
     <ClCompile Include="src\path.cpp" />
     <ClCompile Include="src\quadblock.cpp" />
-    <ClCompile Include="src\string.cpp" />
     <ClCompile Include="src\ui.cpp" />
+    <ClCompile Include="src\utils.cpp" />
     <ClCompile Include="src\vertex.cpp" />
     <ClCompile Include="third_party\imgui\backends\imgui_impl_opengl3.cpp" />
     <ClCompile Include="third_party\imgui\backends\imgui_impl_sdl2.cpp" />
@@ -47,15 +47,15 @@
     <ClInclude Include="src\app.h" />
     <ClInclude Include="src\bsp.h" />
     <ClInclude Include="src\checkpoint.h" />
+    <ClInclude Include="src\geo.h" />
     <ClInclude Include="src\io.h" />
     <ClInclude Include="src\lev.h" />
     <ClInclude Include="src\level.h" />
-    <ClInclude Include="src\math.h" />
     <ClInclude Include="src\path.h" />
     <ClInclude Include="src\psx_types.h" />
     <ClInclude Include="src\quadblock.h" />
-    <ClInclude Include="src\string.h" />
     <ClInclude Include="src\ui.h" />
+    <ClInclude Include="src\utils.h" />
     <ClInclude Include="src\vertex.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

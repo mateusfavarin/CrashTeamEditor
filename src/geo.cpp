@@ -1,4 +1,4 @@
-#include "math.h"
+#include "geo.h"
 
 Tri::Tri(const Point& p0, const Point& p1, const Point& p2)
 {

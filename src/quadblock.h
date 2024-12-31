@@ -1,6 +1,6 @@
 #pragma once
 
-#include "math.h"
+#include "geo.h"
 #include "vertex.h"
 
 #include <string>
