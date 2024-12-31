@@ -5,6 +5,7 @@ on:
             - '*'
 jobs:
     build-windows:
+        permissions: write-all
         runs-on: windows-latest
         steps:
             - uses: actions/checkout@v4
@@ -24,6 +25,7 @@ jobs:
               with:
                 files: CrashTeamEditor.zip
     build-linux:
+        permissions: write-all
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
