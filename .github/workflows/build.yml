@@ -17,11 +17,6 @@ jobs:
               run: nuget restore CrashTeamEditor.sln
             - name: build
               run: msbuild CrashTeamEditor.vcxproj /p:configuration=release /p:Platform=x64
-            #- uses: actions/upload-artifact@v4
-            #  with:
-            #    name: CrashTeamEditor
-            #    path: x64\release\
-            #    if-no-files-found: error
             - name: zip
               run: Compress-Archive x64\release\ CrashTeamEditor.zip
             - name: Release
@@ -35,24 +30,13 @@ jobs:
               with:
                 fetch-depth: 0
                 submodules: true
-            #- name: Set up MSBuild
-            #  uses: microsoft/setup-msbuild@v2
-            #- name: Restore Nuget
-            #  run: nuget restore CrashTeamEditor.sln
             - name: install sdl
               run: sudo apt install libsdl2-dev
             - name: build
               run: make release
-            - name: ls
-              run: ls -la
-            #- uses: actions/upload-artifact@v4
-            #  with:
-            #    name: CrashTeamEditor
-            #    path: x64\release\
-            #    if-no-files-found: error
-            - name: zip
-              run: zip CrashTeamEditor
+            - name: compress
+              run: tar -f CrashTeamEditor.tar.gz -c CrashTeamEditor.exe
             - name: Release
               uses: softprops/action-gh-release@v2
               with:
-                files: CrashTeamEditor.zip
+                files: CrashTeamEditor.tar.gz
