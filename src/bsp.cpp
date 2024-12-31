@@ -1,6 +1,8 @@
 #include "bsp.h"
 #include "psx_types.h"
 
+#include <cstring>
+
 static size_t g_id = 0;
 
 BSP::BSP()

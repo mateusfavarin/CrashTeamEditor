@@ -1,8 +1,8 @@
 #include "level.h"
 #include "psx_types.h"
 #include "io.h"
-#include "string.h"
-#include "math.h"
+#include "utils.h"
+#include "geo.h"
 
 #include <fstream>
 

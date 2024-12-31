@@ -37,7 +37,7 @@ struct Vec3
 	Vec3() : x(0.0f), y(0.0f), z(0.0f) {};
 	Vec3(float x, float y, float z) : x(x), y(y), z(z) {};
 	float* Data() { return &x; }
-	inline float Length() const { return std::sqrtf((x * x) + (y * y) + (z * z)); }
+	inline float Length() const { return static_cast<float>(std::sqrt((x * x) + (y * y) + (z * z))); }
 	inline Vec3 Cross(const Vec3& v) const { return { y * v.z - z * v.y, z * v.x - x * v.z, x * v.y - v.x * y }; }
 
 	inline Vec3 operator+(const Vec3& v) const { return { x + v.x, y + v.y, z + v.z }; }

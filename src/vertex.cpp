@@ -2,6 +2,7 @@
 #include "psx_types.h"
 
 #include <string>
+#include <cstring>
 
 Vertex::Vertex()
 {
