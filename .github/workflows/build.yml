@@ -43,6 +43,8 @@ jobs:
               run: sudo apt install libsdl2-dev
             - name: build
               run: make release
+            - name: ls
+              run: ls -la
             #- uses: actions/upload-artifact@v4
             #  with:
             #    name: CrashTeamEditor
