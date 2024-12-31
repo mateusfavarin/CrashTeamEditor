@@ -1,0 +1,42 @@
+name: Build CTE
+on:
+    push:
+        tags:
+            - '*'
+jobs:
+    build-windows:
+        runs-on: windows-latest
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                fetch-depth: 0
+                submodules: true
+            - name: Set up MSBuild
+              uses: microsoft/setup-msbuild@v2
+            - name: Restore Nuget
+              run: nuget restore CrashTeamEditor.sln
+            - name: build
+              run: msbuild CrashTeamEditor.vcxproj /p:configuration=release /p:Platform=x64
+            - name: zip
+              run: Compress-Archive x64\release\ CrashTeamEditor.zip
+            - name: Release
+              uses: softprops/action-gh-release@v2
+              with:
+                files: CrashTeamEditor.zip
+    build-linux:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                fetch-depth: 0
+                submodules: true
+            - name: install sdl
+              run: sudo apt install libsdl2-dev
+            - name: build
+              run: make release
+            - name: compress
+              run: tar -f CrashTeamEditor.tar.gz -c CrashTeamEditor
+            - name: Release
+              uses: softprops/action-gh-release@v2
+              with:
+                files: CrashTeamEditor.tar.gz
