@@ -37,8 +37,10 @@ jobs:
                 submodules: true
             #- name: Set up MSBuild
             #  uses: microsoft/setup-msbuild@v2
-            - name: Restore Nuget
-              run: nuget restore CrashTeamEditor.sln
+            #- name: Restore Nuget
+            #  run: nuget restore CrashTeamEditor.sln
+            - name: install sdl
+              run: sudo apt install libsdl2-dev
             - name: build
               run: make release
             #- uses: actions/upload-artifact@v4
