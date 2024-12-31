@@ -4,7 +4,7 @@ on:
         tags:
             - '*'
 jobs:
-    build:
+    build-windows:
         runs-on: windows-latest
         steps:
             - uses: actions/checkout@v4
@@ -24,6 +24,30 @@ jobs:
             #    if-no-files-found: error
             - name: zip
               run: Compress-Archive x64\release\ CrashTeamEditor.zip
+            - name: Release
+              uses: softprops/action-gh-release@v2
+              with:
+                files: CrashTeamEditor.zip
+    build-linux:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                fetch-depth: 0
+                submodules: true
+            #- name: Set up MSBuild
+            #  uses: microsoft/setup-msbuild@v2
+            - name: Restore Nuget
+              run: nuget restore CrashTeamEditor.sln
+            - name: build
+              run: make release
+            #- uses: actions/upload-artifact@v4
+            #  with:
+            #    name: CrashTeamEditor
+            #    path: x64\release\
+            #    if-no-files-found: error
+            - name: zip
+              run: zip CrashTeamEditor
             - name: Release
               uses: softprops/action-gh-release@v2
               with:
