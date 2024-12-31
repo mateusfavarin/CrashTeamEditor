@@ -19,11 +19,11 @@ jobs:
             - name: build
               run: msbuild CrashTeamEditor.vcxproj /p:configuration=release /p:Platform=x64
             - name: zip
-              run: Compress-Archive x64\release\ CrashTeamEditor.zip
+              run: Compress-Archive x64\release\ CrashTeamEditor-windows-x64.zip
             - name: Release
               uses: softprops/action-gh-release@v2
               with:
-                files: CrashTeamEditor.zip
+                files: CrashTeamEditor-windows-x64.zip
     build-linux:
         permissions: write-all
         runs-on: ubuntu-latest
@@ -37,8 +37,8 @@ jobs:
             - name: build
               run: make release
             - name: compress
-              run: tar -f CrashTeamEditor.tar.gz -c CrashTeamEditor
+              run: tar -f CrashTeamEditor-linux-x64.tar.gz -c CrashTeamEditor
             - name: Release
               uses: softprops/action-gh-release@v2
               with:
-                files: CrashTeamEditor.tar.gz
+                files: CrashTeamEditor-linux-x64.tar.gz
