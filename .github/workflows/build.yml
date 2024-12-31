@@ -35,7 +35,7 @@ jobs:
             - name: build
               run: make release
             - name: compress
-              run: tar -f CrashTeamEditor.tar.gz -c CrashTeamEditor.exe
+              run: tar -f CrashTeamEditor.tar.gz -c CrashTeamEditor
             - name: Release
               uses: softprops/action-gh-release@v2
               with:
