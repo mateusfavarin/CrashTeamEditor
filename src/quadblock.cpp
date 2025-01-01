@@ -173,7 +173,7 @@ std::vector<uint8_t> Quadblock::Serialize(size_t id, size_t offTextures, size_t 
 		quadblock.index[i] = static_cast<uint16_t>(vertexIndexes[i]);
 	}
 	quadblock.flags = m_flags;
-	quadblock.drawOrderLow = 0;
+	quadblock.drawOrderLow = m_drawOrderLow;
 	quadblock.drawOrderHigh = 0;
 	quadblock.offMidTextures[0] = static_cast<uint32_t>(offTextures);
 	quadblock.offMidTextures[1] = static_cast<uint32_t>(offTextures);
