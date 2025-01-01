@@ -90,6 +90,7 @@ public:
 	const Vec3& Center() const;
 	uint8_t Terrain() const;
 	uint16_t Flags() const;
+	uint32_t DrawOrderLow() const;
 	void SetTerrain(uint8_t terrain);
 	void SetFlag(uint16_t flag);
 	void SetDrawOrderLow(uint32_t val);

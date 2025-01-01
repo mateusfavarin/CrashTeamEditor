@@ -82,6 +82,7 @@ Quadblock::Quadblock(const std::string& name, Quad& q0, Quad& q1, Quad& q2, Quad
 	m_triblock = false;
 	m_checkpointIndex = -1;
 	m_flags = QuadFlags::DEFAULT;
+	m_drawOrderLow = DrawOrderLow::DEFAULT;
 	m_terrain = TerrainType::LABELS.at(TerrainType::DEFAULT);
 }
 
@@ -103,6 +104,11 @@ uint8_t Quadblock::Terrain() const
 uint16_t Quadblock::Flags() const
 {
 	return m_flags;
+}
+
+uint32_t Quadblock::DrawOrderLow() const
+{
+	return m_drawOrderLow;
 }
 
 void Quadblock::SetTerrain(uint8_t terrain)
