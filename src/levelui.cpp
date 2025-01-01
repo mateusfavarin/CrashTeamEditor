@@ -214,6 +214,7 @@ void Level::RenderUI()
 
 	static bool resetTerrainPreview = false;
 	static bool resetQuadflagPreview = false;
+	static bool resetDrawOrderLowPreview = false;
 	if (w_material)
 	{
 		if (ImGui::Begin("Material", &w_material, ImGuiWindowFlags_AlwaysAutoResize))
@@ -273,6 +274,24 @@ void Level::RenderUI()
 						}
 						ImGui::TreePop();
 					}
+					if (ImGui::TreeNode("DrawOrderLow"))
+					{
+						for (const auto& [label, flag] : DrawOrderLow::LABELS)
+						{
+							UIFlagCheckbox(m_materialDrawOrderLowPreview[material], flag, label);
+							resetDrawOrderLowPreview = true;
+						}
+						if (ImGui::Button("Apply"))
+						{
+							uint32_t flag = m_materialDrawOrderLowPreview[material];
+							for (const size_t index : quadblockIndexes)
+							{
+								m_quadblocks[index].SetDrawOrderLow(flag);
+							}
+							m_materialDrawOrderLowBackup[material] = flag;
+						}
+						ImGui::TreePop();
+					}
 					ImGui::TreePop();
 				}
 			}
@@ -296,6 +315,15 @@ void Level::RenderUI()
 			m_materialQuadflagsPreview[material] = m_materialQuadflagsBackup[material];
 		}
 		resetQuadflagPreview = false;
+	}
+
+	if (resetDrawOrderLowPreview && !w_material)
+	{
+		for (const auto& [material, quadblockIndexes] : m_materialToQuadblocks)
+		{
+			m_materialDrawOrderLowPreview[material] = m_materialDrawOrderLowBackup[material];
+		}
+		resetDrawOrderLowPreview = false;
 	}
 
 	if (w_quadblocks)

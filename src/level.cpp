@@ -38,6 +38,7 @@ void Level::Clear()
 	m_bsp.Clear();
 	m_materialToQuadblocks.clear();
 	m_materialTerrainPreview.clear();
+	m_materialDrawOrderLowPreview.clear();
 	m_checkpointPaths.clear();
 }
 
@@ -412,6 +413,8 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 					m_materialTerrainBackup[material] = TerrainType::DEFAULT;
 					m_materialQuadflagsPreview[material] = QuadFlags::DEFAULT;
 					m_materialQuadflagsBackup[material] = QuadFlags::DEFAULT;
+					m_materialDrawOrderLowPreview[material] = DrawOrderLow::DEFAULT;
+					m_materialDrawOrderLowBackup[material] = DrawOrderLow::DEFAULT;
 				}
 				m_quadblocks.emplace_back(currQuadblockName, q0, q1, q2, q3, averageNormal, material);
 			}

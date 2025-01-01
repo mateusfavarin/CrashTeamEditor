@@ -38,6 +38,16 @@ namespace QuadFlags
 	};
 };
 
+namespace DrawOrderLow
+{
+	static constexpr uint32_t NONE = 0;
+	static constexpr uint32_t DOUBLE_SIDED_QUADS = 0x80000000;
+	static constexpr uint32_t DEFAULT = NONE;
+	static const std::unordered_map<std::string, uint32_t> LABELS = {
+		{"None", NONE}, {"Double-sided quads", DOUBLE_SIDED_QUADS}
+	};
+};
+
 namespace TerrainType
 {
 	static constexpr uint8_t ASPHALT = 0;
@@ -82,6 +92,7 @@ public:
 	uint16_t Flags() const;
 	void SetTerrain(uint8_t terrain);
 	void SetFlag(uint16_t flag);
+	void SetDrawOrderLow(uint32_t val);
 	void SetCheckpoint(int index);
 	const BoundingBox& GetBoundingBox() const;
 	std::vector<Vertex> GetVertices() const;
@@ -110,4 +121,5 @@ private:
 	int m_checkpointIndex;
 	uint16_t m_flags;
 	uint8_t m_terrain;
+	uint32_t m_drawOrderLow;
 };

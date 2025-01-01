@@ -115,6 +115,11 @@ void Quadblock::SetFlag(uint16_t flag)
 	m_flags = flag;
 }
 
+void Quadblock::SetDrawOrderLow(uint32_t val)
+{
+	m_drawOrderLow = val;
+}
+
 void Quadblock::SetCheckpoint(int index)
 {
 	m_checkpointIndex = index;
