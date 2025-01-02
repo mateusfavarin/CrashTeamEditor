@@ -8,6 +8,7 @@
 #include <cstdint>
 
 static constexpr size_t NUM_VERTICES_QUADBLOCK = 9;
+static constexpr size_t NUM_FACES_QUADBLOCK = 4;
 
 namespace QuadFlags
 {
@@ -71,10 +72,30 @@ namespace TerrainType
 	};
 };
 
+namespace FaceRotateFlip
+{
+	static constexpr uint32_t NONE = 0;
+	static constexpr uint32_t ROTATE_90 = 1;
+	static constexpr uint32_t ROTATE_180 = 2;
+	static constexpr uint32_t ROTATE_270 = 3;
+	static constexpr uint32_t FLIP_ROTATE_270 = 4;
+	static constexpr uint32_t FLIP_ROTATE_180 = 5;
+	static constexpr uint32_t FLIP_ROTATE_90 = 6;
+	static constexpr uint32_t FLIP = 7;
+};
+
+namespace FaceDrawMode
+{
+	static constexpr uint32_t DRAW_BOTH = 0;
+	static constexpr uint32_t DRAW_LEFT = 1;
+	static constexpr uint32_t DRAW_RIGHT = 2;
+	static constexpr uint32_t DRAW_NONE = 3;
+};
+
 class Quadblock
 {
 public:
-	Quadblock(const std::string& name, Tri& t0, Tri& t1, Tri& t2, const Vec3& normal, const std::string& material);
+	Quadblock(const std::string& name, Tri& t0, Tri& t1, Tri& t2, Tri& t3, const Vec3& normal, const std::string& material);
 	Quadblock(const std::string& name, Quad& q0, Quad& q1, Quad& q2, Quad& q3, const Vec3& normal, const std::string& material);
 	const std::string& Name() const;
 	const Vec3& Center() const;
@@ -108,6 +129,9 @@ private:
 	std::string m_name;
 	std::string m_material;
 	int m_checkpointIndex;
+	uint32_t m_faceDrawMode[NUM_FACES_QUADBLOCK];
+	uint32_t m_faceRotateFlip[NUM_FACES_QUADBLOCK];
+	bool m_doubleSided;
 	uint16_t m_flags;
 	uint8_t m_terrain;
 };

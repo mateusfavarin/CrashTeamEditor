@@ -333,8 +333,9 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 	std::ifstream file(objFile);
 	m_name = objFile.filename().replace_extension().string();
 
-	std::unordered_map<std::string, std::vector<Quad>> vertexIndexMap;
-	std::unordered_map<std::string, std::vector<Vec3>> normalIndexMap;
+	std::unordered_map<std::string, std::vector<Tri>> triMap;
+	std::unordered_map<std::string, std::vector<Quad>> quadMap;
+	std::unordered_map<std::string, std::vector<Vec3>> normalMap;
 	std::unordered_map<std::string, std::string> materialMap;
 	std::vector<Point> vertices;
 	std::vector<Vec3> normals;
@@ -370,35 +371,46 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 		else if (command == "f")
 		{
 			if (currQuadblockName.empty()) { return false; }
-			if (tokens.size() < 5) { continue; }
-			if (!vertexIndexMap.contains(currQuadblockName)) { vertexIndexMap[currQuadblockName] = std::vector<Quad>(); }
+			if (tokens.size() < 4) { continue; }
+
+			bool isQuadblock = tokens.size() == 5;
 
 			std::vector<std::string> token0 = Split(tokens[1], '/');
 			std::vector<std::string> token1 = Split(tokens[2], '/');
 			std::vector<std::string> token2 = Split(tokens[3], '/');
-			std::vector<std::string> token3 = Split(tokens[4], '/');
 			int i0 = std::stoi(token0[0]) - 1;
 			int i1 = std::stoi(token1[0]) - 1;
 			int i2 = std::stoi(token2[0]) - 1;
-			int i3 = std::stoi(token3[0]) - 1;
 			int ni0 = std::stoi(token0[2]) - 1;
 			int ni1 = std::stoi(token1[2]) - 1;
 			int ni2 = std::stoi(token2[2]) - 1;
-			int ni3 = std::stoi(token3[2]) - 1;
+			normalMap[currQuadblockName].push_back(normals[ni0]);
+			normalMap[currQuadblockName].push_back(normals[ni1]);
+			normalMap[currQuadblockName].push_back(normals[ni2]);
 
-			vertexIndexMap[currQuadblockName].emplace_back(vertices[i0], vertices[i1], vertices[i2], vertices[i3]);
-			normalIndexMap[currQuadblockName].push_back(normals[ni0]);
-			normalIndexMap[currQuadblockName].push_back(normals[ni1]);
-			normalIndexMap[currQuadblockName].push_back(normals[ni2]);
-			normalIndexMap[currQuadblockName].push_back(normals[ni3]);
-			if (vertexIndexMap[currQuadblockName].size() == 4)
+			bool blockFetched = false;
+			if (isQuadblock)
 			{
-				Quad& q0 = vertexIndexMap[currQuadblockName][0];
-				Quad& q1 = vertexIndexMap[currQuadblockName][1];
-				Quad& q2 = vertexIndexMap[currQuadblockName][2];
-				Quad& q3 = vertexIndexMap[currQuadblockName][3];
+				std::vector<std::string> token3 = Split(tokens[4], '/');
+				int i3 = std::stoi(token3[0]) - 1;
+				int ni3 = std::stoi(token3[2]) - 1;
+				normalMap[currQuadblockName].push_back(normals[ni3]);
+
+				if (!quadMap.contains(currQuadblockName)) { quadMap[currQuadblockName] = std::vector<Quad>(); }
+				quadMap[currQuadblockName].emplace_back(vertices[i0], vertices[i1], vertices[i2], vertices[i3]);
+				blockFetched = quadMap[currQuadblockName].size() == 4;
+			}
+			else
+			{
+				if (!triMap.contains(currQuadblockName)) { triMap[currQuadblockName] = std::vector<Tri>(); }
+				triMap[currQuadblockName].emplace_back(vertices[i0], vertices[i1], vertices[i2]);
+				blockFetched = triMap[currQuadblockName].size() == 4;
+			}
+
+			if (blockFetched)
+			{
 				Vec3 averageNormal = Vec3();
-				for (const Vec3& normal : normalIndexMap[currQuadblockName])
+				for (const Vec3& normal : normalMap[currQuadblockName])
 				{
 					averageNormal = averageNormal + normal;
 				}
@@ -413,7 +425,22 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 					m_materialQuadflagsPreview[material] = QuadFlags::DEFAULT;
 					m_materialQuadflagsBackup[material] = QuadFlags::DEFAULT;
 				}
-				m_quadblocks.emplace_back(currQuadblockName, q0, q1, q2, q3, averageNormal, material);
+				if (isQuadblock)
+				{
+					Quad& q0 = quadMap[currQuadblockName][0];
+					Quad& q1 = quadMap[currQuadblockName][1];
+					Quad& q2 = quadMap[currQuadblockName][2];
+					Quad& q3 = quadMap[currQuadblockName][3];
+					m_quadblocks.emplace_back(currQuadblockName, q0, q1, q2, q3, averageNormal, material);
+				}
+				else
+				{
+					Tri& t0 = triMap[currQuadblockName][0];
+					Tri& t1 = triMap[currQuadblockName][1];
+					Tri& t2 = triMap[currQuadblockName][2];
+					Tri& t3 = triMap[currQuadblockName][3];
+					m_quadblocks.emplace_back(currQuadblockName, t0, t1, t2, t3, averageNormal, material);
+				}
 			}
 		}
 	}

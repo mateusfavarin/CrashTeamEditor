@@ -5,6 +5,96 @@
 #include <unordered_set>
 #include <cstring>
 
+Quadblock::Quadblock(const std::string& name, Tri& t0, Tri& t1, Tri& t2, Tri& t3, const Vec3& normal, const std::string& material)
+{
+	std::unordered_map<Vec3, unsigned> vRefCount;
+	for (size_t i = 0; i < 3; i++)
+	{
+		vRefCount[t0.p[i].pos]++; vRefCount[t1.p[i].pos]++; vRefCount[t2.p[i].pos]++; vRefCount[t3.p[i].pos]++;
+	}
+
+	auto FindCenterTri = [&vRefCount](Tri*& out, Tri& tri, std::vector<Tri*>& adjTris)
+		{
+			if (out != nullptr)
+			{
+				adjTris.push_back(&tri);
+				return;
+			}
+			for (size_t i = 0; i < 3; i++)
+			{
+				if (vRefCount[tri.p[i].pos] != 3)
+				{
+					adjTris.push_back(&tri);
+					return;
+				}
+			}
+			out = &tri;
+		};
+
+	Tri* centerTri = nullptr;
+	std::vector<Tri*> adjTris;
+	FindCenterTri(centerTri, t0, adjTris); FindCenterTri(centerTri, t1, adjTris);
+	FindCenterTri(centerTri, t2, adjTris); FindCenterTri(centerTri, t3, adjTris);
+
+	auto FindUniquePoint = [&vRefCount](Tri& tri, std::vector<const Point*>& adjPts) -> const Point*
+		{
+			Point* ret = nullptr;
+			for (size_t i = 0; i < 3; i++)
+			{
+				if (vRefCount[tri.p[i].pos] != 3) { ret = &tri.p[i]; }
+				else { adjPts.push_back(&tri.p[i]); }
+			}
+			return ret;
+		};
+
+	std::vector<const Point*> q0Adjs;
+	m_p[0] = Vertex(*FindUniquePoint(*adjTris[0], q0Adjs));
+	m_p[1] = Vertex(*q0Adjs[0]);
+	m_p[3] = Vertex(*q0Adjs[1]);
+
+	bool q1Next = false;
+	for (size_t i = 0; i < 3; i++)
+	{
+		if (adjTris[1]->p[i].pos == m_p[1].m_pos) { q1Next = true; }
+	}
+	if (!q1Next) { Swap(adjTris[1], adjTris[2]); }
+
+	std::vector<const Point*> q2Adjs;
+	m_p[2] = Vertex(*FindUniquePoint(*adjTris[1], q2Adjs));
+	m_p[4] = q2Adjs[0]->pos == m_p[1].m_pos ? Vertex(*q2Adjs[1]) : Vertex(*q2Adjs[0]);
+
+	std::vector<const Point*> q4Adjs;
+	m_p[6] = *FindUniquePoint(*adjTris[2], q4Adjs);
+
+	Vec3 quadNormal = ComputeNormalVector(0, 2, 6);
+	quadNormal = quadNormal / quadNormal.Length();
+	Vec3 invertedQuadNormal = quadNormal * -1;
+	if ((normal - invertedQuadNormal).Length() < (normal - quadNormal).Length())
+	{
+		Swap(m_p[0], m_p[2]);
+		Swap(m_p[3], m_p[4]);
+	}
+
+	m_p[5] = m_p[4];
+	m_p[7] = m_p[4];
+	m_p[8] = m_p[4];
+
+	ComputeBoundingBox();
+	m_name = name;
+	m_material = material;
+	m_triblock = false;
+	m_checkpointIndex = -1;
+	m_flags = QuadFlags::DEFAULT;
+	m_terrain = TerrainType::LABELS.at(TerrainType::DEFAULT);
+
+	for (size_t i = 0; i < NUM_FACES_QUADBLOCK; i++)
+	{
+		m_faceDrawMode[i] = FaceDrawMode::DRAW_BOTH;
+		m_faceRotateFlip[i] = FaceRotateFlip::NONE;
+	}
+	m_doubleSided = false;
+}
+
 Quadblock::Quadblock(const std::string& name, Quad& q0, Quad& q1, Quad& q2, Quad& q3, const Vec3& normal, const std::string& material)
 {
 	std::unordered_map<Vec3, unsigned> vRefCount;
@@ -83,6 +173,12 @@ Quadblock::Quadblock(const std::string& name, Quad& q0, Quad& q1, Quad& q2, Quad
 	m_checkpointIndex = -1;
 	m_flags = QuadFlags::DEFAULT;
 	m_terrain = TerrainType::LABELS.at(TerrainType::DEFAULT);
+	for (size_t i = 0; i < NUM_FACES_QUADBLOCK; i++)
+	{
+		m_faceDrawMode[i] = FaceDrawMode::DRAW_BOTH;
+		m_faceRotateFlip[i] = FaceRotateFlip::NONE;
+	}
+	m_doubleSided = false;
 }
 
 const std::string& Quadblock::Name() const
@@ -168,7 +264,12 @@ std::vector<uint8_t> Quadblock::Serialize(size_t id, size_t offTextures, size_t 
 		quadblock.index[i] = static_cast<uint16_t>(vertexIndexes[i]);
 	}
 	quadblock.flags = m_flags;
-	quadblock.drawOrderLow = 0;
+	quadblock.drawOrderLow = m_doubleSided ? (1 << 31) : 0;
+	for (size_t i = 0; i < NUM_FACES_QUADBLOCK; i++)
+	{
+		uint32_t packedFace = m_faceRotateFlip[i] | (m_faceDrawMode[i] << 3);
+		quadblock.drawOrderLow |= packedFace << (8 + i * 5);
+	}
 	quadblock.drawOrderHigh = 0;
 	quadblock.offMidTextures[0] = static_cast<uint32_t>(offTextures);
 	quadblock.offMidTextures[1] = static_cast<uint32_t>(offTextures);
