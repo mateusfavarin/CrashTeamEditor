@@ -80,7 +80,7 @@ void Checkpoint::RenderUI(size_t numCheckpoints, const std::vector<Quadblock>& q
 		ImGui::Text("Pos:       "); ImGui::SameLine(); ImGui::InputFloat3("##pos", m_pos.Data());
 		ImGui::Text("Quad:      "); ImGui::SameLine();
 		if (ImGui::BeginCombo("##quad", m_uiPosQuad.c_str()))
-		{	
+		{
 			std::string searchQuery = QUADBLOCK_SEARCH_QUERY;
 			for (const Quadblock& quadblock : quadblocks)
 			{
@@ -214,6 +214,7 @@ void Level::RenderUI()
 
 	static bool resetTerrainPreview = false;
 	static bool resetQuadflagPreview = false;
+	static bool resetDoubleSidedPreview = false;
 	if (w_material)
 	{
 		if (ImGui::Begin("Material", &w_material, ImGuiWindowFlags_AlwaysAutoResize))
@@ -259,8 +260,10 @@ void Level::RenderUI()
 					{
 						for (const auto& [label, flag] : QuadFlags::LABELS)
 						{
-							UIFlagCheckbox(m_materialQuadflagsPreview[material], flag, label);
-							resetQuadflagPreview = true;
+							if (UIFlagCheckbox(m_materialQuadflagsPreview[material], flag, label))
+							{
+								resetQuadflagPreview = true;
+							}
 						}
 						if (ImGui::Button("Apply"))
 						{
@@ -270,6 +273,23 @@ void Level::RenderUI()
 								m_quadblocks[index].SetFlag(flag);
 							}
 							m_materialQuadflagsBackup[material] = flag;
+						}
+						ImGui::TreePop();
+					}
+					if (ImGui::TreeNode("Draw Flags"))
+					{
+						if (ImGui::Checkbox("Double Sided", &m_materialDoubleSidedPreview[material]))
+						{
+							resetDoubleSidedPreview = true;
+						}
+						if (ImGui::Button("Apply"))
+						{
+							bool active = m_materialDoubleSidedPreview[material];
+							for (const size_t index : quadblockIndexes)
+							{
+								m_quadblocks[index].SetDrawDoubleSided(active);
+							}
+							m_materialDoubleSidedBackup[material] = active;
 						}
 						ImGui::TreePop();
 					}
@@ -296,6 +316,15 @@ void Level::RenderUI()
 			m_materialQuadflagsPreview[material] = m_materialQuadflagsBackup[material];
 		}
 		resetQuadflagPreview = false;
+	}
+
+	if (resetDoubleSidedPreview && !w_material)
+	{
+		for (const auto& [material, quadblockIndexes] : m_materialToQuadblocks)
+		{
+			m_materialDoubleSidedPreview[material] = m_materialDoubleSidedBackup[material];
+		}
+		resetDoubleSidedPreview = false;
 	}
 
 	if (w_quadblocks)

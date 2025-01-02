@@ -38,6 +38,11 @@ void Level::Clear()
 	m_bsp.Clear();
 	m_materialToQuadblocks.clear();
 	m_materialTerrainPreview.clear();
+	m_materialTerrainBackup.clear();
+	m_materialQuadflagsPreview.clear();
+	m_materialQuadflagsBackup.clear();
+	m_materialDoubleSidedPreview.clear();
+	m_materialDoubleSidedBackup.clear();
 	m_checkpointPaths.clear();
 }
 
@@ -424,6 +429,8 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 					m_materialTerrainBackup[material] = TerrainType::DEFAULT;
 					m_materialQuadflagsPreview[material] = QuadFlags::DEFAULT;
 					m_materialQuadflagsBackup[material] = QuadFlags::DEFAULT;
+					m_materialDoubleSidedPreview[material] = false;
+					m_materialDoubleSidedBackup[material] = false;
 				}
 				if (isQuadblock)
 				{

@@ -216,6 +216,11 @@ void Quadblock::SetCheckpoint(int index)
 	m_checkpointIndex = index;
 }
 
+void Quadblock::SetDrawDoubleSided(bool active)
+{
+	m_doubleSided = active;
+}
+
 const BoundingBox& Quadblock::GetBoundingBox() const
 {
 	return m_bbox;

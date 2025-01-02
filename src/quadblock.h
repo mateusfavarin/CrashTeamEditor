@@ -104,6 +104,7 @@ public:
 	void SetTerrain(uint8_t terrain);
 	void SetFlag(uint16_t flag);
 	void SetCheckpoint(int index);
+	void SetDrawDoubleSided(bool active);
 	const BoundingBox& GetBoundingBox() const;
 	std::vector<Vertex> GetVertices() const;
 	float DistanceClosestVertex(Vec3& out, const Vec3& v) const;

@@ -40,5 +40,7 @@ private:
 	std::unordered_map<std::string, std::string> m_materialTerrainBackup;
 	std::unordered_map<std::string, uint16_t> m_materialQuadflagsPreview;
 	std::unordered_map<std::string, uint16_t> m_materialQuadflagsBackup;
+	std::unordered_map<std::string, bool> m_materialDoubleSidedPreview;
+	std::unordered_map<std::string, bool> m_materialDoubleSidedBackup;
 	std::vector<Path> m_checkpointPaths;
 };
