@@ -594,6 +594,11 @@ void Quadblock::RenderUI(size_t checkpointCount)
 			m_bbox.RenderUI();
 			ImGui::TreePop();
 		}
+		if (ImGui::TreeNode("Draw Flags"))
+		{
+			ImGui::Checkbox("Double Sided", &m_doubleSided);
+			ImGui::TreePop();
+		}
 		ImGui::Text("Checkpoint Index: ");
 		ImGui::SameLine();
 		if (ImGui::InputInt("##cp", &m_checkpointIndex)) { m_checkpointIndex = Clamp(m_checkpointIndex, -1, static_cast<int>(checkpointCount)); }

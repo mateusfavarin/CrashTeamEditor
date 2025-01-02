@@ -6,7 +6,7 @@ std::vector<std::string> Split(const std::string& str, char sep)
 	std::string s;
 	for (const char c : str)
 	{
-		if (c == sep && !s.empty())
+		if (c == sep)
 		{
 			ret.push_back(s);
 			s.clear();
