@@ -17,7 +17,7 @@ jobs:
             - name: Restore Nuget
               run: nuget restore CrashTeamEditor.sln
             - name: build
-              run: msbuild CrashTeamEditor.vcxproj /p:configuration=release /p:Platform=x64
+              run: msbuild CrashTeamEditor.vcxproj /p:configuration=release /p:Platform=x64 /p:DebugSymbols=false /p:DebugType=None
             - name: zip
               run: Compress-Archive x64\release\ CrashTeamEditor-windows-x64.zip
             - name: Release
