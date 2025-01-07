@@ -16,15 +16,15 @@ enum class AxisSplit
 	NONE, X, Y, Z
 };
 
-enum class BSPFlags : uint16_t
+namespace BSPFlags
 {
-	NONE = 0,
-	LEAF = 1 << 0,
-	WATER = 1 << 1,
-	SUBDIV_4_1 = 1 << 3,
-	SUBDIV_4_2 = 1 << 4,
-	HIDDEN = 1 << 6,
-	NO_COLLISION = 1 << 7,
+	static constexpr uint16_t NONE = 0;
+	static constexpr uint16_t LEAF = 1 << 0;
+	static constexpr uint16_t WATER = 1 << 1;
+	static constexpr uint16_t SUBDIV_4_1 = 1 << 3;
+	static constexpr uint16_t SUBDIV_4_2 = 1 << 4;
+	static constexpr uint16_t HIDDEN = 1 << 6;
+	static constexpr uint16_t NO_COLLISION = 1 << 7;
 };
 
 class BSP
@@ -61,7 +61,7 @@ private:
 	size_t m_id;
 	BSPNode m_node;
 	AxisSplit m_axis;
-	BSPFlags m_flags;
+	uint16_t m_flags;
 	BSP* m_left;
 	BSP* m_right;
 	BoundingBox m_bbox;

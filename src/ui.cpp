@@ -23,7 +23,7 @@ void UI::MainMenu()
 				if (!selection.empty())
 				{
 					const std::filesystem::path levPath = selection.front();
-					m_lev.Load(levPath);
+					if (!m_lev.Load(levPath)) { m_lev.Clear(); }
 				}
 			}
 			bool ready = m_lev.Ready();

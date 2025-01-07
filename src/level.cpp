@@ -8,6 +8,7 @@
 
 bool Level::Load(const std::filesystem::path& filename)
 {
+	Clear();
 	if (!filename.has_filename() || !filename.has_extension()) { return false; }
 	std::filesystem::path ext = filename.extension();
 	if (ext == ".lev") { return LoadLEV(filename); }
@@ -48,8 +49,6 @@ void Level::Clear()
 
 bool Level::LoadLEV(const std::filesystem::path& levFile)
 {
-	Clear();
-
 	std::ifstream file(levFile, std::ios::binary);
 	uint32_t offPointerMap;
 	Read(file, offPointerMap);
@@ -332,8 +331,6 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 
 bool Level::LoadOBJ(const std::filesystem::path& objFile)
 {
-	Clear();
-
 	std::string line;
 	std::ifstream file(objFile);
 	m_name = objFile.filename().replace_extension().string();
@@ -370,7 +367,7 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 		else if (command == "usemtl")
 		{
 			if (tokens.size() < 2) { continue; }
-			if (currQuadblockName.empty() || materialMap.contains(currQuadblockName)) { return false; }
+			if (currQuadblockName.empty() || materialMap.contains(currQuadblockName)) { continue; } /* TODO: return false, generate error message */
 			materialMap[currQuadblockName] = tokens[1];
 		}
 		else if (command == "f")
@@ -432,6 +429,7 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 					m_materialDoubleSidedPreview[material] = false;
 					m_materialDoubleSidedBackup[material] = false;
 				}
+				/* TODO: try/catch the constructor, generate error message for each failed quadblock/triblock */
 				if (isQuadblock)
 				{
 					Quad& q0 = quadMap[currQuadblockName][0];

@@ -194,7 +194,7 @@ namespace PSX
 
 	struct BSPBranch
 	{
-		BSPFlags flag;
+		uint16_t flag;
 		uint16_t id;
 		PSX::BoundingBox bbox;
 		PSX::Vec3 axis;
@@ -207,7 +207,7 @@ namespace PSX
 
 	struct BSPLeaf
 	{
-		BSPFlags flag;
+		uint16_t flag;
 		uint16_t id;
 		PSX::BoundingBox bbox;
 		uint32_t unk1;

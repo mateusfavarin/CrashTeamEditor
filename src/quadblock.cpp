@@ -13,6 +13,17 @@ Quadblock::Quadblock(const std::string& name, Tri& t0, Tri& t1, Tri& t2, Tri& t3
 		vRefCount[t0.p[i].pos]++; vRefCount[t1.p[i].pos]++; vRefCount[t2.p[i].pos]++; vRefCount[t3.p[i].pos]++;
 	}
 
+	size_t uniqueCount = 0;
+	size_t sharedCount = 0;
+	for (const auto& [v, count] : vRefCount)
+	{
+		if (count == 1) { uniqueCount++; }
+		else if (count == 3) { sharedCount++; }
+	}
+
+	bool validTriblock = (uniqueCount == 3) && (sharedCount == 3);
+	if (!validTriblock) { throw std::exception(); }
+
 	auto FindCenterTri = [&vRefCount](Tri*& out, Tri& tri, std::vector<Tri*>& adjTris)
 		{
 			if (out != nullptr)
@@ -105,11 +116,18 @@ Quadblock::Quadblock(const std::string& name, Quad& q0, Quad& q1, Quad& q2, Quad
 
 	Vec3 centerVertex;
 	std::unordered_set<Vec3> uniqueVertices;
+	size_t uniqueCount = 0;
+	size_t sharedCount = 0;
+	size_t centerCount = 0;
 	for (const auto& [v, count] : vRefCount)
 	{
-		if (count == 1) { uniqueVertices.insert(v); }
-		else if (count == 4) { centerVertex = v; }
+		if (count == 1) { uniqueVertices.insert(v); uniqueCount++; }
+		else if (count == 2) { sharedCount++; }
+		else if (count == 4) { centerVertex = v; centerCount++; }
 	}
+
+	bool validQuadblock = (uniqueCount == 4) && (sharedCount == 4) && (centerCount == 1);
+	if (!validQuadblock) { throw std::exception(); }
 
 	bool foundCenter = false;
 	for (size_t i = 0; i < 4; i++)

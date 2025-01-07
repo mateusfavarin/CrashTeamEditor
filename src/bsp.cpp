@@ -138,7 +138,8 @@ void BSP::Generate(const std::vector<Quadblock>& quadblocks, const size_t maxQua
 {
 	m_bbox = ComputeBoundingBox(quadblocks, m_quadblockIndexes);
 
-	if (!IsBranch())
+	bool isLeaf = !IsBranch();
+	if (isLeaf)
 	{
 		if (m_bbox.AxisLength() < maxAxisLength || m_quadblockIndexes.size() == 1) { return; }
 		m_node = BSPNode::BRANCH;
@@ -157,6 +158,12 @@ void BSP::Generate(const std::vector<Quadblock>& quadblocks, const size_t maxQua
 	float y_score = Split(y_left, y_right, AxisSplit::Y, quadblocks);
 	float z_score = Split(z_left, z_right, AxisSplit::Z, quadblocks);
 	float bestScore = std::min(std::min(x_score, y_score), z_score);
+	if (isLeaf && bestScore == std::numeric_limits<float>::max())
+	{
+		m_node = BSPNode::LEAF;
+		m_flags = BSPFlags::LEAF;
+		return;
+	}
 	if (bestScore == x_score)
 	{
 		m_axis = AxisSplit::X;
