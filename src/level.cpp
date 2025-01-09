@@ -436,7 +436,8 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 					Quad& q1 = quadMap[currQuadblockName][1];
 					Quad& q2 = quadMap[currQuadblockName][2];
 					Quad& q3 = quadMap[currQuadblockName][3];
-					m_quadblocks.emplace_back(currQuadblockName, q0, q1, q2, q3, averageNormal, material);
+					try { m_quadblocks.emplace_back(currQuadblockName, q0, q1, q2, q3, averageNormal, material); }
+					catch (...) { return false; }
 				}
 				else
 				{
@@ -444,7 +445,8 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 					Tri& t1 = triMap[currQuadblockName][1];
 					Tri& t2 = triMap[currQuadblockName][2];
 					Tri& t3 = triMap[currQuadblockName][3];
-					m_quadblocks.emplace_back(currQuadblockName, t0, t1, t2, t3, averageNormal, material);
+					try { m_quadblocks.emplace_back(currQuadblockName, t0, t1, t2, t3, averageNormal, material); }
+					catch (...) { return false; }
 				}
 			}
 		}
