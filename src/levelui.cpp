@@ -155,6 +155,7 @@ void Level::RenderUI()
 	static bool w_quadblocks = false;
 	static bool w_checkpoints = false;
 	static bool w_bsp = false;
+	static bool w_renderer = false;
 
 	if (ImGui::BeginMainMenuBar())
 	{
@@ -164,6 +165,7 @@ void Level::RenderUI()
 		if (ImGui::MenuItem("Quadblocks")) { w_quadblocks = !w_quadblocks; }
 		if (ImGui::MenuItem("Checkpoints")) { w_checkpoints = !w_checkpoints; }
 		if (ImGui::MenuItem("BSP Tree")) { w_bsp = !w_bsp; }
+		if (ImGui::MenuItem("Renderer")) { w_renderer = !w_renderer; }
 		ImGui::EndMainMenuBar();
 	}
 
