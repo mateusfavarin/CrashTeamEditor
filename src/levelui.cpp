@@ -5,22 +5,14 @@
 #include "path.h"
 #include "quadblock.h"
 #include "vertex.h"
+#include "utils.h"
 
 #include <imgui.h>
+#include <misc/cpp/imgui_stdlib.h>
 #include <string>
-
-namespace ImGui
-{
-    // ImGui::InputText() with std::string
-    // Because text input needs dynamic resizing, we need to setup a callback to grow the capacity
-    IMGUI_API bool  InputText(const char* label, std::string* str, ImGuiInputTextFlags flags = 0, ImGuiInputTextCallback callback = nullptr, void* user_data = nullptr);
-    IMGUI_API bool  InputTextMultiline(const char* label, std::string* str, const ImVec2& size = ImVec2(0, 0), ImGuiInputTextFlags flags = 0, ImGuiInputTextCallback callback = nullptr, void* user_data = nullptr);
-    IMGUI_API bool  InputTextWithHint(const char* label, const char* hint, std::string* str, ImGuiInputTextFlags flags = 0, ImGuiInputTextCallback callback = nullptr, void* user_data = nullptr);
-}
 
 static constexpr size_t MAX_QUADBLOCKS_LEAF = 32;
 static constexpr float MAX_LEAF_AXIS_LENGTH = 60.0f;
-static std::string QUADBLOCK_SEARCH_QUERY = "";
 
 template<typename T>
 static bool UIFlagCheckbox(T& var, const T flag, const std::string& title)
@@ -73,7 +65,7 @@ void BSP::RenderUI(size_t& index, const std::vector<Quadblock>& quadblocks)
 	}
 }
 
-void Checkpoint::RenderUI(size_t numCheckpoints, const std::vector<Quadblock>& quadblocks)
+void Checkpoint::RenderUI(size_t numCheckpoints, const std::vector<Quadblock>& quadblocks, const std::string& searchQuery)
 {
 	if (ImGui::TreeNode(("Checkpoint " + std::to_string(m_index)).c_str()))
 	{
@@ -81,7 +73,6 @@ void Checkpoint::RenderUI(size_t numCheckpoints, const std::vector<Quadblock>& q
 		ImGui::Text("Quad:      "); ImGui::SameLine();
 		if (ImGui::BeginCombo("##quad", m_uiPosQuad.c_str()))
 		{
-			std::string searchQuery = QUADBLOCK_SEARCH_QUERY;
 			for (const Quadblock& quadblock : quadblocks)
 			{
 				if (searchQuery.empty() || quadblock.Name().find(searchQuery) != std::string::npos)
@@ -327,26 +318,37 @@ void Level::RenderUI()
 		resetDoubleSidedPreview = false;
 	}
 
+	static std::string quadblockQuery;
 	if (w_quadblocks)
 	{
 		if (ImGui::Begin("Quadblocks", &w_quadblocks, ImGuiWindowFlags_AlwaysAutoResize))
 		{
-			for (Quadblock& quadblock : m_quadblocks) { quadblock.RenderUI(m_checkpoints.size() - 1); }
+			ImGui::InputTextWithHint("Search", "Search Quadblocks...", &quadblockQuery);
+			for (Quadblock& quadblock : m_quadblocks)
+			{
+				if (Matches(quadblock.Name(), quadblockQuery))
+				{
+					quadblock.RenderUI(m_checkpoints.size() - 1);
+				}
+			}
 		}
 		ImGui::End();
 	}
 
+	if (!quadblockQuery.empty() && !w_quadblocks) { quadblockQuery.clear(); }
+
+	static std::string checkpointQuery;
 	if (w_checkpoints)
 	{
 		if (ImGui::Begin("Checkpoints", &w_checkpoints, ImGuiWindowFlags_AlwaysAutoResize))
 		{
-			ImGui::InputTextWithHint("Search##", "Search Quadblocks...", &QUADBLOCK_SEARCH_QUERY);
+			ImGui::InputTextWithHint("Search##", "Search Quadblocks...", &checkpointQuery);
 			if (ImGui::TreeNode("Checkpoints"))
 			{
 				std::vector<int> checkpointsDelete;
 				for (int i = 0; i < m_checkpoints.size(); i++)
 				{
-					m_checkpoints[i].RenderUI(m_checkpoints.size(), m_quadblocks);
+					m_checkpoints[i].RenderUI(m_checkpoints.size(), m_quadblocks, checkpointQuery);
 					if (m_checkpoints[i].GetDelete()) { checkpointsDelete.push_back(i); }
 				}
 				if (!checkpointsDelete.empty())
@@ -373,7 +375,7 @@ void Level::RenderUI()
 		{
 			for (Path& path : m_checkpointPaths)
 			{
-				path.RenderUI("Path " + std::to_string(path.Index()), m_quadblocks);
+				path.RenderUI("Path " + std::to_string(path.Index()), m_quadblocks, checkpointQuery);
 			}
 
 			if (ImGui::Button("Create Path"))
@@ -442,6 +444,8 @@ void Level::RenderUI()
 		ImGui::End();
 	}
 
+	if (!checkpointQuery.empty() && !w_checkpoints) { checkpointQuery.clear(); }
+
 	if (w_bsp)
 	{
 		if (ImGui::Begin("BSP Tree", &w_bsp, ImGuiWindowFlags_AlwaysAutoResize))
@@ -471,9 +475,9 @@ void Level::RenderUI()
 	}
 }
 
-void Path::RenderUI(const std::string& title, const std::vector<Quadblock>& quadblocks)
+void Path::RenderUI(const std::string& title, const std::vector<Quadblock>& quadblocks, const std::string& searchQuery)
 {
-    auto QuadListUI = [this](std::vector<size_t>& indexes, size_t& value, std::string& label, const std::string& title, const std::vector<Quadblock>& quadblocks, std::string& searchQuery)
+    auto QuadListUI = [this](std::vector<size_t>& indexes, size_t& value, std::string& label, const std::string& title, const std::vector<Quadblock>& quadblocks, const std::string& searchQuery)
     {
         if (ImGui::BeginChild(title.c_str(), {0, 0}, ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_AutoResizeX))
         {
@@ -503,7 +507,7 @@ void Path::RenderUI(const std::string& title, const std::vector<Quadblock>& quad
             {
                 for (size_t i = 0; i < quadblocks.size(); i++)
                 {
-                    if (searchQuery.empty() || quadblocks[i].Name().find(searchQuery) != std::string::npos)
+                    if (Matches(quadblocks[i].Name(), searchQuery))
                     {
                         if (ImGui::Selectable(quadblocks[i].Name().c_str()))
                         {
@@ -532,13 +536,13 @@ void Path::RenderUI(const std::string& title, const std::vector<Quadblock>& quad
     {
         if (ImGui::BeginChild(("##" + title).c_str(), {0, 0}, ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_AutoResizeX))
         {
-            if (m_left) { m_left->RenderUI("Left Path", quadblocks); }
-            if (m_right) { m_right->RenderUI("Right Path", quadblocks); }
-            QuadListUI(m_quadIndexesStart, m_previewValueStart, m_previewLabelStart, "Start", quadblocks, QUADBLOCK_SEARCH_QUERY);
+            if (m_left) { m_left->RenderUI("Left Path", quadblocks, searchQuery); }
+            if (m_right) { m_right->RenderUI("Right Path", quadblocks, searchQuery); }
+            QuadListUI(m_quadIndexesStart, m_previewValueStart, m_previewLabelStart, "Start", quadblocks, searchQuery);
             ImGui::SameLine();
-            QuadListUI(m_quadIndexesEnd, m_previewValueEnd, m_previewLabelEnd, "End", quadblocks, QUADBLOCK_SEARCH_QUERY);
+            QuadListUI(m_quadIndexesEnd, m_previewValueEnd, m_previewLabelEnd, "End", quadblocks, searchQuery);
             ImGui::SameLine();
-            QuadListUI(m_quadIndexesIgnore, m_previewValueIgnore, m_previewLabelIgnore, "Ignore", quadblocks, QUADBLOCK_SEARCH_QUERY);
+            QuadListUI(m_quadIndexesIgnore, m_previewValueIgnore, m_previewLabelIgnore, "Ignore", quadblocks, searchQuery);
 
             if (ImGui::Button("Add Left Path "))
             {

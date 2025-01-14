@@ -17,7 +17,7 @@ public:
 	bool Ready() const;
 	void UpdateDist(float dist, const Vec3& refPoint, std::vector<Checkpoint>& checkpoints);
 	std::vector<Checkpoint> GeneratePath(size_t pathStartIndex, std::vector<Quadblock>& quadblocks);
-	void RenderUI(const std::string& title, const std::vector<Quadblock>& quadblocks);
+	void RenderUI(const std::string& title, const std::vector<Quadblock>& quadblocks, const std::string& searchQuery);
 
 private:
 	void GetStartEndIndexes(std::vector<size_t>& out) const;

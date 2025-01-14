@@ -31,7 +31,7 @@ public:
 	void RemoveInvalidCheckpoints(const std::vector<int>& invalidIndexes);
 	void UpdateInvalidCheckpoints(const std::vector<int>& invalidIndexes);
 	std::vector<uint8_t> Serialize() const;
-	void RenderUI(size_t numCheckpoints, const std::vector<Quadblock>& quadblocks);
+	void RenderUI(size_t numCheckpoints, const std::vector<Quadblock>& quadblocks, const std::string& searchQuery);
 
 private:
 	int m_index;
