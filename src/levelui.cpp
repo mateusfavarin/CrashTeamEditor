@@ -503,7 +503,6 @@ void Level::RenderUI()
 		//if (ImGui::Begin("Renderer", &w_renderer, ImGuiWindowsFlags_))
 		ImGui::BeginChild("Renderer");
 
-		//ImGui::Image(tex, ImVec2(300, 300), ImVec2(0, 1), ImVec2(1, 0));
 		ImGui::EndChild();
 	}
 }

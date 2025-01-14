@@ -17,8 +17,10 @@ public:
 private:
 	bool InitSDL();
 	bool InitImGui();
+	bool InitGLFW();
 	void CloseSDL();
 	void CloseImGui();
+	void CloseGLFW();
 
 private:
 	std::string m_glslVer;

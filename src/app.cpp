@@ -1,6 +1,7 @@
 #include "app.h"
 #include "ui.h"
 
+#include <GLFW/glfw3.h>
 #include <imgui.h>
 #include <backends/imgui_impl_sdl2.h>
 #include <backends/imgui_impl_opengl3.h>
@@ -12,7 +13,7 @@
 
 bool App::Init()
 {
-	return InitSDL() && InitImGui();
+	return InitSDL() && InitImGui() && InitGLFW();
 }
 
 void App::Run()
@@ -210,6 +211,11 @@ bool App::InitImGui()
 	return ImGui_ImplSDL2_InitForOpenGL(m_window, m_glContext) && ImGui_ImplOpenGL3_Init(m_glslVer.c_str());
 }
 
+bool App::InitGLFW()
+{
+	return GLFW_TRUE == glfwInit();
+}
+
 void App::CloseSDL()
 {
 	SDL_GL_DeleteContext(m_glContext);
@@ -222,4 +228,9 @@ void App::CloseImGui()
 	ImGui_ImplOpenGL3_Shutdown();
 	ImGui_ImplSDL2_Shutdown();
 	ImGui::DestroyContext();
+}
+
+void App::CloseGLFW()
+{
+	glfwTerminate();
 }
