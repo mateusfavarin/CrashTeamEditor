@@ -8,7 +8,7 @@
 
 bool Level::Load(const std::filesystem::path& filename)
 {
-	Clear();
+	Clear(true);
 	if (!filename.has_filename() || !filename.has_extension()) { return false; }
 	std::filesystem::path ext = filename.extension();
 	if (ext == ".lev") { return LoadLEV(filename); }
@@ -26,10 +26,15 @@ bool Level::Ready()
 	return m_bsp.Valid();
 }
 
-void Level::Clear()
+void Level::Clear(bool clearErrors)
 {
 	for (size_t i = 0; i < NUM_DRIVERS; i++) { m_spawn[i] = Spawn(); }
 	for (size_t i = 0; i < NUM_GRADIENT; i++) { m_skyGradient[i] = ColorGradient(); }
+	if (clearErrors)
+	{
+		m_showLogWindow = false;
+		m_invalidQuadblocks.clear();
+	}
 	m_configFlags = LevConfigFlags::NONE;
 	m_clearColor = Color();
 	m_name.clear();
@@ -335,6 +340,7 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 	std::ifstream file(objFile);
 	m_name = objFile.filename().replace_extension().string();
 
+	bool ret = true;
 	std::unordered_map<std::string, std::vector<Tri>> triMap;
 	std::unordered_map<std::string, std::vector<Quad>> quadMap;
 	std::unordered_map<std::string, std::vector<Vec3>> normalMap;
@@ -437,7 +443,12 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 					Quad& q2 = quadMap[currQuadblockName][2];
 					Quad& q3 = quadMap[currQuadblockName][3];
 					try { m_quadblocks.emplace_back(currQuadblockName, q0, q1, q2, q3, averageNormal, material); }
-					catch (...) { return false; }
+					catch (...)
+					{
+						ret = false;
+						m_showLogWindow = true;
+						m_invalidQuadblocks.push_back(currQuadblockName);
+					}
 				}
 				else
 				{
@@ -446,11 +457,16 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 					Tri& t2 = triMap[currQuadblockName][2];
 					Tri& t3 = triMap[currQuadblockName][3];
 					try { m_quadblocks.emplace_back(currQuadblockName, t0, t1, t2, t3, averageNormal, material); }
-					catch (...) { return false; }
+					catch (...)
+					{
+						ret = false;
+						m_showLogWindow = true;
+						m_invalidQuadblocks.push_back(currQuadblockName);
+					}
 				}
 			}
 		}
 	}
 	file.close();
-	return true;
+	return ret;
 }

@@ -125,6 +125,25 @@ void Checkpoint::RenderUI(size_t numCheckpoints, const std::vector<Quadblock>& q
 
 void Level::RenderUI()
 {
+	if (m_showLogWindow)
+	{
+		if (ImGui::Begin("Log", &m_showLogWindow, ImGuiWindowFlags_AlwaysAutoResize))
+		{
+			if (!m_invalidQuadblocks.empty())
+			{
+				ImGui::Text("Error - the following are not in the valid format:");
+				constexpr size_t QUADS_PER_LINE = 10;
+				for (size_t i = 0; i < m_invalidQuadblocks.size(); i++)
+				{
+					ImGui::Text((m_invalidQuadblocks[i] + ", ").c_str());
+					if (((i + 1) % QUADS_PER_LINE) == 0 || i == m_invalidQuadblocks.size() - 1) { continue; }
+					ImGui::SameLine();
+				}
+			}
+		}
+		ImGui::End();
+	}
+
 	if (m_name.empty()) { return; }
 
 	static bool w_spawn = false;

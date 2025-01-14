@@ -17,7 +17,7 @@ public:
 	bool Load(const std::filesystem::path& filename);
 	bool Save(const std::filesystem::path& path);
 	bool Ready();
-	void Clear();
+	void Clear(bool clearErrors);
 	void RenderUI();
 
 private:
@@ -26,6 +26,8 @@ private:
 	bool LoadOBJ(const std::filesystem::path& objFile);
 
 private:
+	bool m_showLogWindow;
+	std::vector<std::string> m_invalidQuadblocks;
 	std::string m_name;
 	std::string m_bspStatusMessage;
 	Spawn m_spawn[NUM_DRIVERS];
