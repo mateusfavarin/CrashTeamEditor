@@ -131,13 +131,16 @@ void Level::RenderUI()
 		{
 			if (!m_invalidQuadblocks.empty())
 			{
-				ImGui::Text("Error - the following are not in the valid format:");
-				constexpr size_t QUADS_PER_LINE = 10;
+				ImGui::Text("Error - the following quadblocks are not in the valid format:");
 				for (size_t i = 0; i < m_invalidQuadblocks.size(); i++)
 				{
-					ImGui::Text((m_invalidQuadblocks[i] + ", ").c_str());
-					if (((i + 1) % QUADS_PER_LINE) == 0 || i == m_invalidQuadblocks.size() - 1) { continue; }
-					ImGui::SameLine();
+					const std::string& quadblock = std::get<0>(m_invalidQuadblocks[i]);
+					const std::string& errorMessage = std::get<1>(m_invalidQuadblocks[i]);
+					if (ImGui::TreeNode(quadblock.c_str()))
+					{
+						ImGui::Text(errorMessage.c_str());
+						ImGui::TreePop();
+					}
 				}
 			}
 		}
