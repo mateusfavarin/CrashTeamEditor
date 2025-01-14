@@ -497,6 +497,15 @@ void Level::RenderUI()
 		}
 		ImGui::End();
 	}
+
+	if (w_renderer)
+	{
+		//if (ImGui::Begin("Renderer", &w_renderer, ImGuiWindowsFlags_))
+		ImGui::BeginChild("Renderer");
+
+		//ImGui::Image(tex, ImVec2(300, 300), ImVec2(0, 1), ImVec2(1, 0));
+		ImGui::EndChild();
+	}
 }
 
 void Path::RenderUI(const std::string& title, const std::vector<Quadblock>& quadblocks, const std::string& searchQuery)
