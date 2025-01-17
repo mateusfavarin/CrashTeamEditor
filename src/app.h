@@ -1,8 +1,7 @@
 #pragma once
 
-#include <SDL.h>
-
 #include <string>
+#include "globalimguiglglfw.h"
 
 class App
 {
@@ -10,21 +9,14 @@ public:
 	bool Init();
 	void Run();
 	void Close();
-#ifdef _DEBUG
-	void RunImGuiExample();
-#endif
 
 private:
-	bool InitSDL();
-	bool InitImGui();
 	bool InitGLFW();
-	void CloseSDL();
+	bool InitImGui();
 	void CloseImGui();
-	void CloseGLFW();
 
 private:
 	std::string m_glslVer;
-	SDL_GLContext m_glContext;
-	SDL_Window* m_window;
+	GLFWwindow* m_window;
 	const std::string m_version = "BETA";
 };

@@ -6,6 +6,7 @@
 #include "quadblock.h"
 #include "vertex.h"
 #include "utils.h"
+#include "renderer.h"
 
 #include <imgui.h>
 #include <misc/cpp/imgui_stdlib.h>
@@ -500,9 +501,16 @@ void Level::RenderUI()
 
 	if (w_renderer)
 	{
+		static Renderer rend = Renderer(300, 300);
 		//if (ImGui::Begin("Renderer", &w_renderer, ImGuiWindowsFlags_))
 		ImGui::BeginChild("Renderer");
+		rend.Render();
 
+		ImVec2 pos = ImGui::GetCursorScreenPos();
+		ImVec2 min = ImGui::GetItemRectMin();
+		ImTextureID tex = (ImTextureID)&rend.buf;
+
+		ImGui::GetWindowDrawList()->AddImage(tex, ImVec2(min.x + pos.x, min.y + pos.y), ImVec2(pos.x + rend.height / 2, pos.y + rend.width / 2), ImVec2(0, 1), ImVec2(1, 0));
 		ImGui::EndChild();
 	}
 }
