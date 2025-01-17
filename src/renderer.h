@@ -5,14 +5,14 @@
 class Renderer 
 {
 private:
-  GLuint framebuffer;
-  GLuint textureColorbuffer;
   GLuint rbo;
   GLuint shaderProgram;
   GLuint VAO, VBO;
   void CopySysNow(void);
 public:
-  char* buf;
+  GLuint framebuffer;
+  GLuint textureColorbuffer;
+  unsigned char* buf;
   int width, height;
   Renderer(int width, int height);
   ~Renderer();

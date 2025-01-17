@@ -501,17 +501,30 @@ void Level::RenderUI()
 
 	if (w_renderer)
 	{
-		static Renderer rend = Renderer(300, 300);
+		static Renderer rend = Renderer(600, 600);
 		//if (ImGui::Begin("Renderer", &w_renderer, ImGuiWindowsFlags_))
-		ImGui::BeginChild("Renderer");
+		ImGui::SetNextWindowSize(ImVec2(rend.width, rend.height), ImGuiCond_Always);
+		ImGui::Begin("Renderer", &w_renderer, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings);
 		rend.Render();
 
 		ImVec2 pos = ImGui::GetCursorScreenPos();
 		ImVec2 min = ImGui::GetItemRectMin();
-		ImTextureID tex = (ImTextureID)&rend.buf;
+		//ImTextureID tex = (ImTextureID)&rend.buf;
+		ImTextureID tex = (ImTextureID)&rend.framebuffer;
 
-		ImGui::GetWindowDrawList()->AddImage(tex, ImVec2(min.x + pos.x, min.y + pos.y), ImVec2(pos.x + rend.height / 2, pos.y + rend.width / 2), ImVec2(0, 1), ImVec2(1, 0));
-		ImGui::EndChild();
+
+		ImGui::GetWindowDrawList()->AddImage(tex,
+			ImVec2(pos.x, pos.y),
+			ImVec2(pos.x + rend.width, pos.y + rend.height),
+			ImVec2(0, 1),
+			ImVec2(1, 0));
+
+		/*ImGui::GetWindowDrawList()->AddImage(tex,
+			ImVec2(min.x + pos.x, min.y + pos.y),
+			ImVec2(pos.x + rend.width / 2, pos.y + rend.height / 2),
+			ImVec2(0, 1),
+			ImVec2(1, 0));*/
+		ImGui::End();
 	}
 }
 

@@ -69,6 +69,7 @@
     <ClInclude Include="src\vertex.h" />
 	<ClCompile Include="src\khrplatform.h" />
 	<ClCompile Include="src\glad.h" />
+	<ClCompile Include="src\stb_image.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
