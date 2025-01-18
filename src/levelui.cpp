@@ -9,10 +9,47 @@
 
 #include <imgui.h>
 #include <misc/cpp/imgui_stdlib.h>
+
 #include <string>
+#include <chrono>
 
 static constexpr size_t MAX_QUADBLOCKS_LEAF = 32;
 static constexpr float MAX_LEAF_AXIS_LENGTH = 60.0f;
+static constexpr long long BUTTON_UI_TIMEOUT_MESSAGE = 1; // seconds
+
+class ButtonUI
+{
+public:
+	ButtonUI();
+	bool Show(const std::string& label, const std::string& message);
+
+private:
+	std::string m_labelTriggered;
+	std::chrono::steady_clock::time_point m_messageTimeoutStart;
+};
+
+ButtonUI::ButtonUI()
+{
+	m_labelTriggered = std::string();
+	m_messageTimeoutStart = std::chrono::steady_clock::time_point();
+}
+
+bool ButtonUI::Show(const std::string& label, const std::string& message)
+{
+	bool ret = false;
+	if (ImGui::Button(label.c_str()))
+	{
+		m_labelTriggered = label;
+		m_messageTimeoutStart = std::chrono::high_resolution_clock::now();
+		ret = true;
+	}
+	if (std::chrono::duration_cast<std::chrono::seconds>(std::chrono::high_resolution_clock::now() - m_messageTimeoutStart).count() < BUTTON_UI_TIMEOUT_MESSAGE
+			&& m_labelTriggered == label)
+	{
+		ImGui::Text(message.c_str());
+	}
+	return ret;
+}
 
 template<typename T>
 static bool UIFlagCheckbox(T& var, const T flag, const std::string& title)
@@ -260,7 +297,9 @@ void Level::RenderUI()
 						}
 						ImGui::EndCombo();
 					} ImGui::SameLine();
-					if (ImGui::Button("Apply"))
+
+					static ButtonUI terrainApplyButton = ButtonUI();
+					if (terrainApplyButton.Show(("Apply##" + material).c_str(), "Terrain type successfully updated."))
 					{
 						const std::string& terrain = m_materialTerrainPreview[material];
 						for (const size_t index : quadblockIndexes)
@@ -278,7 +317,9 @@ void Level::RenderUI()
 								resetQuadflagPreview = true;
 							}
 						}
-						if (ImGui::Button("Apply"))
+
+						static ButtonUI quadFlagsApplyButton = ButtonUI();
+						if (quadFlagsApplyButton.Show(("Apply##" + material).c_str(), "Quad flags successfully updated."))
 						{
 							uint16_t flag = m_materialQuadflagsPreview[material];
 							for (const size_t index : quadblockIndexes)
@@ -295,7 +336,9 @@ void Level::RenderUI()
 						{
 							resetDoubleSidedPreview = true;
 						}
-						if (ImGui::Button("Apply"))
+
+						static ButtonUI drawFlagsApplyButton = ButtonUI();
+						if (drawFlagsApplyButton.Show(("Apply##" + material).c_str(), "Draw flags successfully updated."))
 						{
 							bool active = m_materialDoubleSidedPreview[material];
 							for (const size_t index : quadblockIndexes)
@@ -499,7 +542,7 @@ void Level::RenderUI()
 
 void Path::RenderUI(const std::string& title, const std::vector<Quadblock>& quadblocks, const std::string& searchQuery)
 {
-    auto QuadListUI = [this](std::vector<size_t>& indexes, size_t& value, std::string& label, const std::string& title, const std::vector<Quadblock>& quadblocks, const std::string& searchQuery)
+    auto QuadListUI = [this](std::vector<size_t>& indexes, size_t& value, std::string& label, const std::string& title, const std::vector<Quadblock>& quadblocks, const std::string& searchQuery, ButtonUI& button)
     {
         if (ImGui::BeginChild(title.c_str(), {0, 0}, ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_AutoResizeX))
         {
@@ -541,7 +584,7 @@ void Path::RenderUI(const std::string& title, const std::vector<Quadblock>& quad
                 ImGui::EndCombo();
             }
 
-            if (ImGui::Button(("Add##" + title).c_str()))
+            if (button.Show(("Add##" + title).c_str(), "Quadblock successfully\nadded to path."))
             {
                 bool found = false;
                 for (const size_t index : indexes)
@@ -560,11 +603,15 @@ void Path::RenderUI(const std::string& title, const std::vector<Quadblock>& quad
         {
             if (m_left) { m_left->RenderUI("Left Path", quadblocks, searchQuery); }
             if (m_right) { m_right->RenderUI("Right Path", quadblocks, searchQuery); }
-            QuadListUI(m_quadIndexesStart, m_previewValueStart, m_previewLabelStart, "Start", quadblocks, searchQuery);
+
+						static ButtonUI startButton = ButtonUI();
+						static ButtonUI endButton = ButtonUI();
+						static ButtonUI ignoreButton = ButtonUI();
+            QuadListUI(m_quadIndexesStart, m_previewValueStart, m_previewLabelStart, "Start", quadblocks, searchQuery, startButton);
             ImGui::SameLine();
-            QuadListUI(m_quadIndexesEnd, m_previewValueEnd, m_previewLabelEnd, "End", quadblocks, searchQuery);
+            QuadListUI(m_quadIndexesEnd, m_previewValueEnd, m_previewLabelEnd, "End", quadblocks, searchQuery, endButton);
             ImGui::SameLine();
-            QuadListUI(m_quadIndexesIgnore, m_previewValueIgnore, m_previewLabelIgnore, "Ignore", quadblocks, searchQuery);
+            QuadListUI(m_quadIndexesIgnore, m_previewValueIgnore, m_previewLabelIgnore, "Ignore", quadblocks, searchQuery, ignoreButton);
 
             if (ImGui::Button("Add Left Path "))
             {
