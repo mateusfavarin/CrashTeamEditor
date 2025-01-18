@@ -265,6 +265,7 @@ void Level::RenderUI()
 	static bool resetTerrainPreview = false;
 	static bool resetQuadflagPreview = false;
 	static bool resetDoubleSidedPreview = false;
+	static bool resetCheckpointPreview = false;
 	if (w_material)
 	{
 		if (ImGui::Begin("Material", &w_material, ImGuiWindowFlags_AlwaysAutoResize))
@@ -284,6 +285,7 @@ void Level::RenderUI()
 						}
 						ImGui::TreePop();
 					}
+
 					ImGui::Text("Terrain:"); ImGui::SameLine();
 					if (ImGui::BeginCombo("##terrain", m_materialTerrainPreview[material].c_str()))
 					{
@@ -308,6 +310,7 @@ void Level::RenderUI()
 						}
 						m_materialTerrainBackup[material] = terrain;
 					}
+
 					if (ImGui::TreeNode("Quad Flags"))
 					{
 						for (const auto& [label, flag] : QuadFlags::LABELS)
@@ -330,6 +333,7 @@ void Level::RenderUI()
 						}
 						ImGui::TreePop();
 					}
+
 					if (ImGui::TreeNode("Draw Flags"))
 					{
 						if (ImGui::Checkbox("Double Sided", &m_materialDoubleSidedPreview[material]))
@@ -348,6 +352,22 @@ void Level::RenderUI()
 							m_materialDoubleSidedBackup[material] = active;
 						}
 						ImGui::TreePop();
+					}
+
+					if (ImGui::Checkbox("Checkpoint", &m_materialCheckpointPreview[material]))
+					{
+						resetCheckpointPreview = true;
+					} ImGui::SameLine();
+
+					static ButtonUI checkpointApplyButton = ButtonUI();
+					if (checkpointApplyButton.Show(("Apply##" + material).c_str(), "Checkpoint status successfully updated."))
+					{
+						bool active = m_materialCheckpointPreview[material];
+						for (const size_t index : quadblockIndexes)
+						{
+							m_quadblocks[index].CheckpointStatus() = active;
+						}
+						m_materialCheckpointBackup[material] = active;
 					}
 					ImGui::TreePop();
 				}
@@ -381,6 +401,15 @@ void Level::RenderUI()
 			m_materialDoubleSidedPreview[material] = m_materialDoubleSidedBackup[material];
 		}
 		resetDoubleSidedPreview = false;
+	}
+
+	if (resetCheckpointPreview && !w_material)
+	{
+		for (const auto& [material, quadblockIndexes] : m_materialToQuadblocks)
+		{
+			m_materialCheckpointPreview[material] = m_materialCheckpointBackup[material];
+		}
+		resetCheckpointPreview = false;
 	}
 
 	static std::string quadblockQuery;
@@ -672,6 +701,7 @@ void Quadblock::RenderUI(size_t checkpointCount)
 			ImGui::Checkbox("Double Sided", &m_doubleSided);
 			ImGui::TreePop();
 		}
+		ImGui::Checkbox("Checkpoint", &m_checkpointStatus);
 		ImGui::Text("Checkpoint Index: ");
 		ImGui::SameLine();
 		if (ImGui::InputInt("##cp", &m_checkpointIndex)) { m_checkpointIndex = Clamp(m_checkpointIndex, -1, static_cast<int>(checkpointCount)); }

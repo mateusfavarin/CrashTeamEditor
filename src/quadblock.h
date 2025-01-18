@@ -101,6 +101,7 @@ public:
 	const Vec3& Center() const;
 	uint8_t Terrain() const;
 	uint16_t Flags() const;
+	bool& CheckpointStatus();
 	void SetTerrain(uint8_t terrain);
 	void SetFlag(uint16_t flag);
 	void SetCheckpoint(int index);
@@ -125,6 +126,7 @@ private:
 		p6 -- p7 -- p8
 	*/
 	bool m_triblock;
+	bool m_checkpointStatus;
 	Vertex m_p[NUM_VERTICES_QUADBLOCK];
 	BoundingBox m_bbox;
 	std::string m_name;
