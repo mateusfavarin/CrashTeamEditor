@@ -263,10 +263,6 @@ void Level::RenderUI()
 		ImGui::End();
 	}
 
-	static bool resetTerrainPreview = false;
-	static bool resetQuadflagPreview = false;
-	static bool resetDoubleSidedPreview = false;
-	static bool resetCheckpointPreview = false;
 	if (w_material)
 	{
 		if (ImGui::Begin("Material", &w_material))
@@ -288,87 +284,78 @@ void Level::RenderUI()
 					}
 
 					ImGui::Text("Terrain:"); ImGui::SameLine();
-					if (ImGui::BeginCombo("##terrain", m_materialTerrainPreview[material].c_str()))
+					if (ImGui::BeginCombo("##terrain", m_propTerrain.GetPreview(material).c_str()))
 					{
 						for (const auto& [label, terrain] : TerrainType::LABELS)
 						{
 							if (ImGui::Selectable(label.c_str()))
 							{
-								m_materialTerrainPreview[material] = label;
-								resetTerrainPreview = true;
+								m_propTerrain.SetPreview(material, label);
 							}
 						}
 						ImGui::EndCombo();
 					} ImGui::SameLine();
 
 					static ButtonUI terrainApplyButton = ButtonUI();
-					if (terrainApplyButton.Show(("Apply##" + material).c_str(), "Terrain type successfully updated."))
+					if (terrainApplyButton.Show(("Apply##terrain" + material).c_str(), "Terrain type successfully updated."))
 					{
-						const std::string& terrain = m_materialTerrainPreview[material];
+						const std::string& terrain = m_propTerrain.GetPreview(material);
 						for (const size_t index : quadblockIndexes)
 						{
 							m_quadblocks[index].SetTerrain(TerrainType::LABELS.at(terrain));
 						}
-						m_materialTerrainBackup[material] = terrain;
+						m_propTerrain.SetBackup(material, terrain);
 					}
 
 					if (ImGui::TreeNode("Quad Flags"))
 					{
 						for (const auto& [label, flag] : QuadFlags::LABELS)
 						{
-							if (UIFlagCheckbox(m_materialQuadflagsPreview[material], flag, label))
-							{
-								resetQuadflagPreview = true;
-							}
+							UIFlagCheckbox(m_propQuadFlags.GetPreview(material), flag, label);
 						}
 
 						static ButtonUI quadFlagsApplyButton = ButtonUI();
-						if (quadFlagsApplyButton.Show(("Apply##" + material).c_str(), "Quad flags successfully updated."))
+						if (quadFlagsApplyButton.Show(("Apply##quadflags" + material).c_str(), "Quad flags successfully updated."))
 						{
-							uint16_t flag = m_materialQuadflagsPreview[material];
+							uint16_t flag = m_propQuadFlags.GetPreview(material);
 							for (const size_t index : quadblockIndexes)
 							{
 								m_quadblocks[index].SetFlag(flag);
 							}
-							m_materialQuadflagsBackup[material] = flag;
+							m_propQuadFlags.SetBackup(material, flag);
 						}
 						ImGui::TreePop();
 					}
 
 					if (ImGui::TreeNode("Draw Flags"))
 					{
-						if (ImGui::Checkbox("Double Sided", &m_materialDoubleSidedPreview[material]))
-						{
-							resetDoubleSidedPreview = true;
-						}
+						ImGui::Checkbox("Double Sided", &m_propDoubleSided.GetPreview(material));
 
 						static ButtonUI drawFlagsApplyButton = ButtonUI();
-						if (drawFlagsApplyButton.Show(("Apply##" + material).c_str(), "Draw flags successfully updated."))
+						if (drawFlagsApplyButton.Show(("Apply##drawflags" + material).c_str(), "Draw flags successfully updated."))
 						{
-							bool active = m_materialDoubleSidedPreview[material];
+							bool active = m_propDoubleSided.GetPreview(material);
 							for (const size_t index : quadblockIndexes)
 							{
 								m_quadblocks[index].SetDrawDoubleSided(active);
 							}
-							m_materialDoubleSidedBackup[material] = active;
+							m_propDoubleSided.SetBackup(material, active);
 						}
 						ImGui::TreePop();
 					}
 
-					if (ImGui::Checkbox("Checkpoint", &m_materialCheckpointPreview[material]))
-					{
-						resetCheckpointPreview = true;
-					} ImGui::SameLine();
+					ImGui::Checkbox("Checkpoint", &m_propCheckpoints.GetPreview(material));
+					ImGui::SameLine();
 
 					static ButtonUI checkpointApplyButton = ButtonUI();
-					if (checkpointApplyButton.Show(("Apply##" + material).c_str(), "Checkpoint status successfully updated."))
+					if (checkpointApplyButton.Show(("Apply##checkpoint" + material).c_str(), "Checkpoint status successfully updated."))
 					{
-						bool active = m_materialCheckpointPreview[material];
+						bool active = m_propCheckpoints.GetPreview(material);
 						for (const size_t index : quadblockIndexes)
 						{
 							m_quadblocks[index].CheckpointStatus() = active;
 						}
-						m_materialCheckpointBackup[material] = active;
+						m_propCheckpoints.SetBackup(material, active);
 					}
 					ImGui::TreePop();
 				}
@@ -377,40 +364,12 @@ void Level::RenderUI()
 		ImGui::End();
 	}
 
-	if (resetTerrainPreview && !w_material)
+	if (!w_material)
 	{
-		for (const auto& [material, quadblockIndexes] : m_materialToQuadblocks)
-		{
-			m_materialTerrainPreview[material] = m_materialTerrainBackup[material];
-		}
-		resetTerrainPreview = false;
-	}
-
-	if (resetQuadflagPreview && !w_material)
-	{
-		for (const auto& [material, quadblockIndexes] : m_materialToQuadblocks)
-		{
-			m_materialQuadflagsPreview[material] = m_materialQuadflagsBackup[material];
-		}
-		resetQuadflagPreview = false;
-	}
-
-	if (resetDoubleSidedPreview && !w_material)
-	{
-		for (const auto& [material, quadblockIndexes] : m_materialToQuadblocks)
-		{
-			m_materialDoubleSidedPreview[material] = m_materialDoubleSidedBackup[material];
-		}
-		resetDoubleSidedPreview = false;
-	}
-
-	if (resetCheckpointPreview && !w_material)
-	{
-		for (const auto& [material, quadblockIndexes] : m_materialToQuadblocks)
-		{
-			m_materialCheckpointPreview[material] = m_materialCheckpointBackup[material];
-		}
-		resetCheckpointPreview = false;
+		m_propTerrain.Restore();
+		m_propQuadFlags.Restore();
+		m_propDoubleSided.Restore();
+		m_propCheckpoints.Restore();
 	}
 
 	static std::string quadblockQuery;

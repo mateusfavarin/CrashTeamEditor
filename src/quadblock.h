@@ -12,7 +12,6 @@ static constexpr size_t NUM_FACES_QUADBLOCK = 4;
 
 namespace QuadFlags
 {
-	static constexpr uint16_t NONE = 0;
 	static constexpr uint16_t INVISIBLE = 1 << 0;
 	static constexpr uint16_t MOON_GRAVITY = 1 << 1;
 	static constexpr uint16_t REFLECTION = 1 << 2;
@@ -31,7 +30,7 @@ namespace QuadFlags
 	static constexpr uint16_t INVISIBLE_TRIGGER = 1 << 15;
 	static constexpr uint16_t DEFAULT = GROUND | COLLISION_TRIGGER;
 	static const std::unordered_map<std::string, uint16_t> LABELS = {
-		{"None", NONE}, {"Invisible", INVISIBLE}, {"Moon Gravity", MOON_GRAVITY}, {"Reflection", REFLECTION},
+		{"Invisible", INVISIBLE}, {"Moon Gravity", MOON_GRAVITY}, {"Reflection", REFLECTION},
 		{"Kickers (?)", KICKERS}, {"Out of Bounds", OUT_OF_BOUNDS}, {"Never Used (?)", NEVER_USED},
 		{"Trigger Script", TRIGGER_SCRIPT }, {"Reverb", REVERB}, {"Kickers Two (?)", KICKERS_TWO},
 		{"Mask Grab", MASK_GRAB }, {"Tiger Temple Door", TIGER_TEMPLE_DOOR}, {"Collision Trigger", COLLISION_TRIGGER},

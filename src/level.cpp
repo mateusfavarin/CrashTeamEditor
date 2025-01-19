@@ -42,14 +42,10 @@ void Level::Clear(bool clearErrors)
 	m_checkpoints.clear();
 	m_bsp.Clear();
 	m_materialToQuadblocks.clear();
-	m_materialTerrainPreview.clear();
-	m_materialTerrainBackup.clear();
-	m_materialQuadflagsPreview.clear();
-	m_materialQuadflagsBackup.clear();
-	m_materialDoubleSidedPreview.clear();
-	m_materialDoubleSidedBackup.clear();
-	m_materialCheckpointPreview.clear();
-	m_materialCheckpointBackup.clear();
+	m_propTerrain.Clear();
+	m_propQuadFlags.Clear();
+	m_propDoubleSided.Clear();
+	m_propCheckpoints.Clear();
 	m_checkpointPaths.clear();
 }
 
@@ -429,14 +425,10 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 				{
 					material = materialMap[currQuadblockName];
 					m_materialToQuadblocks[material].push_back(m_quadblocks.size());
-					m_materialTerrainPreview[material] = TerrainType::DEFAULT;
-					m_materialTerrainBackup[material] = TerrainType::DEFAULT;
-					m_materialQuadflagsPreview[material] = QuadFlags::DEFAULT;
-					m_materialQuadflagsBackup[material] = QuadFlags::DEFAULT;
-					m_materialDoubleSidedPreview[material] = false;
-					m_materialDoubleSidedBackup[material] = false;
-					m_materialCheckpointPreview[material] = true;
-					m_materialCheckpointBackup[material] = true;
+					m_propTerrain.SetDefaultValue(material, TerrainType::DEFAULT);
+					m_propQuadFlags.SetDefaultValue(material, QuadFlags::DEFAULT);
+					m_propDoubleSided.SetDefaultValue(material, false);
+					m_propCheckpoints.SetDefaultValue(material, true);
 				}
 				/* TODO: try/catch the constructor, generate error message for each failed quadblock/triblock */
 				if (isQuadblock)
