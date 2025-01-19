@@ -6,6 +6,7 @@
 #include "lev.h"
 #include "bsp.h"
 #include "path.h"
+#include "material.h"
 
 #include <vector>
 #include <unordered_map>
@@ -28,8 +29,8 @@ private:
 private:
 	bool m_showLogWindow;
 	std::vector<std::tuple<std::string, std::string>> m_invalidQuadblocks;
+	std::string m_logMessage;
 	std::string m_name;
-	std::string m_bspStatusMessage;
 	Spawn m_spawn[NUM_DRIVERS];
 	uint32_t m_configFlags;
 	ColorGradient m_skyGradient[NUM_GRADIENT];
@@ -38,11 +39,9 @@ private:
 	std::vector<Checkpoint> m_checkpoints;
 	BSP m_bsp;
 	std::unordered_map<std::string, std::vector<size_t>> m_materialToQuadblocks;
-	std::unordered_map<std::string, std::string> m_materialTerrainPreview;
-	std::unordered_map<std::string, std::string> m_materialTerrainBackup;
-	std::unordered_map<std::string, uint16_t> m_materialQuadflagsPreview;
-	std::unordered_map<std::string, uint16_t> m_materialQuadflagsBackup;
-	std::unordered_map<std::string, bool> m_materialDoubleSidedPreview;
-	std::unordered_map<std::string, bool> m_materialDoubleSidedBackup;
+	MaterialProperty<std::string> m_propTerrain;
+	MaterialProperty<uint16_t> m_propQuadFlags;
+	MaterialProperty<bool> m_propDoubleSided;
+	MaterialProperty<bool> m_propCheckpoints;
 	std::vector<Path> m_checkpointPaths;
 };

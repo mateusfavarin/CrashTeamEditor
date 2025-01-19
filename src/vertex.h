@@ -16,8 +16,7 @@ public:
 	Vertex(const Point& point);
 	Vertex(const Vec3& pos);
 	Vertex(const Vec3& pos, const Color& color);
-	bool IsEdited() const;
-	void RenderUI(size_t index);
+	void RenderUI(size_t index, bool& editedPos);
 	std::vector<uint8_t> Serialize() const;
 	inline bool operator==(const Vertex& v) const { return (m_pos == v.m_pos) && (m_flags == v.m_flags) && (m_colorHigh == v.m_colorHigh) && (m_colorLow == v.m_colorLow); };
 
@@ -28,7 +27,6 @@ private:
 	uint16_t m_flags;
 	Color m_colorHigh;
 	Color m_colorLow;
-	bool m_editedPos;
 
 	friend std::hash<Vertex>;
 };

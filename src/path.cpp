@@ -85,7 +85,7 @@ std::vector<Checkpoint> Path::GeneratePath(size_t pathStartIndex, std::vector<Qu
 
 	for (size_t i = 0; i < quadblocks.size(); i++)
 	{
-		if (!(quadblocks[i].Flags() & QuadFlags::GROUND))
+		if (!quadblocks[i].CheckpointStatus())
 		{
 			visitedQuadblocks[i] = true;
 			visitedCount++;
