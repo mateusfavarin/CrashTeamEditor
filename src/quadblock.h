@@ -12,7 +12,6 @@ static constexpr size_t NUM_FACES_QUADBLOCK = 4;
 
 namespace QuadFlags
 {
-	static constexpr uint16_t NONE = 0;
 	static constexpr uint16_t INVISIBLE = 1 << 0;
 	static constexpr uint16_t MOON_GRAVITY = 1 << 1;
 	static constexpr uint16_t REFLECTION = 1 << 2;
@@ -31,7 +30,7 @@ namespace QuadFlags
 	static constexpr uint16_t INVISIBLE_TRIGGER = 1 << 15;
 	static constexpr uint16_t DEFAULT = GROUND | COLLISION_TRIGGER;
 	static const std::unordered_map<std::string, uint16_t> LABELS = {
-		{"None", NONE}, {"Invisible", INVISIBLE}, {"Moon Gravity", MOON_GRAVITY}, {"Reflection", REFLECTION},
+		{"Invisible", INVISIBLE}, {"Moon Gravity", MOON_GRAVITY}, {"Reflection", REFLECTION},
 		{"Kickers (?)", KICKERS}, {"Out of Bounds", OUT_OF_BOUNDS}, {"Never Used (?)", NEVER_USED},
 		{"Trigger Script", TRIGGER_SCRIPT }, {"Reverb", REVERB}, {"Kickers Two (?)", KICKERS_TWO},
 		{"Mask Grab", MASK_GRAB }, {"Tiger Temple Door", TIGER_TEMPLE_DOOR}, {"Collision Trigger", COLLISION_TRIGGER},
@@ -101,6 +100,7 @@ public:
 	const Vec3& Center() const;
 	uint8_t Terrain() const;
 	uint16_t Flags() const;
+	bool& CheckpointStatus();
 	void SetTerrain(uint8_t terrain);
 	void SetFlag(uint16_t flag);
 	void SetCheckpoint(int index);
@@ -110,7 +110,7 @@ public:
 	float DistanceClosestVertex(Vec3& out, const Vec3& v) const;
 	bool Neighbours(const Quadblock& quadblock, float threshold = 0.1f) const;
 	std::vector<uint8_t> Serialize(size_t id, size_t offTextures, size_t offVisibleSet, const std::vector<size_t>& vertexIndexes) const;
-	void RenderUI(size_t checkpointCount);
+	void RenderUI(size_t checkpointCount, bool& resetBsp);
 
 private:
 	Vec3 ComputeNormalVector(size_t id0, size_t id1, size_t id2) const;
@@ -125,6 +125,7 @@ private:
 		p6 -- p7 -- p8
 	*/
 	bool m_triblock;
+	bool m_checkpointStatus;
 	Vertex m_p[NUM_VERTICES_QUADBLOCK];
 	BoundingBox m_bbox;
 	std::string m_name;

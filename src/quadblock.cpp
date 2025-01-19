@@ -110,6 +110,7 @@ Quadblock::Quadblock(const std::string& name, Tri& t0, Tri& t1, Tri& t2, Tri& t3
 		m_faceRotateFlip[i] = FaceRotateFlip::NONE;
 	}
 	m_doubleSided = false;
+	m_checkpointStatus = true;
 }
 
 Quadblock::Quadblock(const std::string& name, Quad& q0, Quad& q1, Quad& q2, Quad& q3, const Vec3& normal, const std::string& material)
@@ -210,6 +211,7 @@ Quadblock::Quadblock(const std::string& name, Quad& q0, Quad& q1, Quad& q2, Quad
 		m_faceRotateFlip[i] = FaceRotateFlip::NONE;
 	}
 	m_doubleSided = false;
+	m_checkpointStatus = true;
 }
 
 const std::string& Quadblock::Name() const
@@ -230,6 +232,11 @@ uint8_t Quadblock::Terrain() const
 uint16_t Quadblock::Flags() const
 {
 	return m_flags;
+}
+
+bool& Quadblock::CheckpointStatus()
+{
+	return m_checkpointStatus;
 }
 
 void Quadblock::SetTerrain(uint8_t terrain)
