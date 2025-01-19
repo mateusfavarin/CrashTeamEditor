@@ -164,8 +164,9 @@ void Level::RenderUI()
 {
 	if (m_showLogWindow)
 	{
-		if (ImGui::Begin("Log", &m_showLogWindow, ImGuiWindowFlags_AlwaysAutoResize))
+		if (ImGui::Begin("Log", &m_showLogWindow))
 		{
+			if (!m_logMessage.empty()) { ImGui::Text(m_logMessage.c_str()); }
 			if (!m_invalidQuadblocks.empty())
 			{
 				ImGui::Text("Error - the following quadblocks are not in the valid format:");
@@ -206,7 +207,7 @@ void Level::RenderUI()
 
 	if (w_spawn)
 	{
-		if (ImGui::Begin("Spawn", &w_spawn, ImGuiWindowFlags_AlwaysAutoResize))
+		if (ImGui::Begin("Spawn", &w_spawn))
 		{
 			for (size_t i = 0; i < NUM_DRIVERS; i++)
 			{
@@ -229,7 +230,7 @@ void Level::RenderUI()
 
 	if (w_level)
 	{
-		if (ImGui::Begin("Level", &w_level, ImGuiWindowFlags_AlwaysAutoResize))
+		if (ImGui::Begin("Level", &w_level))
 		{
 			if (ImGui::TreeNode("Flags"))
 			{
@@ -268,7 +269,7 @@ void Level::RenderUI()
 	static bool resetCheckpointPreview = false;
 	if (w_material)
 	{
-		if (ImGui::Begin("Material", &w_material, ImGuiWindowFlags_AlwaysAutoResize))
+		if (ImGui::Begin("Material", &w_material))
 		{
 			for (const auto& [material, quadblockIndexes] : m_materialToQuadblocks)
 			{
@@ -415,18 +416,25 @@ void Level::RenderUI()
 	static std::string quadblockQuery;
 	if (w_quadblocks)
 	{
-		if (ImGui::Begin("Quadblocks", &w_quadblocks, ImGuiWindowFlags_AlwaysAutoResize))
+		bool resetBsp = false;
+		if (ImGui::Begin("Quadblocks", &w_quadblocks))
 		{
 			ImGui::InputTextWithHint("Search", "Search Quadblocks...", &quadblockQuery);
 			for (Quadblock& quadblock : m_quadblocks)
 			{
 				if (Matches(quadblock.Name(), quadblockQuery))
 				{
-					quadblock.RenderUI(m_checkpoints.size() - 1);
+					quadblock.RenderUI(m_checkpoints.size() - 1, resetBsp);
 				}
 			}
 		}
 		ImGui::End();
+		if (resetBsp && m_bsp.Valid())
+		{
+			m_bsp.Clear();
+			m_showLogWindow = true;
+			m_logMessage = "Modifying quadblock position or turbo pad state automatically resets the BSP tree.";
+		}
 	}
 
 	if (!quadblockQuery.empty() && !w_quadblocks) { quadblockQuery.clear(); }
@@ -434,7 +442,7 @@ void Level::RenderUI()
 	static std::string checkpointQuery;
 	if (w_checkpoints)
 	{
-		if (ImGui::Begin("Checkpoints", &w_checkpoints, ImGuiWindowFlags_AlwaysAutoResize))
+		if (ImGui::Begin("Checkpoints", &w_checkpoints))
 		{
 			ImGui::InputTextWithHint("Search##", "Search Quadblocks...", &checkpointQuery);
 			if (ImGui::TreeNode("Checkpoints"))
@@ -542,28 +550,30 @@ void Level::RenderUI()
 
 	if (w_bsp)
 	{
-		if (ImGui::Begin("BSP Tree", &w_bsp, ImGuiWindowFlags_AlwaysAutoResize))
+		if (ImGui::Begin("BSP Tree", &w_bsp))
 		{
 			if (!m_bsp.Empty())
 			{
 				size_t bspIndex = 0;
 				m_bsp.RenderUI(bspIndex, m_quadblocks);
 			}
-			if (ImGui::Button("Generate"))
+
+			static std::string buttonMessage;
+			static ButtonUI generateBSPButton = ButtonUI();
+			if (generateBSPButton.Show("Generate", buttonMessage))
 			{
 				std::vector<size_t> quadIndexes;
 				for (size_t i = 0; i < m_quadblocks.size(); i++) { quadIndexes.push_back(i); }
 				m_bsp.Clear();
 				m_bsp.SetQuadblockIndexes(quadIndexes);
 				m_bsp.Generate(m_quadblocks, MAX_QUADBLOCKS_LEAF, MAX_LEAF_AXIS_LENGTH);
-				if (m_bsp.Valid()) { m_bspStatusMessage = "Successfully generated the BSP tree."; }
+				if (m_bsp.Valid()) { buttonMessage = "Successfully generated the BSP tree."; }
 				else
 				{
 					m_bsp.Clear();
-					m_bspStatusMessage = "Failed generating the BSP tree.";
+					buttonMessage = "Failed generating the BSP tree.";
 				}
 			}
-			if (!m_bspStatusMessage.empty()) { ImGui::Text(m_bspStatusMessage.c_str()); }
 		}
 		ImGui::End();
 	}
@@ -678,7 +688,7 @@ void Path::RenderUI(const std::string& title, const std::vector<Quadblock>& quad
     }
 }
 
-void Quadblock::RenderUI(size_t checkpointCount)
+void Quadblock::RenderUI(size_t checkpointCount, bool& resetBsp)
 {
 	if (ImGui::TreeNode(m_name.c_str()))
 	{
@@ -686,8 +696,13 @@ void Quadblock::RenderUI(size_t checkpointCount)
 		{
 			for (size_t i = 0; i < NUM_VERTICES_QUADBLOCK; i++)
 			{
-				m_p[i].RenderUI(i);
-				if (m_p[i].IsEdited()) { ComputeBoundingBox(); }
+				bool editedPos = false;
+				m_p[i].RenderUI(i, editedPos);
+				if (editedPos)
+				{
+					resetBsp = true;
+					ComputeBoundingBox();
+				}
 			}
 			ImGui::TreePop();
 		}
@@ -709,13 +724,12 @@ void Quadblock::RenderUI(size_t checkpointCount)
 	}
 }
 
-void Vertex::RenderUI(size_t index)
+void Vertex::RenderUI(size_t index, bool& editedPos)
 {
-	m_editedPos = false;
 	if (ImGui::TreeNode(("Vertex " + std::to_string(index)).c_str()))
 	{
 		ImGui::Text("Pos: "); ImGui::SameLine();
-		if (ImGui::InputFloat3("##pos", m_pos.Data())) { m_editedPos = true; }
+		if (ImGui::InputFloat3("##pos", m_pos.Data())) { editedPos = true; }
 		ImGui::Text("High:"); ImGui::SameLine();
 		ImGui::ColorEdit3("##high", m_colorHigh.Data());
 		ImGui::Text("Low: "); ImGui::SameLine();

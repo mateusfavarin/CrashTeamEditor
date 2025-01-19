@@ -111,7 +111,7 @@ public:
 	float DistanceClosestVertex(Vec3& out, const Vec3& v) const;
 	bool Neighbours(const Quadblock& quadblock, float threshold = 0.1f) const;
 	std::vector<uint8_t> Serialize(size_t id, size_t offTextures, size_t offVisibleSet, const std::vector<size_t>& vertexIndexes) const;
-	void RenderUI(size_t checkpointCount);
+	void RenderUI(size_t checkpointCount, bool& resetBsp);
 
 private:
 	Vec3 ComputeNormalVector(size_t id0, size_t id1, size_t id2) const;

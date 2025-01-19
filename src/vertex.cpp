@@ -10,7 +10,6 @@ Vertex::Vertex()
 	m_flags = VertexFlags::NONE;
 	m_colorHigh = Color(255u, 255u, 255u);
 	m_colorLow = Color(255u, 255u, 255u);
-	m_editedPos = false;
 }
 
 Vertex::Vertex(const Point& point)
@@ -19,7 +18,6 @@ Vertex::Vertex(const Point& point)
 	m_flags = VertexFlags::NONE;
 	m_colorHigh = point.color;
 	m_colorLow = point.color;
-	m_editedPos = false;
 }
 
 Vertex::Vertex(const Vec3& pos)
@@ -28,7 +26,6 @@ Vertex::Vertex(const Vec3& pos)
 	m_flags = VertexFlags::NONE;
 	m_colorHigh = Color(255u, 255u, 255u);
 	m_colorLow = Color(255u, 255u, 255u);
-	m_editedPos = false;
 }
 
 Vertex::Vertex(const Vec3& pos, const Color& color)
@@ -37,12 +34,6 @@ Vertex::Vertex(const Vec3& pos, const Color& color)
 	m_flags = VertexFlags::NONE;
 	m_colorHigh = color;
 	m_colorLow = color;
-	m_editedPos = false;
-}
-
-bool Vertex::IsEdited() const
-{
-	return m_editedPos;
 }
 
 std::vector<uint8_t> Vertex::Serialize() const

@@ -38,7 +38,6 @@ void Level::Clear(bool clearErrors)
 	m_configFlags = LevConfigFlags::NONE;
 	m_clearColor = Color();
 	m_name.clear();
-	m_bspStatusMessage.clear();
 	m_quadblocks.clear();
 	m_checkpoints.clear();
 	m_bsp.Clear();

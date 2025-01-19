@@ -28,8 +28,8 @@ private:
 private:
 	bool m_showLogWindow;
 	std::vector<std::tuple<std::string, std::string>> m_invalidQuadblocks;
+	std::string m_logMessage;
 	std::string m_name;
-	std::string m_bspStatusMessage;
 	Spawn m_spawn[NUM_DRIVERS];
 	uint32_t m_configFlags;
 	ColorGradient m_skyGradient[NUM_GRADIENT];
