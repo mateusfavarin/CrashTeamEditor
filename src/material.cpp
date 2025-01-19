@@ -4,11 +4,24 @@ template class MaterialProperty<std::string>;
 template class MaterialProperty<uint16_t>;
 template class MaterialProperty<bool>;
 
+static std::vector<MaterialBase*> g_materials;
+
+void ClearMaterials()
+{
+	for (MaterialBase* material : g_materials) { material->Clear(); }
+}
+
+void RestoreMaterials()
+{
+	for (MaterialBase* material : g_materials) { material->Restore(); }
+}
+
 template<typename T>
 MaterialProperty<T>::MaterialProperty()
 {
 	m_preview = std::unordered_map<std::string, T>();
 	m_backup = std::unordered_map<std::string, T>();
+	g_materials.push_back(this);
 }
 
 template<typename T>
@@ -54,5 +67,6 @@ void MaterialProperty<T>::Clear()
 template<typename T>
 T& MaterialProperty<T>::GetPreview(const std::string& material)
 {
+	m_materialsChanged.push_back(material);
 	return m_preview[material];
 }

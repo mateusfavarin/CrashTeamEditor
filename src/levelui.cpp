@@ -364,13 +364,7 @@ void Level::RenderUI()
 		ImGui::End();
 	}
 
-	if (!w_material)
-	{
-		m_propTerrain.Restore();
-		m_propQuadFlags.Restore();
-		m_propDoubleSided.Restore();
-		m_propCheckpoints.Restore();
-	}
+	if (!w_material) { RestoreMaterials(); }
 
 	static std::string quadblockQuery;
 	if (w_quadblocks)
