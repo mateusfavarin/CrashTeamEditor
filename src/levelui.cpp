@@ -399,7 +399,7 @@ void Level::RenderUI()
 								turboPad.SetFlag(QuadFlags::TRIGGER_SCRIPT | QuadFlags::DEFAULT);
 								turboPad.SetTerrain(stp ? TerrainType::SUPER_TURBO_PAD : TerrainType::TURBO_PAD);
 								turboPad.SetTurboPadIndex(TURBO_PAD_INDEX_NONE);
-								//turboPad.SetHide(true);
+								turboPad.SetHide(true);
 
 								size_t index = m_quadblocks.size();
 								turboPadIndex = quadblock.TurboPadIndex();
