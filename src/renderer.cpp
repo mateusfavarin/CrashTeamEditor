@@ -5,35 +5,35 @@
 #include "stb_image.h"
 
 // Simple helper function to load an image into a OpenGL texture with common settings
-static bool LoadTextureFromMemory(const void* data, size_t data_size, GLuint* out_texture, int* out_width, int* out_height)
-{
-  // Load from file
-  int image_width = 0;
-  int image_height = 0;
-  unsigned char* image_data = stbi_load_from_memory((const unsigned char*)data, (int)data_size, &image_width, &image_height, NULL, 4);
-  if (image_data == NULL)
-    return false;
-
-  // Create a OpenGL texture identifier
-  GLuint image_texture;
-  glGenTextures(1, &image_texture);
-  glBindTexture(GL_TEXTURE_2D, image_texture);
-
-  // Setup filtering parameters for display
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-  // Upload pixels into texture
-  glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image_width, image_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
-  stbi_image_free(image_data);
-
-  *out_texture = image_texture;
-  *out_width = image_width;
-  *out_height = image_height;
-
-  return true;
-}
+//static bool LoadTextureFromMemory(const void* data, size_t data_size, GLuint* out_texture, int* out_width, int* out_height)
+//{
+//  // Load from file
+//  int image_width = 0;
+//  int image_height = 0;
+//  unsigned char* image_data = stbi_load_from_memory((const unsigned char*)data, (int)data_size, &image_width, &image_height, NULL, 4);
+//  if (image_data == NULL)
+//    return false;
+//
+//  // Create a OpenGL texture identifier
+//  GLuint image_texture;
+//  glGenTextures(1, &image_texture);
+//  glBindTexture(GL_TEXTURE_2D, image_texture);
+//
+//  // Setup filtering parameters for display
+//  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+//  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+//
+//  // Upload pixels into texture
+//  glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+//  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image_width, image_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+//  stbi_image_free(image_data);
+//
+//  *out_texture = image_texture;
+//  *out_width = image_width;
+//  *out_height = image_height;
+//
+//  return true;
+//}
 
 struct Vertex
 {
@@ -49,9 +49,9 @@ struct Vertex
 //};
 
 float vertices[] = {
-    -0.5f, -0.5f,  // Bottom-left vertex
-     0.5f, -0.5f,  // Bottom-right vertex
-     0.0f,  0.5f   // Top vertex
+    -0.5f, -0.5f, 0.0f,
+     0.5f, -0.5f, 0.0f,
+     0.0f,  0.5f, 0.0f
 };
 
 //static const char* vertex_shader_text =
@@ -75,25 +75,66 @@ float vertices[] = {
 //"    fragment = vec4(color, 1.0);\n"
 //"}\n";
 
-// Vertex Shader source
-const char* vertexShaderSource = R"(
-#version 330 core
-layout (location = 0) in vec2 aPos;
+//// Vertex Shader source
+//const char* vertexShaderSource = R"(
+//#version 330 core
+//layout (location = 0) in vec2 aPos;
+//
+//void main() {
+//    gl_Position = vec4(aPos, 0.0, 1.0);
+//}
+//)";
+//
+//// Fragment Shader source
+//const char* fragmentShaderSource = R"(
+//#version 330 core
+//out vec4 FragColor;
+//
+//void main() {
+//    FragColor = vec4(0.2, 0.7, 0.3, 1.0); // Greenish color
+//}
+//)";
 
-void main() {
-    gl_Position = vec4(aPos, 0.0, 1.0);
-}
-)";
+//const char* vertexShaderSource = R"(
+//#version 330 core
+//layout (location = 0) in vec2 aPos;
+//layout (location = 1) in vec2 aTexCoords;
+//
+//out vec2 TexCoords;
+//
+//voic main()
+//{
+//  gl_Position = vec4(aPos.x, aPos.y, 0.0, 1.0);
+//  TexCoords = aTexCoords;
+//}
+//)";
+//
+//const char* fragmentShaderSource = R"(
+//#version 330 core
+//out vec4 FragColor;
+//
+//in vec2 TexCoords;
+//
+//uniform sampler2D screenTexture;
+//
+//void main()
+//{
+//  FragColor = texture(screenTexture, TexCoords);
+//}
+//)";
 
-// Fragment Shader source
-const char* fragmentShaderSource = R"(
-#version 330 core
-out vec4 FragColor;
-
-void main() {
-    FragColor = vec4(0.2, 0.7, 0.3, 1.0); // Greenish color
-}
-)";
+const char* vertexShaderSource = "#version 330 core\n"
+"layout (location = 0) in vec3 aPos;\n"
+"void main()\n"
+"{\n"
+"   gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
+"}\0";
+const char* fragmentShaderSource = "#version 330 core\n"
+"out vec4 FragColor;\n"
+"void main()\n"
+"{\n"
+"   FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
+"}\n\0";
 
 static void checkShaderCompilation(GLuint shader, const char* type) {
   GLint success;
@@ -116,25 +157,28 @@ Renderer::Renderer(int width, int height)
   glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
 
   // Create a texture to store color attachment
-  glGenTextures(1, &textureColorbuffer);
-  glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+  glGenTextures(1, &texturebuffer);
+  glBindTexture(GL_TEXTURE_2D, texturebuffer);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureColorbuffer, 0);
+  glBindTexture(GL_TEXTURE_2D, 0);
+  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texturebuffer, 0);
 
   // Create a renderbuffer for depth and stencil
-  glGenRenderbuffers(1, &rbo);
-  glBindRenderbuffer(GL_RENDERBUFFER, rbo);
+  glGenRenderbuffers(1, &renderbuffer);
+  glBindRenderbuffer(GL_RENDERBUFFER, renderbuffer);
   glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
-  glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo);
+  glBindRenderbuffer(GL_RENDERBUFFER, 0);
+  glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, renderbuffer);
 
   // Check if framebuffer is complete
   if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-    //std::cerr << "ERROR: Framebuffer is not complete!" << std::endl;
     throw 0; //throw exception
   }
   glBindFramebuffer(GL_FRAMEBUFFER, 0); // Unbind
+  glBindTexture(GL_TEXTURE_2D, 0);
+  glBindRenderbuffer(GL_RENDERBUFFER, 0);
 
   // Build and compile shaders
   GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
@@ -156,20 +200,32 @@ Renderer::Renderer(int width, int height)
   glDeleteShader(vertexShader);
   glDeleteShader(fragmentShader);
 
-  // Set up vertex data and buffers
   glGenVertexArrays(1, &VAO);
   glGenBuffers(1, &VBO);
-
   glBindVertexArray(VAO);
-
   glBindBuffer(GL_ARRAY_BUFFER, VBO);
   glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-  glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
   glEnableVertexAttribArray(0);
-
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
   glBindBuffer(GL_ARRAY_BUFFER, 0);
   glBindVertexArray(0);
+
+
+
+  // Set up vertex data and buffers
+  //glBindBuffer(GL_ARRAY_BUFFER, VBO);
+  //glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+  //glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+  //glEnableVertexAttribArray(0);
+  ////glGenBuffers(1, &VBO);
+
+  //glBindVertexArray(VAO);
+  //glBindBuffer(GL_ARRAY_BUFFER, VBO);
+  //glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+  //glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+  //glEnableVertexAttribArray(0);
+  //glGenVertexArrays(1, &VAO);
+  //glBindVertexArray(0);
 
  // fprintf(stdout, "Renderer Init\n");
  // glfwSetErrorCallback(glfw_error_callback);
@@ -249,25 +305,32 @@ void Renderer::Render(void)
   //glfwPollEvents();
 
   // Render to framebuffer
-  glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-  glViewport(0, 0, width, height); // Match framebuffer size
-  glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  //GLint oldFB;
+  //glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &oldFB);
 
-  // Render your scene here...
-  // Draw triangle
+  glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
   glUseProgram(shaderProgram);
   glBindVertexArray(VAO);
   glDrawArrays(GL_TRIANGLES, 0, 3);
+  glBindVertexArray(0);
+  glUseProgram(0);
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+  //glClearColor(0.2f, 0.3f, 0.8f, 1.0f);
+  //glClear(GL_COLOR_BUFFER_BIT);
+  //glViewport(0, 0, width, height); // Match framebuffer size
 
+  // Render your scene here...
+  // Draw triangle
+
+  //glBindFramebuffer(GL_DRAW_FRAMEBUFFER, oldFB);
   // Copy framebuffer data
-  CopySysNow();
+  //CopySysNow();
 
   // Render to screen
-  glBindFramebuffer(GL_FRAMEBUFFER, 0);
-  glViewport(0, 0, width, height); // Match screen size
-  glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  //glBindFramebuffer(GL_FRAMEBUFFER, 0);
+  //glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+  ////glViewport(0, 0, width, height); // Match screen size
+  //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
 void Renderer::CopySysNow(void)

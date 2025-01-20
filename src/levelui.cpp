@@ -551,7 +551,7 @@ void Level::RenderUI()
 		ImVec2 pos = ImGui::GetCursorScreenPos();
 		ImVec2 min = ImGui::GetItemRectMin();
 		//ImTextureID tex = (ImTextureID)&rend.buf;
-		ImTextureID tex = (ImTextureID)&rend.framebuffer;
+		ImTextureID tex = (ImTextureID)&rend.texturebuffer; //99% sure this is supposed to be texturebuffer
 
 
 		ImGui::GetWindowDrawList()->AddImage(tex,
