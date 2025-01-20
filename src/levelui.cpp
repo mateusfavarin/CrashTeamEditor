@@ -543,15 +543,16 @@ void Level::RenderUI()
 	if (w_renderer)
 	{
 		static Renderer rend = Renderer(600, 600);
-		//if (ImGui::Begin("Renderer", &w_renderer, ImGuiWindowsFlags_))
 		ImGui::SetNextWindowSize(ImVec2(rend.width, rend.height), ImGuiCond_Always);
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
 		ImGui::Begin("Renderer", &w_renderer, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings);
-		rend.Render();
+		//ImGui::Begin("Renderer", &w_renderer, ImGuiWindowFlags_NoSavedSettings); //TODO: handle dynamic buffer sizing later
 
 		ImVec2 pos = ImGui::GetCursorScreenPos();
 		ImVec2 min = ImGui::GetItemRectMin();
-		//ImTextureID tex = (ImTextureID)&rend.buf;
-		ImTextureID tex = (ImTextureID)&rend.texturebuffer; //99% sure this is supposed to be texturebuffer
+		ImVec2 max = ImGui::GetItemRectMax();
+		//rend.RescaleFramebuffer(max.x - min.x, max.y - min.y);
+		ImTextureID tex = (ImTextureID)rend.texturebuffer; //99% sure this is supposed to be texturebuffer
 
 
 		ImGui::GetWindowDrawList()->AddImage(tex,
@@ -559,13 +560,9 @@ void Level::RenderUI()
 			ImVec2(pos.x + rend.width, pos.y + rend.height),
 			ImVec2(0, 1),
 			ImVec2(1, 0));
-
-		/*ImGui::GetWindowDrawList()->AddImage(tex,
-			ImVec2(min.x + pos.x, min.y + pos.y),
-			ImVec2(pos.x + rend.width / 2, pos.y + rend.height / 2),
-			ImVec2(0, 1),
-			ImVec2(1, 0));*/
 		ImGui::End();
+		ImGui::PopStyleVar();
+		rend.Render();
 	}
 }
 

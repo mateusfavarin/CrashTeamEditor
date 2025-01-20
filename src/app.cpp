@@ -2,6 +2,7 @@
 #include "ui.h"
 
 #include "globalimguiglglfw.h"
+#include "renderer.h"
 
 bool App::Init()
 {
@@ -18,15 +19,6 @@ void App::Run()
 	ImVec4 clearColor = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 	while (!glfwWindowShouldClose(m_window))
 	{
-		/*while (SDL_PollEvent(&event))
-		{
-			ImGui_ImplSDL2_ProcessEvent(&event);
-			if (event.type == SDL_QUIT)
-				done = true;
-			if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE && event.window.windowID == SDL_GetWindowID(m_window))
-				done = true;
-		}*/
-
 		glfwPollEvents();
 		if (glfwGetWindowAttrib(m_window, GLFW_ICONIFIED) != 0)
 		{
@@ -36,14 +28,14 @@ void App::Run()
 
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
+		glClearColor(clearColor.x * clearColor.w, clearColor.y * clearColor.w, clearColor.z * clearColor.w, clearColor.w);
+		glClear(GL_COLOR_BUFFER_BIT);
 		ImGui::NewFrame();
+		glViewport(0, 0, (int)io.DisplaySize.x, (int)io.DisplaySize.y);
 		int width, height;
 		glfwGetWindowSize(m_window, &width, &height);
 		ui.Render(width, height);
 		ImGui::Render();
-		glViewport(0, 0, (int) io.DisplaySize.x, (int) io.DisplaySize.y);
-		glClearColor(clearColor.x * clearColor.w, clearColor.y * clearColor.w, clearColor.z * clearColor.w, clearColor.w);
-		glClear(GL_COLOR_BUFFER_BIT);
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 		glfwSwapBuffers(m_window);
 	}
@@ -52,7 +44,6 @@ void App::Run()
 void App::Close()
 {
 	CloseImGui();
-	//CloseSDL();
 }
 
 static void glfw_error_callback(int error, const char* description)
