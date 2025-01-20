@@ -320,7 +320,11 @@ void Level::RenderUI()
 							uint16_t flag = m_propQuadFlags.GetPreview(material);
 							for (const size_t index : quadblockIndexes)
 							{
-								m_quadblocks[index].SetFlag(flag);
+								Quadblock& quadblock = m_quadblocks[index];
+								if (!quadblock.Hide() && quadblock.TurboPadIndex() == TURBO_PAD_INDEX_NONE)
+								{
+									m_quadblocks[index].SetFlag(flag);
+								}
 							}
 							m_propQuadFlags.SetBackup(material, flag);
 						}
@@ -373,11 +377,58 @@ void Level::RenderUI()
 		if (ImGui::Begin("Quadblocks", &w_quadblocks))
 		{
 			ImGui::InputTextWithHint("Search", "Search Quadblocks...", &quadblockQuery);
-			for (Quadblock& quadblock : m_quadblocks)
+			for (size_t j = 0; j < m_quadblocks.size(); j++)
 			{
-				if (Matches(quadblock.Name(), quadblockQuery))
+				Quadblock& quadblock = m_quadblocks[j];
+				if (!quadblock.Hide() && Matches(quadblock.Name(), quadblockQuery))
 				{
-					quadblock.RenderUI(m_checkpoints.size() - 1, resetBsp);
+					if (quadblock.RenderUI(m_checkpoints.size() - 1, resetBsp))
+					{
+						bool stp = true;
+						size_t turboPadIndex = TURBO_PAD_INDEX_NONE;
+						switch (quadblock.Trigger())
+						{
+							case QuadblockTrigger::TURBO_PAD:
+								stp = false;
+							case QuadblockTrigger::SUPER_TURBO_PAD:
+							{
+								Quadblock turboPad = quadblock;
+								turboPad.SetCheckpoint(-1);
+								turboPad.SetCheckpointStatus(false);
+								turboPad.SetName(quadblock.Name() + (stp ? "_stp" : "_tp"));
+								turboPad.SetFlag(QuadFlags::TRIGGER_SCRIPT | QuadFlags::DEFAULT);
+								turboPad.SetTerrain(stp ? TerrainType::SUPER_TURBO_PAD : TerrainType::TURBO_PAD);
+								turboPad.SetTurboPadIndex(TURBO_PAD_INDEX_NONE);
+								//turboPad.SetHide(true);
+
+								size_t index = m_quadblocks.size();
+								turboPadIndex = quadblock.TurboPadIndex();
+								quadblock.SetTurboPadIndex(index);
+								m_quadblocks.push_back(turboPad);
+								if (turboPadIndex == TURBO_PAD_INDEX_NONE) { break; }
+							}
+							case QuadblockTrigger::NONE:
+							{
+								bool clearTurboPadIndex = false;
+								if (turboPadIndex == TURBO_PAD_INDEX_NONE)
+								{
+									clearTurboPadIndex = true;
+									turboPadIndex = quadblock.TurboPadIndex();
+								}
+								if (turboPadIndex == TURBO_PAD_INDEX_NONE) { break; }
+
+								for (Quadblock& quad : m_quadblocks)
+								{
+									size_t index = quad.TurboPadIndex();
+									if (index > turboPadIndex) { quad.SetTurboPadIndex(index - 1); }
+								}
+
+								if (clearTurboPadIndex) { quadblock.SetTurboPadIndex(TURBO_PAD_INDEX_NONE); }
+								m_quadblocks.erase(m_quadblocks.begin() + turboPadIndex);
+								break;
+							}
+						}
+					}
 				}
 			}
 		}
@@ -641,8 +692,9 @@ void Path::RenderUI(const std::string& title, const std::vector<Quadblock>& quad
     }
 }
 
-void Quadblock::RenderUI(size_t checkpointCount, bool& resetBsp)
+bool Quadblock::RenderUI(size_t checkpointCount, bool& resetBsp)
 {
+	bool ret = false;
 	if (ImGui::TreeNode(m_name.c_str()))
 	{
 		if (ImGui::TreeNode("Vertices"))
@@ -673,8 +725,31 @@ void Quadblock::RenderUI(size_t checkpointCount, bool& resetBsp)
 		ImGui::Text("Checkpoint Index: ");
 		ImGui::SameLine();
 		if (ImGui::InputInt("##cp", &m_checkpointIndex)) { m_checkpointIndex = Clamp(m_checkpointIndex, -1, static_cast<int>(checkpointCount)); }
+		ImGui::Text("Trigger:");
+		if (ImGui::RadioButton("None", m_trigger == QuadblockTrigger::NONE))
+		{
+			m_trigger = QuadblockTrigger::NONE;
+			m_flags = QuadFlags::DEFAULT;
+			resetBsp = true;
+			ret = true;
+		} ImGui::SameLine();
+		if (ImGui::RadioButton("Turbo Pad", m_trigger == QuadblockTrigger::TURBO_PAD))
+		{
+			m_trigger = QuadblockTrigger::TURBO_PAD;
+			m_flags = QuadFlags::INVISIBLE_TRIGGER | QuadFlags::DEFAULT;
+			resetBsp = true;
+			ret = true;
+		} ImGui::SameLine();
+		if (ImGui::RadioButton("Super Turbo Pad", m_trigger == QuadblockTrigger::SUPER_TURBO_PAD))
+		{
+			m_trigger = QuadblockTrigger::SUPER_TURBO_PAD;
+			m_flags = QuadFlags::INVISIBLE_TRIGGER | QuadFlags::DEFAULT;
+			resetBsp = true;
+			ret = true;
+		}
 		ImGui::TreePop();
 	}
+	return ret;
 }
 
 void Vertex::RenderUI(size_t index, bool& editedPos)

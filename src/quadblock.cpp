@@ -111,6 +111,9 @@ Quadblock::Quadblock(const std::string& name, Tri& t0, Tri& t1, Tri& t2, Tri& t3
 	}
 	m_doubleSided = false;
 	m_checkpointStatus = true;
+	m_trigger = QuadblockTrigger::NONE;
+	m_turboPadIndex = TURBO_PAD_INDEX_NONE;
+	m_hide = false;
 }
 
 Quadblock::Quadblock(const std::string& name, Quad& q0, Quad& q1, Quad& q2, Quad& q3, const Vec3& normal, const std::string& material)
@@ -212,6 +215,9 @@ Quadblock::Quadblock(const std::string& name, Quad& q0, Quad& q1, Quad& q2, Quad
 	}
 	m_doubleSided = false;
 	m_checkpointStatus = true;
+	m_trigger = QuadblockTrigger::NONE;
+	m_turboPadIndex = TURBO_PAD_INDEX_NONE;
+	m_hide = false;
 }
 
 const std::string& Quadblock::Name() const
@@ -232,6 +238,21 @@ uint8_t Quadblock::Terrain() const
 uint16_t Quadblock::Flags() const
 {
 	return m_flags;
+}
+
+QuadblockTrigger Quadblock::Trigger() const
+{
+	return m_trigger;
+}
+
+size_t Quadblock::TurboPadIndex() const
+{
+	return m_turboPadIndex;
+}
+
+bool Quadblock::Hide() const
+{
+	return m_hide;
 }
 
 bool& Quadblock::CheckpointStatus()
@@ -257,6 +278,26 @@ void Quadblock::SetCheckpoint(int index)
 void Quadblock::SetDrawDoubleSided(bool active)
 {
 	m_doubleSided = active;
+}
+
+void Quadblock::SetCheckpointStatus(bool active)
+{
+	m_checkpointStatus = active;
+}
+
+void Quadblock::SetName(const std::string& name)
+{
+	m_name = name;
+}
+
+void Quadblock::SetTurboPadIndex(size_t index)
+{
+	m_turboPadIndex = index;
+}
+
+void Quadblock::SetHide(bool active)
+{
+	m_hide = active;
 }
 
 const BoundingBox& Quadblock::GetBoundingBox() const
