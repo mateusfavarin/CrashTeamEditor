@@ -25,13 +25,13 @@ public:
 
 private:
 	std::string m_labelTriggered;
-	std::chrono::steady_clock::time_point m_messageTimeoutStart;
+	std::chrono::time_point<std::chrono::high_resolution_clock> m_messageTimeoutStart;
 };
 
 ButtonUI::ButtonUI()
 {
 	m_labelTriggered = std::string();
-	m_messageTimeoutStart = std::chrono::steady_clock::time_point();
+	m_messageTimeoutStart = std::chrono::high_resolution_clock::now();
 }
 
 bool ButtonUI::Show(const std::string& label, const std::string& message)

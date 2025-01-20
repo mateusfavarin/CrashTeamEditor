@@ -1,5 +1,7 @@
 #include "material.h"
 
+#include <cstdint>
+
 template class MaterialProperty<std::string>;
 template class MaterialProperty<uint16_t>;
 template class MaterialProperty<bool>;

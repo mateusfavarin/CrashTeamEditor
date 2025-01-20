@@ -435,7 +435,7 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 					Quad& q2 = quadMap[currQuadblockName][2];
 					Quad& q3 = quadMap[currQuadblockName][3];
 					try { m_quadblocks.emplace_back(currQuadblockName, q0, q1, q2, q3, averageNormal, material); }
-					catch (const std::exception& e)
+					catch (const QuadException& e)
 					{
 						ret = false;
 						m_showLogWindow = true;
@@ -449,7 +449,7 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 					Tri& t2 = triMap[currQuadblockName][2];
 					Tri& t3 = triMap[currQuadblockName][3];
 					try { m_quadblocks.emplace_back(currQuadblockName, t0, t1, t2, t3, averageNormal, material); }
-					catch (const std::exception& e)
+					catch (const QuadException& e)
 					{
 						ret = false;
 						m_showLogWindow = true;

@@ -24,9 +24,9 @@ Quadblock::Quadblock(const std::string& name, Tri& t0, Tri& t1, Tri& t2, Tri& t3
 	bool validTriblock = (uniqueCount == 3) && (sharedCount == 3);
 	if (!validTriblock)
 	{
-		throw std::exception(
+		throw QuadException(
 			("Unique Vertices: " + std::to_string(uniqueCount) + "/3\n" +
-			 "Shared Vertices: " + std::to_string(sharedCount) + "/3\n").c_str()
+			 "Shared Vertices: " + std::to_string(sharedCount) + "/3\n")
 		);
 	}
 
@@ -139,10 +139,10 @@ Quadblock::Quadblock(const std::string& name, Quad& q0, Quad& q1, Quad& q2, Quad
 	bool validQuadblock = (uniqueCount == 4) && (sharedCount == 4) && (centerCount == 1);
 	if (!validQuadblock)
 	{
-		throw std::exception(
+		throw QuadException(
 			("Unique Vertices: " + std::to_string(uniqueCount) + "/4\n" +
 			"Shared Vertices: " + std::to_string(sharedCount) + "/4\n" +
-			"Center Vertices: " + std::to_string(centerCount) + "/1\n").c_str()
+			"Center Vertices: " + std::to_string(centerCount) + "/1\n")
 		);
 	}
 
