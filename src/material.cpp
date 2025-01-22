@@ -1,5 +1,6 @@
 #include "material.h"
 
+#include <vector>
 #include <cstdint>
 
 template class MaterialProperty<std::string>;
