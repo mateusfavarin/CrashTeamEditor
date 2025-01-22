@@ -2,7 +2,7 @@
 
 #include <unordered_map>
 #include <string>
-#include <vector>
+#include <unordered_set>
 
 class MaterialBase
 {
@@ -19,6 +19,7 @@ public:
 	void SetPreview(const std::string& material, const T& preview);
 	void SetBackup(const std::string& material, const T& backup);
 	void SetDefaultValue(const std::string& material, const T& value);
+	bool UnsavedChanges(const std::string& material) const;
 	void Restore() override;
 	void Clear() override;
 	T& GetPreview(const std::string& material);
@@ -26,7 +27,7 @@ public:
 private:
 	std::unordered_map<std::string, T> m_backup;
 	std::unordered_map<std::string, T> m_preview;
-	std::vector<std::string> m_materialsChanged;
+	std::unordered_set<std::string> m_materialsChanged;
 };
 
 void ClearMaterials();
