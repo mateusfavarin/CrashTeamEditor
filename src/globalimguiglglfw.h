@@ -14,6 +14,6 @@
 #endif
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h> // Will drag system OpenGL headers
-#include "glad.h"
+#include "manual_third_party/glad.h"
 
 #endif // OPENGLHEADERS_H

@@ -9,12 +9,14 @@
 //https://learnopengl.com/Getting-started/Hello-Triangle
 
 #include "globalimguiglglfw.h"
+#include "shader.h"
 
 class Renderer 
 {
 private:
   GLuint VAO, VBO;
-  GLuint shaderProgram;
+  //GLuint shaderProgram;
+  Shader shader;
   GLuint renderbuffer;
   GLuint framebuffer;
 public:
