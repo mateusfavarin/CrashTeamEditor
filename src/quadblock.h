@@ -124,7 +124,7 @@ public:
 	std::vector<Vertex> GetVertices() const;
 	float DistanceClosestVertex(Vec3& out, const Vec3& v) const;
 	bool Neighbours(const Quadblock& quadblock, float threshold = 0.1f) const;
-	std::vector<uint8_t> Serialize(size_t id, size_t offTextures, size_t offVisibleSet, const std::vector<size_t>& vertexIndexes) const;
+	std::vector<uint8_t> Serialize(size_t id, size_t offTextures, const std::vector<size_t>& vertexIndexes) const;
 	bool RenderUI(size_t checkpointCount, bool& resetBsp);
 
 private:

@@ -339,7 +339,7 @@ bool Quadblock::Neighbours(const Quadblock& quadblock, float threshold) const
 	return false;
 }
 
-std::vector<uint8_t> Quadblock::Serialize(size_t id, size_t offTextures, size_t offVisibleSet, const std::vector<size_t>& vertexIndexes) const
+std::vector<uint8_t> Quadblock::Serialize(size_t id, size_t offTextures, const std::vector<size_t>& vertexIndexes) const
 {
 	PSX::Quadblock quadblock = {};
 	std::vector<uint8_t> buffer(sizeof(quadblock));
@@ -376,7 +376,6 @@ std::vector<uint8_t> Quadblock::Serialize(size_t id, size_t offTextures, size_t 
 		quadblock.triNormalVecBitshift = static_cast<uint8_t>(std::round(std::log2(std::max(ComputeNormalVector(0, 2, 6).Length(), ComputeNormalVector(2, 8, 6).Length()) * 512.0f)));
 	}
 	quadblock.offLowTexture = static_cast<uint32_t>(offTextures);
-	quadblock.offVisibleSet = static_cast<uint32_t>(offVisibleSet);
 
 	auto CalculateNormalDividend = [this](size_t id0, size_t id1, size_t id2, float scaler) -> uint16_t
 		{

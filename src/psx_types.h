@@ -222,6 +222,16 @@ namespace PSX
 		uint32_t offVisibleQuadblocks;
 		uint32_t offVisibleInstances;
 		uint32_t offVisibleExtra;
+
+		inline bool operator==(const VisibleSet& v) const
+		{
+			return offVisibleBSPNodes == v.offVisibleBSPNodes &&
+						 offVisibleQuadblocks == v.offVisibleQuadblocks &&
+						 offVisibleInstances == v.offVisibleInstances &&
+						 offVisibleExtra == v.offVisibleExtra;
+		}
+
+		friend std::hash<VisibleSet>;
 	};
 
 	struct VisualMem
@@ -237,6 +247,15 @@ namespace PSX
 		uint32_t offBSP[MAX_NUM_PLAYERS];
 	};
 }
+
+template<>
+struct std::hash<PSX::VisibleSet>
+{
+	inline std::size_t operator()(const PSX::VisibleSet& key) const
+	{
+		return ((((std::hash<uint32_t>()(key.offVisibleBSPNodes) ^ (std::hash<uint32_t>()(key.offVisibleQuadblocks) << 1)) >> 1) ^ (std::hash<uint32_t>()(key.offVisibleInstances) << 1)) >> 2) ^ (std::hash<uint32_t>()(key.offVisibleExtra) << 2);
+	}
+};
 
 static constexpr int16_t FP_ONE = 0x1000;
 static constexpr int16_t FP_ONE_GEO = 64;
