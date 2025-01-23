@@ -400,9 +400,9 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 			int ni0 = std::stoi(token0[2]) - 1;
 			int ni1 = std::stoi(token1[2]) - 1;
 			int ni2 = std::stoi(token2[2]) - 1;
-			normalMap[currQuadblockName].push_back(normals[ni0]);
-			normalMap[currQuadblockName].push_back(normals[ni1]);
-			normalMap[currQuadblockName].push_back(normals[ni2]);
+			normalMap[currQuadblockName].push_back(normals[ni0]); vertices[ni0].normal = normals[ni0];
+			normalMap[currQuadblockName].push_back(normals[ni1]); vertices[ni1].normal = normals[ni1];
+			normalMap[currQuadblockName].push_back(normals[ni2]); vertices[ni2].normal = normals[ni2];
 
 			bool blockFetched = false;
 			if (isQuadblock)
@@ -411,6 +411,7 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 				int i3 = std::stoi(token3[0]) - 1;
 				int ni3 = std::stoi(token3[2]) - 1;
 				normalMap[currQuadblockName].push_back(normals[ni3]);
+				vertices[ni3].normal = normals[ni3];
 
 				if (!quadMap.contains(currQuadblockName)) { quadMap[currQuadblockName] = std::vector<Quad>(); }
 				quadMap[currQuadblockName].emplace_back(vertices[i0], vertices[i1], vertices[i2], vertices[i3]);

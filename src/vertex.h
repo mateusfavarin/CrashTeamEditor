@@ -14,14 +14,13 @@ class Vertex
 public:
 	Vertex();
 	Vertex(const Point& point);
-	Vertex(const Vec3& pos);
-	Vertex(const Vec3& pos, const Color& color);
 	void RenderUI(size_t index, bool& editedPos);
 	std::vector<uint8_t> Serialize() const;
 	inline bool operator==(const Vertex& v) const { return (m_pos == v.m_pos) && (m_flags == v.m_flags) && (m_colorHigh == v.m_colorHigh) && (m_colorLow == v.m_colorLow); };
 
 public:
 	Vec3 m_pos;
+	Vec3 m_normal;
 
 private:
 	uint16_t m_flags;
