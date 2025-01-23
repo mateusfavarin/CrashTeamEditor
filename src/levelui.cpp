@@ -13,6 +13,7 @@
 
 #include <string>
 #include <chrono>
+#include <cmath>
 
 static constexpr size_t MAX_QUADBLOCKS_LEAF = 32;
 static constexpr float MAX_LEAF_AXIS_LENGTH = 60.0f;
@@ -544,24 +545,46 @@ void Level::RenderUI()
 	{
 		static Renderer rend = Renderer(600, 600);
 		ImGui::SetNextWindowSize(ImVec2(rend.width, rend.height), ImGuiCond_Always);
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-		ImGui::Begin("Renderer", &w_renderer, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings);
-		//ImGui::Begin("Renderer", &w_renderer, ImGuiWindowFlags_NoSavedSettings); //TODO: handle dynamic buffer sizing later
+		//ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+		std::string title = std::string("Renderer");
+		title += " FPS: ";
+		static float rollingOneSecond = 0;
+		static int FPS = -1;
+		float fm = fmod(rollingOneSecond, 1.f);
+		if (fm != rollingOneSecond && rollingOneSecond >= 1.f) //2nd condition prevents fps not updating if deltaTime exactly equals 1.f
+		{
+			FPS = (int)(1.f / rend.GetLastDeltaTime());
+			rollingOneSecond = fm;
+		}
+		rollingOneSecond += rend.GetLastDeltaTime();
+		title.append(std::to_string(FPS));
+		//if (ImGui::IsWindowFocused()) //doesn't seem to work.
+		//	title.append("true");
 
-		ImVec2 pos = ImGui::GetCursorScreenPos();
-		ImVec2 min = ImGui::GetItemRectMin();
-		ImVec2 max = ImGui::GetItemRectMax();
-		//rend.RescaleFramebuffer(max.x - min.x, max.y - min.y);
-		ImTextureID tex = (ImTextureID)rend.texturebuffer; //99% sure this is supposed to be texturebuffer
+		if (ImGui::Begin(title.c_str(), &w_renderer, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings))
+			//ImGui::Begin("Renderer", &w_renderer, ImGuiWindowFlags_NoSavedSettings); //TODO: handle dynamic buffer sizing later
+		{
 
 
-		ImGui::GetWindowDrawList()->AddImage(tex,
-			ImVec2(pos.x, pos.y),
-			ImVec2(pos.x + rend.width, pos.y + rend.height),
-			ImVec2(0, 1),
-			ImVec2(1, 0));
+			ImVec2 pos = ImGui::GetCursorScreenPos();
+			//ImVec2 tpos = ImGui::GetWindowPos();
+			//printf("%f %f\n", pos.x, pos.y);
+			ImVec2 min = ImGui::GetItemRectMin();
+			ImVec2 max = ImGui::GetItemRectMax();
+			//rend.RescaleFramebuffer(max.x - min.x, max.y - min.y);
+			ImTextureID tex = (ImTextureID)rend.texturebuffer; //99% sure this is supposed to be texturebuffer
+
+
+			ImGui::GetWindowDrawList()->AddImage(tex,
+				ImVec2(pos.x, pos.y),
+				ImVec2(pos.x + rend.width, pos.y + rend.height),
+				ImVec2(0, 1),
+				ImVec2(1, 0));
+		}
+		else
+			fprintf(stderr, "wtf");
 		ImGui::End();
-		ImGui::PopStyleVar();
+		//ImGui::PopStyleVar();
 		rend.Render();
 	}
 }

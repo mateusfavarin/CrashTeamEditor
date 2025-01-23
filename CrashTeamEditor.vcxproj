@@ -24,6 +24,8 @@
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\model.cpp" />
+    <ClCompile Include="src\mesh.cpp" />
     <ClCompile Include="src\shader.cpp" />
     <ClCompile Include="src\renderer.cpp" />
     <ClCompile Include="src\app.cpp" />
@@ -54,6 +56,8 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\model.h" />
+    <ClInclude Include="src\mesh.h" />
     <ClInclude Include="src\shader.h" />
     <ClInclude Include="src\globalimguiglglfw.h" />
     <ClInclude Include="src\renderer.h" />

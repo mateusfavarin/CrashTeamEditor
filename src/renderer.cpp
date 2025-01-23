@@ -53,6 +53,8 @@ float vertices[] = {
   -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f
 };
 
+Mesh cubeMesh;
+
 const char* vertexShaderSource = R"*(
 #version 330
 
@@ -86,31 +88,22 @@ uniform vec3 lightDir;
 
 void main()
 {
+  //todo: get rid of this eventually.
+  //this discard's if condition probably isn't worth it unless/until the frag shader is computationally expensive.
+  if (dot(Normal, vec3(0.0, 0.0, -1.0)) >= 0) //todo: change hardcoded vector to camera view dir.
+    discard; //pixel facing away from camera
+
+
+
   float light = max(dot(-normalize(Normal), lightDir), 0.0);
 	FragColor = vec4(0.0, light, 0.0, 1.0);
 }
 )*";
 
-Renderer::Renderer(int width, int height) : shader(vertexShaderSource, fragmentShaderSource) //field initializer creates shader.
+Renderer::Renderer(int width, int height) : shader(vertexShaderSource, fragmentShaderSource) //field initializer creates shader
 {
-  //create triangles
-  glGenVertexArrays(1, &VAO);
-  glBindVertexArray(VAO);
-
-  glGenBuffers(1, &VBO);
-  glBindBuffer(GL_ARRAY_BUFFER, VBO);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-  //position
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
-  glEnableVertexAttribArray(0);
-
-  //normals
-  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
-  glEnableVertexAttribArray(1);
-
-  glBindBuffer(GL_ARRAY_BUFFER, 0);
-  glBindVertexArray(0);
+  cubeMesh = Mesh(vertices, sizeof(vertices));
+  this->models.push_back(Model(&cubeMesh)); //temp
 
   //create framebuffer
   this->width = width;
@@ -150,44 +143,69 @@ void Renderer::Render(void)
 
   //clear screen with dark blue
   glEnable(GL_DEPTH_TEST);
+  //TODO: the mesh builder should probably be smart enough to do the mesh correctly so that we can use this:
+  //glEnable(GL_CULL_FACE); //do not use these, the fragment shader does this based on normals (that way the vertex order doesn't matter).
+  //glCullFace(GL_BACK);
   glViewport(0, 0, width, height);
   glClearColor(0.0f, 0.05f, 0.1f, 1.0f);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-  this->shader.use();
-  float time = clock() / (float)CLOCKS_PER_SEC;
-  //set up MVP
-  glm::mat4 model, view, perspective;
-  //M
-  model = glm::mat4(1.0f);
-  //todo: put this information into the model class. all models have a mesh/mesh index.
-  model = glm::rotate(model, glm::radians(time * 60.f), glm::vec3(1.0f, 0.0f, 0.0f)); //temp
-  model = glm::rotate(model, glm::radians(time * 40.f), glm::vec3(0.0f, 0.2f, 0.4f)); //temp
-  //V
-  view = glm::mat4(1.0f);
-  view = glm::translate(view, -glm::vec3(0.0f, 0.0f, 3.0f));
-  //P
-  perspective = glm::perspective<float>(glm::radians(45.0f), ((float)this->width / (float)this->height), 0.1f, 1000.0f);
-  glm::mat4 mvp = perspective * view * model;
-  this->shader.setUniform("mvp", mvp);
-  this->shader.setUniform("model", model);
   //time
-  //this->shader.setUniform("time", time);
-  this->shader.setUniform("lightDir", glm::normalize(glm::vec3(0.f, 0.f, -1.f)));
+  time = clock() / (float)CLOCKS_PER_SEC;
+  if (deltaTime == -1.f)
+    deltaTime = 0.016f; // fake ~60fps deltaTime
+  else
+  {
+    deltaTime = time - lastFrameTime;
+    lastFrameTime = time;
+  }
 
   //render
-  glBindVertexArray(VAO);
-  glDrawArrays(GL_TRIANGLES, 0, sizeof(vertices) / sizeof(float));
-  glBindVertexArray(0);
+  this->shader.use();
+  //set up MVP
+  glm::mat4 rot, perspective;
+  //M
+  rot = glm::mat4(1.0f);
+  //todo: put this information into the model class. all models have a mesh/mesh index.
+  rot = glm::rotate(rot, glm::radians(time * 60.f), glm::vec3(1.0f, 0.0f, 0.0f)); //temp
+  rot = glm::rotate(rot, glm::radians(time * 40.f), glm::vec3(0.0f, 0.2f, 0.4f)); //temp
+  //P
+  perspective = glm::perspective<float>(glm::radians(45.0f), ((float)this->width / (float)this->height), 0.1f, 1000.0f);
+
+  //render
+  /*cubeMesh.Bind();
+  cubeMesh.Draw();
+  cubeMesh.Unbind();*/
+  for (Model m : models)
+  {
+    m.rotation = glm::quat_cast(rot);
+    //m.position = glm::vec3(0.f, 0.f, 3.f);
+    glm::mat4 model = m.CalculateModelMatrix();
+    glm::mat4 view = glm::mat4(1.0f);
+    view = glm::translate(view, -glm::vec3(0.0f, 0.0f, 3.0f));
+    glm::mat4 mvp = perspective * view * model;
+    this->shader.setUniform("mvp", mvp);
+    this->shader.setUniform("model", model);
+    this->shader.setUniform("lightDir", glm::normalize(glm::vec3(0.f, 0.f, -1.f)));
+    m.Draw();
+  }
   this->shader.unuse();
 
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
+float Renderer::GetLastDeltaTime()
+{
+  return this->deltaTime;
+}
+
+float Renderer::GetLastTime()
+{
+  return this->time;
+}
+
 Renderer::~Renderer(void) 
 {
-  glDeleteVertexArrays(1, &VAO);
-  glDeleteBuffers(1, &VBO);
+
 }
 
 void Renderer::RescaleFramebuffer(float width, float height)

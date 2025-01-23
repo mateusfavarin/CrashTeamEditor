@@ -111,6 +111,12 @@
     <ClCompile Include="third_party\imgui\backends\imgui_impl_glfw.cpp">
       <Filter>ImGui\backends</Filter>
     </ClCompile>
+    <ClCompile Include="src\model.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\mesh.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
@@ -165,6 +171,12 @@
       <Filter>Renderer</Filter>
     </ClInclude>
     <ClInclude Include="src\globalimguiglglfw.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\model.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\mesh.h">
       <Filter>Renderer</Filter>
     </ClInclude>
   </ItemGroup>

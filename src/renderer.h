@@ -10,15 +10,19 @@
 
 #include "globalimguiglglfw.h"
 #include "shader.h"
+#include "mesh.h"
+#include "model.h"
+#include <vector>
 
 class Renderer 
 {
 private:
-  GLuint VAO, VBO;
   //GLuint shaderProgram;
   Shader shader;
   GLuint renderbuffer;
   GLuint framebuffer;
+  std::vector<Model> models;
+  float time = 0.f, lastFrameTime = 0.f, deltaTime = -1.f;
 public:
   GLuint texturebuffer;
   int width, height;
@@ -26,4 +30,6 @@ public:
   void RescaleFramebuffer(float width, float height);
   ~Renderer();
   void Render(void);
+  float GetLastDeltaTime(void);
+  float GetLastTime(void);
 };
