@@ -24,9 +24,9 @@ Quadblock::Quadblock(const std::string& name, Tri& t0, Tri& t1, Tri& t2, Tri& t3
 	bool validTriblock = (uniqueCount == 3) && (sharedCount == 3);
 	if (!validTriblock)
 	{
-		throw std::exception(
+		throw QuadException(
 			("Unique Vertices: " + std::to_string(uniqueCount) + "/3\n" +
-			 "Shared Vertices: " + std::to_string(sharedCount) + "/3\n").c_str()
+			 "Shared Vertices: " + std::to_string(sharedCount) + "/3\n")
 		);
 	}
 
@@ -111,6 +111,9 @@ Quadblock::Quadblock(const std::string& name, Tri& t0, Tri& t1, Tri& t2, Tri& t3
 	}
 	m_doubleSided = false;
 	m_checkpointStatus = true;
+	m_trigger = QuadblockTrigger::NONE;
+	m_turboPadIndex = TURBO_PAD_INDEX_NONE;
+	m_hide = false;
 }
 
 Quadblock::Quadblock(const std::string& name, Quad& q0, Quad& q1, Quad& q2, Quad& q3, const Vec3& normal, const std::string& material)
@@ -136,10 +139,10 @@ Quadblock::Quadblock(const std::string& name, Quad& q0, Quad& q1, Quad& q2, Quad
 	bool validQuadblock = (uniqueCount == 4) && (sharedCount == 4) && (centerCount == 1);
 	if (!validQuadblock)
 	{
-		throw std::exception(
+		throw QuadException(
 			("Unique Vertices: " + std::to_string(uniqueCount) + "/4\n" +
 			"Shared Vertices: " + std::to_string(sharedCount) + "/4\n" +
-			"Center Vertices: " + std::to_string(centerCount) + "/1\n").c_str()
+			"Center Vertices: " + std::to_string(centerCount) + "/1\n")
 		);
 	}
 
@@ -212,6 +215,9 @@ Quadblock::Quadblock(const std::string& name, Quad& q0, Quad& q1, Quad& q2, Quad
 	}
 	m_doubleSided = false;
 	m_checkpointStatus = true;
+	m_trigger = QuadblockTrigger::NONE;
+	m_turboPadIndex = TURBO_PAD_INDEX_NONE;
+	m_hide = false;
 }
 
 const std::string& Quadblock::Name() const
@@ -232,6 +238,21 @@ uint8_t Quadblock::Terrain() const
 uint16_t Quadblock::Flags() const
 {
 	return m_flags;
+}
+
+QuadblockTrigger Quadblock::Trigger() const
+{
+	return m_trigger;
+}
+
+size_t Quadblock::TurboPadIndex() const
+{
+	return m_turboPadIndex;
+}
+
+bool Quadblock::Hide() const
+{
+	return m_hide;
 }
 
 bool& Quadblock::CheckpointStatus()
@@ -257,6 +278,26 @@ void Quadblock::SetCheckpoint(int index)
 void Quadblock::SetDrawDoubleSided(bool active)
 {
 	m_doubleSided = active;
+}
+
+void Quadblock::SetCheckpointStatus(bool active)
+{
+	m_checkpointStatus = active;
+}
+
+void Quadblock::SetName(const std::string& name)
+{
+	m_name = name;
+}
+
+void Quadblock::SetTurboPadIndex(size_t index)
+{
+	m_turboPadIndex = index;
+}
+
+void Quadblock::SetHide(bool active)
+{
+	m_hide = active;
 }
 
 const BoundingBox& Quadblock::GetBoundingBox() const
@@ -298,7 +339,7 @@ bool Quadblock::Neighbours(const Quadblock& quadblock, float threshold) const
 	return false;
 }
 
-std::vector<uint8_t> Quadblock::Serialize(size_t id, size_t offTextures, size_t offVisibleSet, const std::vector<size_t>& vertexIndexes) const
+std::vector<uint8_t> Quadblock::Serialize(size_t id, size_t offTextures, const std::vector<size_t>& vertexIndexes) const
 {
 	PSX::Quadblock quadblock = {};
 	std::vector<uint8_t> buffer(sizeof(quadblock));
@@ -335,7 +376,6 @@ std::vector<uint8_t> Quadblock::Serialize(size_t id, size_t offTextures, size_t 
 		quadblock.triNormalVecBitshift = static_cast<uint8_t>(std::round(std::log2(std::max(ComputeNormalVector(0, 2, 6).Length(), ComputeNormalVector(2, 8, 6).Length()) * 512.0f)));
 	}
 	quadblock.offLowTexture = static_cast<uint32_t>(offTextures);
-	quadblock.offVisibleSet = static_cast<uint32_t>(offVisibleSet);
 
 	auto CalculateNormalDividend = [this](size_t id0, size_t id1, size_t id2, float scaler) -> uint16_t
 		{

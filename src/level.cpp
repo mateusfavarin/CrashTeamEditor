@@ -42,11 +42,8 @@ void Level::Clear(bool clearErrors)
 	m_checkpoints.clear();
 	m_bsp.Clear();
 	m_materialToQuadblocks.clear();
-	m_propTerrain.Clear();
-	m_propQuadFlags.Clear();
-	m_propDoubleSided.Clear();
-	m_propCheckpoints.Clear();
 	m_checkpointPaths.clear();
+	ClearMaterials();
 }
 
 bool Level::LoadLEV(const std::filesystem::path& levFile)
@@ -68,9 +65,9 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	*		- LevHeader
 	*		- MeshInfo
 	*		- Textures
-	*		- Array of PVS
 	*		- Array of quadblocks
 	*		- Array of VisibleSets
+	*		- Array of PVS
 	*		- Array of vertices
 	*		- Array of BSP
 	*		- Array of checkpoints
@@ -116,16 +113,11 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	const size_t offTexture = currOffset;
 	currOffset += sizeof(texGroup);
 
-	std::vector<PSX::VisibleSet> visibleSets(m_quadblocks.size());
-	const size_t offVisibleSet = currOffset;
-	currOffset += visibleSets.size() * sizeof(PSX::VisibleSet);
-
 	const size_t offQuadblocks = currOffset;
 	std::vector<std::vector<uint8_t>> serializedBSPs;
 	std::vector<std::vector<uint8_t>> serializedQuads;
 	std::vector<const Quadblock*> orderedQuads;
 	std::unordered_map<Vertex, size_t> vertexMap;
-	std::unordered_map<size_t, size_t> quadIndexMap;
 	std::vector<Vertex> orderedVertices;
 	size_t bspSize = 0;
 	for (const BSP* bsp : orderedBSPNodes)
@@ -150,40 +142,57 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 				verticesIndexes.push_back(vertexMap[vertex]);
 			}
 			size_t quadIndex = serializedQuads.size();
-			serializedQuads.push_back(quadblock.Serialize(quadIndex, offTexture, offVisibleSet + sizeof(PSX::VisibleSet) * quadIndex, verticesIndexes));
+			serializedQuads.push_back(quadblock.Serialize(quadIndex, offTexture, verticesIndexes));
 			orderedQuads.push_back(&quadblock);
 			currOffset += serializedQuads.back().size();
-			quadIndexMap[index] = quadIndex;
 		}
 	}
 
-	std::vector<std::vector<uint32_t>> visibleNodesPerQuadblock;
-	std::vector<std::vector<uint32_t>> visibleQuadsPerQuadblock;
-	size_t visibleSetsProcessed = 0;
-	size_t sizeLargestVisNodes = 0;
-	size_t sizeLargestVisQuads = 0;
-	const size_t offVisibility = currOffset;
+	std::vector<std::tuple<std::vector<uint32_t>, size_t>> visibleNodes;
+	std::vector<std::tuple<std::vector<uint32_t>, size_t>> visibleQuads;
+	size_t visNodeSize = static_cast<size_t>(std::ceil(static_cast<float>(bspNodes.size()) / 32.0f));
+	size_t visQuadSize = static_cast<size_t>(std::ceil(static_cast<float>(m_quadblocks.size()) / 32.0f));
+
+	/*
+		TODO: run some sort of visibility algorithm,
+		generate visible nodes/quads depending on the needs of every quadblock.
+	*/
+	std::vector<uint32_t> visibleNodeAll(visNodeSize, 0xFFFFFFFF);
+	visibleNodes.push_back({visibleNodeAll, currOffset});
+	currOffset += visibleNodeAll.size() * sizeof(uint32_t);
+
+	std::vector<uint32_t> visibleQuadsAll(visQuadSize, 0xFFFFFFFF);
+	visibleQuads.push_back({visibleQuadsAll, currOffset});
+	currOffset += visibleQuadsAll.size() * sizeof(uint32_t);
+
+	std::unordered_map<PSX::VisibleSet, size_t> visibleSetMap;
+	std::vector<PSX::VisibleSet> visibleSets;
+	const size_t offVisibleSet = currOffset;
+
+	size_t quadCount = 0;
 	for (const Quadblock* quad : orderedQuads)
 	{
 		/* TODO: read quadblock data */
-		size_t visNodeSize = static_cast<size_t>(std::ceil(static_cast<float>(bspNodes.size()) / 32.0f));
-		sizeLargestVisNodes = std::max(sizeLargestVisNodes, visNodeSize);
-		std::vector<uint32_t> visibleNodes(visNodeSize, 0xFFFFFFFF);
-		visibleNodesPerQuadblock.push_back(visibleNodes);
-		visibleSets[visibleSetsProcessed].offVisibleBSPNodes = static_cast<uint32_t>(currOffset);
-		currOffset += visibleNodes.size() * sizeof(uint32_t);
+		PSX::VisibleSet set = {};
+		set.offVisibleBSPNodes = static_cast<uint32_t>(std::get<size_t>(visibleNodes[0]));
+		set.offVisibleQuadblocks = static_cast<uint32_t>(std::get<size_t>(visibleQuads[0]));
+		set.offVisibleInstances = 0;
+		set.offVisibleExtra = 0;
 
-		size_t visQuadSize = static_cast<size_t>(std::ceil(static_cast<float>(m_quadblocks.size()) / 32.0f));
-		sizeLargestVisQuads = std::max(sizeLargestVisQuads, visQuadSize);
-		std::vector<uint32_t> visibleQuads(visQuadSize, 0xFFFFFFFF);
-		visibleQuadsPerQuadblock.push_back(visibleQuads);
-		visibleSets[visibleSetsProcessed].offVisibleQuadblocks = static_cast<uint32_t>(currOffset);
-		currOffset += visibleQuads.size() * sizeof(uint32_t);
+		size_t visibleSetIndex = 0;
+		if (visibleSetMap.contains(set)) { visibleSetIndex = visibleSetMap.at(set); }
+		else
+		{
+			visibleSetIndex = visibleSets.size();
+			visibleSets.push_back(set);
+			visibleSetMap[set] = visibleSetIndex;
+		}
 
-		visibleSets[visibleSetsProcessed].offVisibleInstances = 0;
-		visibleSets[visibleSetsProcessed].offVisibleExtra = 0;
-		visibleSetsProcessed++;
+		PSX::Quadblock* serializedQuad = reinterpret_cast<PSX::Quadblock*>(serializedQuads[quadCount++].data());
+		serializedQuad->offVisibleSet = static_cast<uint32_t>(offVisibleSet + sizeof(PSX::VisibleSet) * visibleSetIndex);
 	}
+
+	currOffset += visibleSets.size() * sizeof(PSX::VisibleSet);
 
 	const size_t offVertices = currOffset;
 	std::vector<std::vector<uint8_t>> serializedVertices;
@@ -217,11 +226,11 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	const size_t offSpawnType = currOffset;
 	currOffset += sizeof(spawnType);
 
-	std::vector<uint32_t> visMemNodesP1(sizeLargestVisNodes);
+	std::vector<uint32_t> visMemNodesP1(visNodeSize);
 	const size_t offVisMemNodesP1 = currOffset;
 	currOffset += visMemNodesP1.size() * sizeof(uint32_t);
 
-	std::vector<uint32_t> visMemQuadsP1(sizeLargestVisQuads);
+	std::vector<uint32_t> visMemQuadsP1(visQuadSize);
 	const size_t offVisMemQuadsP1 = currOffset;
 	currOffset += visMemQuadsP1.size() * sizeof(uint32_t);
 
@@ -310,16 +319,18 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	Write(file, &header, sizeof(header));
 	Write(file, &meshInfo, sizeof(meshInfo));
 	Write(file, &texGroup, sizeof(texGroup));
-	Write(file, visibleSets.data(), visibleSets.size() * sizeof(PSX::VisibleSet));
-	for (const auto& serializedQuad : serializedQuads) { Write(file, serializedQuad.data(), serializedQuad.size()); }
-	for (size_t i = 0; i < visibleNodesPerQuadblock.size(); i++)
+	for (const std::vector<uint8_t>& serializedQuad : serializedQuads) { Write(file, serializedQuad.data(), serializedQuad.size()); }
+	for (size_t i = 0; i < visibleNodes.size(); i++)
 	{
-		Write(file, visibleNodesPerQuadblock[i].data(), visibleNodesPerQuadblock[i].size() * sizeof(uint32_t));
-		Write(file, visibleQuadsPerQuadblock[i].data(), visibleQuadsPerQuadblock[i].size() * sizeof(uint32_t));
+		const std::vector<uint32_t>& currVisibleNode = std::get<0>(visibleNodes[i]);
+		const std::vector<uint32_t>& currVisibleQuad = std::get<0>(visibleQuads[i]);
+		Write(file, currVisibleNode.data(), currVisibleNode.size() * sizeof(uint32_t));
+		Write(file, currVisibleQuad.data(), currVisibleQuad.size() * sizeof(uint32_t));
 	}
-	for (const auto& serializedVertex : serializedVertices) { Write(file, serializedVertex.data(), serializedVertex.size()); }
-	for (const auto& serializedBSP : serializedBSPs) { Write(file, serializedBSP.data(), serializedBSP.size()); }
-	for (const auto& serializedCheckpoint : serializedCheckpoints) { Write(file, serializedCheckpoint.data(), serializedCheckpoint.size()); }
+	Write(file, visibleSets.data(), visibleSets.size() * sizeof(PSX::VisibleSet));
+	for (const std::vector<uint8_t>& serializedVertex : serializedVertices) { Write(file, serializedVertex.data(), serializedVertex.size()); }
+	for (const std::vector<uint8_t>& serializedBSP : serializedBSPs) { Write(file, serializedBSP.data(), serializedBSP.size()); }
+	for (const std::vector<uint8_t>& serializedCheckpoint : serializedCheckpoints) { Write(file, serializedCheckpoint.data(), serializedCheckpoint.size()); }
 	Write(file, &spawnType, sizeof(spawnType));
 	Write(file, visMemNodesP1.data(), visMemNodesP1.size() * sizeof(uint32_t));
 	Write(file, visMemQuadsP1.data(), visMemQuadsP1.size() * sizeof(uint32_t));
@@ -389,9 +400,9 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 			int ni0 = std::stoi(token0[2]) - 1;
 			int ni1 = std::stoi(token1[2]) - 1;
 			int ni2 = std::stoi(token2[2]) - 1;
-			normalMap[currQuadblockName].push_back(normals[ni0]);
-			normalMap[currQuadblockName].push_back(normals[ni1]);
-			normalMap[currQuadblockName].push_back(normals[ni2]);
+			normalMap[currQuadblockName].push_back(normals[ni0]); vertices[ni0].normal = normals[ni0];
+			normalMap[currQuadblockName].push_back(normals[ni1]); vertices[ni1].normal = normals[ni1];
+			normalMap[currQuadblockName].push_back(normals[ni2]); vertices[ni2].normal = normals[ni2];
 
 			bool blockFetched = false;
 			if (isQuadblock)
@@ -400,6 +411,7 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 				int i3 = std::stoi(token3[0]) - 1;
 				int ni3 = std::stoi(token3[2]) - 1;
 				normalMap[currQuadblockName].push_back(normals[ni3]);
+				vertices[ni3].normal = normals[ni3];
 
 				if (!quadMap.contains(currQuadblockName)) { quadMap[currQuadblockName] = std::vector<Quad>(); }
 				quadMap[currQuadblockName].emplace_back(vertices[i0], vertices[i1], vertices[i2], vertices[i3]);
@@ -438,7 +450,7 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 					Quad& q2 = quadMap[currQuadblockName][2];
 					Quad& q3 = quadMap[currQuadblockName][3];
 					try { m_quadblocks.emplace_back(currQuadblockName, q0, q1, q2, q3, averageNormal, material); }
-					catch (const std::exception& e)
+					catch (const QuadException& e)
 					{
 						ret = false;
 						m_showLogWindow = true;
@@ -452,7 +464,7 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 					Tri& t2 = triMap[currQuadblockName][2];
 					Tri& t3 = triMap[currQuadblockName][3];
 					try { m_quadblocks.emplace_back(currQuadblockName, t0, t1, t2, t3, averageNormal, material); }
-					catch (const std::exception& e)
+					catch (const QuadException& e)
 					{
 						ret = false;
 						m_showLogWindow = true;

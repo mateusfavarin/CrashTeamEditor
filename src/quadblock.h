@@ -9,6 +9,7 @@
 
 static constexpr size_t NUM_VERTICES_QUADBLOCK = 9;
 static constexpr size_t NUM_FACES_QUADBLOCK = 4;
+static constexpr size_t TURBO_PAD_INDEX_NONE = 0;
 
 namespace QuadFlags
 {
@@ -40,6 +41,8 @@ namespace QuadFlags
 
 namespace TerrainType
 {
+	static constexpr uint8_t TURBO_PAD = 1;
+	static constexpr uint8_t SUPER_TURBO_PAD = 2;
 	static constexpr uint8_t ASPHALT = 0;
 	static constexpr uint8_t DIRT = 1;
 	static constexpr uint8_t GRASS = 2;
@@ -91,6 +94,11 @@ namespace FaceDrawMode
 	static constexpr uint32_t DRAW_NONE = 3;
 };
 
+enum class QuadblockTrigger
+{
+	NONE, TURBO_PAD, SUPER_TURBO_PAD
+};
+
 class Quadblock
 {
 public:
@@ -100,17 +108,24 @@ public:
 	const Vec3& Center() const;
 	uint8_t Terrain() const;
 	uint16_t Flags() const;
+	QuadblockTrigger Trigger() const;
+	size_t TurboPadIndex() const;
+	bool Hide() const;
 	bool& CheckpointStatus();
 	void SetTerrain(uint8_t terrain);
 	void SetFlag(uint16_t flag);
 	void SetCheckpoint(int index);
 	void SetDrawDoubleSided(bool active);
+	void SetCheckpointStatus(bool active);
+	void SetName(const std::string& name);
+	void SetTurboPadIndex(size_t index);
+	void SetHide(bool active);
 	const BoundingBox& GetBoundingBox() const;
 	std::vector<Vertex> GetVertices() const;
 	float DistanceClosestVertex(Vec3& out, const Vec3& v) const;
 	bool Neighbours(const Quadblock& quadblock, float threshold = 0.1f) const;
-	std::vector<uint8_t> Serialize(size_t id, size_t offTextures, size_t offVisibleSet, const std::vector<size_t>& vertexIndexes) const;
-	void RenderUI(size_t checkpointCount, bool& resetBsp);
+	std::vector<uint8_t> Serialize(size_t id, size_t offTextures, const std::vector<size_t>& vertexIndexes) const;
+	bool RenderUI(size_t checkpointCount, bool& resetBsp);
 
 private:
 	Vec3 ComputeNormalVector(size_t id0, size_t id1, size_t id2) const;
@@ -126,6 +141,7 @@ private:
 	*/
 	bool m_triblock;
 	bool m_checkpointStatus;
+	bool m_hide;
 	Vertex m_p[NUM_VERTICES_QUADBLOCK];
 	BoundingBox m_bbox;
 	std::string m_name;
@@ -136,4 +152,15 @@ private:
 	bool m_doubleSided;
 	uint16_t m_flags;
 	uint8_t m_terrain;
+	QuadblockTrigger m_trigger;
+	size_t m_turboPadIndex;
+};
+
+class QuadException : public std::exception
+{
+public:
+  explicit QuadException(const std::string& message) : m_message(message) {};
+  const char* what() const throw() { return m_message.c_str(); }
+private:
+  std::string m_message;
 };

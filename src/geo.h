@@ -81,6 +81,7 @@ struct BoundingBox
 struct Point
 {
 	Vec3 pos;
+	Vec3 normal;
 	Color color;
 
 	Point() {};
@@ -88,11 +89,13 @@ struct Point
 	{
 		pos = Vec3(x, y, z);
 		color = Color(255u, 255u, 255u);
+		normal = Vec3();
 	};
 	Point(float x, float y, float z, unsigned r, unsigned g, unsigned b)
 	{
 		pos = Vec3(x, y, z);
 		color = Color(r, g, b);
+		normal = Vec3();
 	};
 };
 
