@@ -229,13 +229,61 @@ void Renderer::Render(void)
     let cameraMatrix = MakePointAtMatrix({ x: cameraPos.x, y: cameraPos.y, z: cameraPos.z, w: 0 }, target, up);
     let viewMatrix = ApplicationSpecificMatrixInverse(cameraMatrix);
   */
-  constexpr int camMoveSpeed = 2.f;
+  constexpr float camMoveSpeed = 2.f;
+  constexpr float camLookSpeed = 300.f;
   float thisFrameMoveSpeed = camMoveSpeed * deltaTime;
   if (ImGui::IsKeyDown(ImGuiKey_LeftCtrl))
     thisFrameMoveSpeed *= 2.f; //twice as fast when holding ctrl.
   static glm::vec3 camPos = glm::vec3(0.f, 0.f, 3.f);
   static glm::vec3 camFront = glm::vec3(0.f, 0.f, -1.f);
   static glm::vec3 camUp = glm::vec3(0.f, 1.f, 0.f);
+
+  {
+    static float pitch = 0.f;
+    static float yaw = 0.f;
+    /*static float lastX = 0.f;
+    static float lastY = 0.f;*/
+    float xpos = 0.f;
+    float ypos = 0.f;
+    if (ImGui::IsKeyDown(ImGuiKey_UpArrow))
+      ypos += 1.f * deltaTime * camLookSpeed;
+    if (ImGui::IsKeyDown(ImGuiKey_DownArrow))
+      ypos -= 1.f * deltaTime * camLookSpeed;
+    if (ImGui::IsKeyDown(ImGuiKey_LeftArrow))
+      xpos -= 1.f * deltaTime * camLookSpeed;
+    if (ImGui::IsKeyDown(ImGuiKey_RightArrow))
+      xpos += 1.f * deltaTime * camLookSpeed;
+    static bool firstMouse = true;
+    if (firstMouse)
+    {
+      /*lastX = xpos;
+      lastY = ypos;*/
+      firstMouse = false;
+    }
+
+    /*float xoffset = xpos - lastX;
+    float yoffset = lastY - ypos;*/
+    /*lastX = xpos;
+    lastY = ypos;*/
+
+    float sensitivity = 0.1f;
+    xpos *= sensitivity;
+    ypos *= sensitivity;
+
+    yaw += xpos;
+    pitch += ypos;
+
+    if (pitch > 89.0f)
+      pitch = 89.0f;
+    if (pitch < -89.0f)
+      pitch = -89.0f;
+
+    glm::vec3 direction;
+    direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+    direction.y = sin(glm::radians(pitch));
+    direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+    camFront = glm::normalize(direction);
+  }
 
   if (ImGui::IsKeyDown(ImGuiKey_W))
     camPos += glm::vec3(thisFrameMoveSpeed * camFront.x, thisFrameMoveSpeed * camFront.y, thisFrameMoveSpeed * camFront.z);
@@ -253,6 +301,8 @@ void Renderer::Render(void)
     glm::vec3 moveBy = glm::vec3(thisFrameMoveSpeed * interm.x, thisFrameMoveSpeed * interm.y, thisFrameMoveSpeed * interm.z);
     camPos += moveBy;
   }
+
+  //if (ImGui::IsKeyDown(ImGuiKey_Scroll)) //todo zoom in and out
 
   glm::mat4 perspective = glm::perspective<float>(glm::radians(45.0f), ((float)this->width / (float)this->height), 0.1f, 1000.0f);
   glm::mat4 view = glm::lookAt(camPos, camPos + camFront, camUp);
