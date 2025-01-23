@@ -153,8 +153,8 @@ void Renderer::Render(std::vector<Model> models)
   //clear screen with dark blue
   glEnable(GL_DEPTH_TEST);
   //TODO: the mesh builder should probably be smart enough to do the mesh correctly so that we can use this:
-  //glEnable(GL_CULL_FACE); //do not use these, the fragment shader does this based on normals (that way the vertex order doesn't matter).
-  //glCullFace(GL_BACK);
+  glEnable(GL_CULL_FACE); //do not use these, the fragment shader does this based on normals (that way the vertex order doesn't matter).
+  glCullFace(GL_FRONT);
   glViewport(0, 0, width, height);
   glClearColor(0.0f, 0.05f, 0.1f, 1.0f);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -171,7 +171,7 @@ void Renderer::Render(std::vector<Model> models)
   //render
   this->shader.use();
 
-  constexpr float camMoveSpeed = 10.f;
+  constexpr float camMoveSpeed = 15.f;
   constexpr float camLookSpeed = 50.f;
   float thisFrameMoveSpeed = camMoveSpeed * deltaTime;
   if (ImGui::IsKeyDown(ImGuiKey_LeftCtrl))
@@ -239,6 +239,31 @@ void Renderer::Render(std::vector<Model> models)
     glm::vec3 moveBy = glm::vec3(thisFrameMoveSpeed * interm.x, thisFrameMoveSpeed * interm.y, thisFrameMoveSpeed * interm.z);
     camPos += moveBy;
   }
+
+  /*
+  * *** Show vcolor (bool) (if off, use diffuse or something else idk)
+  * *** Show wireframe (bool) (if on, show only the wireframe)
+  * *** Show Low LOD (bool)
+  * *** Viewport FOV (float 20-150)
+  * *** Show checkpoints (bool)
+  * *** Enable viewport resizing
+  * *** Show starting positions (bool)
+  * Show bsp rects/tree (bool)
+  * *** Camera look sensitivity (float)
+  * *** Camera move sensitivity (float)
+  * *** Camera sprint multiplier (float)
+  * Show normals (blender style, red is up, blue is down)
+  * Filter by material (highlight all quads with a specified subset of materials)
+  * Filter by quad flags (higlight all quads with a specified subset of quadflags)
+  * Filter by draw flags ""
+  * Filter by terrain "" 
+  * 
+  * NOTE: resetBsp does not trigger when vertex color changes.
+  * 
+  * Make mesh read live data.
+  * 
+  * Editor features (edit in viewport blender style).
+  */
 
   //if (ImGui::IsKeyDown(ImGuiKey_Scroll)) //todo zoom in and out
 
