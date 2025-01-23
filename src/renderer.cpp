@@ -62,9 +62,11 @@ const char* vertexShaderSource = R"*(
 
 layout (location = 0) in vec3 aPos;
 layout (location = 1) in vec3 aNormal;
+layout (location = 2) in vec3 aColor;
 
 out vec3 Normal;
 out vec3 FragPos;
+out vec3 VertColor;
 
 uniform mat4 mvp;
 uniform mat4 model;
@@ -75,6 +77,7 @@ void main()
 	gl_Position = mvp * vec4(aPos, 1.0);
   FragPos = vec3(model * vec4(aPos, 1.0));
   Normal = (model * vec4(aNormal, 1.0)).xyz;
+  VertColor = aColor;
 }
 )*";
 
@@ -85,6 +88,7 @@ out vec4 FragColor;
 
 in vec3 Normal;
 in vec3 FragPos;
+in vec3 VertColor;
 
 uniform vec3 lightDir;
 
@@ -97,15 +101,18 @@ void main()
 
 
 
-  float light = max(dot(-normalize(Normal), lightDir), 0.0);
-	FragColor = vec4(0.0, light, 0.0, 1.0);
+  //float light = max(dot(-normalize(Normal), lightDir), 0.0);
+  //vec4 diffCol = vec4(0.0, light, 0.0, 1.0);
+  //vec4 finalCol = (vec4(0.1, 0.0, 0.3, 1.0) + diffCol) * vec4(1.0, 1.0, 1.0, 1.0); //(ambient + diffuse) * objcolor;
+	//FragColor = finalCol;
+  FragColor = vec4(VertColor.rgb, 1.0);
 }
 )*";
 
 Renderer::Renderer(int width, int height) : shader(vertexShaderSource, fragmentShaderSource) //field initializer creates shader
 {
   cubeMesh = Mesh(vertices, sizeof(vertices));
-  this->models.push_back(Model(&cubeMesh)); //temp
+  //this->models.push_back(Model(&cubeMesh)); //temp
 
   //create framebuffer
   this->width = width;
@@ -139,7 +146,7 @@ Renderer::Renderer(int width, int height) : shader(vertexShaderSource, fragmentS
   glBindRenderbuffer(GL_RENDERBUFFER, 0);
 }
 
-void Renderer::Render(void)
+void Renderer::Render(std::vector<Model> models)
 {
   glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
 
@@ -163,74 +170,9 @@ void Renderer::Render(void)
 
   //render
   this->shader.use();
-  
-  /*
-    //input -> camera
-    let moveforward = MultiplyConstantAgainstVector(cameraspeed * rasterDeltaTime, cameraLookDir); //local forward of camera
-    let moveright = MultiplyConstantAgainstVector(cameraspeed * rasterDeltaTime, NormalizeVector(CrossProduct({ x: 0, y: 1, z: 0 }, moveforward)));
-    if (inputUp)
-        cameraPos.y -= rasterDeltaTime * movespeed;
-    if (inputDown)
-        cameraPos.y += rasterDeltaTime * movespeed;
-    if (inputLeft)
-        //cameraPos.x -= rasterDeltaTime * movespeed;
-        cameraPos = AddVectorToVector(cameraPos, MultiplyConstantAgainstVector(-1, moveright));
-    if (inputRight)
-        cameraPos = AddVectorToVector(cameraPos, moveright);
-        //cameraPos.x += rasterDeltaTime * movespeed;
-    if (inputForward)
-        cameraPos = AddVectorToVector(cameraPos, moveforward);
-        //cameraPos.z += rasterDeltaTime * movespeed;
-    if (inputBack)
-        cameraPos = AddVectorToVector(cameraPos, MultiplyConstantAgainstVector(-1, moveforward));
-        //cameraPos.z -= rasterDeltaTime * movespeed;
 
-    let yawThisFrame = 0;
-    let pitchThisFrame = 0;
-
-    if (inputCLeft)
-        yawThisFrame = -(rasterDeltaTime * cameraspeed);
-    if (inputCRight)
-        yawThisFrame = (rasterDeltaTime * cameraspeed);
-    yaw += yawThisFrame;
-    if (inputCUp)
-        pitchThisFrame = (rasterDeltaTime * cameraspeed);
-    if (inputCDown)
-        pitchThisFrame = -(rasterDeltaTime * cameraspeed);
-    pitch += pitchThisFrame;
-
-    let rotT = 0;
-    if (rotate.checked)
-        rotT = rasterTime;
-
-    let xRotMatrix = MakeRotationXMatrix(rotT * 0.5);
-    let zRotMatrix = MakeRotationZMatrix(rotT);
-
-    let translateMatrix = MakeTranslationMatrix(0, 0, 2);
-
-    let worldMatrix = MakeIdentityMatrix();
-    worldMatrix = MultiplyMatrixMatrix(worldMatrix, xRotMatrix);
-    worldMatrix = MultiplyMatrixMatrix(worldMatrix, zRotMatrix);
-    worldMatrix = MultiplyMatrixMatrix(worldMatrix, translateMatrix);
-
-    //camera stuff
-    let up = { x: 0, y: 1, z: 0, w: 0 }; //starts as world up
-    let right = NormalizeVector(CrossProduct(up, cameraLookDir)); //starts as local right relative to camera's look direction
-    let forward = RotateVectorAboutAxis(cameraLookDir, right, pitchThisFrame); //new forward is the camera's look direction rotated about the right direction by "pitch" (look up/down)
-    up = NormalizeVector(CrossProduct(forward, right)); //after changing the forward, the new up is the local up
-    forward = NormalizeVector(forward); //for safety
-    forward = RotateVectorAboutAxis(forward, { x: 0, y: 1, z: 0, w: 0 }, yawThisFrame); //rotate about world up (yaw), this affects local right and local up
-    right = RotateVectorAboutAxis(right, { x: 0, y: 1, z: 0, w: 0 }, yawThisFrame); //rotate local right by the same amount
-    up = NormalizeVector(CrossProduct(forward, right)); //recalculate local up by cross of local right and forward.
-
-    cameraLookDir = forward; //assign new look direction
-    let target = AddVectorToVector(cameraPos, cameraLookDir);
-
-    let cameraMatrix = MakePointAtMatrix({ x: cameraPos.x, y: cameraPos.y, z: cameraPos.z, w: 0 }, target, up);
-    let viewMatrix = ApplicationSpecificMatrixInverse(cameraMatrix);
-  */
-  constexpr float camMoveSpeed = 2.f;
-  constexpr float camLookSpeed = 300.f;
+  constexpr float camMoveSpeed = 10.f;
+  constexpr float camLookSpeed = 50.f;
   float thisFrameMoveSpeed = camMoveSpeed * deltaTime;
   if (ImGui::IsKeyDown(ImGuiKey_LeftCtrl))
     thisFrameMoveSpeed *= 2.f; //twice as fast when holding ctrl.
@@ -241,8 +183,6 @@ void Renderer::Render(void)
   {
     static float pitch = 0.f;
     static float yaw = 0.f;
-    /*static float lastX = 0.f;
-    static float lastY = 0.f;*/
     float xpos = 0.f;
     float ypos = 0.f;
     if (ImGui::IsKeyDown(ImGuiKey_UpArrow))
@@ -253,22 +193,6 @@ void Renderer::Render(void)
       xpos -= 1.f * deltaTime * camLookSpeed;
     if (ImGui::IsKeyDown(ImGuiKey_RightArrow))
       xpos += 1.f * deltaTime * camLookSpeed;
-    static bool firstMouse = true;
-    if (firstMouse)
-    {
-      /*lastX = xpos;
-      lastY = ypos;*/
-      firstMouse = false;
-    }
-
-    /*float xoffset = xpos - lastX;
-    float yoffset = lastY - ypos;*/
-    /*lastX = xpos;
-    lastY = ypos;*/
-
-    float sensitivity = 0.1f;
-    xpos *= sensitivity;
-    ypos *= sensitivity;
 
     yaw += xpos;
     pitch += ypos;
@@ -279,9 +203,9 @@ void Renderer::Render(void)
       pitch = -89.0f;
 
     glm::vec3 direction;
-    direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+    direction.x = cos(glm::radians(yaw - 90)) * cos(glm::radians(pitch));
     direction.y = sin(glm::radians(pitch));
-    direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+    direction.z = sin(glm::radians(yaw - 90)) * cos(glm::radians(pitch));
     camFront = glm::normalize(direction);
   }
 
@@ -301,28 +225,42 @@ void Renderer::Render(void)
     glm::vec3 moveBy = glm::vec3(thisFrameMoveSpeed * interm.x, thisFrameMoveSpeed * interm.y, thisFrameMoveSpeed * interm.z);
     camPos += moveBy;
   }
+  if (ImGui::IsKeyDown(ImGuiKey_Space))
+  {
+    glm::vec3 interm = glm::normalize(glm::cross(camFront, camUp));
+    interm = glm::normalize(glm::cross(camFront, interm));
+    glm::vec3 moveBy = glm::vec3(thisFrameMoveSpeed * interm.x, thisFrameMoveSpeed * interm.y, thisFrameMoveSpeed * interm.z);
+    camPos -= moveBy;
+  }
+  if (ImGui::IsKeyDown(ImGuiKey_LeftShift))
+  {
+    glm::vec3 interm = glm::normalize(glm::cross(camFront, camUp));
+    interm = glm::normalize(glm::cross(camFront, interm));
+    glm::vec3 moveBy = glm::vec3(thisFrameMoveSpeed * interm.x, thisFrameMoveSpeed * interm.y, thisFrameMoveSpeed * interm.z);
+    camPos += moveBy;
+  }
 
   //if (ImGui::IsKeyDown(ImGuiKey_Scroll)) //todo zoom in and out
 
-  glm::mat4 perspective = glm::perspective<float>(glm::radians(45.0f), ((float)this->width / (float)this->height), 0.1f, 1000.0f);
+  glm::mat4 perspective = glm::perspective<float>(glm::radians(70.0f), ((float)this->width / (float)this->height), 0.1f, 1000.0f);
   glm::mat4 view = glm::lookAt(camPos, camPos + camFront, camUp);
 
-  for (Model m : models)
+  std::vector<Model>& itrModels = models.size() > 0 ? models : this->models;
+  for (Model m : itrModels)
   {
     //temporary spin effect on the model
     //glm::mat4 rot = glm::mat4(1.0f);
     //rot = glm::rotate(rot, glm::radians(time * 60.f), glm::vec3(1.0f, 0.0f, 0.0f));
     //rot = glm::rotate(rot, glm::radians(time * 40.f), glm::vec3(0.0f, 0.2f, 0.4f));
-
+    //
     //m.rotation = glm::quat_cast(rot);
-    //m.position = glm::vec3(0.f, 0.f, 3.f);
     glm::mat4 model = m.CalculateModelMatrix();
     /*glm::mat4 view = glm::mat4(1.0f);
     view = glm::translate(view, -move);*/
     glm::mat4 mvp = perspective * view * model;
     this->shader.setUniform("mvp", mvp);
     this->shader.setUniform("model", model);
-    this->shader.setUniform("lightDir", glm::normalize(glm::vec3(0.f, 0.f, -1.f)));
+    this->shader.setUniform("lightDir", glm::normalize(glm::vec3(0.2f, -3.f, -1.f)));
     m.Draw();
   }
   this->shader.unuse();

@@ -225,6 +225,11 @@ const std::string& Quadblock::Name() const
 	return m_name;
 }
 
+bool Quadblock::IsQuadblock()
+{
+	return !m_triblock;
+}
+
 const Vec3& Quadblock::Center() const
 {
 	return m_p[4].m_pos;
@@ -310,6 +315,11 @@ std::vector<Vertex> Quadblock::GetVertices() const
 	/*                                 0       1       2       3       4       5       6       7       8    */
 	std::vector<Vertex> vertices = { m_p[0], m_p[2], m_p[6], m_p[8], m_p[1], m_p[3], m_p[4], m_p[5], m_p[7] };
 	return vertices;
+}
+
+const Vertex* const Quadblock::GetUnswizzledVertices() const
+{
+	return m_p;
 }
 
 float Quadblock::DistanceClosestVertex(Vec3& out, const Vec3& v) const

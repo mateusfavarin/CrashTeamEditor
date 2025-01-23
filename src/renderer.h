@@ -29,7 +29,7 @@ public:
   Renderer(int width, int height);
   void RescaleFramebuffer(float width, float height);
   ~Renderer();
-  void Render(void);
+  void Render(std::vector<Model> models);
   float GetLastDeltaTime(void);
   float GetLastTime(void);
 };
