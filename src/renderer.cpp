@@ -5,6 +5,8 @@
 #include "manual_third_party/glm/glm.hpp"
 #include "manual_third_party/glm/gtc/matrix_transform.hpp"
 #include "manual_third_party/glm/gtc/type_ptr.hpp"
+#include <imgui.h>
+#include <misc/cpp/imgui_stdlib.h>
 #include "time.h"
 //#include "manual_third_party/stb_image.h"
 
@@ -175,13 +177,24 @@ void Renderer::Render(void)
   /*cubeMesh.Bind();
   cubeMesh.Draw();
   cubeMesh.Unbind();*/
+  static glm::vec3 move = glm::vec3(0.f, 0.f, 3.0f);
+  move.x = glm::sin(time);
+  move.y = glm::cos(time);
+  //printf("bbb\n");
+  if (ImGui::IsKeyDown(ImGuiKey_W))
+  {
+    move.z -= deltaTime * 1.f;
+    //printf("aaa\n");
+  }
+  if (ImGui::IsKeyDown(ImGuiKey_S))
+    move.z += deltaTime * 1.f;
   for (Model m : models)
   {
     m.rotation = glm::quat_cast(rot);
     //m.position = glm::vec3(0.f, 0.f, 3.f);
     glm::mat4 model = m.CalculateModelMatrix();
     glm::mat4 view = glm::mat4(1.0f);
-    view = glm::translate(view, -glm::vec3(0.0f, 0.0f, 3.0f));
+    view = glm::translate(view, -move);
     glm::mat4 mvp = perspective * view * model;
     this->shader.setUniform("mvp", mvp);
     this->shader.setUniform("model", model);

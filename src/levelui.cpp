@@ -544,24 +544,13 @@ void Level::RenderUI()
 	if (w_renderer)
 	{
 		static Renderer rend = Renderer(600, 600);
-		ImGui::SetNextWindowSize(ImVec2(rend.width, rend.height), ImGuiCond_Always);
-		//ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-		std::string title = std::string("Renderer");
-		title += " FPS: ";
-		static float rollingOneSecond = 0;
-		static int FPS = -1;
-		float fm = fmod(rollingOneSecond, 1.f);
-		if (fm != rollingOneSecond && rollingOneSecond >= 1.f) //2nd condition prevents fps not updating if deltaTime exactly equals 1.f
-		{
-			FPS = (int)(1.f / rend.GetLastDeltaTime());
-			rollingOneSecond = fm;
-		}
-		rollingOneSecond += rend.GetLastDeltaTime();
-		title.append(std::to_string(FPS));
+		constexpr int bottomPaneHeight = 200;
+		//ImGui::SetNextWindowSize(ImVec2(rend.width, rend.height + bottomPaneHeight), ImGuiCond_Always);
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
 		//if (ImGui::IsWindowFocused()) //doesn't seem to work.
 		//	title.append("true");
 
-		if (ImGui::Begin(title.c_str(), &w_renderer, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings))
+		if (ImGui::Begin("Renderer", &w_renderer, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings))
 			//ImGui::Begin("Renderer", &w_renderer, ImGuiWindowFlags_NoSavedSettings); //TODO: handle dynamic buffer sizing later
 		{
 
@@ -580,11 +569,28 @@ void Level::RenderUI()
 				ImVec2(pos.x + rend.width, pos.y + rend.height),
 				ImVec2(0, 1),
 				ImVec2(1, 0));
+
+			//bottom pane
+			ImGui::SetNextWindowPos(ImVec2(pos.x, pos.y + rend.height));
+			if (ImGui::BeginChild("Renderer Settings", ImVec2(rend.width, bottomPaneHeight), ImGuiChildFlags_Border))
+			{
+				static float rollingOneSecond = 0;
+				static int FPS = -1;
+				float fm = fmod(rollingOneSecond, 1.f);
+				if (fm != rollingOneSecond && rollingOneSecond >= 1.f) //2nd condition prevents fps not updating if deltaTime exactly equals 1.f
+				{
+					FPS = (int)(1.f / rend.GetLastDeltaTime());
+					rollingOneSecond = fm;
+				}
+				rollingOneSecond += rend.GetLastDeltaTime();
+				ImGui::Text("FPS: %d", FPS);
+			}
+			ImGui::EndChild();
 		}
 		else
 			fprintf(stderr, "wtf");
 		ImGui::End();
-		//ImGui::PopStyleVar();
+		ImGui::PopStyleVar();
 		rend.Render();
 	}
 }
