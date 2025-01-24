@@ -196,6 +196,8 @@ void Level::RenderUI()
 
   if (m_name.empty()) { return; }
 
+  static Renderer rend = Renderer(800, 600);
+
   static bool w_spawn = false;
   static bool w_level = false;
   static bool w_material = false;
@@ -388,37 +390,6 @@ void Level::RenderUI()
   if (w_quadblocks)
   {
     bool resetBsp = false;
-    // ======================================================================================================
-    // ======================================================================================================
-    // ======================================================================================================
-    // ======================================================================================================
-    // ======================================================================================================
-    // ======================================================================================================
-    // ======================================================================================================
-    // ======================================================================================================
-    // ======================================================================================================
-    // ======================================================================================================
-    // ======================================================================================================
-    // ======================================================================================================
-    // ======================================================================================================
-    // ======================================================================================================
-    // ======================================================================================================
-    // ======================================================================================================
-    // ======================================================================================================
-    // ======================================================================================================
-    // ======================================================================================================
-    // ======================================================================================================
-    // ======================================================================================================
-    // ======================================================================================================
-    // ======================================================================================================
-    // ======================================================================================================
-    // ======================================================================================================
-    // ======================================================================================================
-    // ======================================================================================================
-    // ======================================================================================================
-    // ======================================================================================================
-    // ======================================================================================================
-    //resetBsp => rebuild mesh for opengl renderer.
     if (ImGui::Begin("Quadblocks", &w_quadblocks))
     {
       ImGui::InputTextWithHint("Search", "Search Quadblocks...", &quadblockQuery);
@@ -482,6 +453,10 @@ void Level::RenderUI()
       m_bsp.Clear();
       m_showLogWindow = true;
       m_logMessage = "Modifying quadblock position or turbo pad state automatically resets the BSP tree.";
+    }
+    if (resetBsp) //update mesh for rasterizer
+    {
+      GenerateRasterizableData(m_quadblocks);
     }
   }
 
@@ -628,7 +603,6 @@ void Level::RenderUI()
 
   if (w_renderer)
   {
-    static Renderer rend = Renderer(800, 600);
     constexpr int bottomPaneHeight = 200;
     //ImGui::SetNextWindowSize(ImVec2(rend.width, rend.height + bottomPaneHeight), ImGuiCond_Always);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
@@ -640,12 +614,9 @@ void Level::RenderUI()
     {
 
       ImVec2 pos = ImGui::GetCursorScreenPos();
-      //ImVec2 tpos = ImGui::GetWindowPos();
-      //printf("%f %f\n", pos.x, pos.y);
       ImVec2 min = ImGui::GetItemRectMin();
       ImVec2 max = ImGui::GetItemRectMax();
-      //rend.RescaleFramebuffer(max.x - min.x, max.y - min.y);
-      ImTextureID tex = (ImTextureID)rend.texturebuffer; //99% sure this is supposed to be texturebuffer
+      ImTextureID tex = (ImTextureID)rend.texturebuffer;
 
 
       ImGui::GetWindowDrawList()->AddImage(tex,
@@ -667,100 +638,106 @@ void Level::RenderUI()
           rollingOneSecond = fm;
         }
         rollingOneSecond += rend.GetLastDeltaTime();
-        ImGui::Text("FPS: %d", FPS);
+        if (ImGui::BeginTable("Renderer Settings Table", 2))
+        {
+            /*
+              * *** Enable viewport resizing
+              * Filter by material (highlight all quads with a specified subset of materials)
+              * Filter by quad flags (higlight all quads with a specified subset of quadflags)
+              * Filter by draw flags ""
+              * Filter by terrain "" 
+              * 
+              * NOTE: resetBsp does not trigger when vertex color changes.
+              * 
+              * Make mesh read live data.
+              * 
+              * Editor features (edit in viewport blender style).
+              */
+          static std::string camMoveMult,
+            camRotateMult,
+            camSprintMult,
+            camFOV;
+          static bool showVcolor = true, 
+            showWireFrame = false,
+            showLowLOD = false,
+            showCheckpoints = false,
+            showStartingPositions = false,
+            showBspRectTree = false,
+            showNormals = false;
+
+          int textFieldWidth = (rend.width / 2) / 3;
+          textFieldWidth = textFieldWidth < 50 ? 50 : textFieldWidth;
+
+          ImGui::TableNextRow();
+          ImGui::TableSetColumnIndex(0);
+          ImGui::Text("FPS: %d", FPS);
+          /*
+          * these seem to be the valid enumerations:
+          * (maybe make vcolor/wireframe/normals a combobox where you can
+          * only pick one (an enum), and make "low lod" a modifier?)
+          * 
+          * vcolor
+          * vcolor + low lod
+          * wireframe
+          * wireframe + low lod
+          * normals
+          * normals + low lod
+          */
+          ImGui::Checkbox("(NOT IMPL) Show Vcolor", &showVcolor);
+          ImGui::Checkbox("(NOT IMPL) Show Wireframe", &showWireFrame);
+          ImGui::Checkbox("(NOT IMPL) Show Normals", &showNormals);
+          ImGui::Checkbox("(NOT IMPL) Show Low LOD", &showLowLOD);
+          ImGui::Checkbox("(NOT IMPL) Show Checkpoints", &showCheckpoints);
+          ImGui::Checkbox("(NOT IMPL) Show Starting Positions", &showStartingPositions);
+          ImGui::Checkbox("(NOT IMPL) Show BSP Rect Tree", &showBspRectTree);
+          ImGui::PushItemWidth(textFieldWidth);
+          if (ImGui::BeginCombo("(NOT IMPL) Mask by Materials", "..."))
+          {
+            ImGui::Selectable("(NOT IMPL)");
+            ImGui::EndCombo();
+          }
+          if (ImGui::BeginCombo("(NOT IMPL) Mask by Quad flags", "..."))
+          {
+            ImGui::Selectable("(NOT IMPL)");
+            ImGui::EndCombo();
+          }
+          if (ImGui::BeginCombo("(NOT IMPL) Mask by Draw flags", "..."))
+          {
+            ImGui::Selectable("(NOT IMPL)");
+            ImGui::EndCombo();
+          }
+          if (ImGui::BeginCombo("(NOT IMPL) Mask by Terrain", "..."))
+          {
+            ImGui::Selectable("(NOT IMPL)");
+            ImGui::EndCombo();
+          }
+          ImGui::PopItemWidth();
+          ImGui::TableSetColumnIndex(1);
+          ImGui::Text(""
+            "Camera Controls:\n"
+            "\t* WASD to move in/out & pan\n"
+            "\t* Arrow keys to rotate cam\n"
+            "\t* Spacebar to move up, Shift to move down\n"
+            "\t* Ctrl to \"Sprint\"");
+
+          ImGui::PushItemWidth(textFieldWidth);
+          ImGui::InputText("(NOT IMPL) Camera Move Multiplier", &camMoveMult);
+          ImGui::InputText("(NOT IMPL) Camera Rotate Multiplier", &camRotateMult);
+          ImGui::InputText("(NOT IMPL) Camera Sprint Multiplier", &camSprintMult);
+          ImGui::InputText("(NOT IMPL) Camera FOV", &camFOV);
+          ImGui::PopItemWidth();
+
+          ImGui::EndTable();
+        }
       }
       ImGui::EndChild();
     }
-    else
-      fprintf(stderr, "wtf");
     ImGui::End();
     ImGui::PopStyleVar();
 
-    static bool oneTimeDeal = true;
-    static std::vector<Model> objs;
-    static Mesh mesh;
-    if (oneTimeDeal)
-    {
-      oneTimeDeal = false;
-      std::vector<float> data;
-      for (Quadblock qb : m_quadblocks)
-      {
-        /* 062 is triblock
-          p0 -- p1 -- p2
-          |  q0 |  q1 |
-          p3 -- p4 -- p5
-          |  q2 |  q3 |
-          p6 -- p7 -- p8
-        */
-        const Vertex* verts = qb.GetUnswizzledVertices();
+    std::vector<Model*> modelsToRender{ m_levelModel };
 
-        auto point = [&verts, &data](int ind) {
-          data.push_back(verts[ind].m_pos.x);
-          data.push_back(verts[ind].m_pos.y);
-          data.push_back(verts[ind].m_pos.z);
-          data.push_back(verts[ind].m_normal.x);
-          data.push_back(verts[ind].m_normal.y);
-          data.push_back(verts[ind].m_normal.z);
-          Color col = verts[ind].GetColor(true);
-          data.push_back(col.r);
-          data.push_back(col.g);
-          data.push_back(col.b);
-          };
-
-        //clockwise point ordering
-        if (qb.IsQuadblock())
-        {
-          point(3);
-          point(0);
-          point(1);
-          point(1);
-          point(4);
-          point(3);
-
-          point(4);
-          point(1);
-          point(2);
-          point(2);
-          point(5);
-          point(4);
-
-          point(6);
-          point(3);
-          point(4);
-          point(4);
-          point(7);
-          point(6);
-
-          point(7);
-          point(4);
-          point(5);
-          point(5);
-          point(8);
-          point(7);
-        }
-        else
-        {
-          point(6);
-          point(3);
-          point(4);
-
-          point(4);
-          point(1);
-          point(2);
-
-          point(1);
-          point(4);
-          point(3);
-
-          point(3);
-          point(0);
-          point(1);
-        }
-      }
-      mesh = Mesh(data.data(), data.size() * sizeof(float));
-      objs.push_back(Model(&mesh));
-    }
-    rend.Render(objs);
+    rend.Render(modelsToRender);
   }
 }
 
@@ -973,4 +950,89 @@ void Vertex::RenderUI(size_t index, bool& editedPos)
     ImGui::ColorEdit3("##low", m_colorLow.Data());
     ImGui::TreePop();
   }
+}
+
+void Level::GenerateRasterizableData(std::vector<Quadblock>& quadblocks)
+{
+  static Mesh mesh;
+  static Model model;
+  std::vector<float> data;
+  for (Quadblock qb : quadblocks)
+  {
+    /* 062 is triblock
+      p0 -- p1 -- p2
+      |  q0 |  q1 |
+      p3 -- p4 -- p5
+      |  q2 |  q3 |
+      p6 -- p7 -- p8
+    */
+    const Vertex* verts = qb.GetUnswizzledVertices();
+
+    auto point = [&verts, &data](int ind) {
+      data.push_back(verts[ind].m_pos.x);
+      data.push_back(verts[ind].m_pos.y);
+      data.push_back(verts[ind].m_pos.z);
+      data.push_back(verts[ind].m_normal.x);
+      data.push_back(verts[ind].m_normal.y);
+      data.push_back(verts[ind].m_normal.z);
+      Color col = verts[ind].GetColor(true);
+      data.push_back(col.r);
+      data.push_back(col.g);
+      data.push_back(col.b);
+      };
+
+    //clockwise point ordering
+    if (qb.IsQuadblock())
+    {
+      point(3);
+      point(0);
+      point(1);
+      point(1);
+      point(4);
+      point(3);
+
+      point(4);
+      point(1);
+      point(2);
+      point(2);
+      point(5);
+      point(4);
+
+      point(6);
+      point(3);
+      point(4);
+      point(4);
+      point(7);
+      point(6);
+
+      point(7);
+      point(4);
+      point(5);
+      point(5);
+      point(8);
+      point(7);
+    }
+    else
+    {
+      point(6);
+      point(3);
+      point(4);
+
+      point(4);
+      point(1);
+      point(2);
+
+      point(1);
+      point(4);
+      point(3);
+
+      point(3);
+      point(0);
+      point(1);
+    }
+  }
+  mesh.Dispose(); //todo: figure out why dtoring this (instead of "Dispose") causes dtor to be called on assignment op (bad).
+  mesh.UpdateMesh(data.data(), data.size() * sizeof(float));
+  model.SetMesh(&mesh);
+  this->m_levelModel = &model;
 }

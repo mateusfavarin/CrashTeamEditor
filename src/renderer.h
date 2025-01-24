@@ -21,7 +21,7 @@ private:
   Shader shader;
   GLuint renderbuffer;
   GLuint framebuffer;
-  std::vector<Model> models;
+  //std::vector<Model> models;
   float time = 0.f, lastFrameTime = 0.f, deltaTime = -1.f;
 public:
   GLuint texturebuffer;
@@ -29,7 +29,7 @@ public:
   Renderer(int width, int height);
   void RescaleFramebuffer(float width, float height);
   ~Renderer();
-  void Render(std::vector<Model> models);
+  void Render(std::vector<Model*> models);
   float GetLastDeltaTime(void);
   float GetLastTime(void);
 };

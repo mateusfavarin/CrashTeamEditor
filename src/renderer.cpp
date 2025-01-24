@@ -146,7 +146,7 @@ Renderer::Renderer(int width, int height) : shader(vertexShaderSource, fragmentS
   glBindRenderbuffer(GL_RENDERBUFFER, 0);
 }
 
-void Renderer::Render(std::vector<Model> models)
+void Renderer::Render(std::vector<Model*> models)
 {
   glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
 
@@ -270,23 +270,25 @@ void Renderer::Render(std::vector<Model> models)
   glm::mat4 perspective = glm::perspective<float>(glm::radians(70.0f), ((float)this->width / (float)this->height), 0.1f, 1000.0f);
   glm::mat4 view = glm::lookAt(camPos, camPos + camFront, camUp);
 
-  std::vector<Model>& itrModels = models.size() > 0 ? models : this->models;
-  for (Model m : itrModels)
+  std::vector<Model*>& itrModels = models;// models.size() > 0 ? models : this->models;
+  for (Model* m : itrModels)
   {
+    if (m == nullptr)
+      continue;
     //temporary spin effect on the model
     //glm::mat4 rot = glm::mat4(1.0f);
     //rot = glm::rotate(rot, glm::radians(time * 60.f), glm::vec3(1.0f, 0.0f, 0.0f));
     //rot = glm::rotate(rot, glm::radians(time * 40.f), glm::vec3(0.0f, 0.2f, 0.4f));
     //
     //m.rotation = glm::quat_cast(rot);
-    glm::mat4 model = m.CalculateModelMatrix();
+    glm::mat4 model = m->CalculateModelMatrix();
     /*glm::mat4 view = glm::mat4(1.0f);
     view = glm::translate(view, -move);*/
     glm::mat4 mvp = perspective * view * model;
     this->shader.setUniform("mvp", mvp);
     this->shader.setUniform("model", model);
     this->shader.setUniform("lightDir", glm::normalize(glm::vec3(0.2f, -3.f, -1.f)));
-    m.Draw();
+    m->Draw();
   }
   this->shader.unuse();
 

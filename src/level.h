@@ -8,6 +8,9 @@
 #include "path.h"
 #include "material.h"
 
+#include "model.h"
+#include "mesh.h"
+
 #include <vector>
 #include <unordered_map>
 #include <filesystem>
@@ -20,6 +23,7 @@ public:
 	bool Ready();
 	void Clear(bool clearErrors);
 	void RenderUI();
+	void GenerateRasterizableData(std::vector<Quadblock>& quadblocks);
 
 private:
 	bool LoadLEV(const std::filesystem::path& levFile);
@@ -44,4 +48,5 @@ private:
 	MaterialProperty<bool> m_propDoubleSided;
 	MaterialProperty<bool> m_propCheckpoints;
 	std::vector<Path> m_checkpointPaths;
+	Model* m_levelModel = nullptr;
 };
