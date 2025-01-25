@@ -7,6 +7,7 @@
 #include "vertex.h"
 #include "utils.h"
 #include "renderer.h"
+#include "gui_render_settings.h"
 
 #include <imgui.h>
 #include <misc/cpp/imgui_stdlib.h>
@@ -167,6 +168,14 @@ void Checkpoint::RenderUI(size_t numCheckpoints, const std::vector<Quadblock>& q
     if (ImGui::Button("Delete")) { m_delete = true; }
     ImGui::TreePop();
   }
+}
+
+static bool try_parse_float(const std::string& str, float* out) {
+  std::istringstream iss(str);
+  if (iss >> *out && iss.eof())
+    return true;
+  else 
+    return false;
 }
 
 void Level::RenderUI()
@@ -653,10 +662,10 @@ void Level::RenderUI()
               * 
               * Editor features (edit in viewport blender style).
               */
-          static std::string camMoveMult,
-            camRotateMult,
-            camSprintMult,
-            camFOV;
+          static std::string camMoveMult = "1",
+            camRotateMult = "1",
+            camSprintMult = "2",
+            camFOV = "70";
           static bool showVcolor = true, 
             showWireFrame = false,
             showLowLOD = false,
@@ -721,10 +730,71 @@ void Level::RenderUI()
             "\t* Ctrl to \"Sprint\"");
 
           ImGui::PushItemWidth(textFieldWidth);
-          ImGui::InputText("(NOT IMPL) Camera Move Multiplier", &camMoveMult);
-          ImGui::InputText("(NOT IMPL) Camera Rotate Multiplier", &camRotateMult);
-          ImGui::InputText("(NOT IMPL) Camera Sprint Multiplier", &camSprintMult);
-          ImGui::InputText("(NOT IMPL) Camera FOV", &camFOV);
+          {
+            float val;
+            bool success;
+            //move mult
+            if (try_parse_float(camMoveMult, &val))
+            {
+              val = val < 0.01f ? 0.01f : val;
+              camMoveMult = std::to_string(val);
+              GuiRenderSettings::camMoveMult = val;
+              success = true;
+            }
+            else
+              success = false;
+            if (!success)
+              ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.f, 0.f, 0.f, 1.f));
+            ImGui::InputText("Camera Move Multiplier", &camMoveMult);
+            if (!success)
+              ImGui::PopStyleColor();
+            //rotate mult
+            if (try_parse_float(camRotateMult, &val))
+            {
+              val = val < 0.01f ? 0.01f : val;
+              camRotateMult = std::to_string(val);
+              GuiRenderSettings::camRotateMult = val;
+              success = true;
+            }
+            else
+              success = false;
+            if (!success)
+              ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.f, 0.f, 0.f, 1.f));
+            ImGui::InputText("Camera Rotate Multiplier", &camRotateMult);
+            if (!success)
+              ImGui::PopStyleColor();
+            //sprint mult
+            if (try_parse_float(camSprintMult, &val))
+            {
+              val = val < 1.f ? 1.f : val;
+              camSprintMult = std::to_string(val);
+              GuiRenderSettings::camSprintMult = val;
+              success = true;
+            }
+            else
+              success = false;
+            if (!success)
+              ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.f, 0.f, 0.f, 1.f));
+            ImGui::InputText("Camera Sprint Multiplier", &camSprintMult);
+            if (!success)
+              ImGui::PopStyleColor();
+            //camera fov
+            if (try_parse_float(camFOV, &val))
+            {
+              val = val < 5.f ? 5.f : val;
+              val = val > 150.f ? 150.f : val;
+              camFOV = std::to_string(val);
+              GuiRenderSettings::camFovDeg = val;
+              success = true;
+            }
+            else
+              success = false;
+            if (!success)
+              ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.f, 0.f, 0.f, 1.f));
+            ImGui::InputText("Camera FOV", &camFOV);
+            if (!success)
+              ImGui::PopStyleColor();
+          }
           ImGui::PopItemWidth();
 
           ImGui::EndTable();

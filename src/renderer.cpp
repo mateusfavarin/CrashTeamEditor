@@ -8,6 +8,7 @@
 #include <imgui.h>
 #include <misc/cpp/imgui_stdlib.h>
 #include "time.h"
+#include "gui_render_settings.h"
 //#include "manual_third_party/stb_image.h"
 
 //pos (3) normal (3) 2 tris per face 6 faces cube
@@ -171,11 +172,10 @@ void Renderer::Render(std::vector<Model*> models)
   //render
   this->shader.use();
 
-  constexpr float camMoveSpeed = 15.f;
-  constexpr float camLookSpeed = 50.f;
-  float thisFrameMoveSpeed = camMoveSpeed * deltaTime;
+  float thisFrameMoveSpeed = 15.f * deltaTime * GuiRenderSettings::camMoveMult;
+  float thisFrameLookSpeed = 50.f * deltaTime * GuiRenderSettings::camRotateMult;
   if (ImGui::IsKeyDown(ImGuiKey_LeftCtrl))
-    thisFrameMoveSpeed *= 2.f; //twice as fast when holding ctrl.
+    thisFrameMoveSpeed *= GuiRenderSettings::camSprintMult;
   static glm::vec3 camPos = glm::vec3(0.f, 0.f, 3.f);
   static glm::vec3 camFront = glm::vec3(0.f, 0.f, -1.f);
   static glm::vec3 camUp = glm::vec3(0.f, 1.f, 0.f);
@@ -186,13 +186,13 @@ void Renderer::Render(std::vector<Model*> models)
     float xpos = 0.f;
     float ypos = 0.f;
     if (ImGui::IsKeyDown(ImGuiKey_UpArrow))
-      ypos += 1.f * deltaTime * camLookSpeed;
+      ypos += 1.f * thisFrameLookSpeed;
     if (ImGui::IsKeyDown(ImGuiKey_DownArrow))
-      ypos -= 1.f * deltaTime * camLookSpeed;
+      ypos -= 1.f * thisFrameLookSpeed;
     if (ImGui::IsKeyDown(ImGuiKey_LeftArrow))
-      xpos -= 1.f * deltaTime * camLookSpeed;
+      xpos -= 1.f * thisFrameLookSpeed;
     if (ImGui::IsKeyDown(ImGuiKey_RightArrow))
-      xpos += 1.f * deltaTime * camLookSpeed;
+      xpos += 1.f * thisFrameLookSpeed;
 
     yaw += xpos;
     pitch += ypos;
@@ -267,7 +267,7 @@ void Renderer::Render(std::vector<Model*> models)
 
   //if (ImGui::IsKeyDown(ImGuiKey_Scroll)) //todo zoom in and out
 
-  glm::mat4 perspective = glm::perspective<float>(glm::radians(70.0f), ((float)this->width / (float)this->height), 0.1f, 1000.0f);
+  glm::mat4 perspective = glm::perspective<float>(glm::radians(GuiRenderSettings::camFovDeg), ((float)this->width / (float)this->height), 0.1f, 1000.0f);
   glm::mat4 view = glm::lookAt(camPos, camPos + camFront, camUp);
 
   std::vector<Model*>& itrModels = models;// models.size() > 0 ? models : this->models;

@@ -179,6 +179,9 @@
     <ClInclude Include="src\mesh.h">
       <Filter>Renderer</Filter>
     </ClInclude>
+    <ClInclude Include="gui_render_settings.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="$(SolutionDir)third_party\glfw" />
