@@ -744,7 +744,7 @@ void Level::RenderUI()
             else
               success = false;
             if (!success)
-              ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.f, 0.f, 0.f, 1.f));
+              ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 0.f, 0.f, 1.f));
             ImGui::InputText("Camera Move Multiplier", &camMoveMult);
             if (!success)
               ImGui::PopStyleColor();
@@ -759,7 +759,7 @@ void Level::RenderUI()
             else
               success = false;
             if (!success)
-              ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.f, 0.f, 0.f, 1.f));
+              ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 0.f, 0.f, 1.f));
             ImGui::InputText("Camera Rotate Multiplier", &camRotateMult);
             if (!success)
               ImGui::PopStyleColor();
@@ -774,7 +774,7 @@ void Level::RenderUI()
             else
               success = false;
             if (!success)
-              ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.f, 0.f, 0.f, 1.f));
+              ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 0.f, 0.f, 1.f));
             ImGui::InputText("Camera Sprint Multiplier", &camSprintMult);
             if (!success)
               ImGui::PopStyleColor();
@@ -790,7 +790,7 @@ void Level::RenderUI()
             else
               success = false;
             if (!success)
-              ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.f, 0.f, 0.f, 1.f));
+              ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 0.f, 0.f, 1.f));
             ImGui::InputText("Camera FOV", &camFOV);
             if (!success)
               ImGui::PopStyleColor();
