@@ -54,6 +54,7 @@ bool Level::LoadLEV(const std::filesystem::path& levFile)
 	PSX::LevHeader header;
 	Read(file, header);
 	file.close();
+	GenerateRasterizableData(m_quadblocks);
 	return true;
 }
 
@@ -475,5 +476,6 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 		}
 	}
 	file.close();
+	GenerateRasterizableData(m_quadblocks);
 	return ret;
 }

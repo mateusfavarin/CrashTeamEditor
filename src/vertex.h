@@ -16,6 +16,7 @@ public:
 	Vertex(const Point& point);
 	void RenderUI(size_t index, bool& editedPos);
 	std::vector<uint8_t> Serialize() const;
+	Color GetColor(bool high) const;
 	inline bool operator==(const Vertex& v) const { return (m_pos == v.m_pos) && (m_flags == v.m_flags) && (m_colorHigh == v.m_colorHigh) && (m_colorLow == v.m_colorLow); };
 
 public:
