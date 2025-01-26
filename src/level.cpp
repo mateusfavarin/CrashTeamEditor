@@ -353,9 +353,11 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 	std::unordered_map<std::string, std::vector<Quad>> quadMap;
 	std::unordered_map<std::string, std::vector<Vec3>> normalMap;
 	std::unordered_map<std::string, std::string> materialMap;
+	std::unordered_map<std::string, bool> meshMap;
 	std::vector<Point> vertices;
 	std::vector<Vec3> normals;
 	std::string currQuadblockName;
+	size_t quadblockCount = 0;
 	while (std::getline(file, line))
 	{
 		std::vector<std::string> tokens = Split(line);
@@ -375,8 +377,10 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 		}
 		else if (command == "o")
 		{
-			if (tokens.size() < 2) { continue; }
+			if (tokens.size() < 2 || meshMap.contains(tokens[1])) { continue; }
 			currQuadblockName = tokens[1];
+			meshMap[currQuadblockName] = false;
+			quadblockCount++;
 		}
 		else if (command == "usemtl")
 		{
@@ -449,7 +453,11 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 					Quad& q1 = quadMap[currQuadblockName][1];
 					Quad& q2 = quadMap[currQuadblockName][2];
 					Quad& q3 = quadMap[currQuadblockName][3];
-					try { m_quadblocks.emplace_back(currQuadblockName, q0, q1, q2, q3, averageNormal, material); }
+					try
+					{
+						m_quadblocks.emplace_back(currQuadblockName, q0, q1, q2, q3, averageNormal, material);
+						meshMap[currQuadblockName] = true;
+					}
 					catch (const QuadException& e)
 					{
 						ret = false;
@@ -463,7 +471,11 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 					Tri& t1 = triMap[currQuadblockName][1];
 					Tri& t2 = triMap[currQuadblockName][2];
 					Tri& t3 = triMap[currQuadblockName][3];
-					try { m_quadblocks.emplace_back(currQuadblockName, t0, t1, t2, t3, averageNormal, material); }
+					try
+					{
+						m_quadblocks.emplace_back(currQuadblockName, t0, t1, t2, t3, averageNormal, material);
+						meshMap[currQuadblockName] = true;
+					}
 					catch (const QuadException& e)
 					{
 						ret = false;
@@ -475,5 +487,21 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 		}
 	}
 	file.close();
+	if (quadblockCount != m_quadblocks.size())
+	{
+		m_showLogWindow = true;
+		m_logMessage = "Error: number of meshes does not equal number of quadblocks.\n\nNumber of meshes found: " + std::to_string(quadblockCount) + "\nNumber of quadblocks: " + std::to_string(m_quadblocks.size());;
+		m_logMessage += "\n\nThe following meshes are not a quadblock:\n\n";
+		constexpr size_t QUADS_PER_LINE = 10;
+		size_t invalidQuadblocks = 0;
+		for (auto& [name, status] : meshMap)
+		{
+			if (status) { continue; }
+			m_logMessage += name + ", ";
+			if (((invalidQuadblocks + 1) % QUADS_PER_LINE) == 0) { m_logMessage += "\n"; }
+			invalidQuadblocks++;
+		}
+		ret = false;
+	}
 	return ret;
 }
