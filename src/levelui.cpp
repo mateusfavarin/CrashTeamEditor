@@ -678,12 +678,12 @@ void Level::RenderUI()
           ImGui::TableSetColumnIndex(0);
           ImGui::Text("FPS: %d", FPS);
 
-          if (ImGui::Combo("(NOT IMPL) Render", &GuiRenderSettings::renderType, GuiRenderSettings::renderTypeLabels, 4)) {}
+          if (ImGui::Combo("Render", &GuiRenderSettings::renderType, GuiRenderSettings::renderTypeLabels, 4)) {}
 
           ImGui::Checkbox("Show Low LOD", &GuiRenderSettings::showLowLOD);
-          ImGui::Checkbox("Show Wireframe", &GuiRenderSettings::showWireframe);
-          ImGui::Checkbox("Show Backfaces", &GuiRenderSettings::showBackfaces);
-          ImGui::Checkbox("Show Level Verts", &GuiRenderSettings::showLevVerts);
+          ImGui::Checkbox("(BROKEN) Show Wireframe", &GuiRenderSettings::showWireframe);
+          ImGui::Checkbox("(BROKEN) Show Backfaces", &GuiRenderSettings::showBackfaces);
+          ImGui::Checkbox("(NOT IMPL) Show Level Verts", &GuiRenderSettings::showLevVerts);
           ImGui::Checkbox("(NOT IMPL) Show Checkpoints", &showCheckpoints);
           ImGui::Checkbox("(NOT IMPL) Show Starting Positions", &showStartingPositions);
           ImGui::Checkbox("(NOT IMPL) Show BSP Rect Tree", &showBspRectTree);

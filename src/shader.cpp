@@ -27,7 +27,7 @@ Shader::Shader(const char* geomShader, const char* vertShader, const char* fragS
   GLuint vert = glCreateShader(GL_VERTEX_SHADER);
   glShaderSource(vert, 1, &vertShader, NULL);
   glCompileShader(vert);
-  success = 0;
+  GLint success = 0;
   glGetShaderiv(vert, GL_COMPILE_STATUS, &success);
   if (!success)
   {
@@ -49,7 +49,7 @@ Shader::Shader(const char* geomShader, const char* vertShader, const char* fragS
   }
   //link
   this->programId = glCreateProgram();
-  glAttachShader(this->programId, geom);
+  //glAttachShader(this->programId, geom);
   glAttachShader(this->programId, vert);
   glAttachShader(this->programId, frag);
   glLinkProgram(this->programId);
@@ -61,7 +61,7 @@ Shader::Shader(const char* geomShader, const char* vertShader, const char* fragS
     fprintf(stderr, "Error, shader link failed:\n%s", logBuf);
     throw 0;
   }
-  glDeleteShader(geom);
+  //glDeleteShader(geom);
   glDeleteShader(vert);
   glDeleteShader(frag);
 }

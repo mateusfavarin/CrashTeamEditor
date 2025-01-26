@@ -65,7 +65,7 @@ out vec3 FragWorldPos;
 out vec3 Normal;
 out vec3 VertColor;
 out vec3 BarycentricCoords;
-out vec3 CalculatedFaceNormal;
+//out vec3 CalculatedFaceNormal;
 
 //world
 uniform mat4 mvp;
@@ -126,7 +126,7 @@ in vec3 FragWorldPos;
 in vec3 Normal;
 in vec3 VertColor;
 in vec3 BarycentricCoords;
-in vec3 CalculatedFaceNormal;
+//in vec3 CalculatedFaceNormal;
 
 //world
 uniform mat4 mvp;
@@ -150,24 +150,26 @@ void main()
 {
   if (drawType != 3) //3 == "DontDraw", so only draw if neq 3.
   {
+    float diffuseLit = max(dot(-normalize(Normal), lightDir), 0.0);
+    vec4 diffCol = vec4(diffuseLit, diffuseLit, diffuseLit, 1.0);
     if (drawType == 0) //0 == "VColor"
       FragColor = vec4(VertColor.rgb, 1.0);
     else if (drawType == 1) //1 == "Diffuse"
     {
-      float lit = max(dot(-normalize(Normal), lightDir), 0.0);
-      vec4 diffCol = vec4(0.0, lit, 0.0, 1.0);
-      vec4 finalCol = (vec4(0.1, 0.0, 0.3, 1.0) + diffCol) * vec4(1.0, 1.0, 1.0, 1.0); //(ambient + diffuse) * objcolor;
+      vec4 finalCol = (vec4(0.1, 0.0, 0.3, 1.0) + diffCol) * vec4(0.2, 1.0, 0.2, 1.0); //(ambient + diffuse) * objcolor;
 	    FragColor = finalCol;
     }
     else if (drawType == 2) //2 == "Normals"
     { //Exterior normals=blue, interior normals=red
       //this logic for red/blue might be backwards idk (compare to blender to make sure).
-      float normalDir = dot(-normalize(CalculatedFaceNormal), (camWorldPos - FragWorldPos));
+      float normalDir = dot(-normalize(Normal), (camWorldPos - FragWorldPos));
+      vec4 chosenColor;
       if (normalDir < 0)
-        FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+        chosenColor = vec4(0.0, 0.0, 1.0, 1.0);
       else
-        FragColor = vec4(0.0, 0.0, 1.0, 1.0);
-      FragColor = vec4(1.0, 0.0, 0.0, 1.0); //TODO
+        chosenColor = vec4(1.0, 0.0, 0.0, 1.0);
+      chosenColor = (vec4(0.1, 0.1, 0.1, 1.0) + diffCol) * chosenColor;  //(ambient + diffuse) * objcolor;
+      FragColor = chosenColor;
     }
   }
   //remaining code runs regardless (e.g., wireframe, dots).
@@ -187,13 +189,18 @@ void main()
     shouldDiscard = false;
     //todo
   }
-  if (!((shaderSettings & 4) == 4) && shouldDiscard) //&4 == drawbackfaces
+  if ((!((shaderSettings & 4) == 4) && shouldDiscard)) //&4 == drawbackfaces
   {
-    if (dot(CalculatedFaceNormal, camViewDir) >= 0)
+    if (dot(normalize(Normal), camViewDir) >= 0 || drawType == 3) //discard backfaces if drawType == 3 (i.e., "DontDraw")
     {
       discard; //pixel facing away from camera
       return; //https://community.khronos.org/t/use-of-discard-and-return/68293#:~:text=You%20do%20need%20to%20call%20return%20as%20well%20to%20cancel%20execution
     }
+  }
+  else if (drawType == 3 && shouldDiscard)
+  { //discard because drawbackfaces is disabled
+    discard;
+    return;
   }
 }
 )*";
