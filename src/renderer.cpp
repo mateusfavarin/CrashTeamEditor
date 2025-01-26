@@ -9,112 +9,13 @@
 #include <misc/cpp/imgui_stdlib.h>
 #include "time.h"
 #include "gui_render_settings.h"
+#include "shader_templates.h"
+#include <map>
+#include <tuple>
 //#include "manual_third_party/stb_image.h"
 
-//pos (3) normal (3) 2 tris per face 6 faces cube
-float vertices[] = {
-  -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-   0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-   0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-   0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-  -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-  -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-  
-  -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
-   0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
-   0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
-   0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
-  -0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
-  -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
-  
-  -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
-  -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
-  -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
-  -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
-  -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
-  -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
-  
-   0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
-   0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
-   0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
-   0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
-   0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
-   0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
-  
-  -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
-   0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
-   0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
-   0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
-  -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
-  -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
-  
-  -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
-   0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
-   0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
-   0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
-  -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
-  -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f
-};
-
-Mesh cubeMesh;
-
-const char* vertexShaderSource = R"*(
-#version 330
-
-layout (location = 0) in vec3 aPos;
-layout (location = 1) in vec3 aNormal;
-layout (location = 2) in vec3 aColor;
-
-out vec3 Normal;
-out vec3 FragPos;
-out vec3 VertColor;
-
-uniform mat4 mvp;
-uniform mat4 model;
-//uniform float time;
-
-void main()
+Renderer::Renderer(int width, int height)
 {
-	gl_Position = mvp * vec4(aPos, 1.0);
-  FragPos = vec3(model * vec4(aPos, 1.0));
-  Normal = (model * vec4(aNormal, 1.0)).xyz;
-  VertColor = aColor;
-}
-)*";
-
-const char* fragmentShaderSource = R"*(
-#version 330
-
-out vec4 FragColor;
-
-in vec3 Normal;
-in vec3 FragPos;
-in vec3 VertColor;
-
-uniform vec3 lightDir;
-
-void main()
-{
-  //todo: get rid of this eventually.
-  //this discard's if condition probably isn't worth it unless/until the frag shader is computationally expensive.
-  //if (dot(Normal, vec3(0.0, 0.0, -1.0)) >= 0) //todo: change hardcoded vector to camera view dir.
-  //  discard; //pixel facing away from camera
-
-
-
-  //float light = max(dot(-normalize(Normal), lightDir), 0.0);
-  //vec4 diffCol = vec4(0.0, light, 0.0, 1.0);
-  //vec4 finalCol = (vec4(0.1, 0.0, 0.3, 1.0) + diffCol) * vec4(1.0, 1.0, 1.0, 1.0); //(ambient + diffuse) * objcolor;
-	//FragColor = finalCol;
-  FragColor = vec4(VertColor.rgb, 1.0);
-}
-)*";
-
-Renderer::Renderer(int width, int height) : shader(vertexShaderSource, fragmentShaderSource) //field initializer creates shader
-{
-  cubeMesh = Mesh(vertices, sizeof(vertices));
-  //this->models.push_back(Model(&cubeMesh)); //temp
-
   //create framebuffer
   this->width = width;
   this->height = height;
@@ -154,8 +55,8 @@ void Renderer::Render(std::vector<Model*> models)
   //clear screen with dark blue
   glEnable(GL_DEPTH_TEST);
   //TODO: the mesh builder should probably be smart enough to do the mesh correctly so that we can use this:
-  glEnable(GL_CULL_FACE); //do not use these, the fragment shader does this based on normals (that way the vertex order doesn't matter).
-  glCullFace(GL_FRONT);
+  //glEnable(GL_CULL_FACE); //do not use these, the fragment shader does this based on normals (that way the vertex order doesn't matter).
+  //glCullFace(GL_FRONT);
   glViewport(0, 0, width, height);
   glClearColor(0.0f, 0.05f, 0.1f, 1.0f);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -170,8 +71,6 @@ void Renderer::Render(std::vector<Model*> models)
   }
 
   //render
-  this->shader.use();
-
   float thisFrameMoveSpeed = 15.f * deltaTime * GuiRenderSettings::camMoveMult;
   float thisFrameLookSpeed = 50.f * deltaTime * GuiRenderSettings::camRotateMult;
   if (ImGui::IsKeyDown(ImGuiKey_LeftCtrl))
@@ -270,27 +169,64 @@ void Renderer::Render(std::vector<Model*> models)
   glm::mat4 perspective = glm::perspective<float>(glm::radians(GuiRenderSettings::camFovDeg), ((float)this->width / (float)this->height), 0.1f, 1000.0f);
   glm::mat4 view = glm::lookAt(camPos, camPos + camFront, camUp);
 
+
+
   std::vector<Model*>& itrModels = models;// models.size() > 0 ? models : this->models;
+
+  static Shader* lastUsedShader = nullptr;
+  //easy optimization: sort itrModels by their respective shaders & batch on shader type so shad->un/use() isn't called so often.
   for (Model* m : itrModels)
   {
-    if (m == nullptr)
+    if (m == nullptr || m->GetMesh() == nullptr)
       continue;
-    //temporary spin effect on the model
-    //glm::mat4 rot = glm::mat4(1.0f);
-    //rot = glm::rotate(rot, glm::radians(time * 60.f), glm::vec3(1.0f, 0.0f, 0.0f));
-    //rot = glm::rotate(rot, glm::radians(time * 40.f), glm::vec3(0.0f, 0.2f, 0.4f));
-    //
-    //m.rotation = glm::quat_cast(rot);
+
+    Shader* shad = nullptr;
+    Mesh::VBufDataType datas = m->GetMesh()->GetDatas();
+
+    if (shaderCache.contains(datas))
+      shad = &shaderCache[datas];
+    else
+    { //JIT shader compilation.
+      shaderCache[datas] = Shader(std::get<0>(ShaderTemplates::datasToShaderSourceMap[datas]).c_str(), std::get<1>(ShaderTemplates::datasToShaderSourceMap[datas]).c_str());
+      shad = &shaderCache[datas];
+      lastUsedShader = &shaderCache[datas];
+      shad->use();
+    }
+
+    if (lastUsedShader != shad) //ptr comparison
+    { //need to swap shaders
+      lastUsedShader->unuse();
+      shad->use();
+      lastUsedShader = shad;
+    }
+
+    //currently this applies to all meshes in the pipeline, but since we only draw the level, for now, this is fine.
+    Mesh::ShaderSettings newShadSettings = Mesh::ShaderSettings::None;
+    int* nss = (int*)&newShadSettings;
+    if (GuiRenderSettings::showWireframe)
+      *nss |= (int)Mesh::ShaderSettings::DrawWireframe;
+    if (GuiRenderSettings::showBackfaces)
+      *nss |= (int)Mesh::ShaderSettings::DrawBackfaces;
+    if (GuiRenderSettings::showLevVerts)
+      *nss |= (int)Mesh::ShaderSettings::DrawVertsAsPoints;
+    m->GetMesh()->SetShaderSettings(newShadSettings);
+
     glm::mat4 model = m->CalculateModelMatrix();
-    /*glm::mat4 view = glm::mat4(1.0f);
-    view = glm::translate(view, -move);*/
     glm::mat4 mvp = perspective * view * model;
-    this->shader.setUniform("mvp", mvp);
-    this->shader.setUniform("model", model);
-    this->shader.setUniform("lightDir", glm::normalize(glm::vec3(0.2f, -3.f, -1.f)));
+    //world
+    shad->setUniform("mvp", mvp);
+    shad->setUniform("model", model);
+    shad->setUniform("camViewDir", camFront);
+    shad->setUniform("camWorldPos", camPos);
+    //draw variations
+    shad->setUniform("drawType", GuiRenderSettings::renderType);
+    shad->setUniform("shaderSettings", (int)m->GetMesh()->GetShaderSettings());
+    //misc
+    shad->setUniform("time", time);
+    shad->setUniform("lightDir", glm::normalize(glm::vec3(0.2f, -3.f, -1.f)));
+    shad->setUniform("wireframeWireThickness", .02f);
     m->Draw();
   }
-  this->shader.unuse();
 
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }

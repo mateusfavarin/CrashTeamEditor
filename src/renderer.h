@@ -13,14 +13,16 @@
 #include "mesh.h"
 #include "model.h"
 #include <vector>
+#include <map>
 
 class Renderer 
 {
 private:
   //GLuint shaderProgram;
-  Shader shader;
+  //Shader shader;
   GLuint renderbuffer;
   GLuint framebuffer;
+  std::map<Mesh::VBufDataType, Shader> shaderCache;
   //std::vector<Model> models;
   float time = 0.f, lastFrameTime = 0.f, deltaTime = -1.f;
 public:

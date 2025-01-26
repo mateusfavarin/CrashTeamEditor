@@ -24,6 +24,7 @@
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\shader_templates.cpp" />
     <ClCompile Include="src\gui_render_settings.cpp" />
     <ClCompile Include="src\model.cpp" />
     <ClCompile Include="src\mesh.cpp" />
@@ -57,6 +58,7 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\shader_templates.h" />
     <ClInclude Include="src\gui_render_settings.h" />
     <ClInclude Include="src\model.h" />
     <ClInclude Include="src\mesh.h" />

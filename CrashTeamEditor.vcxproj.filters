@@ -117,6 +117,12 @@
     <ClCompile Include="src\mesh.cpp">
       <Filter>Renderer</Filter>
     </ClCompile>
+    <ClCompile Include="src\gui_render_settings.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="shader_templates.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
@@ -179,8 +185,8 @@
     <ClInclude Include="src\mesh.h">
       <Filter>Renderer</Filter>
     </ClInclude>
-    <ClInclude Include="gui_render_settings.h">
-      <Filter>Renderer</Filter>
+    <ClInclude Include="src\gui_render_settings.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

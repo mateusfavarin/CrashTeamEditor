@@ -8,6 +8,7 @@
 #include "utils.h"
 #include "renderer.h"
 #include "gui_render_settings.h"
+#include "mesh.h"
 
 #include <imgui.h>
 #include <misc/cpp/imgui_stdlib.h>
@@ -666,13 +667,9 @@ void Level::RenderUI()
             camRotateMult = "1",
             camSprintMult = "2",
             camFOV = "70";
-          static bool showVcolor = true, 
-            showWireFrame = false,
-            showLowLOD = false,
-            showCheckpoints = false,
+          static bool showCheckpoints = false,
             showStartingPositions = false,
-            showBspRectTree = false,
-            showNormals = false;
+            showBspRectTree = false;
 
           int textFieldWidth = (rend.width / 2) / 3;
           textFieldWidth = textFieldWidth < 50 ? 50 : textFieldWidth;
@@ -680,22 +677,13 @@ void Level::RenderUI()
           ImGui::TableNextRow();
           ImGui::TableSetColumnIndex(0);
           ImGui::Text("FPS: %d", FPS);
-          /*
-          * these seem to be the valid enumerations:
-          * (maybe make vcolor/wireframe/normals a combobox where you can
-          * only pick one (an enum), and make "low lod" a modifier?)
-          * 
-          * vcolor
-          * vcolor + low lod
-          * wireframe
-          * wireframe + low lod
-          * normals
-          * normals + low lod
-          */
-          ImGui::Checkbox("(NOT IMPL) Show Vcolor", &showVcolor);
-          ImGui::Checkbox("(NOT IMPL) Show Wireframe", &showWireFrame);
-          ImGui::Checkbox("(NOT IMPL) Show Normals", &showNormals);
-          ImGui::Checkbox("(NOT IMPL) Show Low LOD", &showLowLOD);
+
+          if (ImGui::Combo("(NOT IMPL) Render", &GuiRenderSettings::renderType, GuiRenderSettings::renderTypeLabels, 4)) {}
+
+          ImGui::Checkbox("Show Low LOD", &GuiRenderSettings::showLowLOD);
+          ImGui::Checkbox("Show Wireframe", &GuiRenderSettings::showWireframe);
+          ImGui::Checkbox("Show Backfaces", &GuiRenderSettings::showBackfaces);
+          ImGui::Checkbox("Show Level Verts", &GuiRenderSettings::showLevVerts);
           ImGui::Checkbox("(NOT IMPL) Show Checkpoints", &showCheckpoints);
           ImGui::Checkbox("(NOT IMPL) Show Starting Positions", &showStartingPositions);
           ImGui::Checkbox("(NOT IMPL) Show BSP Rect Tree", &showBspRectTree);
@@ -805,7 +793,12 @@ void Level::RenderUI()
     ImGui::End();
     ImGui::PopStyleVar();
 
-    std::vector<Model*> modelsToRender{ m_levelModel };
+    std::vector<Model*> modelsToRender;
+
+    if (GuiRenderSettings::showLowLOD)
+      modelsToRender.push_back(m_lowLODLevelModel);
+    else
+      modelsToRender.push_back(m_highLODLevelModel);
 
     rend.Render(modelsToRender);
   }
@@ -1024,9 +1017,9 @@ void Vertex::RenderUI(size_t index, bool& editedPos)
 
 void Level::GenerateRasterizableData(std::vector<Quadblock>& quadblocks)
 {
-  static Mesh mesh;
-  static Model model;
-  std::vector<float> data;
+  static Mesh lowLODMesh, highLODMesh;
+  static Model lowLODModel, highLODModel;
+  std::vector<float> highLODData, lowLODData;
   for (Quadblock qb : quadblocks)
   {
     /* 062 is triblock
@@ -1038,10 +1031,14 @@ void Level::GenerateRasterizableData(std::vector<Quadblock>& quadblocks)
     */
     const Vertex* verts = qb.GetUnswizzledVertices();
 
-    auto point = [&verts, &data](int ind) {
+    auto point = [&verts](int ind, std::vector<float>& data, int barycentricIndex) {
+      //barycentricIndex is essentially "which index" is this vertex for the face.
       data.push_back(verts[ind].m_pos.x);
       data.push_back(verts[ind].m_pos.y);
       data.push_back(verts[ind].m_pos.z);
+      data.push_back(barycentricIndex == 0 ? 1.f : 0.f);
+      data.push_back(barycentricIndex == 1 ? 1.f : 0.f);
+      data.push_back(barycentricIndex == 2 ? 1.f : 0.f);
       data.push_back(verts[ind].m_normal.x);
       data.push_back(verts[ind].m_normal.y);
       data.push_back(verts[ind].m_normal.z);
@@ -1054,55 +1051,70 @@ void Level::GenerateRasterizableData(std::vector<Quadblock>& quadblocks)
     //clockwise point ordering
     if (qb.IsQuadblock())
     {
-      point(3);
-      point(0);
-      point(1);
-      point(1);
-      point(4);
-      point(3);
+      point(3, highLODData, 0);
+      point(0, highLODData, 1);
+      point(1, highLODData, 2);
+      point(1, highLODData, 0);
+      point(4, highLODData, 1);
+      point(3, highLODData, 2);
 
-      point(4);
-      point(1);
-      point(2);
-      point(2);
-      point(5);
-      point(4);
+      point(4, highLODData, 0);
+      point(1, highLODData, 1);
+      point(2, highLODData, 2);
+      point(2, highLODData, 0);
+      point(5, highLODData, 1);
+      point(4, highLODData, 2);
 
-      point(6);
-      point(3);
-      point(4);
-      point(4);
-      point(7);
-      point(6);
+      point(6, highLODData, 0);
+      point(3, highLODData, 1);
+      point(4, highLODData, 2);
+      point(4, highLODData, 0);
+      point(7, highLODData, 1);
+      point(6, highLODData, 2);
 
-      point(7);
-      point(4);
-      point(5);
-      point(5);
-      point(8);
-      point(7);
+      point(7, highLODData, 0);
+      point(4, highLODData, 1);
+      point(5, highLODData, 2);
+      point(5, highLODData, 0);
+      point(8, highLODData, 1);
+      point(7, highLODData, 2);
+
+      point(6, lowLODData, 0);
+      point(0, lowLODData, 1);
+      point(2, lowLODData, 2);
+
+      point(2, lowLODData, 0);
+      point(8, lowLODData, 1);
+      point(6, lowLODData, 2);
     }
     else
     {
-      point(6);
-      point(3);
-      point(4);
+      point(6, highLODData, 0);
+      point(3, highLODData, 1);
+      point(4, highLODData, 2);
 
-      point(4);
-      point(1);
-      point(2);
+      point(4, highLODData, 0);
+      point(1, highLODData, 1);
+      point(2, highLODData, 2);
 
-      point(1);
-      point(4);
-      point(3);
+      point(1, highLODData, 0);
+      point(4, highLODData, 1);
+      point(3, highLODData, 2);
 
-      point(3);
-      point(0);
-      point(1);
+      point(3, highLODData, 0);
+      point(0, highLODData, 1);
+      point(1, highLODData, 2);
+
+      point(6, lowLODData, 0);
+      point(0, lowLODData, 1);
+      point(2, lowLODData, 2);
     }
   }
-  mesh.Dispose(); //todo: figure out why dtoring this (instead of "Dispose") causes dtor to be called on assignment op (bad).
-  mesh.UpdateMesh(data.data(), data.size() * sizeof(float));
-  model.SetMesh(&mesh);
-  this->m_levelModel = &model;
+  highLODMesh.UpdateMesh(highLODData.data(), highLODData.size() * sizeof(float), (Mesh::VBufDataType)(Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
+  highLODModel.SetMesh(&highLODMesh);
+  this->m_highLODLevelModel = &highLODModel;
+
+  lowLODMesh.UpdateMesh(lowLODData.data(), lowLODData.size() * sizeof(float), (Mesh::VBufDataType)(Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
+  lowLODModel.SetMesh(&lowLODMesh);
+  this->m_lowLODLevelModel = &lowLODModel;
 }

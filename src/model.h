@@ -17,6 +17,7 @@ public:
   Model(Mesh* mesh, glm::vec3 position = glm::vec3(0.f, 0.f, 0.f), glm::vec3 scale = glm::vec3(1.f, 1.f, 1.f), glm::quat rotation = glm::quat(1.f, 0.f, 0.f, 0.f));
   Model();
   glm::mat4 CalculateModelMatrix();
+  Mesh* GetMesh();
   void SetMesh(Mesh* newMesh = nullptr);
   void Draw();
 };

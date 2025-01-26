@@ -20,6 +20,11 @@ void Model::Draw()
   }
 }
 
+Mesh* Model::GetMesh()
+{
+  return this->mesh;
+}
+
 void Model::SetMesh(Mesh* newMesh)
 {
   this->mesh = newMesh;

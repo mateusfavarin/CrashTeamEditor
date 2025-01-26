@@ -48,5 +48,6 @@ private:
 	MaterialProperty<bool> m_propDoubleSided;
 	MaterialProperty<bool> m_propCheckpoints;
 	std::vector<Path> m_checkpointPaths;
-	Model* m_levelModel = nullptr;
+	Model* m_highLODLevelModel = nullptr;
+	Model* m_lowLODLevelModel = nullptr;
 };
