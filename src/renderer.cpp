@@ -187,7 +187,7 @@ void Renderer::Render(std::vector<Model*> models)
       shad = &shaderCache[datas];
     else
     { //JIT shader compilation.
-      shaderCache[datas] = Shader(std::get<0>(ShaderTemplates::datasToShaderSourceMap[datas]).c_str(), std::get<1>(ShaderTemplates::datasToShaderSourceMap[datas]).c_str());
+      shaderCache[datas] = Shader(std::get<0>(ShaderTemplates::datasToShaderSourceMap[datas]).c_str(), std::get<1>(ShaderTemplates::datasToShaderSourceMap[datas]).c_str(), std::get<2>(ShaderTemplates::datasToShaderSourceMap[datas]).c_str());
       shad = &shaderCache[datas];
       lastUsedShader = &shaderCache[datas];
       shad->use();

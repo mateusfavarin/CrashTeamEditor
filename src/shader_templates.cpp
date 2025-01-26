@@ -18,6 +18,37 @@
 
 #pragma region Shader Templates
 //=====================================================================================================================
+// Geometry shaders
+//=====================================================================================================================
+
+std::string ShaderTemplates::geom_vcolornormal = R"*(
+#version 330 core
+
+layout(triangles) in;       // Input is a triangle
+layout(triangle_strip, max_vertices = 3) out;  // Output is a triangle strip
+
+out vec3 CalculatedFaceNormal;      // Output normal to vertex shader
+
+void main() {
+  // Get the vertex positions from the incoming triangle
+  vec3 v0 = gl_in[0].gl_Position.xyz;
+  vec3 v1 = gl_in[1].gl_Position.xyz;
+  vec3 v2 = gl_in[2].gl_Position.xyz;
+
+  // Calculate the face normal using cross product
+  vec3 faceNormal = normalize(cross(v0 - v1, v2 - v0));
+
+  // Emit the triangle vertices with the calculated face normal
+  for (int i = 0; i < 3; ++i) {
+      CalculatedFaceNormal = faceNormal;  // Set the face normal to be the same for all vertices
+      gl_Position = gl_in[i].gl_Position;  // Pass through vertex position
+      EmitVertex();  // Emit the vertex
+  }
+  EndPrimitive();  // Finish the triangle
+}
+)*";
+
+//=====================================================================================================================
 // Vertex shaders
 //=====================================================================================================================
 
@@ -34,7 +65,7 @@ out vec3 FragWorldPos;
 out vec3 Normal;
 out vec3 VertColor;
 out vec3 BarycentricCoords;
-//out vec3 CalculatedFaceNormal; //need geometry shader
+out vec3 CalculatedFaceNormal;
 
 //world
 uniform mat4 mvp;
@@ -95,7 +126,7 @@ in vec3 FragWorldPos;
 in vec3 Normal;
 in vec3 VertColor;
 in vec3 BarycentricCoords;
-//in vec3 CalculatedFaceNormal; //need geometry shader
+in vec3 CalculatedFaceNormal;
 
 //world
 uniform mat4 mvp;
@@ -131,11 +162,11 @@ void main()
     else if (drawType == 2) //2 == "Normals"
     { //Exterior normals=blue, interior normals=red
       //this logic for red/blue might be backwards idk (compare to blender to make sure).
-      //float normalDir = dot(-normalize(calculatedFaceNormal), (camWorldPos - FragWorldPos));
-      //if (normalDir < 0)
-      //  FragColor = vec4(1.0, 0.0, 0.0, 1.0);
-      //else
-      //  FragColor = vec4(0.0, 0.0, 1.0, 1.0);
+      float normalDir = dot(-normalize(CalculatedFaceNormal), (camWorldPos - FragWorldPos));
+      if (normalDir < 0)
+        FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+      else
+        FragColor = vec4(0.0, 0.0, 1.0, 1.0);
       FragColor = vec4(1.0, 0.0, 0.0, 1.0); //TODO
     }
   }
@@ -158,7 +189,7 @@ void main()
   }
   if (!((shaderSettings & 4) == 4) && shouldDiscard) //&4 == drawbackfaces
   {
-    if (dot(Normal, camViewDir) >= 0)
+    if (dot(CalculatedFaceNormal, camViewDir) >= 0)
     {
       discard; //pixel facing away from camera
       return; //https://community.khronos.org/t/use-of-discard-and-return/68293#:~:text=You%20do%20need%20to%20call%20return%20as%20well%20to%20cancel%20execution
@@ -170,11 +201,11 @@ std::string ShaderTemplates::frag_vcolor;
 std::string ShaderTemplates::frag_normal;
 std::string ShaderTemplates::frag_;
 
-std::map<Mesh::VBufDataType, std::tuple<std::string, std::string>> ShaderTemplates::datasToShaderSourceMap =
+std::map<Mesh::VBufDataType, std::tuple<std::string, std::string, std::string>> ShaderTemplates::datasToShaderSourceMap =
 {
   { 
     ((Mesh::VBufDataType)(Mesh::VBufDataType::VertexPos | Mesh::VBufDataType::Barycentric | Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals)),
-    (std::make_tuple(ShaderTemplates::vert_vcolornormal, ShaderTemplates::frag_vcolornormal))
+    (std::make_tuple(ShaderTemplates::geom_vcolornormal, ShaderTemplates::vert_vcolornormal, ShaderTemplates::frag_vcolornormal))
   },
 };
 #pragma endregion

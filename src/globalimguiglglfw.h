@@ -13,7 +13,7 @@
 #include <GLES2/gl2.h>
 #endif
 #define GLFW_INCLUDE_NONE
-#include <GLFW/glfw3.h> // Will drag system OpenGL headers
+#include <GLFW/glfw3.h> // normally would drag system OpenGL headers, but not with GLFW_INCLUDE_NONE
 #include "manual_third_party/glad.h"
 
 #endif // OPENGLHEADERS_H

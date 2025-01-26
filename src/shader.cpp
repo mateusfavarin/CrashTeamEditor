@@ -8,14 +8,26 @@ Shader::Shader() //todo make this a friend of std::map then make this private.
   this->programId = -1;
 }
 
-Shader::Shader(const char* vertShader, const char* fragShader)
+Shader::Shader(const char* geomShader, const char* vertShader, const char* fragShader)
 {
-  //geometry shader (do we need this? maybe for accurately displaying quad normals).
+  //geometry shader
+  //NEED OPENGL 3.2 :(
+  //GLuint geom = glCreateShader(GL_GEOMETRY_SHADER);
+  //glShaderSource(geom, 1, &vertShader, NULL);
+  //glCompileShader(geom);
+  //GLint success = 0;
+  //glGetShaderiv(geom, GL_COMPILE_STATUS, &success);
+  //if (!success)
+  //{
+  //  glGetShaderInfoLog(geom, LOG_BUF_SIZE, NULL, logBuf);
+  //  fprintf(stderr, "Error, geometry shader compilation failed:\n%s", logBuf);
+  //  throw 0;
+  //}
   //vertex shader
   GLuint vert = glCreateShader(GL_VERTEX_SHADER);
   glShaderSource(vert, 1, &vertShader, NULL);
   glCompileShader(vert);
-  GLint success = 0;
+  success = 0;
   glGetShaderiv(vert, GL_COMPILE_STATUS, &success);
   if (!success)
   {
@@ -37,6 +49,7 @@ Shader::Shader(const char* vertShader, const char* fragShader)
   }
   //link
   this->programId = glCreateProgram();
+  glAttachShader(this->programId, geom);
   glAttachShader(this->programId, vert);
   glAttachShader(this->programId, frag);
   glLinkProgram(this->programId);
@@ -48,6 +61,7 @@ Shader::Shader(const char* vertShader, const char* fragShader)
     fprintf(stderr, "Error, shader link failed:\n%s", logBuf);
     throw 0;
   }
+  glDeleteShader(geom);
   glDeleteShader(vert);
   glDeleteShader(frag);
 }

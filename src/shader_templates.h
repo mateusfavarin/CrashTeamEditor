@@ -8,6 +8,11 @@
 
 struct ShaderTemplates
 {
+  static std::string geom_vcolornormal;
+  static std::string geom_vcolor;
+  static std::string geom_normal;
+  static std::string geom_; //shader designed for "only required" fields, i.e., vertex positions & barycentric
+
   static std::string vert_vcolornormal;
   static std::string vert_vcolor;
   static std::string vert_normal;
@@ -18,5 +23,5 @@ struct ShaderTemplates
   static std::string frag_normal;
   static std::string frag_; //shader designed for "only required" fields, i.e., vertex positions & barycentric
 
-  static std::map<Mesh::VBufDataType, std::tuple<std::string, std::string>> datasToShaderSourceMap;
+  static std::map<Mesh::VBufDataType, std::tuple<std::string, std::string, std::string>> datasToShaderSourceMap;
 };

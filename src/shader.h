@@ -12,7 +12,7 @@ private:
   GLuint programId;
 public:
   Shader();
-  Shader(const char* vertShader, const char* fragShader);
+  Shader(const char* geomShader, const char* vertShader, const char* fragShader);
   void use();
   void unuse();
   void setUniform(const char* name, bool value) const;
