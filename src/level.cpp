@@ -5,6 +5,7 @@
 #include "geo.h"
 
 #include <fstream>
+#include <unordered_set>
 
 bool Level::Load(const std::filesystem::path& filename)
 {
@@ -21,6 +22,11 @@ bool Level::Save(const std::filesystem::path& path)
 	return SaveLEV(path);
 }
 
+bool Level::Loaded()
+{
+	return m_loaded;
+}
+
 bool Level::Ready()
 {
 	return m_bsp.Valid();
@@ -28,6 +34,7 @@ bool Level::Ready()
 
 void Level::Clear(bool clearErrors)
 {
+	m_loaded = false;
 	for (size_t i = 0; i < NUM_DRIVERS; i++) { m_spawn[i] = Spawn(); }
 	for (size_t i = 0; i < NUM_GRADIENT; i++) { m_skyGradient[i] = ColorGradient(); }
 	if (clearErrors)
@@ -44,6 +51,184 @@ void Level::Clear(bool clearErrors)
 	m_materialToQuadblocks.clear();
 	m_checkpointPaths.clear();
 	ClearMaterials();
+}
+
+enum class PresetHeader : unsigned
+{
+	SPAWN, LEVEL, PATH, MATERIAL, TURBO_PAD
+};
+
+bool Level::LoadPreset(const std::filesystem::path& filename)
+{
+	nlohmann::json json = nlohmann::json::parse(std::ifstream(filename));
+	const PresetHeader header = json["header"];
+	if (header == PresetHeader::SPAWN) { m_spawn = json["spawn"]; }
+	else if (header == PresetHeader::LEVEL)
+	{
+		m_configFlags = json["configFlags"];
+		m_skyGradient = json["skyGradient"];
+		m_clearColor = json["clearColor"];
+	}
+	else if (header == PresetHeader::PATH)
+	{
+		const size_t pathCount = json["pathCount"];
+		m_checkpointPaths.resize(pathCount);
+		for (size_t i = 0; i < pathCount; i++)
+		{
+			Path path = Path();
+			path.FromJson(json["path" + std::to_string(i)], m_quadblocks);
+			m_checkpointPaths[path.Index()] = path;
+		}
+	}
+	else if (header == PresetHeader::MATERIAL)
+	{
+		std::vector<std::string> materials = json["materials"];
+		for (const std::string& material : materials)
+		{
+			if (m_materialToQuadblocks.contains(material))
+			{
+				m_propTerrain.SetPreview(material, json[material + "_terrain"]);
+				m_propTerrain.Apply(material, m_materialToQuadblocks[material], m_quadblocks);
+				m_propQuadFlags.SetPreview(material, json[material + "_quadflags"]);
+				m_propQuadFlags.Apply(material, m_materialToQuadblocks[material], m_quadblocks);
+				m_propDoubleSided.SetPreview(material, json[material + "_drawflags"]);
+				m_propDoubleSided.Apply(material, m_materialToQuadblocks[material], m_quadblocks);
+				m_propCheckpoints.SetPreview(material, json[material + "_checkpoint"]);
+				m_propCheckpoints.Apply(material, m_materialToQuadblocks[material], m_quadblocks);
+			}
+		}
+	}
+	else if (header == PresetHeader::TURBO_PAD)
+	{
+		std::unordered_set<std::string> turboPads = json["turbopads"];
+		for (Quadblock& quadblock : m_quadblocks)
+		{
+			const std::string& quadName = quadblock.Name();
+			if (turboPads.contains(quadName))
+			{
+				quadblock.SetTrigger(json[quadName + "_trigger"]);
+				ManageTurbopad(quadblock);
+			}
+		}
+	}
+	else { return false; }
+	return true;
+}
+
+bool Level::SavePreset(const std::filesystem::path& path)
+{
+	std::filesystem::path dirPath = path / m_name;
+	if (!std::filesystem::exists(dirPath)) { std::filesystem::create_directory(dirPath); }
+
+	nlohmann::json spawnJson = {};
+	spawnJson["header"] = PresetHeader::SPAWN;
+	spawnJson["spawn"] = m_spawn;
+	std::ofstream spawnFile(dirPath / "spawn.json");
+	spawnFile << std::setw(4) << spawnJson << std::endl;
+
+	nlohmann::json levelJson = {};
+	levelJson["header"] = PresetHeader::LEVEL;
+	levelJson["configFlags"] = m_configFlags;
+	levelJson["skyGradient"] = m_skyGradient;
+	levelJson["clearColor"] = m_clearColor;
+	std::ofstream levelFile(dirPath / "level.json");
+	levelFile << std::setw(4) << levelJson << std::endl;
+
+	nlohmann::json pathJson = {};
+	pathJson["header"] = PresetHeader::PATH;
+	pathJson["pathCount"] = m_checkpointPaths.size();
+	for (size_t i = 0; i < m_checkpointPaths.size(); i++)
+	{
+		pathJson["path" + std::to_string(i)] = nlohmann::json();
+		m_checkpointPaths[i].ToJson(pathJson["path" + std::to_string(i)], m_quadblocks);
+	}
+	std::ofstream pathFile(dirPath / "path.json");
+	pathFile << std::setw(4) << pathJson << std::endl;
+
+	if (!m_materialToQuadblocks.empty())
+	{
+		nlohmann::json materialJson = {};
+		materialJson["header"] = PresetHeader::MATERIAL;
+		std::vector<std::string> materials; materials.reserve(m_materialToQuadblocks.size());
+		for (const auto& [key, value] : m_materialToQuadblocks)
+		{
+			materials.push_back(key);
+			materialJson[key + "_terrain"] = m_propTerrain.GetBackup(key);
+			materialJson[key + "_quadflags"] = m_propQuadFlags.GetBackup(key);
+			materialJson[key + "_drawflags"] = m_propDoubleSided.GetBackup(key);
+			materialJson[key + "_checkpoint"] = m_propCheckpoints.GetBackup(key);
+		}
+		materialJson["materials"] = materials;
+		std::ofstream materialFile(dirPath / "material.json");
+		materialFile << std::setw(4) << materialJson << std::endl;
+	}
+
+	std::unordered_set<std::string> turboPads;
+	nlohmann::json turboPadJson = {};
+	for (const Quadblock& quadblock : m_quadblocks)
+	{
+		if (quadblock.TurboPadIndex() == TURBO_PAD_INDEX_NONE) { continue; }
+		const std::string& quadName = quadblock.Name();
+		turboPads.insert(quadName);
+		turboPadJson[quadName + "_trigger"] = quadblock.Trigger();
+	}
+	if (!turboPads.empty())
+	{
+		turboPadJson["header"] = PresetHeader::TURBO_PAD;
+		turboPadJson["turbopads"] = turboPads;
+		std::ofstream turboPadFile(dirPath / "turbopad.json");
+		turboPadFile << std::setw(4) << turboPadJson << std::endl;
+	}
+
+	return true;
+}
+
+void Level::ManageTurbopad(Quadblock& quadblock)
+{
+	bool stp = true;
+	size_t turboPadIndex = TURBO_PAD_INDEX_NONE;
+	switch (quadblock.Trigger())
+	{
+	case QuadblockTrigger::TURBO_PAD:
+		stp = false;
+	case QuadblockTrigger::SUPER_TURBO_PAD:
+	{
+		Quadblock turboPad = quadblock;
+		turboPad.SetCheckpoint(-1);
+		turboPad.SetCheckpointStatus(false);
+		turboPad.SetName(quadblock.Name() + (stp ? "_stp" : "_tp"));
+		turboPad.SetFlag(QuadFlags::TRIGGER_SCRIPT | QuadFlags::DEFAULT);
+		turboPad.SetTerrain(stp ? TerrainType::SUPER_TURBO_PAD : TerrainType::TURBO_PAD);
+		turboPad.SetTurboPadIndex(TURBO_PAD_INDEX_NONE);
+		turboPad.SetHide(true);
+
+		size_t index = m_quadblocks.size();
+		turboPadIndex = quadblock.TurboPadIndex();
+		quadblock.SetTurboPadIndex(index);
+		m_quadblocks.push_back(turboPad);
+		if (turboPadIndex == TURBO_PAD_INDEX_NONE) { break; }
+	}
+	case QuadblockTrigger::NONE:
+	{
+		bool clearTurboPadIndex = false;
+		if (turboPadIndex == TURBO_PAD_INDEX_NONE)
+		{
+			clearTurboPadIndex = true;
+			turboPadIndex = quadblock.TurboPadIndex();
+		}
+		if (turboPadIndex == TURBO_PAD_INDEX_NONE) { break; }
+
+		for (Quadblock& quad : m_quadblocks)
+		{
+			size_t index = quad.TurboPadIndex();
+			if (index > turboPadIndex) { quad.SetTurboPadIndex(index - 1); }
+		}
+
+		if (clearTurboPadIndex) { quadblock.SetTurboPadIndex(TURBO_PAD_INDEX_NONE); }
+		m_quadblocks.erase(m_quadblocks.begin() + turboPadIndex);
+		break;
+	}
+	}
 }
 
 bool Level::LoadLEV(const std::filesystem::path& levFile)
@@ -503,5 +688,6 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 		}
 		ret = false;
 	}
+	m_loaded = ret;
 	return ret;
 }

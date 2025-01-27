@@ -300,6 +300,11 @@ void Quadblock::SetHide(bool active)
 	m_hide = active;
 }
 
+void Quadblock::SetTrigger(QuadblockTrigger trigger)
+{
+	m_trigger = trigger;
+}
+
 const BoundingBox& Quadblock::GetBoundingBox() const
 {
 	return m_bbox;

@@ -2,10 +2,12 @@
 
 #include <vector>
 #include <cstdint>
+#include <functional>
 
-template class MaterialProperty<std::string>;
-template class MaterialProperty<uint16_t>;
-template class MaterialProperty<bool>;
+template class MaterialProperty<std::string, MaterialType::TERRAIN>;
+template class MaterialProperty<uint16_t, MaterialType::QUAD_FLAGS>;
+template class MaterialProperty<bool, MaterialType::DRAW_FLAGS>;
+template class MaterialProperty<bool, MaterialType::CHECKPOINT>;
 
 static std::vector<MaterialBase*> g_materials;
 
@@ -19,44 +21,36 @@ void RestoreMaterials()
 	for (MaterialBase* material : g_materials) { material->Restore(); }
 }
 
-template<typename T>
-MaterialProperty<T>::MaterialProperty()
+template<typename T, MaterialType M>
+MaterialProperty<T, M>::MaterialProperty()
 {
 	m_preview = std::unordered_map<std::string, T>();
 	m_backup = std::unordered_map<std::string, T>();
 	g_materials.push_back(this);
 }
 
-template<typename T>
-void MaterialProperty<T>::SetPreview(const std::string& material, const T& preview)
+template<typename T, MaterialType M>
+void MaterialProperty<T, M>::SetPreview(const std::string& material, const T& preview)
 {
 	m_preview[material] = preview;
 	m_materialsChanged.insert(material);
 }
 
-template<typename T>
-void MaterialProperty<T>::SetBackup(const std::string& material, const T& backup)
-{
-	m_backup[material] = backup;
-	if (m_materialsChanged.contains(material)) { m_materialsChanged.erase(material); }
-}
-
-template<typename T>
-void MaterialProperty<T>::SetDefaultValue(const std::string& material, const T& value)
+template<typename T, MaterialType M>
+void MaterialProperty<T, M>::SetDefaultValue(const std::string& material, const T& value)
 {
 	m_preview[material] = value;
 	m_backup[material] = value;
 }
 
-template<typename T>
-bool MaterialProperty<T>::UnsavedChanges(const std::string& material) const
+template<typename T, MaterialType M>
+bool MaterialProperty<T, M>::UnsavedChanges(const std::string& material) const
 {
-	if (!m_materialsChanged.contains(material)) { return false; }
-	return m_preview.at(material) != m_backup.at(material);
+	return m_materialsChanged.contains(material);
 }
 
-template<typename T>
-void MaterialProperty<T>::Restore()
+template<typename T, MaterialType M>
+void MaterialProperty<T, M>::Restore()
 {
 	if (m_materialsChanged.empty()) { return; }
 
@@ -67,17 +61,42 @@ void MaterialProperty<T>::Restore()
 	m_materialsChanged.clear();
 }
 
-template<typename T>
-void MaterialProperty<T>::Clear()
+template<typename T, MaterialType M>
+void MaterialProperty<T, M>::Clear()
 {
 	m_preview.clear();
 	m_backup.clear();
 	m_materialsChanged.clear();
 }
 
-template<typename T>
-T& MaterialProperty<T>::GetPreview(const std::string& material)
+template<typename T, MaterialType M>
+T& MaterialProperty<T, M>::GetPreview(const std::string& material)
 {
-	m_materialsChanged.insert(material);
+	if (m_preview[material] != m_backup[material]) { m_materialsChanged.insert(material); }
 	return m_preview[material];
+}
+
+template<typename T, MaterialType M>
+const T& MaterialProperty<T, M>::GetBackup(const std::string& material)
+{
+	return m_backup[material];
+}
+
+template<typename T, MaterialType M>
+void MaterialProperty<T, M>::Apply(const std::string& material, const std::vector<size_t>& quadblockIndexes, std::vector<Quadblock>& quadblocks)
+{
+	T preview = m_preview[material];
+	for (const size_t index : quadblockIndexes)
+	{
+		Quadblock& quadblock = quadblocks[index];
+		if (!quadblock.Hide())
+		{
+			if constexpr (M == MaterialType::TERRAIN) { quadblock.SetTerrain(TerrainType::LABELS.at(preview)); }
+			else if constexpr (M == MaterialType::QUAD_FLAGS) { quadblock.SetFlag(preview); }
+			else if constexpr (M == MaterialType::DRAW_FLAGS) { quadblock.SetDrawDoubleSided(preview); }
+			else if constexpr (M == MaterialType::CHECKPOINT) { quadblock.CheckpointStatus() = preview; }
+		}
+	}
+	m_backup[material] = preview;
+	if (m_materialsChanged.contains(material)) { m_materialsChanged.erase(material); }
 }

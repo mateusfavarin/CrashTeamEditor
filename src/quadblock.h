@@ -120,6 +120,7 @@ public:
 	void SetName(const std::string& name);
 	void SetTurboPadIndex(size_t index);
 	void SetHide(bool active);
+	void SetTrigger(QuadblockTrigger trigger);
 	const BoundingBox& GetBoundingBox() const;
 	std::vector<Vertex> GetVertices() const;
 	float DistanceClosestVertex(Vec3& out, const Vec3& v) const;

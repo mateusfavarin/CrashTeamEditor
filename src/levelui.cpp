@@ -192,7 +192,7 @@ void Level::RenderUI()
 		ImGui::End();
 	}
 
-	if (m_name.empty()) { return; }
+	if (!m_loaded) { return; }
 
 	static bool w_spawn = false;
 	static bool w_level = false;
@@ -306,13 +306,7 @@ void Level::RenderUI()
 					static ButtonUI terrainApplyButton = ButtonUI();
 					if (terrainApplyButton.Show(("Apply##terrain" + material).c_str(), "Terrain type successfully updated.", m_propTerrain.UnsavedChanges(material)))
 					{
-						const std::string& terrain = m_propTerrain.GetPreview(material);
-						for (const size_t index : quadblockIndexes)
-						{
-							Quadblock& quadblock = m_quadblocks[index];
-							if (!quadblock.Hide()) { quadblock.SetTerrain(TerrainType::LABELS.at(terrain)); }
-						}
-						m_propTerrain.SetBackup(material, terrain);
+						m_propTerrain.Apply(material, quadblockIndexes, m_quadblocks);
 					}
 
 					if (ImGui::TreeNode("Quad Flags"))
@@ -325,16 +319,7 @@ void Level::RenderUI()
 						static ButtonUI quadFlagsApplyButton = ButtonUI();
 						if (quadFlagsApplyButton.Show(("Apply##quadflags" + material).c_str(), "Quad flags successfully updated.", m_propQuadFlags.UnsavedChanges(material)))
 						{
-							uint16_t flag = m_propQuadFlags.GetPreview(material);
-							for (const size_t index : quadblockIndexes)
-							{
-								Quadblock& quadblock = m_quadblocks[index];
-								if (!quadblock.Hide() && quadblock.TurboPadIndex() == TURBO_PAD_INDEX_NONE)
-								{
-									m_quadblocks[index].SetFlag(flag);
-								}
-							}
-							m_propQuadFlags.SetBackup(material, flag);
+							m_propQuadFlags.Apply(material, quadblockIndexes, m_quadblocks);
 						}
 						ImGui::TreePop();
 					}
@@ -346,13 +331,7 @@ void Level::RenderUI()
 						static ButtonUI drawFlagsApplyButton = ButtonUI();
 						if (drawFlagsApplyButton.Show(("Apply##drawflags" + material).c_str(), "Draw flags successfully updated.", m_propDoubleSided.UnsavedChanges(material)))
 						{
-							bool active = m_propDoubleSided.GetPreview(material);
-							for (const size_t index : quadblockIndexes)
-							{
-								Quadblock& quadblock = m_quadblocks[index];
-								if (!quadblock.Hide()) { quadblock.SetDrawDoubleSided(active); }
-							}
-							m_propDoubleSided.SetBackup(material, active);
+							m_propDoubleSided.Apply(material, quadblockIndexes, m_quadblocks);
 						}
 						ImGui::TreePop();
 					}
@@ -363,13 +342,7 @@ void Level::RenderUI()
 					static ButtonUI checkpointApplyButton = ButtonUI();
 					if (checkpointApplyButton.Show(("Apply##checkpoint" + material).c_str(), "Checkpoint status successfully updated.", m_propCheckpoints.UnsavedChanges(material)))
 					{
-						bool active = m_propCheckpoints.GetPreview(material);
-						for (const size_t index : quadblockIndexes)
-						{
-							Quadblock& quadblock = m_quadblocks[index];
-							if (!quadblock.Hide()) { m_quadblocks[index].CheckpointStatus() = active; }
-						}
-						m_propCheckpoints.SetBackup(material, active);
+						m_propCheckpoints.Apply(material, quadblockIndexes, m_quadblocks);
 					}
 					ImGui::TreePop();
 				}
@@ -393,50 +366,7 @@ void Level::RenderUI()
 				{
 					if (quadblock.RenderUI(m_checkpoints.size() - 1, resetBsp))
 					{
-						bool stp = true;
-						size_t turboPadIndex = TURBO_PAD_INDEX_NONE;
-						switch (quadblock.Trigger())
-						{
-							case QuadblockTrigger::TURBO_PAD:
-								stp = false;
-							case QuadblockTrigger::SUPER_TURBO_PAD:
-							{
-								Quadblock turboPad = quadblock;
-								turboPad.SetCheckpoint(-1);
-								turboPad.SetCheckpointStatus(false);
-								turboPad.SetName(quadblock.Name() + (stp ? "_stp" : "_tp"));
-								turboPad.SetFlag(QuadFlags::TRIGGER_SCRIPT | QuadFlags::DEFAULT);
-								turboPad.SetTerrain(stp ? TerrainType::SUPER_TURBO_PAD : TerrainType::TURBO_PAD);
-								turboPad.SetTurboPadIndex(TURBO_PAD_INDEX_NONE);
-								turboPad.SetHide(true);
-
-								size_t index = m_quadblocks.size();
-								turboPadIndex = quadblock.TurboPadIndex();
-								quadblock.SetTurboPadIndex(index);
-								m_quadblocks.push_back(turboPad);
-								if (turboPadIndex == TURBO_PAD_INDEX_NONE) { break; }
-							}
-							case QuadblockTrigger::NONE:
-							{
-								bool clearTurboPadIndex = false;
-								if (turboPadIndex == TURBO_PAD_INDEX_NONE)
-								{
-									clearTurboPadIndex = true;
-									turboPadIndex = quadblock.TurboPadIndex();
-								}
-								if (turboPadIndex == TURBO_PAD_INDEX_NONE) { break; }
-
-								for (Quadblock& quad : m_quadblocks)
-								{
-									size_t index = quad.TurboPadIndex();
-									if (index > turboPadIndex) { quad.SetTurboPadIndex(index - 1); }
-								}
-
-								if (clearTurboPadIndex) { quadblock.SetTurboPadIndex(TURBO_PAD_INDEX_NONE); }
-								m_quadblocks.erase(m_quadblocks.begin() + turboPadIndex);
-								break;
-							}
-						}
+						ManageTurbopad(quadblock);
 					}
 				}
 			}
@@ -598,7 +528,7 @@ void Path::RenderUI(const std::string& title, const std::vector<Quadblock>& quad
     {
         if (ImGui::BeginChild(title.c_str(), {0, 0}, ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_AutoResizeX))
         {
-            ImGui::Text(title.c_str());
+            ImGui::Text(title.substr(0, title.find("##")).c_str());
             if (ImGui::TreeNode("Quad list:"))
             {
                 std::vector<size_t> deleteList;

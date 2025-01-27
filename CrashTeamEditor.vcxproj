@@ -23,6 +23,7 @@
     <ClCompile Include="src\bsp.cpp" />
     <ClCompile Include="src\checkpoint.cpp" />
     <ClCompile Include="src\geo.cpp" />
+    <ClCompile Include="src\io.cpp" />
     <ClCompile Include="src\level.cpp" />
     <ClCompile Include="src\levelui.cpp" />
     <ClCompile Include="src\main.cpp" />
@@ -151,7 +152,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)third_party\imgui\;$(SolutionDir)third_party\portable-file-dialogs\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)third_party\imgui\;$(SolutionDir)third_party\portable-file-dialogs\;$(SolutionDir)third_party\json\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/wd4189 /wd4100 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -169,7 +170,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)third_party\imgui\;$(SolutionDir)third_party\portable-file-dialogs\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)third_party\imgui\;$(SolutionDir)third_party\portable-file-dialogs\;$(SolutionDir)third_party\json\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/wd4189 /wd4100 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
