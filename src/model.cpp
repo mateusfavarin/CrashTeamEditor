@@ -34,7 +34,7 @@ glm::mat4 Model::CalculateModelMatrix()
 {
   glm::mat4 model = glm::mat4(1.0f); // scale * rotate * translate
   model = glm::translate(model, this->position);
-  model *= glm::toMat4(this->rotation);
+  model *= (glm::mat<4, 4, float, glm::packed_highp>)this->rotation;
   model = glm::scale(model, this->scale);
   return model;
 }

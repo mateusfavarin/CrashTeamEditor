@@ -22,6 +22,7 @@ COMMON_CXXFLAGS := -Isrc \
 	-Ithird_party/glfw/include \
 	-Ithird_party/portable-file-dialogs \
 	-Ithird_party/json/include \
+	-Ithird_party/glm/glm \
 	-Isrc/manual_third_party
 
 #glfw-build should probably be renamed for win/unix variants, so you can develop both on win+wsl

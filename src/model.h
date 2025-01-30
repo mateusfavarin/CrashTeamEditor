@@ -1,9 +1,10 @@
 #pragma once
 
-#include "manual_third_party/glm/glm.hpp"
-#include "manual_third_party/glm/gtc/matrix_transform.hpp"
-#include "manual_third_party/glm/gtc/type_ptr.hpp"
-#include "manual_third_party/glm/gtx/quaternion.hpp"
+#include "glm.hpp"
+#include "common.hpp"
+#include "gtc/matrix_transform.hpp"
+#include "gtc/type_ptr.hpp"
+#include "gtc/quaternion.hpp"
 #include "mesh.h"
 
 class Model

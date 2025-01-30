@@ -1,9 +1,9 @@
 #pragma once
 
 #include "globalimguiglglfw.h"
-#include "manual_third_party/glm/glm.hpp"
-#include "manual_third_party/glm/gtc/matrix_transform.hpp"
-#include "manual_third_party/glm/gtc/type_ptr.hpp"
+#include "glm.hpp"
+#include "gtc/matrix_transform.hpp"
+#include "gtc/type_ptr.hpp"
 //#include "mesh.h"
 
 class Shader

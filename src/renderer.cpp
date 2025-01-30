@@ -2,9 +2,9 @@
 
 #include <../deps/linmath.h>
 #include "globalimguiglglfw.h"
-#include "manual_third_party/glm/glm.hpp"
-#include "manual_third_party/glm/gtc/matrix_transform.hpp"
-#include "manual_third_party/glm/gtc/type_ptr.hpp"
+#include "glm.hpp"
+#include "gtc/matrix_transform.hpp"
+#include "gtc/type_ptr.hpp"
 #include <imgui.h>
 #include <misc/cpp/imgui_stdlib.h>
 #include "time.h"
