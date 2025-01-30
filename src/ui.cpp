@@ -37,6 +37,12 @@ void UI::MainMenu()
 				}
 			}
 			if (!ready) { ImGui::SetItemTooltip("BSP Tree must be generated before saving the level. "); }
+
+			if (ImGui::MenuItem("Hot Reload"))
+			{
+				m_lev.OpenHotReloadWindow();
+			}
+
 			ImGui::BeginDisabled(!m_lev.Loaded());
 			if (ImGui::BeginMenu("Preset"))
 			{

@@ -52,6 +52,17 @@ void from_json(const nlohmann::json& json, ColorGradient& spawn)
 	json.at("colorTo").get_to(spawn.colorTo);
 }
 
+void ReadBinaryFile(std::vector<uint8_t>& v, const std::string& path)
+{
+	std::ifstream file(path.c_str(), std::ios::binary);
+	file.seekg(0, std::ios::end);
+	size_t size = file.tellg();
+	v.resize(size);
+	file.seekg(0, std::ios::beg);
+	file.read(reinterpret_cast<char*>(v.data()), size);
+	file.close();
+}
+
 void Path::ToJson(nlohmann::json& json, const std::vector<Quadblock>& quadblocks) const
 {
 	json = {{"index", m_index}, {"hasLeft", m_left != nullptr}, {"hasRight", m_right != nullptr}};

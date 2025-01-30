@@ -3,6 +3,7 @@
 #include "io.h"
 #include "utils.h"
 #include "geo.h"
+#include "process.h"
 
 #include <fstream>
 #include <unordered_set>
@@ -32,9 +33,15 @@ bool Level::Ready()
 	return m_bsp.Valid();
 }
 
+void Level::OpenHotReloadWindow()
+{
+	m_showHotReloadWindow = true;
+}
+
 void Level::Clear(bool clearErrors)
 {
 	m_loaded = false;
+	m_showHotReloadWindow = false;
 	for (size_t i = 0; i < NUM_DRIVERS; i++) { m_spawn[i] = Spawn(); }
 	for (size_t i = 0; i < NUM_GRADIENT; i++) { m_skyGradient[i] = ColorGradient(); }
 	if (clearErrors)
@@ -45,6 +52,7 @@ void Level::Clear(bool clearErrors)
 	m_configFlags = LevConfigFlags::NONE;
 	m_clearColor = Color();
 	m_name.clear();
+	m_savedLevPath.clear();
 	m_quadblocks.clear();
 	m_checkpoints.clear();
 	m_bsp.Clear();
@@ -261,6 +269,7 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	*		- PointerMap
 	*/
 	std::filesystem::path filepath = path / (m_name + ".lev");
+	m_savedLevPath = filepath;
 	std::ofstream file(filepath, std::ios::binary);
 
 	std::vector<const BSP*> bspNodes = m_bsp.GetTree();
@@ -406,10 +415,18 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 		currOffset += serializedCheckpoints.back().size();
 	}
 
-	PSX::SpawnType spawnType = {};
-	spawnType.count = 0;
-	const size_t offSpawnType = currOffset;
-	currOffset += sizeof(spawnType);
+	PSX::LevelExtraHeader extraHeader = {};
+	extraHeader.count = PSX::LevelExtra::COUNT;
+	extraHeader.offsets[PSX::LevelExtra::MINIMAP] = 0;
+	extraHeader.offsets[PSX::LevelExtra::SPAWN] = 0;
+	extraHeader.offsets[PSX::LevelExtra::CAMERA_END_OF_RACE] = 0;
+	extraHeader.offsets[PSX::LevelExtra::CAMERA_DEMO] = 0;
+	extraHeader.offsets[PSX::LevelExtra::N_TROPY_GHOST] = 0;
+	extraHeader.offsets[PSX::LevelExtra::N_OXIDE_GHOST] = 0;
+	extraHeader.offsets[PSX::LevelExtra::CREDITS] = 0;
+
+	const size_t offExtraHeader = currOffset;
+	currOffset += sizeof(extraHeader);
 
 	std::vector<uint32_t> visMemNodesP1(visNodeSize);
 	const size_t offVisMemNodesP1 = currOffset;
@@ -446,7 +463,7 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 		header.skyGradient[i].colorFrom = ConvertColor(m_skyGradient[i].colorFrom);
 		header.skyGradient[i].colorTo = ConvertColor(m_skyGradient[i].colorTo);
 	}
-	header.offSpawnType_1 = static_cast<uint32_t>(offSpawnType);
+	header.offExtra = static_cast<uint32_t>(offExtraHeader);
 	header.numCheckpointNodes = static_cast<uint32_t>(m_checkpoints.size());
 	header.offCheckpointNodes = static_cast<uint32_t>(offCheckpoints);
 	header.offVisMem = static_cast<uint32_t>(offVisMem);
@@ -456,7 +473,7 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	std::vector<uint32_t> pointerMap =
 	{
 		CALCULATE_OFFSET(PSX::LevHeader, offMeshInfo, offHeader),
-		CALCULATE_OFFSET(PSX::LevHeader, offSpawnType_1, offHeader),
+		CALCULATE_OFFSET(PSX::LevHeader, offExtra, offHeader),
 		CALCULATE_OFFSET(PSX::LevHeader, offCheckpointNodes, offHeader),
 		CALCULATE_OFFSET(PSX::LevHeader, offVisMem, offHeader),
 		CALCULATE_OFFSET(PSX::MeshInfo, offQuadblocks, offMeshInfo),
@@ -516,7 +533,7 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	for (const std::vector<uint8_t>& serializedVertex : serializedVertices) { Write(file, serializedVertex.data(), serializedVertex.size()); }
 	for (const std::vector<uint8_t>& serializedBSP : serializedBSPs) { Write(file, serializedBSP.data(), serializedBSP.size()); }
 	for (const std::vector<uint8_t>& serializedCheckpoint : serializedCheckpoints) { Write(file, serializedCheckpoint.data(), serializedCheckpoint.size()); }
-	Write(file, &spawnType, sizeof(spawnType));
+	Write(file, &extraHeader, sizeof(extraHeader));
 	Write(file, visMemNodesP1.data(), visMemNodesP1.size() * sizeof(uint32_t));
 	Write(file, visMemQuadsP1.data(), visMemQuadsP1.size() * sizeof(uint32_t));
 	Write(file, visMemBSPP1.data(), visMemBSPP1.size() * sizeof(uint32_t));
@@ -562,7 +579,13 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 		}
 		else if (command == "o")
 		{
-			if (tokens.size() < 2 || meshMap.contains(tokens[1])) { continue; }
+			if (tokens.size() < 2 || meshMap.contains(tokens[1]))
+			{
+				ret = false;
+				m_showLogWindow = true;
+				m_invalidQuadblocks.emplace_back(tokens[1], "Duplicated mesh name.");
+				continue;
+			}
 			currQuadblockName = tokens[1];
 			meshMap[currQuadblockName] = false;
 			quadblockCount++;
@@ -577,6 +600,14 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 		{
 			if (currQuadblockName.empty()) { return false; }
 			if (tokens.size() < 4) { continue; }
+
+			if (meshMap.contains(currQuadblockName) && meshMap.at(currQuadblockName))
+			{
+				ret = false;
+				m_showLogWindow = true;
+				m_invalidQuadblocks.emplace_back(currQuadblockName, "Triblock and Quadblock merged in the same mesh.");
+				continue;
+			}
 
 			bool isQuadblock = tokens.size() == 5;
 
@@ -631,7 +662,6 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 					m_propDoubleSided.SetDefaultValue(material, false);
 					m_propCheckpoints.SetDefaultValue(material, true);
 				}
-				/* TODO: try/catch the constructor, generate error message for each failed quadblock/triblock */
 				if (isQuadblock)
 				{
 					Quad& q0 = quadMap[currQuadblockName][0];
@@ -690,4 +720,51 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 	}
 	m_loaded = ret;
 	return ret;
+}
+
+bool Level::HotReload(const std::string& levPath, const std::string& vrmPath, const std::string& emulator)
+{
+	bool vrmOnly = false;
+	if (levPath.empty())
+	{
+		if (vrmPath.empty()) { return false; }
+		vrmOnly = true;
+	}
+
+	constexpr size_t PSX_RAM_SIZE = 0x800000;
+	int pid = Process::GetPID(emulator);
+	if (pid == Process::INVALID_PID || !Process::OpenMemoryMap(emulator + "_" + std::to_string(pid), PSX_RAM_SIZE)) { return false; }
+
+	constexpr size_t VRAM_ADDR = 0x80200000;
+	constexpr size_t RAM_ADDR = 0x80300000;
+	constexpr size_t SIGNAL_ADDR = 0x8000C000;
+	constexpr size_t SIGNAL_ADDR_VRAM_ONLY = 0x8000C004;
+	constexpr int HOT_RELOAD_START = 1;
+	constexpr int HOT_RELOAD_READY = 3;
+	constexpr int HOT_RELOAD_EXEC = 4;
+
+	if (!vrmOnly)
+	{
+		Process::At<int>(SIGNAL_ADDR) = HOT_RELOAD_START;
+		while (Process::At<int>(SIGNAL_ADDR) != HOT_RELOAD_READY) {}
+	}
+
+	if (!vrmPath.empty())
+	{
+		std::vector<uint8_t> vrm;
+		ReadBinaryFile(vrm, vrmPath);
+		for (size_t i = 0; i < vrm.size(); i++) { Process::At<uint8_t>(VRAM_ADDR + i) = vrm[i]; }
+	}
+
+	if (!levPath.empty())
+	{
+		std::vector<uint8_t> lev;
+		ReadBinaryFile(lev, levPath);
+		for (size_t i = 0; i < lev.size(); i++) { Process::At<uint8_t>(RAM_ADDR + i) = lev[i]; }
+	}
+
+	if (vrmOnly) { Process::At<int>(SIGNAL_ADDR_VRAM_ONLY) = 1; }
+	else { Process::At<int>(SIGNAL_ADDR) = HOT_RELOAD_EXEC; }
+
+	return true;
 }

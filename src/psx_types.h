@@ -115,7 +115,7 @@ namespace PSX
 		uint32_t offBuildType; // 0xE8
 		uint8_t unk_0xEC[0x18]; // 0xEC
 		PSX::Weather weather; // 0x104
-		uint32_t offSpawnType_1; // 0x134
+		uint32_t offExtra; // 0x134
 		uint32_t numSpawnType_2; // 0x138
 		uint32_t offSpawnType_2; // 0x13C
 		uint32_t numSpawnType_2_posRot; // 0x140
@@ -148,10 +148,23 @@ namespace PSX
 		uint32_t numBSPNodes;
 	};
 
-	struct SpawnType
+	/* TODO: Figure out what each value actually is for and properly name them */
+	enum LevelExtra
+	{
+		MINIMAP = 0,
+		SPAWN = 1, // what
+		CAMERA_END_OF_RACE = 2,
+		CAMERA_DEMO = 3,
+		N_TROPY_GHOST = 4,
+		N_OXIDE_GHOST = 5,
+		CREDITS = 6, // what
+		COUNT = 7,
+	};
+
+	struct LevelExtraHeader
 	{
 		uint32_t count;
-		/* TODO: void* pointers[0] */
+		uint32_t offsets[LevelExtra::COUNT];
 	};
 
 	struct Vertex

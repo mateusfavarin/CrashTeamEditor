@@ -9,27 +9,38 @@
 
 #include <imgui.h>
 #include <misc/cpp/imgui_stdlib.h>
+#include <portable-file-dialogs.h>
 
 #include <string>
 #include <chrono>
 
 static constexpr size_t MAX_QUADBLOCKS_LEAF = 32;
 static constexpr float MAX_LEAF_AXIS_LENGTH = 60.0f;
-static constexpr long long BUTTON_UI_TIMEOUT_MESSAGE = 1; // seconds
 
 class ButtonUI
 {
 public:
 	ButtonUI();
+	ButtonUI(long long timeout);
 	bool Show(const std::string& label, const std::string& message, bool unsavedChanges);
 
 private:
+	static constexpr long long DEFAULT_TIMEOUT = 1;
+	long long m_timeout;
 	std::string m_labelTriggered;
 	std::chrono::time_point<std::chrono::high_resolution_clock> m_messageTimeoutStart;
 };
 
 ButtonUI::ButtonUI()
 {
+	m_timeout = DEFAULT_TIMEOUT;
+	m_labelTriggered = std::string();
+	m_messageTimeoutStart = std::chrono::high_resolution_clock::now();
+}
+
+ButtonUI::ButtonUI(long long timeout)
+{
+	m_timeout = timeout;
 	m_labelTriggered = std::string();
 	m_messageTimeoutStart = std::chrono::high_resolution_clock::now();
 }
@@ -43,7 +54,7 @@ bool ButtonUI::Show(const std::string& label, const std::string& message, bool u
 		m_messageTimeoutStart = std::chrono::high_resolution_clock::now();
 		ret = true;
 	}
-	if (std::chrono::duration_cast<std::chrono::seconds>(std::chrono::high_resolution_clock::now() - m_messageTimeoutStart).count() < BUTTON_UI_TIMEOUT_MESSAGE
+	if (std::chrono::duration_cast<std::chrono::seconds>(std::chrono::high_resolution_clock::now() - m_messageTimeoutStart).count() < m_timeout
 			&& m_labelTriggered == label)
 	{
 		ImGui::Text(message.c_str());
@@ -188,6 +199,62 @@ void Level::RenderUI()
 					}
 				}
 			}
+		}
+		ImGui::End();
+	}
+
+	if (m_showHotReloadWindow)
+	{
+		if (ImGui::Begin("Hot Reload", &m_showHotReloadWindow))
+		{
+			static std::string levPath;
+			static std::string vrmPath;
+			if (levPath.empty() && !m_savedLevPath.empty()) { levPath = m_savedLevPath.string(); }
+
+			ImGui::Text("Lev Path"); ImGui::SameLine();
+			ImGui::InputText("##levpath", &levPath, ImGuiInputTextFlags_ReadOnly);
+			ImGui::SetItemTooltip(levPath.c_str()); ImGui::SameLine();
+			if (ImGui::Button("...##levhotreload"))
+			{
+				auto selection = pfd::open_file("Lev File", ".", {"Lev Files", "*.lev"}).result();
+				if (!selection.empty()) { levPath = selection.front(); }
+			}
+
+			ImGui::Text("Vrm Path"); ImGui::SameLine();
+			ImGui::InputText("##vrmpath", &vrmPath, ImGuiInputTextFlags_ReadOnly);
+			ImGui::SetItemTooltip(vrmPath.c_str()); ImGui::SameLine();
+			if (ImGui::Button("...##vrmhotreload"))
+			{
+				auto selection = pfd::open_file("Vrm File", ".", {"Vrm Files", "*.vrm"}).result();
+				if (!selection.empty()) { vrmPath = selection.front(); }
+			}
+
+			const std::string successMessage = "Successfully hot reloaded.";
+			const std::string failMessage = "Failed hot reloading.\nMake sure you only have one\ninstance of duckstation opened.";
+
+			bool disabled = levPath.empty();
+			ImGui::BeginDisabled(disabled);
+			static ButtonUI hotReloadButton;
+			static std::string hotReloadMessage;
+			if (hotReloadButton.Show("Hot Reload##btn", hotReloadMessage, false))
+			{
+				if (HotReload(levPath, vrmPath, "duckstation")) { hotReloadMessage = successMessage; }
+				else { hotReloadMessage = failMessage; }
+			}
+			ImGui::EndDisabled();
+			if (disabled) { ImGui::SetItemTooltip("You must select the lev path before hot reloading."); }
+
+			bool vrmDisabled = vrmPath.empty();
+			ImGui::BeginDisabled(vrmDisabled);
+			static ButtonUI vrmOnlyButton;
+			static std::string vrmOnlyMessage;
+			if (vrmOnlyButton.Show("Vrm Only##btn", vrmOnlyMessage, false))
+			{
+				if (HotReload(std::string(), vrmPath, "duckstation")) { hotReloadMessage = successMessage; }
+				else { hotReloadMessage = failMessage; }
+			}
+			ImGui::EndDisabled();
+			if (vrmDisabled) { ImGui::SetItemTooltip("You must select the vrm path before hot reloading the vram."); }
 		}
 		ImGui::End();
 	}

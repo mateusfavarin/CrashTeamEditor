@@ -21,6 +21,7 @@ public:
 	bool Save(const std::filesystem::path& path);
 	bool Loaded();
 	bool Ready();
+	void OpenHotReloadWindow();
 	void Clear(bool clearErrors);
 	bool LoadPreset(const std::filesystem::path& filename);
 	bool SavePreset(const std::filesystem::path& path);
@@ -31,13 +32,16 @@ private:
 	bool LoadLEV(const std::filesystem::path& levFile);
 	bool SaveLEV(const std::filesystem::path& path);
 	bool LoadOBJ(const std::filesystem::path& objFile);
+	bool HotReload(const std::string& levPath, const std::string& vrmPath, const std::string& emulator);
 
 private:
 	bool m_showLogWindow;
+	bool m_showHotReloadWindow;
 	bool m_loaded;
 	std::vector<std::tuple<std::string, std::string>> m_invalidQuadblocks;
 	std::string m_logMessage;
 	std::string m_name;
+	std::filesystem::path m_savedLevPath;
 	std::array<Spawn, NUM_DRIVERS> m_spawn;
 	uint32_t m_configFlags;
 	std::array<ColorGradient, NUM_GRADIENT> m_skyGradient;
