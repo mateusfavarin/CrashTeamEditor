@@ -14,8 +14,8 @@ jobs:
                 submodules: true
             - name: Set up MSBuild
               uses: microsoft/setup-msbuild@v2
-            - name: Restore Nuget
-              run: nuget restore CrashTeamEditor.sln
+            # - name: Restore Nuget
+            #   run: nuget restore CrashTeamEditor.sln
             - name: build
               run: msbuild CrashTeamEditor.vcxproj /p:configuration=release /p:Platform=x64 /p:DebugSymbols=false /p:DebugType=None
             - name: zip
@@ -32,12 +32,12 @@ jobs:
               with:
                 fetch-depth: 0
                 submodules: true
-            - name: install sdl
-              run: sudo apt install libsdl2-dev
+            # - name: install sdl
+            #   run: sudo apt install libsdl2-dev
             - name: build
               run: make release
             - name: compress
-              run: tar -f CrashTeamEditor-linux-x64.tar.gz -c CrashTeamEditor
+              run: tar -f CrashTeamEditor-linux-x64.tar.gz -c CrashTeamEditor.out
             - name: Release
               uses: softprops/action-gh-release@v2
               with:

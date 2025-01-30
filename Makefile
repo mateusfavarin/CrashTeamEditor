@@ -1,4 +1,4 @@
-TARGET := CrashTeamEditor
+TARGET := CrashTeamEditor.out
 CC := g++
 
 SRCS := $(wildcard src/*.cpp) \
@@ -25,18 +25,17 @@ COMMON_CXXFLAGS := -Isrc \
 	-Ithird_party/glm/glm \
 	-Isrc/manual_third_party
 
-#glfw-build should probably be renamed for win/unix variants, so you can develop both on win+wsl
-COMMON_LINKER_FLAGS := -Lglfw-build/src -lGL -lglfw3
+COMMON_LINKER_FLAGS := -Lglfw-build-unix/src -lGL -lglfw3
 
 release-build-glfw:
-	mkdir -p glfw-build
-	cd glfw-build && cmake -S ../third_party/glfw # -G "Unix Makefiles" causes problems.
-	cd glfw-build && cmake --build . --config Release
+	mkdir -p glfw-build-unix
+	cd glfw-build-unix && cmake -S ../third_party/glfw # -G "Unix Makefiles" causes problems.
+	cd glfw-build-unix && cmake --build . --config Release
 
 debug-build-glfw:
-	mkdir -p glfw-build
-	cd glfw-build && cmake -S ../third_party/glfw
-	cd glfw-build && cmake --build . --config Debug # this "Debug" is the only difference
+	mkdir -p glfw-build-unix
+	cd glfw-build-unix && cmake -S ../third_party/glfw
+	cd glfw-build-unix && cmake --build . --config Debug # this "Debug" is the only difference
 
 release: release-build-glfw
 	$(CC) $(SRCS) -o $(TARGET) $(RELEASE_CXXFLAGS) $(COMMON_LINKER_FLAGS) $(COMMON_CXXFLAGS)
@@ -46,4 +45,4 @@ debug: debug-build-glfw
 
 clean:
 	rm -f $(TARGET)
-	rm -rf glfw-build
+	rm -rf glfw-build-unix
