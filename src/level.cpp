@@ -735,6 +735,10 @@ bool Level::HotReload(const std::string& levPath, const std::string& vrmPath, co
 	int pid = Process::GetPID(emulator);
 	if (pid == Process::INVALID_PID || !Process::OpenMemoryMap(emulator + "_" + std::to_string(pid), PSX_RAM_SIZE)) { return false; }
 
+	constexpr size_t GAMEMODE_ADDR = 0x80096b20;
+	constexpr uint32_t GAME_PAUSED = 0xF;
+	if (Process::At<uint32_t>(GAMEMODE_ADDR) & GAME_PAUSED) { return false; }
+
 	constexpr size_t VRAM_ADDR = 0x80200000;
 	constexpr size_t RAM_ADDR = 0x80300000;
 	constexpr size_t SIGNAL_ADDR = 0x8000C000;
@@ -745,10 +749,9 @@ bool Level::HotReload(const std::string& levPath, const std::string& vrmPath, co
 
 	if (!vrmOnly)
 	{
-		Process::At<int>(SIGNAL_ADDR) = HOT_RELOAD_START;
-		while (Process::At<int>(SIGNAL_ADDR) != HOT_RELOAD_READY) {}
+		Process::At<int32_t>(SIGNAL_ADDR) = HOT_RELOAD_START;
+		while (Process::At<volatile int32_t>(SIGNAL_ADDR) != HOT_RELOAD_READY) {}
 	}
-
 	if (!vrmPath.empty())
 	{
 		std::vector<uint8_t> vrm;
@@ -763,8 +766,8 @@ bool Level::HotReload(const std::string& levPath, const std::string& vrmPath, co
 		for (size_t i = 0; i < lev.size(); i++) { Process::At<uint8_t>(RAM_ADDR + i) = lev[i]; }
 	}
 
-	if (vrmOnly) { Process::At<int>(SIGNAL_ADDR_VRAM_ONLY) = 1; }
-	else { Process::At<int>(SIGNAL_ADDR) = HOT_RELOAD_EXEC; }
+	if (vrmOnly) { Process::At<int32_t>(SIGNAL_ADDR_VRAM_ONLY) = 1; }
+	else { Process::At<int32_t>(SIGNAL_ADDR) = HOT_RELOAD_EXEC; }
 
 	return true;
 }

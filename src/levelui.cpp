@@ -230,11 +230,11 @@ void Level::RenderUI()
 			}
 
 			const std::string successMessage = "Successfully hot reloaded.";
-			const std::string failMessage = "Failed hot reloading.\nMake sure you only have one\ninstance of duckstation opened.";
+			const std::string failMessage = "Failed hot reloading.\nMake sure Duckstation is opened and that the game is unpaused.";
 
 			bool disabled = levPath.empty();
 			ImGui::BeginDisabled(disabled);
-			static ButtonUI hotReloadButton;
+			static ButtonUI hotReloadButton = ButtonUI(5);
 			static std::string hotReloadMessage;
 			if (hotReloadButton.Show("Hot Reload##btn", hotReloadMessage, false))
 			{
@@ -246,7 +246,7 @@ void Level::RenderUI()
 
 			bool vrmDisabled = vrmPath.empty();
 			ImGui::BeginDisabled(vrmDisabled);
-			static ButtonUI vrmOnlyButton;
+			static ButtonUI vrmOnlyButton = ButtonUI(5);
 			static std::string vrmOnlyMessage;
 			if (vrmOnlyButton.Show("Vrm Only##btn", vrmOnlyMessage, false))
 			{
