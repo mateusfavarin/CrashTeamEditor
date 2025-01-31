@@ -3,12 +3,14 @@
 #include "quadblock.h"
 #include "checkpoint.h"
 
+#include <nlohmann/json.hpp>
 #include <string>
 #include <vector>
 
 class Path
 {
 public:
+	Path();
 	Path(size_t index);
 	~Path();
 	size_t Index() const;
@@ -18,6 +20,8 @@ public:
 	void UpdateDist(float dist, const Vec3& refPoint, std::vector<Checkpoint>& checkpoints);
 	std::vector<Checkpoint> GeneratePath(size_t pathStartIndex, std::vector<Quadblock>& quadblocks);
 	void RenderUI(const std::string& title, const std::vector<Quadblock>& quadblocks, const std::string& searchQuery);
+	void ToJson(nlohmann::json& json, const std::vector<Quadblock>& quadblocks) const;
+	void FromJson(const nlohmann::json& json, const std::vector<Quadblock>& quadblocks);
 
 private:
 	void GetStartEndIndexes(std::vector<size_t>& out) const;

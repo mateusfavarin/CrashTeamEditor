@@ -3,8 +3,10 @@
 #include "io.h"
 #include "utils.h"
 #include "geo.h"
+#include "process.h"
 
 #include <fstream>
+#include <unordered_set>
 
 bool Level::Load(const std::filesystem::path& filename)
 {
@@ -21,13 +23,25 @@ bool Level::Save(const std::filesystem::path& path)
 	return SaveLEV(path);
 }
 
+bool Level::Loaded()
+{
+	return m_loaded;
+}
+
 bool Level::Ready()
 {
 	return m_bsp.Valid();
 }
 
+void Level::OpenHotReloadWindow()
+{
+	m_showHotReloadWindow = true;
+}
+
 void Level::Clear(bool clearErrors)
 {
+	m_loaded = false;
+	m_showHotReloadWindow = false;
 	for (size_t i = 0; i < NUM_DRIVERS; i++) { m_spawn[i] = Spawn(); }
 	for (size_t i = 0; i < NUM_GRADIENT; i++) { m_skyGradient[i] = ColorGradient(); }
 	if (clearErrors)
@@ -38,12 +52,192 @@ void Level::Clear(bool clearErrors)
 	m_configFlags = LevConfigFlags::NONE;
 	m_clearColor = Color();
 	m_name.clear();
+	m_savedLevPath.clear();
 	m_quadblocks.clear();
 	m_checkpoints.clear();
 	m_bsp.Clear();
 	m_materialToQuadblocks.clear();
 	m_checkpointPaths.clear();
 	ClearMaterials();
+}
+
+enum class PresetHeader : unsigned
+{
+	SPAWN, LEVEL, PATH, MATERIAL, TURBO_PAD
+};
+
+bool Level::LoadPreset(const std::filesystem::path& filename)
+{
+	nlohmann::json json = nlohmann::json::parse(std::ifstream(filename));
+	const PresetHeader header = json["header"];
+	if (header == PresetHeader::SPAWN) { m_spawn = json["spawn"]; }
+	else if (header == PresetHeader::LEVEL)
+	{
+		m_configFlags = json["configFlags"];
+		m_skyGradient = json["skyGradient"];
+		m_clearColor = json["clearColor"];
+	}
+	else if (header == PresetHeader::PATH)
+	{
+		const size_t pathCount = json["pathCount"];
+		m_checkpointPaths.resize(pathCount);
+		for (size_t i = 0; i < pathCount; i++)
+		{
+			Path path = Path();
+			path.FromJson(json["path" + std::to_string(i)], m_quadblocks);
+			m_checkpointPaths[path.Index()] = path;
+		}
+	}
+	else if (header == PresetHeader::MATERIAL)
+	{
+		std::vector<std::string> materials = json["materials"];
+		for (const std::string& material : materials)
+		{
+			if (m_materialToQuadblocks.contains(material))
+			{
+				m_propTerrain.SetPreview(material, json[material + "_terrain"]);
+				m_propTerrain.Apply(material, m_materialToQuadblocks[material], m_quadblocks);
+				m_propQuadFlags.SetPreview(material, json[material + "_quadflags"]);
+				m_propQuadFlags.Apply(material, m_materialToQuadblocks[material], m_quadblocks);
+				m_propDoubleSided.SetPreview(material, json[material + "_drawflags"]);
+				m_propDoubleSided.Apply(material, m_materialToQuadblocks[material], m_quadblocks);
+				m_propCheckpoints.SetPreview(material, json[material + "_checkpoint"]);
+				m_propCheckpoints.Apply(material, m_materialToQuadblocks[material], m_quadblocks);
+			}
+		}
+	}
+	else if (header == PresetHeader::TURBO_PAD)
+	{
+		std::unordered_set<std::string> turboPads = json["turbopads"];
+		for (Quadblock& quadblock : m_quadblocks)
+		{
+			const std::string& quadName = quadblock.Name();
+			if (turboPads.contains(quadName))
+			{
+				quadblock.SetTrigger(json[quadName + "_trigger"]);
+				ManageTurbopad(quadblock);
+			}
+		}
+	}
+	else { return false; }
+	return true;
+}
+
+bool Level::SavePreset(const std::filesystem::path& path)
+{
+	std::filesystem::path dirPath = path / m_name;
+	if (!std::filesystem::exists(dirPath)) { std::filesystem::create_directory(dirPath); }
+
+	nlohmann::json spawnJson = {};
+	spawnJson["header"] = PresetHeader::SPAWN;
+	spawnJson["spawn"] = m_spawn;
+	std::ofstream spawnFile(dirPath / "spawn.json");
+	spawnFile << std::setw(4) << spawnJson << std::endl;
+
+	nlohmann::json levelJson = {};
+	levelJson["header"] = PresetHeader::LEVEL;
+	levelJson["configFlags"] = m_configFlags;
+	levelJson["skyGradient"] = m_skyGradient;
+	levelJson["clearColor"] = m_clearColor;
+	std::ofstream levelFile(dirPath / "level.json");
+	levelFile << std::setw(4) << levelJson << std::endl;
+
+	nlohmann::json pathJson = {};
+	pathJson["header"] = PresetHeader::PATH;
+	pathJson["pathCount"] = m_checkpointPaths.size();
+	for (size_t i = 0; i < m_checkpointPaths.size(); i++)
+	{
+		pathJson["path" + std::to_string(i)] = nlohmann::json();
+		m_checkpointPaths[i].ToJson(pathJson["path" + std::to_string(i)], m_quadblocks);
+	}
+	std::ofstream pathFile(dirPath / "path.json");
+	pathFile << std::setw(4) << pathJson << std::endl;
+
+	if (!m_materialToQuadblocks.empty())
+	{
+		nlohmann::json materialJson = {};
+		materialJson["header"] = PresetHeader::MATERIAL;
+		std::vector<std::string> materials; materials.reserve(m_materialToQuadblocks.size());
+		for (const auto& [key, value] : m_materialToQuadblocks)
+		{
+			materials.push_back(key);
+			materialJson[key + "_terrain"] = m_propTerrain.GetBackup(key);
+			materialJson[key + "_quadflags"] = m_propQuadFlags.GetBackup(key);
+			materialJson[key + "_drawflags"] = m_propDoubleSided.GetBackup(key);
+			materialJson[key + "_checkpoint"] = m_propCheckpoints.GetBackup(key);
+		}
+		materialJson["materials"] = materials;
+		std::ofstream materialFile(dirPath / "material.json");
+		materialFile << std::setw(4) << materialJson << std::endl;
+	}
+
+	std::unordered_set<std::string> turboPads;
+	nlohmann::json turboPadJson = {};
+	for (const Quadblock& quadblock : m_quadblocks)
+	{
+		if (quadblock.TurboPadIndex() == TURBO_PAD_INDEX_NONE) { continue; }
+		const std::string& quadName = quadblock.Name();
+		turboPads.insert(quadName);
+		turboPadJson[quadName + "_trigger"] = quadblock.Trigger();
+	}
+	if (!turboPads.empty())
+	{
+		turboPadJson["header"] = PresetHeader::TURBO_PAD;
+		turboPadJson["turbopads"] = turboPads;
+		std::ofstream turboPadFile(dirPath / "turbopad.json");
+		turboPadFile << std::setw(4) << turboPadJson << std::endl;
+	}
+
+	return true;
+}
+
+void Level::ManageTurbopad(Quadblock& quadblock)
+{
+	bool stp = true;
+	size_t turboPadIndex = TURBO_PAD_INDEX_NONE;
+	switch (quadblock.Trigger())
+	{
+	case QuadblockTrigger::TURBO_PAD:
+		stp = false;
+	case QuadblockTrigger::SUPER_TURBO_PAD:
+	{
+		Quadblock turboPad = quadblock;
+		turboPad.TranslateNormalVec(0.25f);
+		turboPad.SetCheckpoint(-1);
+		turboPad.SetCheckpointStatus(false);
+		turboPad.SetName(quadblock.Name() + (stp ? "_stp" : "_tp"));
+		turboPad.SetFlag(QuadFlags::TRIGGER_SCRIPT | QuadFlags::INVISIBLE_TRIGGER | QuadFlags::WALL | QuadFlags::DEFAULT);
+		turboPad.SetTerrain(stp ? TerrainType::SUPER_TURBO_PAD : TerrainType::TURBO_PAD);
+		turboPad.SetTurboPadIndex(TURBO_PAD_INDEX_NONE);
+		turboPad.SetHide(true);
+
+		size_t index = m_quadblocks.size();
+		turboPadIndex = quadblock.TurboPadIndex();
+		quadblock.SetTurboPadIndex(index);
+		m_quadblocks.push_back(turboPad);
+		if (turboPadIndex == TURBO_PAD_INDEX_NONE) { break; }
+	}
+	case QuadblockTrigger::NONE:
+	{
+		bool clearTurboPadIndex = false;
+		if (turboPadIndex == TURBO_PAD_INDEX_NONE)
+		{
+			clearTurboPadIndex = true;
+			turboPadIndex = quadblock.TurboPadIndex();
+		}
+		if (turboPadIndex == TURBO_PAD_INDEX_NONE) { break; }
+
+		for (Quadblock& quad : m_quadblocks)
+		{
+			size_t index = quad.TurboPadIndex();
+			if (index > turboPadIndex) { quad.SetTurboPadIndex(index - 1); }
+		}
+
+		if (clearTurboPadIndex) { quadblock.SetTurboPadIndex(TURBO_PAD_INDEX_NONE); }
+		m_quadblocks.erase(m_quadblocks.begin() + turboPadIndex);
+		break;
+	}
+	}
 }
 
 bool Level::LoadLEV(const std::filesystem::path& levFile)
@@ -77,6 +271,7 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	*		- PointerMap
 	*/
 	std::filesystem::path filepath = path / (m_name + ".lev");
+	m_savedLevPath = filepath;
 	std::ofstream file(filepath, std::ios::binary);
 
 	std::vector<const BSP*> bspNodes = m_bsp.GetTree();
@@ -222,10 +417,18 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 		currOffset += serializedCheckpoints.back().size();
 	}
 
-	PSX::SpawnType spawnType = {};
-	spawnType.count = 0;
-	const size_t offSpawnType = currOffset;
-	currOffset += sizeof(spawnType);
+	PSX::LevelExtraHeader extraHeader = {};
+	extraHeader.count = PSX::LevelExtra::COUNT;
+	extraHeader.offsets[PSX::LevelExtra::MINIMAP] = 0;
+	extraHeader.offsets[PSX::LevelExtra::SPAWN] = 0;
+	extraHeader.offsets[PSX::LevelExtra::CAMERA_END_OF_RACE] = 0;
+	extraHeader.offsets[PSX::LevelExtra::CAMERA_DEMO] = 0;
+	extraHeader.offsets[PSX::LevelExtra::N_TROPY_GHOST] = 0;
+	extraHeader.offsets[PSX::LevelExtra::N_OXIDE_GHOST] = 0;
+	extraHeader.offsets[PSX::LevelExtra::CREDITS] = 0;
+
+	const size_t offExtraHeader = currOffset;
+	currOffset += sizeof(extraHeader);
 
 	std::vector<uint32_t> visMemNodesP1(visNodeSize);
 	const size_t offVisMemNodesP1 = currOffset;
@@ -262,7 +465,7 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 		header.skyGradient[i].colorFrom = ConvertColor(m_skyGradient[i].colorFrom);
 		header.skyGradient[i].colorTo = ConvertColor(m_skyGradient[i].colorTo);
 	}
-	header.offSpawnType_1 = static_cast<uint32_t>(offSpawnType);
+	header.offExtra = static_cast<uint32_t>(offExtraHeader);
 	header.numCheckpointNodes = static_cast<uint32_t>(m_checkpoints.size());
 	header.offCheckpointNodes = static_cast<uint32_t>(offCheckpoints);
 	header.offVisMem = static_cast<uint32_t>(offVisMem);
@@ -272,7 +475,7 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	std::vector<uint32_t> pointerMap =
 	{
 		CALCULATE_OFFSET(PSX::LevHeader, offMeshInfo, offHeader),
-		CALCULATE_OFFSET(PSX::LevHeader, offSpawnType_1, offHeader),
+		CALCULATE_OFFSET(PSX::LevHeader, offExtra, offHeader),
 		CALCULATE_OFFSET(PSX::LevHeader, offCheckpointNodes, offHeader),
 		CALCULATE_OFFSET(PSX::LevHeader, offVisMem, offHeader),
 		CALCULATE_OFFSET(PSX::MeshInfo, offQuadblocks, offMeshInfo),
@@ -332,7 +535,7 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	for (const std::vector<uint8_t>& serializedVertex : serializedVertices) { Write(file, serializedVertex.data(), serializedVertex.size()); }
 	for (const std::vector<uint8_t>& serializedBSP : serializedBSPs) { Write(file, serializedBSP.data(), serializedBSP.size()); }
 	for (const std::vector<uint8_t>& serializedCheckpoint : serializedCheckpoints) { Write(file, serializedCheckpoint.data(), serializedCheckpoint.size()); }
-	Write(file, &spawnType, sizeof(spawnType));
+	Write(file, &extraHeader, sizeof(extraHeader));
 	Write(file, visMemNodesP1.data(), visMemNodesP1.size() * sizeof(uint32_t));
 	Write(file, visMemQuadsP1.data(), visMemQuadsP1.size() * sizeof(uint32_t));
 	Write(file, visMemBSPP1.data(), visMemBSPP1.size() * sizeof(uint32_t));
@@ -354,9 +557,11 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 	std::unordered_map<std::string, std::vector<Quad>> quadMap;
 	std::unordered_map<std::string, std::vector<Vec3>> normalMap;
 	std::unordered_map<std::string, std::string> materialMap;
+	std::unordered_map<std::string, bool> meshMap;
 	std::vector<Point> vertices;
 	std::vector<Vec3> normals;
 	std::string currQuadblockName;
+	size_t quadblockCount = 0;
 	while (std::getline(file, line))
 	{
 		std::vector<std::string> tokens = Split(line);
@@ -376,8 +581,16 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 		}
 		else if (command == "o")
 		{
-			if (tokens.size() < 2) { continue; }
+			if (tokens.size() < 2 || meshMap.contains(tokens[1]))
+			{
+				ret = false;
+				m_showLogWindow = true;
+				m_invalidQuadblocks.emplace_back(tokens[1], "Duplicated mesh name.");
+				continue;
+			}
 			currQuadblockName = tokens[1];
+			meshMap[currQuadblockName] = false;
+			quadblockCount++;
 		}
 		else if (command == "usemtl")
 		{
@@ -389,6 +602,14 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 		{
 			if (currQuadblockName.empty()) { return false; }
 			if (tokens.size() < 4) { continue; }
+
+			if (meshMap.contains(currQuadblockName) && meshMap.at(currQuadblockName))
+			{
+				ret = false;
+				m_showLogWindow = true;
+				m_invalidQuadblocks.emplace_back(currQuadblockName, "Triblock and Quadblock merged in the same mesh.");
+				continue;
+			}
 
 			bool isQuadblock = tokens.size() == 5;
 
@@ -443,14 +664,17 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 					m_propDoubleSided.SetDefaultValue(material, false);
 					m_propCheckpoints.SetDefaultValue(material, true);
 				}
-				/* TODO: try/catch the constructor, generate error message for each failed quadblock/triblock */
 				if (isQuadblock)
 				{
 					Quad& q0 = quadMap[currQuadblockName][0];
 					Quad& q1 = quadMap[currQuadblockName][1];
 					Quad& q2 = quadMap[currQuadblockName][2];
 					Quad& q3 = quadMap[currQuadblockName][3];
-					try { m_quadblocks.emplace_back(currQuadblockName, q0, q1, q2, q3, averageNormal, material); }
+					try
+					{
+						m_quadblocks.emplace_back(currQuadblockName, q0, q1, q2, q3, averageNormal, material);
+						meshMap[currQuadblockName] = true;
+					}
 					catch (const QuadException& e)
 					{
 						ret = false;
@@ -464,7 +688,11 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 					Tri& t1 = triMap[currQuadblockName][1];
 					Tri& t2 = triMap[currQuadblockName][2];
 					Tri& t3 = triMap[currQuadblockName][3];
-					try { m_quadblocks.emplace_back(currQuadblockName, t0, t1, t2, t3, averageNormal, material); }
+					try
+					{
+						m_quadblocks.emplace_back(currQuadblockName, t0, t1, t2, t3, averageNormal, material);
+						meshMap[currQuadblockName] = true;
+					}
 					catch (const QuadException& e)
 					{
 						ret = false;
@@ -476,6 +704,73 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 		}
 	}
 	file.close();
+	if (quadblockCount != m_quadblocks.size())
+	{
+		m_showLogWindow = true;
+		m_logMessage = "Error: number of meshes does not equal number of quadblocks.\n\nNumber of meshes found: " + std::to_string(quadblockCount) + "\nNumber of quadblocks: " + std::to_string(m_quadblocks.size());;
+		m_logMessage += "\n\nThe following meshes are not a quadblock:\n\n";
+		constexpr size_t QUADS_PER_LINE = 10;
+		size_t invalidQuadblocks = 0;
+		for (auto& [name, status] : meshMap)
+		{
+			if (status) { continue; }
+			m_logMessage += name + ", ";
+			if (((invalidQuadblocks + 1) % QUADS_PER_LINE) == 0) { m_logMessage += "\n"; }
+			invalidQuadblocks++;
+		}
+		ret = false;
+	}
+	m_loaded = ret;
 	GenerateRasterizableData(m_quadblocks);
 	return ret;
+}
+
+bool Level::HotReload(const std::string& levPath, const std::string& vrmPath, const std::string& emulator)
+{
+	bool vrmOnly = false;
+	if (levPath.empty())
+	{
+		if (vrmPath.empty()) { return false; }
+		vrmOnly = true;
+	}
+
+	constexpr size_t PSX_RAM_SIZE = 0x800000;
+	int pid = Process::GetPID(emulator);
+	if (pid == Process::INVALID_PID || !Process::OpenMemoryMap(emulator + "_" + std::to_string(pid), PSX_RAM_SIZE)) { return false; }
+
+	constexpr size_t GAMEMODE_ADDR = 0x80096b20;
+	constexpr uint32_t GAME_PAUSED = 0xF;
+	if (Process::At<uint32_t>(GAMEMODE_ADDR) & GAME_PAUSED) { return false; }
+
+	constexpr size_t VRAM_ADDR = 0x80200000;
+	constexpr size_t RAM_ADDR = 0x80300000;
+	constexpr size_t SIGNAL_ADDR = 0x8000C000;
+	constexpr size_t SIGNAL_ADDR_VRAM_ONLY = 0x8000C004;
+	constexpr int HOT_RELOAD_START = 1;
+	constexpr int HOT_RELOAD_READY = 3;
+	constexpr int HOT_RELOAD_EXEC = 4;
+
+	if (!vrmOnly)
+	{
+		Process::At<int32_t>(SIGNAL_ADDR) = HOT_RELOAD_START;
+		while (Process::At<volatile int32_t>(SIGNAL_ADDR) != HOT_RELOAD_READY) {}
+	}
+	if (!vrmPath.empty())
+	{
+		std::vector<uint8_t> vrm;
+		ReadBinaryFile(vrm, vrmPath);
+		for (size_t i = 0; i < vrm.size(); i++) { Process::At<uint8_t>(VRAM_ADDR + i) = vrm[i]; }
+	}
+
+	if (!levPath.empty())
+	{
+		std::vector<uint8_t> lev;
+		ReadBinaryFile(lev, levPath);
+		for (size_t i = 0; i < lev.size(); i++) { Process::At<uint8_t>(RAM_ADDR + i) = lev[i]; }
+	}
+
+	if (vrmOnly) { Process::At<int32_t>(SIGNAL_ADDR_VRAM_ONLY) = 1; }
+	else { Process::At<int32_t>(SIGNAL_ADDR) = HOT_RELOAD_EXEC; }
+
+	return true;
 }

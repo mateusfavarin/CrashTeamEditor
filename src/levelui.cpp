@@ -12,6 +12,7 @@
 
 #include <imgui.h>
 #include <misc/cpp/imgui_stdlib.h>
+#include <portable-file-dialogs.h>
 
 #include <string>
 #include <chrono>
@@ -19,47 +20,57 @@
 
 static constexpr size_t MAX_QUADBLOCKS_LEAF = 32;
 static constexpr float MAX_LEAF_AXIS_LENGTH = 60.0f;
-static constexpr long long BUTTON_UI_TIMEOUT_MESSAGE = 1; // seconds
 
 class ButtonUI
 {
 public:
-  ButtonUI();
-  bool Show(const std::string& label, const std::string& message, bool unsavedChanges);
+	ButtonUI();
+	ButtonUI(long long timeout);
+	bool Show(const std::string& label, const std::string& message, bool unsavedChanges);
 
 private:
-  std::string m_labelTriggered;
-  std::chrono::time_point<std::chrono::high_resolution_clock> m_messageTimeoutStart;
+	static constexpr long long DEFAULT_TIMEOUT = 1;
+	long long m_timeout;
+	std::string m_labelTriggered;
+	std::chrono::time_point<std::chrono::high_resolution_clock> m_messageTimeoutStart;
 };
 
 ButtonUI::ButtonUI()
 {
-  m_labelTriggered = std::string();
-  m_messageTimeoutStart = std::chrono::high_resolution_clock::now();
+	m_timeout = DEFAULT_TIMEOUT;
+	m_labelTriggered = std::string();
+	m_messageTimeoutStart = std::chrono::high_resolution_clock::now();
+}
+
+ButtonUI::ButtonUI(long long timeout)
+{
+	m_timeout = timeout;
+	m_labelTriggered = std::string();
+	m_messageTimeoutStart = std::chrono::high_resolution_clock::now();
 }
 
 bool ButtonUI::Show(const std::string& label, const std::string& message, bool unsavedChanges)
 {
-  bool ret = false;
-  if (ImGui::Button(label.c_str()))
-  {
-    m_labelTriggered = label;
-    m_messageTimeoutStart = std::chrono::high_resolution_clock::now();
-    ret = true;
-  }
-  if (std::chrono::duration_cast<std::chrono::seconds>(std::chrono::high_resolution_clock::now() - m_messageTimeoutStart).count() < BUTTON_UI_TIMEOUT_MESSAGE
-    && m_labelTriggered == label)
-  {
-    ImGui::Text(message.c_str());
-  }
-  else if (unsavedChanges)
-  {
-    const ImVec4 redColor = { 247.0f / 255.0f, 44.0f / 255.0f, 37.0f / 255.0f, 1.0f };
-    ImGui::PushStyleColor(ImGuiCol_Text, redColor);
-    ImGui::Text("Unsaved changes.");
-    ImGui::PopStyleColor();
-  }
-  return ret;
+	bool ret = false;
+	if (ImGui::Button(label.c_str()))
+	{
+		m_labelTriggered = label;
+		m_messageTimeoutStart = std::chrono::high_resolution_clock::now();
+		ret = true;
+	}
+	if (std::chrono::duration_cast<std::chrono::seconds>(std::chrono::high_resolution_clock::now() - m_messageTimeoutStart).count() < m_timeout
+			&& m_labelTriggered == label)
+	{
+		ImGui::Text(message.c_str());
+	}
+	else if (unsavedChanges)
+	{
+		const ImVec4 redColor = {247.0f / 255.0f, 44.0f / 255.0f, 37.0f / 255.0f, 1.0f};
+		ImGui::PushStyleColor(ImGuiCol_Text, redColor);
+		ImGui::Text("Unsaved changes.");
+		ImGui::PopStyleColor();
+	}
+	return ret;
 }
 
 template<typename T>
@@ -113,28 +124,25 @@ void BSP::RenderUI(size_t& index, const std::vector<Quadblock>& quadblocks)
   }
 }
 
-void Checkpoint::RenderUI(size_t numCheckpoints, const std::vector<Quadblock>& quadblocks, const std::string& searchQuery)
+void Checkpoint::RenderUI(size_t numCheckpoints, const std::vector<Quadblock>& quadblocks)
 {
-  if (ImGui::TreeNode(("Checkpoint " + std::to_string(m_index)).c_str()))
-  {
-    ImGui::Text("Pos:       "); ImGui::SameLine(); ImGui::InputFloat3("##pos", m_pos.Data());
-    ImGui::Text("Quad:      "); ImGui::SameLine();
-    if (ImGui::BeginCombo("##quad", m_uiPosQuad.c_str()))
-    {
-      for (const Quadblock& quadblock : quadblocks)
-      {
-        if (searchQuery.empty() || quadblock.Name().find(searchQuery) != std::string::npos)
-        {
-          if (ImGui::Selectable(quadblock.Name().c_str()))
-          {
-            m_uiPosQuad = quadblock.Name();
-            m_pos = quadblock.Center();
-          }
-        }
-      }
-      ImGui::EndCombo();
-    }
-    ImGui::SetItemTooltip("Update checkpoint position by selecting a specific quadblock.");
+	if (ImGui::TreeNode(("Checkpoint " + std::to_string(m_index)).c_str()))
+	{
+		ImGui::Text("Pos:       "); ImGui::SameLine(); ImGui::InputFloat3("##pos", m_pos.Data());
+		ImGui::Text("Quad:      "); ImGui::SameLine();
+		if (ImGui::BeginCombo("##quad", m_uiPosQuad.c_str()))
+		{
+			for (const Quadblock& quadblock : quadblocks)
+			{
+				if (ImGui::Selectable(quadblock.Name().c_str()))
+				{
+					m_uiPosQuad = quadblock.Name();
+					m_pos = quadblock.Center();
+				}
+			}
+			ImGui::EndCombo();
+		}
+		ImGui::SetItemTooltip("Update checkpoint position by selecting a specific quadblock.");
 
     ImGui::Text("Distance:  "); ImGui::SameLine();
     if (ImGui::InputFloat("##dist", &m_distToFinish)) { m_distToFinish = std::max(m_distToFinish, 0.0f); }
@@ -204,8 +212,63 @@ void Level::RenderUI()
     ImGui::End();
   }
 
-  if (m_name.empty()) { return; }
+	if (m_showHotReloadWindow)
+	{
+		if (ImGui::Begin("Hot Reload", &m_showHotReloadWindow))
+		{
+			static std::string levPath;
+			static std::string vrmPath;
+			if (levPath.empty() && !m_savedLevPath.empty()) { levPath = m_savedLevPath.string(); }
 
+			ImGui::Text("Lev Path"); ImGui::SameLine();
+			ImGui::InputText("##levpath", &levPath, ImGuiInputTextFlags_ReadOnly);
+			ImGui::SetItemTooltip(levPath.c_str()); ImGui::SameLine();
+			if (ImGui::Button("...##levhotreload"))
+			{
+				auto selection = pfd::open_file("Lev File", ".", {"Lev Files", "*.lev"}).result();
+				if (!selection.empty()) { levPath = selection.front(); }
+			}
+
+			ImGui::Text("Vrm Path"); ImGui::SameLine();
+			ImGui::InputText("##vrmpath", &vrmPath, ImGuiInputTextFlags_ReadOnly);
+			ImGui::SetItemTooltip(vrmPath.c_str()); ImGui::SameLine();
+			if (ImGui::Button("...##vrmhotreload"))
+			{
+				auto selection = pfd::open_file("Vrm File", ".", {"Vrm Files", "*.vrm"}).result();
+				if (!selection.empty()) { vrmPath = selection.front(); }
+			}
+
+			const std::string successMessage = "Successfully hot reloaded.";
+			const std::string failMessage = "Failed hot reloading.\nMake sure Duckstation is opened and that the game is unpaused.";
+
+			bool disabled = levPath.empty();
+			ImGui::BeginDisabled(disabled);
+			static ButtonUI hotReloadButton = ButtonUI(5);
+			static std::string hotReloadMessage;
+			if (hotReloadButton.Show("Hot Reload##btn", hotReloadMessage, false))
+			{
+				if (HotReload(levPath, vrmPath, "duckstation")) { hotReloadMessage = successMessage; }
+				else { hotReloadMessage = failMessage; }
+			}
+			ImGui::EndDisabled();
+			if (disabled) { ImGui::SetItemTooltip("You must select the lev path before hot reloading."); }
+
+			bool vrmDisabled = vrmPath.empty();
+			ImGui::BeginDisabled(vrmDisabled);
+			static ButtonUI vrmOnlyButton = ButtonUI(5);
+			static std::string vrmOnlyMessage;
+			if (vrmOnlyButton.Show("Vrm Only##btn", vrmOnlyMessage, false))
+			{
+				if (HotReload(std::string(), vrmPath, "duckstation")) { hotReloadMessage = successMessage; }
+				else { hotReloadMessage = failMessage; }
+			}
+			ImGui::EndDisabled();
+			if (vrmDisabled) { ImGui::SetItemTooltip("You must select the vrm path before hot reloading the vram."); }
+		}
+		ImGui::End();
+	}
+
+	if (!m_loaded) { return; }
   static Renderer rend = Renderer(800, 600);
 
   static bool w_spawn = false;
@@ -319,17 +382,11 @@ void Level::RenderUI()
             ImGui::EndCombo();
           } ImGui::SameLine();
 
-          static ButtonUI terrainApplyButton = ButtonUI();
-          if (terrainApplyButton.Show(("Apply##terrain" + material).c_str(), "Terrain type successfully updated.", m_propTerrain.UnsavedChanges(material)))
-          {
-            const std::string& terrain = m_propTerrain.GetPreview(material);
-            for (const size_t index : quadblockIndexes)
-            {
-              Quadblock& quadblock = m_quadblocks[index];
-              if (!quadblock.Hide()) { quadblock.SetTerrain(TerrainType::LABELS.at(terrain)); }
-            }
-            m_propTerrain.SetBackup(material, terrain);
-          }
+					static ButtonUI terrainApplyButton = ButtonUI();
+					if (terrainApplyButton.Show(("Apply##terrain" + material).c_str(), "Terrain type successfully updated.", m_propTerrain.UnsavedChanges(material)))
+					{
+						m_propTerrain.Apply(material, quadblockIndexes, m_quadblocks);
+					}
 
           if (ImGui::TreeNode("Quad Flags"))
           {
@@ -338,180 +395,112 @@ void Level::RenderUI()
               UIFlagCheckbox(m_propQuadFlags.GetPreview(material), flag, label);
             }
 
-            static ButtonUI quadFlagsApplyButton = ButtonUI();
-            if (quadFlagsApplyButton.Show(("Apply##quadflags" + material).c_str(), "Quad flags successfully updated.", m_propQuadFlags.UnsavedChanges(material)))
-            {
-              uint16_t flag = m_propQuadFlags.GetPreview(material);
-              for (const size_t index : quadblockIndexes)
-              {
-                Quadblock& quadblock = m_quadblocks[index];
-                if (!quadblock.Hide() && quadblock.TurboPadIndex() == TURBO_PAD_INDEX_NONE)
-                {
-                  m_quadblocks[index].SetFlag(flag);
-                }
-              }
-              m_propQuadFlags.SetBackup(material, flag);
-            }
-            ImGui::TreePop();
-          }
+						static ButtonUI quadFlagsApplyButton = ButtonUI();
+						if (quadFlagsApplyButton.Show(("Apply##quadflags" + material).c_str(), "Quad flags successfully updated.", m_propQuadFlags.UnsavedChanges(material)))
+						{
+							m_propQuadFlags.Apply(material, quadblockIndexes, m_quadblocks);
+						}
+						ImGui::TreePop();
+					}
 
           if (ImGui::TreeNode("Draw Flags"))
           {
             ImGui::Checkbox("Double Sided", &m_propDoubleSided.GetPreview(material));
 
-            static ButtonUI drawFlagsApplyButton = ButtonUI();
-            if (drawFlagsApplyButton.Show(("Apply##drawflags" + material).c_str(), "Draw flags successfully updated.", m_propDoubleSided.UnsavedChanges(material)))
-            {
-              bool active = m_propDoubleSided.GetPreview(material);
-              for (const size_t index : quadblockIndexes)
-              {
-                Quadblock& quadblock = m_quadblocks[index];
-                if (!quadblock.Hide()) { quadblock.SetDrawDoubleSided(active); }
-              }
-              m_propDoubleSided.SetBackup(material, active);
-            }
-            ImGui::TreePop();
-          }
+						static ButtonUI drawFlagsApplyButton = ButtonUI();
+						if (drawFlagsApplyButton.Show(("Apply##drawflags" + material).c_str(), "Draw flags successfully updated.", m_propDoubleSided.UnsavedChanges(material)))
+						{
+							m_propDoubleSided.Apply(material, quadblockIndexes, m_quadblocks);
+						}
+						ImGui::TreePop();
+					}
 
           ImGui::Checkbox("Checkpoint", &m_propCheckpoints.GetPreview(material));
           ImGui::SameLine();
 
-          static ButtonUI checkpointApplyButton = ButtonUI();
-          if (checkpointApplyButton.Show(("Apply##checkpoint" + material).c_str(), "Checkpoint status successfully updated.", m_propCheckpoints.UnsavedChanges(material)))
-          {
-            bool active = m_propCheckpoints.GetPreview(material);
-            for (const size_t index : quadblockIndexes)
-            {
-              Quadblock& quadblock = m_quadblocks[index];
-              if (!quadblock.Hide()) { m_quadblocks[index].CheckpointStatus() = active; }
-            }
-            m_propCheckpoints.SetBackup(material, active);
-          }
-          ImGui::TreePop();
-        }
-      }
-    }
-    ImGui::End();
-  }
+					static ButtonUI checkpointApplyButton = ButtonUI();
+					if (checkpointApplyButton.Show(("Apply##checkpoint" + material).c_str(), "Checkpoint status successfully updated.", m_propCheckpoints.UnsavedChanges(material)))
+					{
+						m_propCheckpoints.Apply(material, quadblockIndexes, m_quadblocks);
+					}
+					ImGui::TreePop();
+				}
+			}
+		}
+		ImGui::End();
+	}
 
   if (!w_material) { RestoreMaterials(); }
 
-  static std::string quadblockQuery;
-  if (w_quadblocks)
-  {
-    bool resetBsp = false;
-    if (ImGui::Begin("Quadblocks", &w_quadblocks))
-    {
-      ImGui::InputTextWithHint("Search", "Search Quadblocks...", &quadblockQuery);
-      for (Quadblock& quadblock : m_quadblocks)
-      {
-        if (!quadblock.Hide() && Matches(quadblock.Name(), quadblockQuery))
-        {
-          if (quadblock.RenderUI(m_checkpoints.size() - 1, resetBsp))
-          {
-            bool stp = true;
-            size_t turboPadIndex = TURBO_PAD_INDEX_NONE;
-            switch (quadblock.Trigger())
-            {
-            case QuadblockTrigger::TURBO_PAD:
-              stp = false;
-            case QuadblockTrigger::SUPER_TURBO_PAD:
-            {
-              Quadblock turboPad = quadblock;
-              turboPad.SetCheckpoint(-1);
-              turboPad.SetCheckpointStatus(false);
-              turboPad.SetName(quadblock.Name() + (stp ? "_stp" : "_tp"));
-              turboPad.SetFlag(QuadFlags::TRIGGER_SCRIPT | QuadFlags::DEFAULT);
-              turboPad.SetTerrain(stp ? TerrainType::SUPER_TURBO_PAD : TerrainType::TURBO_PAD);
-              turboPad.SetTurboPadIndex(TURBO_PAD_INDEX_NONE);
-              turboPad.SetHide(true);
-
-              size_t index = m_quadblocks.size();
-              turboPadIndex = quadblock.TurboPadIndex();
-              quadblock.SetTurboPadIndex(index);
-              m_quadblocks.push_back(turboPad);
-              if (turboPadIndex == TURBO_PAD_INDEX_NONE) { break; }
-            }
-            case QuadblockTrigger::NONE:
-            {
-              bool clearTurboPadIndex = false;
-              if (turboPadIndex == TURBO_PAD_INDEX_NONE)
-              {
-                clearTurboPadIndex = true;
-                turboPadIndex = quadblock.TurboPadIndex();
-              }
-              if (turboPadIndex == TURBO_PAD_INDEX_NONE) { break; }
-
-              for (Quadblock& quad : m_quadblocks)
-              {
-                size_t index = quad.TurboPadIndex();
-                if (index > turboPadIndex) { quad.SetTurboPadIndex(index - 1); }
-              }
-
-              if (clearTurboPadIndex) { quadblock.SetTurboPadIndex(TURBO_PAD_INDEX_NONE); }
-              m_quadblocks.erase(m_quadblocks.begin() + turboPadIndex);
-              break;
-            }
-            }
-          }
-        }
-      }
-    }
-    ImGui::End();
-    if (resetBsp && m_bsp.Valid())
-    {
-      m_bsp.Clear();
-      m_showLogWindow = true;
-      m_logMessage = "Modifying quadblock position or turbo pad state automatically resets the BSP tree.";
-    }
-    if (resetBsp) //update mesh for rasterizer
-    {
-      GenerateRasterizableData(m_quadblocks);
-    }
-  }
+	static std::string quadblockQuery;
+	if (w_quadblocks)
+	{
+		bool resetBsp = false;
+		if (ImGui::Begin("Quadblocks", &w_quadblocks))
+		{
+			ImGui::InputTextWithHint("Search", "Search Quadblocks...", &quadblockQuery);
+			for (Quadblock& quadblock : m_quadblocks)
+			{
+				if (!quadblock.Hide() && Matches(quadblock.Name(), quadblockQuery))
+				{
+					if (quadblock.RenderUI(m_checkpoints.size() - 1, resetBsp))
+					{
+						ManageTurbopad(quadblock);
+					}
+				}
+			}
+		}
+		ImGui::End();
+		if (resetBsp && m_bsp.Valid())
+		{
+			m_bsp.Clear();
+			m_showLogWindow = true;
+			m_logMessage = "Modifying quadblock position or turbo pad state automatically resets the BSP tree.";
+		}
+	}
 
   if (!quadblockQuery.empty() && !w_quadblocks) { quadblockQuery.clear(); }
 
-  static std::string checkpointQuery;
-  if (w_checkpoints)
-  {
-    if (ImGui::Begin("Checkpoints", &w_checkpoints))
-    {
-      ImGui::InputTextWithHint("Search##", "Search Quadblocks...", &checkpointQuery);
-      if (ImGui::TreeNode("Checkpoints"))
-      {
-        std::vector<int> checkpointsDelete;
-        for (int i = 0; i < m_checkpoints.size(); i++)
-        {
-          m_checkpoints[i].RenderUI(m_checkpoints.size(), m_quadblocks, checkpointQuery);
-          if (m_checkpoints[i].GetDelete()) { checkpointsDelete.push_back(i); }
-        }
-        if (!checkpointsDelete.empty())
-        {
-          for (int i = static_cast<int>(checkpointsDelete.size()) - 1; i >= 0; i--)
-          {
-            m_checkpoints.erase(m_checkpoints.begin() + checkpointsDelete[i]);
-          }
-          for (int i = 0; i < m_checkpoints.size(); i++)
-          {
-            m_checkpoints[i].RemoveInvalidCheckpoints(checkpointsDelete);
-            m_checkpoints[i].UpdateInvalidCheckpoints(checkpointsDelete);
-            m_checkpoints[i].UpdateIndex(i);
-          }
-        }
-        if (ImGui::Button("Add Checkpoint"))
-        {
-          m_checkpoints.emplace_back(static_cast<int>(m_checkpoints.size()));
-        }
-        ImGui::TreePop();
-      }
-    }
-    if (ImGui::TreeNode("Generate"))
-    {
-      for (Path& path : m_checkpointPaths)
-      {
-        path.RenderUI("Path " + std::to_string(path.Index()), m_quadblocks, checkpointQuery);
-      }
+	static std::string checkpointQuery;
+	if (w_checkpoints)
+	{
+		if (ImGui::Begin("Checkpoints", &w_checkpoints))
+		{
+			ImGui::InputTextWithHint("Search##", "Search Quadblocks...", &checkpointQuery);
+			if (ImGui::TreeNode("Checkpoints"))
+			{
+				std::vector<int> checkpointsDelete;
+				for (int i = 0; i < m_checkpoints.size(); i++)
+				{
+					m_checkpoints[i].RenderUI(m_checkpoints.size(), m_quadblocks);
+					if (m_checkpoints[i].GetDelete()) { checkpointsDelete.push_back(i); }
+				}
+				if (!checkpointsDelete.empty())
+				{
+					for (int i = static_cast<int>(checkpointsDelete.size()) - 1; i >= 0; i--)
+					{
+						m_checkpoints.erase(m_checkpoints.begin() + checkpointsDelete[i]);
+					}
+					for (int i = 0; i < m_checkpoints.size(); i++)
+					{
+						m_checkpoints[i].RemoveInvalidCheckpoints(checkpointsDelete);
+						m_checkpoints[i].UpdateInvalidCheckpoints(checkpointsDelete);
+						m_checkpoints[i].UpdateIndex(i);
+					}
+				}
+				if (ImGui::Button("Add Checkpoint"))
+				{
+					m_checkpoints.emplace_back(static_cast<int>(m_checkpoints.size()));
+				}
+				ImGui::TreePop();
+			}
+		}
+		if (ImGui::TreeNode("Generate"))
+		{
+			for (Path& path : m_checkpointPaths)
+			{
+				path.RenderUI("Path " + std::to_string(path.Index()), m_quadblocks, checkpointQuery);
+			}
 
       if (ImGui::Button("Create Path"))
       {
@@ -523,32 +512,33 @@ void Level::RenderUI()
         m_checkpointPaths.pop_back();
       }
 
-      bool ready = !m_checkpointPaths.empty();
-      for (const Path& path : m_checkpointPaths)
-      {
-        if (!path.Ready()) { ready = false; break; }
-      }
-      ImGui::BeginDisabled(!ready);
-      if (ImGui::Button("Generate"))
-      {
-        size_t checkpointIndex = 0;
-        std::vector<size_t> linkNodeIndexes;
-        std::vector<std::vector<Checkpoint>> pathCheckpoints;
-        for (Path& path : m_checkpointPaths)
-        {
-          pathCheckpoints.push_back(path.GeneratePath(checkpointIndex, m_quadblocks));
-          checkpointIndex += pathCheckpoints.back().size();
-          linkNodeIndexes.push_back(path.Start());
-          linkNodeIndexes.push_back(path.End());
-        }
-        m_checkpoints.clear();
-        for (const std::vector<Checkpoint>& checkpoints : pathCheckpoints)
-        {
-          for (const Checkpoint& checkpoint : checkpoints)
-          {
-            m_checkpoints.push_back(checkpoint);
-          }
-        }
+			bool ready = !m_checkpointPaths.empty();
+			for (const Path& path : m_checkpointPaths)
+			{
+				if (!path.Ready()) { ready = false; break; }
+			}
+			ImGui::BeginDisabled(!ready);
+			static ButtonUI generateButton;
+			if (generateButton.Show("Generate", "Checkspoints successfully generated.", false))
+			{
+				size_t checkpointIndex = 0;
+				std::vector<size_t> linkNodeIndexes;
+				std::vector<std::vector<Checkpoint>> pathCheckpoints;
+				for (Path& path : m_checkpointPaths)
+				{
+					pathCheckpoints.push_back(path.GeneratePath(checkpointIndex, m_quadblocks));
+					checkpointIndex += pathCheckpoints.back().size();
+					linkNodeIndexes.push_back(path.Start());
+					linkNodeIndexes.push_back(path.End());
+				}
+				m_checkpoints.clear();
+				for (const std::vector<Checkpoint>& checkpoints : pathCheckpoints)
+				{
+					for (const Checkpoint& checkpoint : checkpoints)
+					{
+						m_checkpoints.push_back(checkpoint);
+					}
+				}
 
         int lastPathIndex = static_cast<int>(m_checkpointPaths.size()) - 1;
         const Checkpoint* currStartCheckpoint = &m_checkpoints[m_checkpointPaths[lastPathIndex].Start()];
@@ -816,31 +806,31 @@ void Level::RenderUI()
 
 void Path::RenderUI(const std::string& title, const std::vector<Quadblock>& quadblocks, const std::string& searchQuery)
 {
-  auto QuadListUI = [this](std::vector<size_t>& indexes, size_t& value, std::string& label, const std::string& title, const std::vector<Quadblock>& quadblocks, const std::string& searchQuery, ButtonUI& button)
+    auto QuadListUI = [this](std::vector<size_t>& indexes, size_t& value, std::string& label, const std::string& title, const std::vector<Quadblock>& quadblocks, const std::string& searchQuery, ButtonUI& button)
     {
-      if (ImGui::BeginChild(title.c_str(), { 0, 0 }, ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_AutoResizeX))
-      {
-        ImGui::Text(title.c_str());
-        if (ImGui::TreeNode("Quad list:"))
+        if (ImGui::BeginChild(title.c_str(), {0, 0}, ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_AutoResizeX))
         {
-          std::vector<size_t> deleteList;
-          for (size_t i = 0; i < indexes.size(); i++)
-          {
-            ImGui::Text(quadblocks[indexes[i]].Name().c_str()); ImGui::SameLine();
-            if (ImGui::Button(("Remove##" + title + std::to_string(i)).c_str()))
+            ImGui::Text(title.substr(0, title.find("##")).c_str());
+            if (ImGui::TreeNode("Quad list:"))
             {
-              deleteList.push_back(i);
+                std::vector<size_t> deleteList;
+                for (size_t i = 0; i < indexes.size(); i++)
+                {
+                    ImGui::Text(quadblocks[indexes[i]].Name().c_str()); ImGui::SameLine();
+                    if (ImGui::Button(("Remove##" + title + std::to_string(i)).c_str()))
+                    {
+                        deleteList.push_back(i);
+                    }
+                }
+                if (!deleteList.empty())
+                {
+                    for (int i = static_cast<int>(deleteList.size()) - 1; i >= 0; i--)
+                    {
+                        indexes.erase(indexes.begin() + deleteList[i]);
+                    }
+                }
+                ImGui::TreePop();
             }
-          }
-          if (!deleteList.empty())
-          {
-            for (int i = static_cast<int>(deleteList.size()) - 1; i >= 0; i--)
-            {
-              indexes.erase(indexes.begin() + deleteList[i]);
-            }
-          }
-          ImGui::TreePop();
-        }
 
         if (ImGui::BeginCombo(("##" + title).c_str(), label.c_str()))
         {
@@ -925,90 +915,88 @@ void Path::RenderUI(const std::string& title, const std::vector<Quadblock>& quad
 
 bool Quadblock::RenderUI(size_t checkpointCount, bool& resetBsp)
 {
-  bool ret = false;
-  if (ImGui::TreeNode(m_name.c_str()))
-  {
-    if (ImGui::TreeNode("Vertices"))
-    {
-      for (size_t i = 0; i < NUM_VERTICES_QUADBLOCK; i++)
-      {
-        bool editedPos = false;
-        m_p[i].RenderUI(i, editedPos);
-        if (editedPos)
-        {
-          resetBsp = true;
-          ComputeBoundingBox();
-        }
-      }
-      ImGui::TreePop();
-    }
-    if (ImGui::TreeNode("Bounding Box"))
-    {
-      m_bbox.RenderUI();
-      ImGui::TreePop();
-    }
-    if (ImGui::TreeNode("Terrain"))
-    {
-      std::string terrainLabel;
-      for (const auto& [label, terrain] : TerrainType::LABELS)
-      {
-        if (terrain == m_terrain) { terrainLabel = label; break; }
-      }
-      if (ImGui::BeginCombo("##terrain", terrainLabel.c_str()))
-      {
-        for (const auto& [label, terrain] : TerrainType::LABELS)
-        {
-          if (ImGui::Selectable(label.c_str()))
-          {
-            m_terrain = terrain;
-          }
-        }
-        ImGui::EndCombo();
-      }
-      ImGui::TreePop();
-    }
-    if (ImGui::TreeNode("Quad Flags"))
-    {
-      for (const auto& [label, flag] : QuadFlags::LABELS)
-      {
-        UIFlagCheckbox(m_flags, flag, label);
-      }
-      ImGui::TreePop();
-    }
-    if (ImGui::TreeNode("Draw Flags"))
-    {
-      ImGui::Checkbox("Double Sided", &m_doubleSided);
-      ImGui::TreePop();
-    }
-    ImGui::Checkbox("Checkpoint", &m_checkpointStatus);
-    ImGui::Text("Checkpoint Index: ");
-    ImGui::SameLine();
-    if (ImGui::InputInt("##cp", &m_checkpointIndex)) { m_checkpointIndex = Clamp(m_checkpointIndex, -1, static_cast<int>(checkpointCount)); }
-    ImGui::Text("Trigger:");
-    if (ImGui::RadioButton("None", m_trigger == QuadblockTrigger::NONE))
-    {
-      m_trigger = QuadblockTrigger::NONE;
-      m_flags = QuadFlags::DEFAULT;
-      resetBsp = true;
-      ret = true;
-    } ImGui::SameLine();
-    if (ImGui::RadioButton("Turbo Pad", m_trigger == QuadblockTrigger::TURBO_PAD))
-    {
-      m_trigger = QuadblockTrigger::TURBO_PAD;
-      m_flags = QuadFlags::INVISIBLE_TRIGGER | QuadFlags::DEFAULT;
-      resetBsp = true;
-      ret = true;
-    } ImGui::SameLine();
-    if (ImGui::RadioButton("Super Turbo Pad", m_trigger == QuadblockTrigger::SUPER_TURBO_PAD))
-    {
-      m_trigger = QuadblockTrigger::SUPER_TURBO_PAD;
-      m_flags = QuadFlags::INVISIBLE_TRIGGER | QuadFlags::DEFAULT;
-      resetBsp = true;
-      ret = true;
-    }
-    ImGui::TreePop();
-  }
-  return ret;
+	bool ret = false;
+	if (ImGui::TreeNode(m_name.c_str()))
+	{
+		if (ImGui::TreeNode("Vertices"))
+		{
+			for (size_t i = 0; i < NUM_VERTICES_QUADBLOCK; i++)
+			{
+				bool editedPos = false;
+				m_p[i].RenderUI(i, editedPos);
+				if (editedPos)
+				{
+					resetBsp = true;
+					ComputeBoundingBox();
+				}
+			}
+			ImGui::TreePop();
+		}
+		if (ImGui::TreeNode("Bounding Box"))
+		{
+			m_bbox.RenderUI();
+			ImGui::TreePop();
+		}
+		if (ImGui::TreeNode("Terrain"))
+		{
+			std::string terrainLabel;
+			for (const auto& [label, terrain] : TerrainType::LABELS)
+			{
+				if (terrain == m_terrain) { terrainLabel = label; break; }
+			}
+			if (ImGui::BeginCombo("##terrain", terrainLabel.c_str()))
+			{
+				for (const auto& [label, terrain] : TerrainType::LABELS)
+				{
+					if (ImGui::Selectable(label.c_str()))
+					{
+						m_terrain = terrain;
+					}
+				}
+				ImGui::EndCombo();
+			}
+			ImGui::TreePop();
+		}
+		if (ImGui::TreeNode("Quad Flags"))
+		{
+			for (const auto& [label, flag] : QuadFlags::LABELS)
+			{
+				UIFlagCheckbox(m_flags, flag, label);
+			}
+			ImGui::TreePop();
+		}
+		if (ImGui::TreeNode("Draw Flags"))
+		{
+			ImGui::Checkbox("Double Sided", &m_doubleSided);
+			ImGui::TreePop();
+		}
+		ImGui::Checkbox("Checkpoint", &m_checkpointStatus);
+		ImGui::Text("Checkpoint Index: ");
+		ImGui::SameLine();
+		if (ImGui::InputInt("##cp", &m_checkpointIndex)) { m_checkpointIndex = Clamp(m_checkpointIndex, -1, static_cast<int>(checkpointCount)); }
+		ImGui::Text("Trigger:");
+		if (ImGui::RadioButton("None", m_trigger == QuadblockTrigger::NONE))
+		{
+			m_trigger = QuadblockTrigger::NONE;
+			m_flags = QuadFlags::DEFAULT;
+			resetBsp = true;
+			ret = true;
+		} ImGui::SameLine();
+		if (ImGui::RadioButton("Turbo Pad", m_trigger == QuadblockTrigger::TURBO_PAD))
+		{
+			m_trigger = QuadblockTrigger::TURBO_PAD;
+			resetBsp = true;
+			ret = true;
+		} ImGui::SameLine();
+		if (ImGui::RadioButton("Super Turbo Pad", m_trigger == QuadblockTrigger::SUPER_TURBO_PAD))
+		{
+			m_trigger = QuadblockTrigger::SUPER_TURBO_PAD;
+			resetBsp = true;
+			ret = true;
+		}
+		ImGui::TreePop();
+	}
+	return ret;
 }
 
 void Vertex::RenderUI(size_t index, bool& editedPos)

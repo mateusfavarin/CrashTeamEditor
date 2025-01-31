@@ -34,11 +34,13 @@
     <ClCompile Include="src\bsp.cpp" />
     <ClCompile Include="src\checkpoint.cpp" />
     <ClCompile Include="src\geo.cpp" />
+    <ClCompile Include="src\io.cpp" />
     <ClCompile Include="src\level.cpp" />
     <ClCompile Include="src\levelui.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\material.cpp" />
     <ClCompile Include="src\path.cpp" />
+    <ClCompile Include="src\process.cpp" />
     <ClCompile Include="src\quadblock.cpp" />
     <ClCompile Include="src\ui.cpp" />
     <ClCompile Include="src\utils.cpp" />
@@ -71,6 +73,7 @@
     <ClInclude Include="src\level.h" />
     <ClInclude Include="src\material.h" />
     <ClInclude Include="src\path.h" />
+    <ClInclude Include="src\process.h" />
     <ClInclude Include="src\psx_types.h" />
     <ClInclude Include="src\quadblock.h" />
     <ClInclude Include="src\ui.h" />
@@ -120,7 +123,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)third_party\imgui\;$(SolutionDir)third_party\imgui\backends;$(SolutionDir)third_party\portable-file-dialogs\;$(SolutionDir)third_party\glfw\include\;$(SolutionDir)third_party\glm\glm\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)third_party\imgui\;$(SolutionDir)third_party\portable-file-dialogs\;$(SolutionDir)third_party\json\include\;$(SolutionDir)third_party\json\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/wd4189 /wd4100 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -138,7 +141,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)third_party\imgui\;$(SolutionDir)third_party\imgui\backends;$(SolutionDir)third_party\portable-file-dialogs\;$(SolutionDir)third_party\glfw\include\;$(SolutionDir)third_party\glm\glm\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)third_party\imgui\;$(SolutionDir)third_party\portable-file-dialogs\;$(SolutionDir)third_party\json\include\;$(SolutionDir)third_party\json\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/wd4189 /wd4100 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>

@@ -121,6 +121,8 @@ public:
 	void SetTurboPadIndex(size_t index);
 	void SetHide(bool active);
 	bool IsQuadblock();
+	void SetTrigger(QuadblockTrigger trigger);
+	void TranslateNormalVec(float ratio);
 	const BoundingBox& GetBoundingBox() const;
 	std::vector<Vertex> GetVertices() const;
 	const Vertex* const GetUnswizzledVertices() const;

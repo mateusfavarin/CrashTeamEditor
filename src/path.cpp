@@ -2,6 +2,24 @@
 
 #include <algorithm>
 
+Path::Path()
+{
+	m_index = 0;
+	m_start = 0;
+	m_end = 0;
+	m_left = nullptr;
+	m_right = nullptr;
+	m_previewValueStart = 0;
+	m_previewLabelStart = std::string();
+	m_quadIndexesStart = std::vector<size_t>();
+	m_previewValueEnd = 0;
+	m_previewLabelEnd = std::string();
+	m_quadIndexesEnd = std::vector<size_t>();
+	m_previewValueIgnore = 0;
+	m_previewLabelIgnore = std::string();
+	m_quadIndexesIgnore = std::vector<size_t>();
+}
+
 Path::Path(size_t index)
 {
 	m_index = index;

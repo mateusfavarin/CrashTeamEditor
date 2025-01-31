@@ -19,7 +19,7 @@ void UI::MainMenu()
 		{
 			if (ImGui::MenuItem("Open"))
 			{
-				auto selection = pfd::open_file("Level File").result();
+				auto selection = pfd::open_file("Level File", ".", {"Level Files", "*.obj"}).result();
 				if (!selection.empty())
 				{
 					const std::filesystem::path levPath = selection.front();
@@ -37,6 +37,35 @@ void UI::MainMenu()
 				}
 			}
 			if (!ready) { ImGui::SetItemTooltip("BSP Tree must be generated before saving the level. "); }
+
+			if (ImGui::MenuItem("Hot Reload"))
+			{
+				m_lev.OpenHotReloadWindow();
+			}
+
+			ImGui::BeginDisabled(!m_lev.Loaded());
+			if (ImGui::BeginMenu("Preset"))
+			{
+				if (ImGui::MenuItem("Load"))
+				{
+					auto selection = pfd::open_file("Preset File", ".", {"Preset Files", "*.json"}, pfd::opt::multiselect).result();
+					for (const std::string& filename : selection)
+					{
+						m_lev.LoadPreset(filename);
+					}
+				}
+				if (ImGui::MenuItem("Save"))
+				{
+					auto selection = pfd::select_folder("Level Folder").result();
+					if (!selection.empty())
+					{
+						const std::filesystem::path path = selection + "\\";
+						m_lev.SavePreset(path);
+					}
+				}
+				ImGui::EndMenu();
+			}
+			ImGui::EndDisabled();
 			ImGui::EndMenu();
 		}
 		ImGui::EndMainMenuBar();
