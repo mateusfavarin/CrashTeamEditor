@@ -23,7 +23,7 @@ namespace BSPFlags
 	static constexpr uint16_t WATER = 1 << 1;
 	static constexpr uint16_t SUBDIV_4_1 = 1 << 3;
 	static constexpr uint16_t SUBDIV_4_2 = 1 << 4;
-	static constexpr uint16_t HIDDEN = 1 << 6;
+	static constexpr uint16_t INVISIBLE = 1 << 6;
 	static constexpr uint16_t NO_COLLISION = 1 << 7;
 };
 
@@ -36,6 +36,7 @@ public:
 	bool Empty() const;
 	bool Valid() const;
 	bool IsBranch() const;
+	uint16_t Flags() const;
 	const std::string& GetType() const;
 	const std::string& GetAxis() const;
 	const BoundingBox& GetBoundingBox() const;

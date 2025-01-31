@@ -53,6 +53,11 @@ bool BSP::IsBranch() const
 	return m_node == BSPNode::BRANCH;
 }
 
+uint16_t BSP::Flags() const
+{
+	return m_flags;
+}
+
 const std::string& BSP::GetType() const
 {
 	const static std::string sBranch = "Branch";
