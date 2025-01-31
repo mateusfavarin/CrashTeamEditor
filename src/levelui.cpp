@@ -120,7 +120,7 @@ void BSP::RenderUI(size_t& index, const std::vector<Quadblock>& quadblocks)
 	}
 }
 
-void Checkpoint::RenderUI(size_t numCheckpoints, const std::vector<Quadblock>& quadblocks, const std::string& searchQuery)
+void Checkpoint::RenderUI(size_t numCheckpoints, const std::vector<Quadblock>& quadblocks)
 {
 	if (ImGui::TreeNode(("Checkpoint " + std::to_string(m_index)).c_str()))
 	{
@@ -130,13 +130,10 @@ void Checkpoint::RenderUI(size_t numCheckpoints, const std::vector<Quadblock>& q
 		{
 			for (const Quadblock& quadblock : quadblocks)
 			{
-				if (searchQuery.empty() || quadblock.Name().find(searchQuery) != std::string::npos)
+				if (ImGui::Selectable(quadblock.Name().c_str()))
 				{
-					if (ImGui::Selectable(quadblock.Name().c_str()))
-					{
-						m_uiPosQuad = quadblock.Name();
-						m_pos = quadblock.Center();
-					}
+					m_uiPosQuad = quadblock.Name();
+					m_pos = quadblock.Center();
 				}
 			}
 			ImGui::EndCombo();
@@ -460,7 +457,7 @@ void Level::RenderUI()
 				std::vector<int> checkpointsDelete;
 				for (int i = 0; i < m_checkpoints.size(); i++)
 				{
-					m_checkpoints[i].RenderUI(m_checkpoints.size(), m_quadblocks, checkpointQuery);
+					m_checkpoints[i].RenderUI(m_checkpoints.size(), m_quadblocks);
 					if (m_checkpoints[i].GetDelete()) { checkpointsDelete.push_back(i); }
 				}
 				if (!checkpointsDelete.empty())
@@ -506,7 +503,8 @@ void Level::RenderUI()
 				if (!path.Ready()) { ready = false; break; }
 			}
 			ImGui::BeginDisabled(!ready);
-			if (ImGui::Button("Generate"))
+			static ButtonUI generateButton;
+			if (generateButton.Show("Generate", "Checkspoints successfully generated.", false))
 			{
 				size_t checkpointIndex = 0;
 				std::vector<size_t> linkNodeIndexes;
@@ -770,14 +768,12 @@ bool Quadblock::RenderUI(size_t checkpointCount, bool& resetBsp)
 		if (ImGui::RadioButton("Turbo Pad", m_trigger == QuadblockTrigger::TURBO_PAD))
 		{
 			m_trigger = QuadblockTrigger::TURBO_PAD;
-			m_flags = QuadFlags::INVISIBLE_TRIGGER | QuadFlags::DEFAULT;
 			resetBsp = true;
 			ret = true;
 		} ImGui::SameLine();
 		if (ImGui::RadioButton("Super Turbo Pad", m_trigger == QuadblockTrigger::SUPER_TURBO_PAD))
 		{
 			m_trigger = QuadblockTrigger::SUPER_TURBO_PAD;
-			m_flags = QuadFlags::INVISIBLE_TRIGGER | QuadFlags::DEFAULT;
 			resetBsp = true;
 			ret = true;
 		}

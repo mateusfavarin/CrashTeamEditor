@@ -305,6 +305,11 @@ void Quadblock::SetTrigger(QuadblockTrigger trigger)
 	m_trigger = trigger;
 }
 
+void Quadblock::TranslateNormalVec(float ratio)
+{
+	for (size_t i = 0; i < NUM_VERTICES_QUADBLOCK; i++) { m_p[i].m_pos += m_p[i].m_normal * ratio; }
+}
+
 const BoundingBox& Quadblock::GetBoundingBox() const
 {
 	return m_bbox;

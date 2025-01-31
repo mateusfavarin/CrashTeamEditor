@@ -121,6 +121,7 @@ public:
 	void SetTurboPadIndex(size_t index);
 	void SetHide(bool active);
 	void SetTrigger(QuadblockTrigger trigger);
+	void TranslateNormalVec(float ratio);
 	const BoundingBox& GetBoundingBox() const;
 	std::vector<Vertex> GetVertices() const;
 	float DistanceClosestVertex(Vec3& out, const Vec3& v) const;
