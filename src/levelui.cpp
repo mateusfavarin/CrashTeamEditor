@@ -490,19 +490,19 @@ void Level::RenderUI()
 		{
 			for (size_t i = 0; i < m_checkpointPaths.size(); i++)
 			{
-				bool insertBelow = false;
-				bool removeBelow = false;
+				bool insertAbove = false;
+				bool removePath = false;
 				Path& path = m_checkpointPaths[i];
 				const std::string pathTitle = "Path " + std::to_string(path.Index());
-				path.RenderUI(pathTitle, m_quadblocks, checkpointQuery, i + 1 < m_checkpointPaths.size(), insertBelow, removeBelow);
-				if (insertBelow)
+				path.RenderUI(pathTitle, m_quadblocks, checkpointQuery, true, insertAbove, removePath);
+				if (insertAbove)
 				{
-					m_checkpointPaths.insert(m_checkpointPaths.begin() + path.Index() + 1, Path());
+					m_checkpointPaths.insert(m_checkpointPaths.begin() + path.Index(), Path());
 					for (size_t j = 0; j < m_checkpointPaths.size(); j++) { m_checkpointPaths[j].SetIndex(j); }
 				}
-				if (removeBelow)
+				if (removePath)
 				{
-					m_checkpointPaths.erase(m_checkpointPaths.begin() + path.Index() + 1);
+					m_checkpointPaths.erase(m_checkpointPaths.begin() + path.Index());
 					for (size_t j = 0; j < m_checkpointPaths.size(); j++) { m_checkpointPaths[j].SetIndex(j); }
 				}
 			}
@@ -607,7 +607,7 @@ void Level::RenderUI()
 	}
 }
 
-void Path::RenderUI(const std::string& title, const std::vector<Quadblock>& quadblocks, const std::string& searchQuery, bool drawPathBtn, bool& insertBelow, bool& removeBelow)
+void Path::RenderUI(const std::string& title, const std::vector<Quadblock>& quadblocks, const std::string& searchQuery, bool drawPathBtn, bool& insertAbove, bool& removePath)
 {
 	auto QuadListUI = [this](std::vector<size_t>& indexes, size_t& value, std::string& label, const std::string& title, const std::vector<Quadblock>& quadblocks, const std::string& searchQuery, ButtonUI& button)
 		{
@@ -716,8 +716,10 @@ void Path::RenderUI(const std::string& title, const std::vector<Quadblock>& quad
 
 		if (drawPathBtn)
 		{
-			if (ImGui::Button(("Insert Path Below##" + std::to_string(m_index)).c_str())) { insertBelow = true; }
-			if (ImGui::Button(("Remove Path Below##" + std::to_string(m_index)).c_str())) { removeBelow = true; }
+			static ButtonUI insertAboveButton;
+			static ButtonUI removePathButton;
+			if (insertAboveButton.Show(("Insert Path Above##" + std::to_string(m_index)).c_str(), "You're editing the new path.", false)) { insertAbove = true; }
+			if (removePathButton.Show(("Remove Current Path##" + std::to_string(m_index)).c_str(), "Path successfully deleted.", false)) { removePath = true; }
 		}
 
 		ImGui::TreePop();
