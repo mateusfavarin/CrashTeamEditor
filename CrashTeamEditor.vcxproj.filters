@@ -118,14 +118,11 @@
       <Filter>Renderer</Filter>
     </ClCompile>
     <ClCompile Include="src\gui_render_settings.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="shader_templates.cpp">
       <Filter>Renderer</Filter>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="packages.config" />
+    <ClCompile Include="src\shader_templates.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\app.h">
@@ -185,8 +182,11 @@
     <ClInclude Include="src\mesh.h">
       <Filter>Renderer</Filter>
     </ClInclude>
+    <ClInclude Include="src\shader_templates.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
     <ClInclude Include="src\gui_render_settings.h">
-      <Filter>Header Files</Filter>
+      <Filter>Renderer</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

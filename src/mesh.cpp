@@ -15,6 +15,24 @@ void Mesh::Bind()
         fprintf(stderr, "Error a! %d\n", err);
     }
   }
+
+  if (Mesh::shaderSettings & Mesh::ShaderSettings::DrawBackfaces)
+  {
+    glDisable(GL_CULL_FACE);
+  }
+  else
+  {
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_FRONT);
+  }
+  if (Mesh::shaderSettings & Mesh::ShaderSettings::DrawWireframe)
+  {
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+  }
+  else
+  {
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+  }
 }
 
 void Mesh::Unbind()
@@ -56,7 +74,7 @@ void Mesh::UpdateMesh(float data[], int dataBufSize, VBufDataType includedDataFl
   glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &maxAttribs);
 
   int* idfPun = (int*)&includedDataFlags;
-  *idfPun |= (VBufDataType::VertexPos | VBufDataType::Barycentric);
+  *idfPun |= (VBufDataType::VertexPos);
 
   //GLint maxBufferSize;
   //glGetIntegerv(GL_MAX_BUFFER_SIZE, &maxBufferSize);

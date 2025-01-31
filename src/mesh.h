@@ -7,17 +7,20 @@
 
 class Mesh {
 public:
+  //enum MetaShaderSettings 
+  //{
+  //  None = 0,
+  //};
   enum ShaderSettings //note: updating this also requires updating all shader source.
   {
     None = 0,
     DrawWireframe = 1,
-    DrawVertsAsPoints = 2,
     DrawBackfaces = 4,
   };
   enum VBufDataType
-  { //all are assumed to have vertex & barycentric data (otherwise, what the hell are we drawing?)
+  { //all are assumed to have vertex data (otherwise, what the hell are we drawing?)
     VertexPos = 1, //implicitly always on
-    Barycentric = 2, //implicitly always on
+    Barycentric = 2,
     VColor = 4,
     Normals = 8,
     STUV_1 = 16, //tex coords
@@ -25,7 +28,7 @@ public:
 private:
   GLuint VAO = 0, VBO = 0;
   int dataBufSize = 0;
-  ShaderSettings shaderSettings;
+  ShaderSettings shaderSettings, needsUndoing;
   VBufDataType includedData;
   /*friend Model Bind();
   friend Model Unbind();

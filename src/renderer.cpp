@@ -48,15 +48,13 @@ Renderer::Renderer(int width, int height)
   glBindRenderbuffer(GL_RENDERBUFFER, 0);
 }
 
-void Renderer::Render(std::vector<Model*> models)
+void Renderer::Render(std::vector<Model> models)
 {
   glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
 
   //clear screen with dark blue
   glEnable(GL_DEPTH_TEST);
-  //TODO: the mesh builder should probably be smart enough to do the mesh correctly so that we can use this:
-  //glEnable(GL_CULL_FACE); //do not use these, the fragment shader does this based on normals (that way the vertex order doesn't matter).
-  //glCullFace(GL_FRONT);
+
   glViewport(0, 0, width, height);
   glClearColor(0.0f, 0.05f, 0.1f, 1.0f);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -171,17 +169,17 @@ void Renderer::Render(std::vector<Model*> models)
 
 
 
-  std::vector<Model*>& itrModels = models;// models.size() > 0 ? models : this->models;
+  std::vector<Model>& itrModels = models;// models.size() > 0 ? models : this->models;
 
   static Shader* lastUsedShader = nullptr;
   //easy optimization: sort itrModels by their respective shaders & batch on shader type so shad->un/use() isn't called so often.
-  for (Model* m : itrModels)
+  for (Model m : itrModels)
   {
-    if (m == nullptr || m->GetMesh() == nullptr)
+    if (m.GetMesh() == nullptr)
       continue;
 
     Shader* shad = nullptr;
-    Mesh::VBufDataType datas = m->GetMesh()->GetDatas();
+    Mesh::VBufDataType datas = m.GetMesh()->GetDatas();
 
     if (shaderCache.contains(datas))
       shad = &shaderCache[datas];
@@ -207,11 +205,9 @@ void Renderer::Render(std::vector<Model*> models)
       *nss |= (int)Mesh::ShaderSettings::DrawWireframe;
     if (GuiRenderSettings::showBackfaces)
       *nss |= (int)Mesh::ShaderSettings::DrawBackfaces;
-    if (GuiRenderSettings::showLevVerts)
-      *nss |= (int)Mesh::ShaderSettings::DrawVertsAsPoints;
-    m->GetMesh()->SetShaderSettings(newShadSettings);
+    m.GetMesh()->SetShaderSettings(newShadSettings);
 
-    glm::mat4 model = m->CalculateModelMatrix();
+    glm::mat4 model = m.CalculateModelMatrix();
     glm::mat4 mvp = perspective * view * model;
     //world
     shad->setUniform("mvp", mvp);
@@ -220,12 +216,12 @@ void Renderer::Render(std::vector<Model*> models)
     shad->setUniform("camWorldPos", camPos);
     //draw variations
     shad->setUniform("drawType", GuiRenderSettings::renderType);
-    shad->setUniform("shaderSettings", (int)m->GetMesh()->GetShaderSettings());
+    shad->setUniform("shaderSettings", (int)m.GetMesh()->GetShaderSettings());
     //misc
     shad->setUniform("time", time);
     shad->setUniform("lightDir", glm::normalize(glm::vec3(0.2f, -3.f, -1.f)));
     shad->setUniform("wireframeWireThickness", .02f);
-    m->Draw();
+    m.Draw();
   }
 
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
