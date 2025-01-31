@@ -23,5 +23,5 @@ struct ShaderTemplates
   static std::string frag_normal;
   static std::string frag_; //shader designed for "only required" fields, i.e., vertex positions
 
-  static std::map<Mesh::VBufDataType, std::tuple<std::string, std::string, std::string>> datasToShaderSourceMap;
+  static std::map<int, std::tuple<std::string, std::string, std::string>> datasToShaderSourceMap;
 };

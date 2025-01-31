@@ -149,7 +149,7 @@ void Renderer::Render(std::vector<Model> models)
       continue;
 
     Shader* shad = nullptr;
-    Mesh::VBufDataType datas = m.GetMesh()->GetDatas();
+    int datas = m.GetMesh()->GetDatas();
 
     if (shaderCache.contains(datas))
       shad = &shaderCache[datas];
@@ -168,12 +168,11 @@ void Renderer::Render(std::vector<Model> models)
       lastUsedShader = shad;
     }
 
-    Mesh::ShaderSettings newShadSettings = Mesh::ShaderSettings::None;
-    int* nss = (int*)&newShadSettings;
+    int newShadSettings = Mesh::ShaderSettings::None;
     if (GuiRenderSettings::showWireframe)
-      *nss |= (int)Mesh::ShaderSettings::DrawWireframe;
+      newShadSettings |= (int)Mesh::ShaderSettings::DrawWireframe;
     if (GuiRenderSettings::showBackfaces)
-      *nss |= (int)Mesh::ShaderSettings::DrawBackfaces;
+      newShadSettings |= (int)Mesh::ShaderSettings::DrawBackfaces;
     m.GetMesh()->SetShaderSettings(newShadSettings);
 
     glm::mat4 model = m.CalculateModelMatrix();

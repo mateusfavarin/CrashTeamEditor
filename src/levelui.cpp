@@ -1179,15 +1179,15 @@ void Level::GenerateRasterizableData(std::vector<Quadblock>& quadblocks)
       point(verts, 2, lowLODData);
     }
   }
-  highLODMesh.UpdateMesh(highLODData.data(), highLODData.size() * sizeof(float), (Mesh::VBufDataType)(Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
+  highLODMesh.UpdateMesh(highLODData.data(), highLODData.size() * sizeof(float), (Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
   this->m_highLODLevelModel.SetMesh(&highLODMesh);
 
-  lowLODMesh.UpdateMesh(lowLODData.data(), lowLODData.size() * sizeof(float), (Mesh::VBufDataType)(Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
+  lowLODMesh.UpdateMesh(lowLODData.data(), lowLODData.size() * sizeof(float), (Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
   this->m_lowLODLevelModel.SetMesh(&lowLODMesh);
 
-  vertexHighLODMesh.UpdateMesh(vertexHighLODData.data(), vertexHighLODData.size() * sizeof(float), (Mesh::VBufDataType)(Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
+  vertexHighLODMesh.UpdateMesh(vertexHighLODData.data(), vertexHighLODData.size() * sizeof(float), (Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
   this->m_pointsHighLODLevelModel.SetMesh(&vertexHighLODMesh);
 
-  vertexLowLODMesh.UpdateMesh(vertexLowLODData.data(), vertexLowLODData.size() * sizeof(float), (Mesh::VBufDataType)(Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
+  vertexLowLODMesh.UpdateMesh(vertexLowLODData.data(), vertexLowLODData.size() * sizeof(float), (Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
   this->m_pointsLowLODLevelModel.SetMesh(&vertexLowLODMesh);
 }

@@ -20,7 +20,7 @@ class Renderer
 private:
   GLuint renderbuffer;
   GLuint framebuffer;
-  std::map<Mesh::VBufDataType, Shader> shaderCache;
+  std::map<int, Shader> shaderCache;
   float time = 0.f, lastFrameTime = 0.f, deltaTime = -1.f;
 public:
   GLuint texturebuffer;

@@ -66,12 +66,11 @@ void Mesh::Draw()
 /// vcolor
 /// stuv_1
 /// </summary>
-void Mesh::UpdateMesh(float data[], int dataBufSize, VBufDataType includedDataFlags, ShaderSettings shadSettings, bool dataIsInterlaced)
+void Mesh::UpdateMesh(float data[], int dataBufSize, int includedDataFlags, int shadSettings, bool dataIsInterlaced)
 {
   Dispose();
 
-  int* idfPun = (int*)&includedDataFlags;
-  *idfPun |= (VBufDataType::VertexPos);
+  includedDataFlags |= VBufDataType::VertexPos;
 
   this->dataBufSize = dataBufSize;
   this->includedData = includedDataFlags;
@@ -86,7 +85,7 @@ void Mesh::UpdateMesh(float data[], int dataBufSize, VBufDataType includedDataFl
 
   int ultimateStrideSize = 0;
   //count set data flags
-  for (size_t i = 0; i < sizeof(VBufDataType) * 8; i++)
+  for (size_t i = 0; i < 32; i++)
   {
     switch (((int)includedDataFlags) & (1 << i))
     {
@@ -174,22 +173,22 @@ void Mesh::UpdateMesh(float data[], int dataBufSize, VBufDataType includedDataFl
   glBindVertexArray(0);
 }
 
-Mesh::VBufDataType Mesh::GetDatas()
+int Mesh::GetDatas()
 {
   return this->includedData;
 }
 
-Mesh::ShaderSettings Mesh::GetShaderSettings()
+int Mesh::GetShaderSettings()
 {
   return this->shaderSettings;
 }
 
-void Mesh::SetShaderSettings(ShaderSettings shadSettings)
+void Mesh::SetShaderSettings(int shadSettings)
 {
   this->shaderSettings = shadSettings;
 }
 
-Mesh::Mesh(float data[], int dataBufSize, VBufDataType includedDataFlags, ShaderSettings shadSettings, bool dataIsInterlaced)
+Mesh::Mesh(float data[], int dataBufSize, int includedDataFlags, int shadSettings, bool dataIsInterlaced)
 {
   UpdateMesh(data, dataBufSize, includedDataFlags, shadSettings, dataIsInterlaced);
 }

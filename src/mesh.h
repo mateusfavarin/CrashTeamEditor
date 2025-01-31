@@ -24,19 +24,19 @@ public:
 private:
   GLuint VAO = 0, VBO = 0;
   int dataBufSize = 0;
-  ShaderSettings shaderSettings;
-  VBufDataType includedData;
+  int shaderSettings;
+  int includedData;
 public:
 
   //don't call these three directly. Use the Model class.
   void Bind();
   void Unbind();
   void Draw();
-  VBufDataType GetDatas();
-  ShaderSettings GetShaderSettings();
-  void SetShaderSettings(ShaderSettings shadSettings);
-  void UpdateMesh(float data[], int dataBufSize, VBufDataType includedDataFlags, ShaderSettings shadSettings, bool dataIsInterlaced = true);
-  Mesh(float data[], int dataBufSize, VBufDataType includedDataFlags, ShaderSettings shadSettings, bool dataIsInterlaced = true);
+  int GetDatas();
+  int GetShaderSettings();
+  void SetShaderSettings(int shadSettings);
+  void UpdateMesh(float data[], int dataBufSize, int includedDataFlags, int shadSettings, bool dataIsInterlaced = true);
+  Mesh(float data[], int dataBufSize, int includedDataFlags, int shadSettings, bool dataIsInterlaced = true);
   Mesh();
   void Dispose();
 };

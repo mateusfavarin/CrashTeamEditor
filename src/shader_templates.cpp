@@ -78,22 +78,6 @@ std::string ShaderTemplates::vert_vcolor;
 std::string ShaderTemplates::vert_normal;
 std::string ShaderTemplates::vert_;
 
-
-/*
-  enum RenderType {
-    VColor,
-    Diffuse,
-    Normals,
-    DontDraw //specifically don't draw "faces", but still draw wireframe (if enabled) or verts (if enabled) etc.
-  };
-  enum ShaderSettings
-  {
-    DrawWireframe,
-    DrawVertsAsPoints,
-    DrawBackfaces,
-  };
-  */
-
 //=====================================================================================================================
 // Fragment shaders
 //=====================================================================================================================
@@ -158,10 +142,10 @@ std::string ShaderTemplates::frag_vcolor;
 std::string ShaderTemplates::frag_normal;
 std::string ShaderTemplates::frag_;
 
-std::map<Mesh::VBufDataType, std::tuple<std::string, std::string, std::string>> ShaderTemplates::datasToShaderSourceMap =
+std::map<int, std::tuple<std::string, std::string, std::string>> ShaderTemplates::datasToShaderSourceMap =
 {
   { 
-    ((Mesh::VBufDataType)(Mesh::VBufDataType::VertexPos | Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals)),
+    (Mesh::VBufDataType::VertexPos | Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals),
     (std::make_tuple(ShaderTemplates::geom_vcolornormal, ShaderTemplates::vert_vcolornormal, ShaderTemplates::frag_vcolornormal))
   },
 };
