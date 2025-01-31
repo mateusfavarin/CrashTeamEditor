@@ -2,20 +2,6 @@
 
 #include <string>
 
-/*
-  enum RenderType {
-    VColor,
-    Diffuse,
-    Normals,
-    DontDraw //specifically don't draw "faces", but still draw wireframe (if enabled) or verts (if enabled) etc.
-  };
-  enum ShaderSettings
-  {
-    DrawWireframe,
-    DrawVertsAsPoints,
-  };
-  */
-
 #pragma region Shader Templates
 //=====================================================================================================================
 // Geometry shaders

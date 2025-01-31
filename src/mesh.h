@@ -7,10 +7,6 @@
 
 class Mesh {
 public:
-  //enum MetaShaderSettings 
-  //{
-  //  None = 0,
-  //};
   enum ShaderSettings //note: updating this also requires updating all shader source.
   {
     None = 0,
@@ -28,14 +24,11 @@ public:
 private:
   GLuint VAO = 0, VBO = 0;
   int dataBufSize = 0;
-  ShaderSettings shaderSettings, needsUndoing;
+  ShaderSettings shaderSettings;
   VBufDataType includedData;
-  /*friend Model Bind();
-  friend Model Unbind();
-  friend Model Draw();*/
 public:
 
-  //don't call these directly. Use the Model class.
+  //don't call these three directly. Use the Model class.
   void Bind();
   void Unbind();
   void Draw();

@@ -18,19 +18,15 @@
 class Renderer 
 {
 private:
-  //GLuint shaderProgram;
-  //Shader shader;
   GLuint renderbuffer;
   GLuint framebuffer;
   std::map<Mesh::VBufDataType, Shader> shaderCache;
-  //std::vector<Model> models;
   float time = 0.f, lastFrameTime = 0.f, deltaTime = -1.f;
 public:
   GLuint texturebuffer;
   int width, height;
   Renderer(int width, int height);
   void RescaleFramebuffer(float width, float height);
-  ~Renderer();
   void Render(std::vector<Model> models);
   float GetLastDeltaTime(void);
   float GetLastTime(void);

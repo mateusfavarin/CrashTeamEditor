@@ -137,43 +137,13 @@ void Renderer::Render(std::vector<Model> models)
     camPos += moveBy;
   }
 
-  /*
-  * *** Show vcolor (bool) (if off, use diffuse or something else idk)
-  * *** Show wireframe (bool) (if on, show only the wireframe)
-  * *** Show Low LOD (bool)
-  * *** Viewport FOV (float 20-150)
-  * *** Show checkpoints (bool)
-  * *** Enable viewport resizing
-  * *** Show starting positions (bool)
-  * Show bsp rects/tree (bool)
-  * *** Camera look sensitivity (float)
-  * *** Camera move sensitivity (float)
-  * *** Camera sprint multiplier (float)
-  * Show normals (blender style, red is up, blue is down)
-  * Filter by material (highlight all quads with a specified subset of materials)
-  * Filter by quad flags (higlight all quads with a specified subset of quadflags)
-  * Filter by draw flags ""
-  * Filter by terrain "" 
-  * 
-  * NOTE: resetBsp does not trigger when vertex color changes.
-  * 
-  * Make mesh read live data.
-  * 
-  * Editor features (edit in viewport blender style).
-  */
-
   //if (ImGui::IsKeyDown(ImGuiKey_Scroll)) //todo zoom in and out
 
   glm::mat4 perspective = glm::perspective<float>(glm::radians(GuiRenderSettings::camFovDeg), ((float)this->width / (float)this->height), 0.1f, 1000.0f);
   glm::mat4 view = glm::lookAt(camPos, camPos + camFront, camUp);
 
-
-
-  std::vector<Model>& itrModels = models;// models.size() > 0 ? models : this->models;
-
   static Shader* lastUsedShader = nullptr;
-  //easy optimization: sort itrModels by their respective shaders & batch on shader type so shad->un/use() isn't called so often.
-  for (Model m : itrModels)
+  for (Model m : models)
   {
     if (m.GetMesh() == nullptr)
       continue;
@@ -198,7 +168,6 @@ void Renderer::Render(std::vector<Model> models)
       lastUsedShader = shad;
     }
 
-    //currently this applies to all meshes in the pipeline, but since we only draw the level, for now, this is fine.
     Mesh::ShaderSettings newShadSettings = Mesh::ShaderSettings::None;
     int* nss = (int*)&newShadSettings;
     if (GuiRenderSettings::showWireframe)
@@ -235,11 +204,6 @@ float Renderer::GetLastDeltaTime()
 float Renderer::GetLastTime()
 {
   return this->time;
-}
-
-Renderer::~Renderer(void) 
-{
-
 }
 
 void Renderer::RescaleFramebuffer(float width, float height)

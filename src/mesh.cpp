@@ -61,7 +61,7 @@ void Mesh::Draw()
 /// When passing data[], any present data according to the "includedDataFlags" is expected to be in this order:
 /// 
 /// vertex/position data (always assumed to be present).
-/// barycentric (1, 0, 0), (0, 1, 0), (0, 0, 1) (always assumed to be present).
+/// barycentric (1, 0, 0), (0, 1, 0), (0, 0, 1).
 /// normal
 /// vcolor
 /// stuv_1
@@ -69,15 +69,9 @@ void Mesh::Draw()
 void Mesh::UpdateMesh(float data[], int dataBufSize, VBufDataType includedDataFlags, ShaderSettings shadSettings, bool dataIsInterlaced)
 {
   Dispose();
-  
-  int maxAttribs;
-  glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &maxAttribs);
 
   int* idfPun = (int*)&includedDataFlags;
   *idfPun |= (VBufDataType::VertexPos);
-
-  //GLint maxBufferSize;
-  //glGetIntegerv(GL_MAX_BUFFER_SIZE, &maxBufferSize);
 
   this->dataBufSize = dataBufSize;
   this->includedData = includedDataFlags;
