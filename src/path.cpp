@@ -68,6 +68,11 @@ bool Path::Ready() const
 	return left && right && !m_quadIndexesStart.empty() && !m_quadIndexesEnd.empty();
 }
 
+void Path::SetIndex(size_t index)
+{
+	m_index = index;
+}
+
 void Path::UpdateDist(float dist, const Vec3& refPoint, std::vector<Checkpoint>& checkpoints)
 {
 	dist += (refPoint - checkpoints[m_end].Pos()).Length();

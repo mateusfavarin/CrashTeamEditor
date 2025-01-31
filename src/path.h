@@ -17,9 +17,10 @@ public:
 	size_t Start() const;
 	size_t End() const;
 	bool Ready() const;
+	void SetIndex(size_t index);
 	void UpdateDist(float dist, const Vec3& refPoint, std::vector<Checkpoint>& checkpoints);
 	std::vector<Checkpoint> GeneratePath(size_t pathStartIndex, std::vector<Quadblock>& quadblocks);
-	void RenderUI(const std::string& title, const std::vector<Quadblock>& quadblocks, const std::string& searchQuery);
+	void RenderUI(const std::string& title, const std::vector<Quadblock>& quadblocks, const std::string& searchQuery, bool drawPathBtn, bool& insertBelow, bool& removeBelow);
 	void ToJson(nlohmann::json& json, const std::vector<Quadblock>& quadblocks) const;
 	void FromJson(const nlohmann::json& json, const std::vector<Quadblock>& quadblocks);
 
