@@ -145,7 +145,7 @@ void Checkpoint::RenderUI(size_t numCheckpoints, const std::vector<Quadblock>& q
 		ImGui::SetItemTooltip("Update checkpoint position by selecting a specific quadblock.");
 
     ImGui::Text("Distance:  "); ImGui::SameLine();
-    if (ImGui::InputFloat("##dist", &m_distToFinish)) { m_distToFinish = std::max(m_distToFinish, 0.0f); }
+    if (ImGui::InputFloat("##dist", &m_distToFinish)) { m_distToFinish = m_distToFinish < 0.0f ? 0.0f : m_distToFinish; }
     ImGui::SetItemTooltip("Distance from checkpoint to the finish line.");
 
     auto LinkUI = [](int index, size_t numCheckpoints, int& dir, std::string& s, const std::string& title)
@@ -668,7 +668,7 @@ void Level::RenderUI()
           ImGui::TableSetColumnIndex(0);
           ImGui::Text("FPS: %d", FPS);
 
-          if (ImGui::Combo("Render", &GuiRenderSettings::renderType, GuiRenderSettings::renderTypeLabels, 4)) {}
+          if (ImGui::Combo("Render", &GuiRenderSettings::renderType, GuiRenderSettings::renderTypeLabels, 3)) {}
 
           ImGui::Checkbox("Show Low LOD", &GuiRenderSettings::showLowLOD);
           ImGui::Checkbox("Show Wireframe", &GuiRenderSettings::showWireframe);

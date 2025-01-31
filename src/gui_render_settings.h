@@ -8,8 +8,7 @@ struct GuiRenderSettings
   enum RenderType { //note: updating this also requires updating all shader source.
     VColor,
     Diffuse,
-    Normals,
-    DontDraw //specifically don't draw "faces", but still draw wireframe (if enabled) or verts (if enabled) etc.
+    Normals
   };
   static const char* renderTypeLabels[];
 };
