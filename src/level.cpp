@@ -354,12 +354,27 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 		generate visible nodes/quads depending on the needs of every quadblock.
 	*/
 	std::vector<uint32_t> visibleNodeAll(visNodeSize, 0xFFFFFFFF);
+	for (const BSP* bsp : orderedBSPNodes)
+	{
+		if (bsp->Flags() & BSPFlags::INVISIBLE) { visibleNodeAll[bsp->Id()] &= ~(1 << bsp->Id()); }
+	}
 	visibleNodes.push_back({visibleNodeAll, currOffset});
 	currOffset += visibleNodeAll.size() * sizeof(uint32_t);
 
 	std::vector<uint32_t> visibleQuadsAll(visQuadSize, 0xFFFFFFFF);
+	size_t quadIndex = 0;
+	for (const Quadblock* quad : orderedQuads)
+	{
+		if (quad->Flags() & (QuadFlags::INVISIBLE | QuadFlags::INVISIBLE_TRIGGER))
+		{
+			visibleQuadsAll[quadIndex / 32] &= ~(1 << quadIndex);
+		}
+		quadIndex++;
+	}
+
 	visibleQuads.push_back({visibleQuadsAll, currOffset});
 	currOffset += visibleQuadsAll.size() * sizeof(uint32_t);
+
 
 	std::unordered_map<PSX::VisibleSet, size_t> visibleSetMap;
 	std::vector<PSX::VisibleSet> visibleSets;

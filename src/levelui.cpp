@@ -59,7 +59,7 @@ bool ButtonUI::Show(const std::string& label, const std::string& message, bool u
 		ret = true;
 	}
 	if (std::chrono::duration_cast<std::chrono::seconds>(std::chrono::high_resolution_clock::now() - m_messageTimeoutStart).count() < m_timeout
-			&& m_labelTriggered == label)
+		&& m_labelTriggered == label)
 	{
 		ImGui::Text(message.c_str());
 	}
@@ -400,6 +400,12 @@ void Level::RenderUI()
 						{
 							m_propQuadFlags.Apply(material, quadblockIndexes, m_quadblocks);
 						}
+						static ButtonUI killPlaneButton = ButtonUI();
+						if (killPlaneButton.Show("Kill Plane##quadflags", "Modified quad flags to kill plane.", false))
+						{
+							m_propQuadFlags.SetPreview(material, QuadFlags::INVISIBLE_TRIGGER | QuadFlags::OUT_OF_BOUNDS | QuadFlags::MASK_GRAB | QuadFlags::WALL | QuadFlags::NO_COLLISION);
+							m_propQuadFlags.Apply(material, quadblockIndexes, m_quadblocks);
+						}
 						ImGui::TreePop();
 					}
 
@@ -497,9 +503,23 @@ void Level::RenderUI()
 		}
 		if (ImGui::TreeNode("Generate"))
 		{
-			for (Path& path : m_checkpointPaths)
+			for (size_t i = 0; i < m_checkpointPaths.size(); i++)
 			{
-				path.RenderUI("Path " + std::to_string(path.Index()), m_quadblocks, checkpointQuery);
+				bool insertAbove = false;
+				bool removePath = false;
+				Path& path = m_checkpointPaths[i];
+				const std::string pathTitle = "Path " + std::to_string(path.Index());
+				path.RenderUI(pathTitle, m_quadblocks, checkpointQuery, true, insertAbove, removePath);
+				if (insertAbove)
+				{
+					m_checkpointPaths.insert(m_checkpointPaths.begin() + path.Index(), Path());
+					for (size_t j = 0; j < m_checkpointPaths.size(); j++) { m_checkpointPaths[j].SetIndex(j); }
+				}
+				if (removePath)
+				{
+					m_checkpointPaths.erase(m_checkpointPaths.begin() + path.Index());
+					for (size_t j = 0; j < m_checkpointPaths.size(); j++) { m_checkpointPaths[j].SetIndex(j); }
+				}
 			}
 
       if (ImGui::Button("Create Path"))
@@ -804,113 +824,123 @@ void Level::RenderUI()
   }
 }
 
-void Path::RenderUI(const std::string& title, const std::vector<Quadblock>& quadblocks, const std::string& searchQuery)
+void Path::RenderUI(const std::string& title, const std::vector<Quadblock>& quadblocks, const std::string& searchQuery, bool drawPathBtn, bool& insertAbove, bool& removePath)
 {
-    auto QuadListUI = [this](std::vector<size_t>& indexes, size_t& value, std::string& label, const std::string& title, const std::vector<Quadblock>& quadblocks, const std::string& searchQuery, ButtonUI& button)
-    {
-        if (ImGui::BeginChild(title.c_str(), {0, 0}, ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_AutoResizeX))
-        {
-            ImGui::Text(title.substr(0, title.find("##")).c_str());
-            if (ImGui::TreeNode("Quad list:"))
-            {
-                std::vector<size_t> deleteList;
-                for (size_t i = 0; i < indexes.size(); i++)
-                {
-                    ImGui::Text(quadblocks[indexes[i]].Name().c_str()); ImGui::SameLine();
-                    if (ImGui::Button(("Remove##" + title + std::to_string(i)).c_str()))
-                    {
-                        deleteList.push_back(i);
-                    }
-                }
-                if (!deleteList.empty())
-                {
-                    for (int i = static_cast<int>(deleteList.size()) - 1; i >= 0; i--)
-                    {
-                        indexes.erase(indexes.begin() + deleteList[i]);
-                    }
-                }
-                ImGui::TreePop();
-            }
+	auto QuadListUI = [this](std::vector<size_t>& indexes, size_t& value, std::string& label, const std::string& title, const std::vector<Quadblock>& quadblocks, const std::string& searchQuery, ButtonUI& button)
+		{
+			if (ImGui::BeginChild(title.c_str(), {0, 0}, ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_AutoResizeX))
+			{
+				ImGui::Text(title.substr(0, title.find("##")).c_str());
+				if (ImGui::TreeNode("Quad list:"))
+				{
+					std::vector<size_t> deleteList;
+					for (size_t i = 0; i < indexes.size(); i++)
+					{
+						ImGui::Text(quadblocks[indexes[i]].Name().c_str()); ImGui::SameLine();
+						if (ImGui::Button(("Remove##" + title + std::to_string(i)).c_str()))
+						{
+							deleteList.push_back(i);
+						}
+					}
+					if (!deleteList.empty())
+					{
+						for (int i = static_cast<int>(deleteList.size()) - 1; i >= 0; i--)
+						{
+							indexes.erase(indexes.begin() + deleteList[i]);
+						}
+					}
+					ImGui::TreePop();
+				}
 
-        if (ImGui::BeginCombo(("##" + title).c_str(), label.c_str()))
-        {
-          for (size_t i = 0; i < quadblocks.size(); i++)
-          {
-            if (Matches(quadblocks[i].Name(), searchQuery))
-            {
-              if (ImGui::Selectable(quadblocks[i].Name().c_str()))
-              {
-                label = quadblocks[i].Name();
-                value = i;
-              }
-            }
-          }
-          ImGui::EndCombo();
-        }
+				if (ImGui::BeginCombo(("##" + title).c_str(), label.c_str()))
+				{
+					for (size_t i = 0; i < quadblocks.size(); i++)
+					{
+						if (Matches(quadblocks[i].Name(), searchQuery))
+						{
+							if (ImGui::Selectable(quadblocks[i].Name().c_str()))
+							{
+								label = quadblocks[i].Name();
+								value = i;
+							}
+						}
+					}
+					ImGui::EndCombo();
+				}
 
-        if (button.Show(("Add##" + title).c_str(), "Quadblock successfully\nadded to path.", false))
-        {
-          bool found = false;
-          for (const size_t index : indexes)
-          {
-            if (index == value) { found = true; break; }
-          }
-          if (!found) { indexes.push_back(value); }
-        }
-      }
-      ImGui::EndChild();
-    };
+				if (button.Show(("Add##" + title).c_str(), "Quadblock successfully\nadded to path.", false))
+				{
+					bool found = false;
+					for (const size_t index : indexes)
+					{
+						if (index == value) { found = true; break; }
+					}
+					if (!found) { indexes.push_back(value); }
+				}
+			}
+			ImGui::EndChild();
+		};
 
-  if (ImGui::TreeNode(title.c_str()))
-  {
-    if (ImGui::BeginChild(("##" + title).c_str(), { 0, 0 }, ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_AutoResizeX))
-    {
-      if (m_left) { m_left->RenderUI("Left Path", quadblocks, searchQuery); }
-      if (m_right) { m_right->RenderUI("Right Path", quadblocks, searchQuery); }
+	if (ImGui::TreeNode(title.c_str()))
+	{
+		if (ImGui::BeginChild(("##" + title).c_str(), {0, 0}, ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_AutoResizeX))
+		{
+			bool dummyInsert, dummyRemove = false;
+			if (m_left) { m_left->RenderUI("Left Path", quadblocks, searchQuery, false, dummyInsert, dummyRemove); }
+			if (m_right) { m_right->RenderUI("Right Path", quadblocks, searchQuery, false, dummyInsert, dummyRemove); }
 
-      static ButtonUI startButton = ButtonUI();
-      static ButtonUI endButton = ButtonUI();
-      static ButtonUI ignoreButton = ButtonUI();
-      QuadListUI(m_quadIndexesStart, m_previewValueStart, m_previewLabelStart, "Start##" + title, quadblocks, searchQuery, startButton);
-      ImGui::SameLine();
-      QuadListUI(m_quadIndexesEnd, m_previewValueEnd, m_previewLabelEnd, "End##" + title, quadblocks, searchQuery, endButton);
-      ImGui::SameLine();
-      QuadListUI(m_quadIndexesIgnore, m_previewValueIgnore, m_previewLabelIgnore, "Ignore##" + title, quadblocks, searchQuery, ignoreButton);
+			static ButtonUI startButton = ButtonUI();
+			static ButtonUI endButton = ButtonUI();
+			static ButtonUI ignoreButton = ButtonUI();
+			QuadListUI(m_quadIndexesStart, m_previewValueStart, m_previewLabelStart, "Start##" + title, quadblocks, searchQuery, startButton);
+			ImGui::SameLine();
+			QuadListUI(m_quadIndexesEnd, m_previewValueEnd, m_previewLabelEnd, "End##" + title, quadblocks, searchQuery, endButton);
+			ImGui::SameLine();
+			QuadListUI(m_quadIndexesIgnore, m_previewValueIgnore, m_previewLabelIgnore, "Ignore##" + title, quadblocks, searchQuery, ignoreButton);
 
-      if (ImGui::Button("Add Left Path "))
-      {
-        if (!m_left) { m_left = new Path(m_index + 1); }
-      } ImGui::SameLine();
-      ImGui::BeginDisabled(m_left == nullptr);
-      if (ImGui::Button("Delete Left Path "))
-      {
-        if (m_left)
-        {
-          delete m_left;
-          m_left = nullptr;
-        }
-      }
-      ImGui::EndDisabled();
+			if (ImGui::Button("Add Left Path "))
+			{
+				if (!m_left) { m_left = new Path(m_index + 1); }
+			} ImGui::SameLine();
+			ImGui::BeginDisabled(m_left == nullptr);
+			if (ImGui::Button("Delete Left Path "))
+			{
+				if (m_left)
+				{
+					delete m_left;
+					m_left = nullptr;
+				}
+			}
+			ImGui::EndDisabled();
 
-      if (ImGui::Button("Add Right Path"))
-      {
-        if (!m_right) { m_right = new Path(m_index + 2); }
-      }
-      ImGui::SameLine();
-      ImGui::BeginDisabled(m_right == nullptr);
-      if (ImGui::Button("Delete Right Path"))
-      {
-        if (m_right)
-        {
-          delete m_right;
-          m_right = nullptr;
-        }
-      }
-      ImGui::EndDisabled();
-    }
-    ImGui::EndChild();
-    ImGui::TreePop();
-  }
+			if (ImGui::Button("Add Right Path"))
+			{
+				if (!m_right) { m_right = new Path(m_index + 2); }
+			}
+			ImGui::SameLine();
+			ImGui::BeginDisabled(m_right == nullptr);
+			if (ImGui::Button("Delete Right Path"))
+			{
+				if (m_right)
+				{
+					delete m_right;
+					m_right = nullptr;
+				}
+			}
+			ImGui::EndDisabled();
+		}
+		ImGui::EndChild();
+
+		if (drawPathBtn)
+		{
+			static ButtonUI insertAboveButton;
+			static ButtonUI removePathButton;
+			if (insertAboveButton.Show(("Insert Path Above##" + std::to_string(m_index)).c_str(), "You're editing the new path.", false)) { insertAbove = true; }
+			if (removePathButton.Show(("Remove Current Path##" + std::to_string(m_index)).c_str(), "Path successfully deleted.", false)) { removePath = true; }
+		}
+
+		ImGui::TreePop();
+	}
 }
 
 bool Quadblock::RenderUI(size_t checkpointCount, bool& resetBsp)

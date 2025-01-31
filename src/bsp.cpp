@@ -53,6 +53,11 @@ bool BSP::IsBranch() const
 	return m_node == BSPNode::BRANCH;
 }
 
+uint16_t BSP::Flags() const
+{
+	return m_flags;
+}
+
 const std::string& BSP::GetType() const
 {
 	const static std::string sBranch = "Branch";
@@ -143,7 +148,7 @@ void BSP::Generate(const std::vector<Quadblock>& quadblocks, const size_t maxQua
 	{
 		if (m_bbox.AxisLength() < maxAxisLength || m_quadblockIndexes.size() == 1) { return; }
 		m_node = BSPNode::BRANCH;
-		m_flags = BSPFlags::NONE;
+		m_flags &= ~BSPFlags::LEAF;
 	}
 
 	if (m_quadblockIndexes.size() == 1)
@@ -161,7 +166,7 @@ void BSP::Generate(const std::vector<Quadblock>& quadblocks, const size_t maxQua
 	if (isLeaf && bestScore == std::numeric_limits<float>::max())
 	{
 		m_node = BSPNode::LEAF;
-		m_flags = BSPFlags::LEAF;
+		m_flags |= BSPFlags::LEAF;
 		return;
 	}
 	if (bestScore == x_score)
