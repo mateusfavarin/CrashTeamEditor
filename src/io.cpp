@@ -2,6 +2,7 @@
 #include "geo.h"
 
 #include <unordered_map>
+#include <filesystem>
 
 void to_json(nlohmann::json& json, const Vec3& v)
 {
@@ -52,9 +53,9 @@ void from_json(const nlohmann::json& json, ColorGradient& spawn)
 	json.at("colorTo").get_to(spawn.colorTo);
 }
 
-void ReadBinaryFile(std::vector<uint8_t>& v, const std::string& path)
+void ReadBinaryFile(std::vector<uint8_t>& v, const std::filesystem::path& path)
 {
-	std::ifstream file(path.c_str(), std::ios::binary);
+	std::ifstream file(path, std::ios::binary);
 	file.seekg(0, std::ios::end);
 	size_t size = file.tellg();
 	v.resize(size);

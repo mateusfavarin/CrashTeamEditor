@@ -22,7 +22,7 @@ void from_json(const nlohmann::json& json, Spawn& spawn);
 void to_json(nlohmann::json& json, const ColorGradient& spawn);
 void from_json(const nlohmann::json& json, ColorGradient& spawn);
 
-void ReadBinaryFile(std::vector<uint8_t>& v, const std::string& path);
+void ReadBinaryFile(std::vector<uint8_t>& v, const std::filesystem::path& path);
 
 template<typename T> static inline void Read(std::ifstream& file, T& data)
 {

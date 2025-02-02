@@ -16,6 +16,9 @@
 #include <array>
 #include <unordered_map>
 #include <filesystem>
+#include <cstdint>
+
+static constexpr size_t GHOST_DATA_FILESIZE = 0x3E00;
 
 class Level
 {
@@ -36,7 +39,10 @@ private:
 	bool LoadLEV(const std::filesystem::path& levFile);
 	bool SaveLEV(const std::filesystem::path& path);
 	bool LoadOBJ(const std::filesystem::path& objFile);
+	bool StartEmuIPC(const std::string& emulator);
 	bool HotReload(const std::string& levPath, const std::string& vrmPath, const std::string& emulator);
+	bool SaveGhostData(const std::string& emulator, const std::filesystem::path& path);
+	bool SetGhostData(const std::filesystem::path& path, bool tropy);
 
 private:
 	bool m_showLogWindow;
@@ -50,6 +56,8 @@ private:
 	uint32_t m_configFlags;
 	std::array<ColorGradient, NUM_GRADIENT> m_skyGradient;
 	Color m_clearColor;
+	std::vector<uint8_t> m_tropyGhost;
+	std::vector<uint8_t> m_oxideGhost;
 	std::vector<Quadblock> m_quadblocks;
 	std::vector<Checkpoint> m_checkpoints;
 	BSP m_bsp;
