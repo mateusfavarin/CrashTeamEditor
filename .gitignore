@@ -37,3 +37,7 @@ CrashTeamEditor/
 x64/
 packages/
 /.vs
+/CMakeFiles
+CMakeCache.txt
+/glfw-build-unix
+/glfw-build-win

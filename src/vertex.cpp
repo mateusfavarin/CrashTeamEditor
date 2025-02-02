@@ -33,3 +33,8 @@ std::vector<uint8_t> Vertex::Serialize() const
 	std::memcpy(buffer.data(), &v, sizeof(v));
 	return buffer;
 }
+
+Color Vertex::GetColor(bool high) const 
+{
+	return high ? this->m_colorHigh : this->m_colorLow;
+}

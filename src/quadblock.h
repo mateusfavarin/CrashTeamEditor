@@ -120,10 +120,12 @@ public:
 	void SetName(const std::string& name);
 	void SetTurboPadIndex(size_t index);
 	void SetHide(bool active);
+	bool IsQuadblock();
 	void SetTrigger(QuadblockTrigger trigger);
 	void TranslateNormalVec(float ratio);
 	const BoundingBox& GetBoundingBox() const;
 	std::vector<Vertex> GetVertices() const;
+	const Vertex* const GetUnswizzledVertices() const;
 	float DistanceClosestVertex(Vec3& out, const Vec3& v) const;
 	bool Neighbours(const Quadblock& quadblock, float threshold = 0.1f) const;
 	std::vector<uint8_t> Serialize(size_t id, size_t offTextures, const std::vector<size_t>& vertexIndexes) const;

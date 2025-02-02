@@ -22,6 +22,12 @@
     <Filter Include="ImGui\misc">
       <UniqueIdentifier>{1a256383-7b59-462e-aadd-c8fa568d13f4}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ManualThirdParty">
+      <UniqueIdentifier>{5651c025-391d-4ca0-8741-6a37f669acac}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Renderer">
+      <UniqueIdentifier>{5562c57f-03f2-4e3c-be8b-d85865b28026}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
@@ -49,9 +55,6 @@
       <Filter>ImGui\misc</Filter>
     </ClCompile>
     <ClCompile Include="third_party\imgui\backends\imgui_impl_opengl3.cpp">
-      <Filter>ImGui\backends</Filter>
-    </ClCompile>
-    <ClCompile Include="third_party\imgui\backends\imgui_impl_sdl2.cpp">
       <Filter>ImGui\backends</Filter>
     </ClCompile>
     <ClCompile Include="src\ui.cpp">
@@ -87,15 +90,45 @@
     <ClCompile Include="src\material.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\manual_third_party\glad.h">
+      <Filter>ManualThirdParty</Filter>
+    </ClCompile>
+    <ClCompile Include="src\manual_third_party\stb_image.h">
+      <Filter>ManualThirdParty</Filter>
+    </ClCompile>
+    <ClCompile Include="src\manual_third_party\khrplatform.h">
+      <Filter>ManualThirdParty</Filter>
+    </ClCompile>
+    <ClCompile Include="src\manual_third_party\glad.c">
+      <Filter>ManualThirdParty</Filter>
+    </ClCompile>
+    <ClCompile Include="src\shader.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\renderer.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="third_party\imgui\backends\imgui_impl_glfw.cpp">
+      <Filter>ImGui\backends</Filter>
+    </ClCompile>
+    <ClCompile Include="src\model.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\mesh.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\gui_render_settings.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\shader_templates.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
     <ClCompile Include="src\io.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\process.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\app.h">
@@ -140,8 +173,33 @@
     <ClInclude Include="src\material.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\renderer.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\shader.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\globalimguiglglfw.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\model.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\mesh.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\shader_templates.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\gui_render_settings.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
     <ClInclude Include="src\process.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="$(SolutionDir)third_party\glfw" />
+
   </ItemGroup>
 </Project>

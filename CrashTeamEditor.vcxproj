@@ -1,14 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
-    <ProjectConfiguration Include="Debug|Win32">
-      <Configuration>Debug</Configuration>
-      <Platform>Win32</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Release|Win32">
-      <Configuration>Release</Configuration>
-      <Platform>Win32</Platform>
-    </ProjectConfiguration>
     <ProjectConfiguration Include="Debug|x64">
       <Configuration>Debug</Configuration>
       <Platform>x64</Platform>
@@ -19,6 +11,25 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <CustomBuild Include="$(SolutionDir)third_party\glfw">
+      <Message>Building GLFW binaries...</Message>
+      <Command>
+	  call "$(VSInstallDir)Common7\Tools\VsDevCmd.bat"
+      mkdir $(ProjectDir)glfw-build-win
+      cd $(ProjectDir)glfw-build-win
+      cmake -G "Visual Studio 17 2022" -A x64 $(SolutionDir)third_party\glfw
+      cmake --build . --config $(Configuration)
+    </Command>
+      <Outputs>$(ProjectDir)\glfw-build-win\src\$(Configuration)\glfw3.lib</Outputs>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\shader_templates.cpp" />
+    <ClCompile Include="src\gui_render_settings.cpp" />
+    <ClCompile Include="src\model.cpp" />
+    <ClCompile Include="src\mesh.cpp" />
+    <ClCompile Include="src\shader.cpp" />
+    <ClCompile Include="src\renderer.cpp" />
     <ClCompile Include="src\app.cpp" />
     <ClCompile Include="src\bsp.cpp" />
     <ClCompile Include="src\checkpoint.cpp" />
@@ -34,19 +45,25 @@
     <ClCompile Include="src\ui.cpp" />
     <ClCompile Include="src\utils.cpp" />
     <ClCompile Include="src\vertex.cpp" />
+    <!--IMGUI stuff-->
+    <ClCompile Include="third_party\imgui\backends\imgui_impl_glfw.cpp" />
     <ClCompile Include="third_party\imgui\backends\imgui_impl_opengl3.cpp" />
-    <ClCompile Include="third_party\imgui\backends\imgui_impl_sdl2.cpp" />
     <ClCompile Include="third_party\imgui\imgui.cpp" />
     <ClCompile Include="third_party\imgui\imgui_demo.cpp" />
     <ClCompile Include="third_party\imgui\imgui_draw.cpp" />
     <ClCompile Include="third_party\imgui\imgui_tables.cpp" />
     <ClCompile Include="third_party\imgui\imgui_widgets.cpp" />
     <ClCompile Include="third_party\imgui\misc\cpp\imgui_stdlib.cpp" />
+    <ClCompile Include="src\manual_third_party\glad.c" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="packages.config" />
-  </ItemGroup>
-  <ItemGroup>
+    <ClInclude Include="src\shader_templates.h" />
+    <ClInclude Include="src\gui_render_settings.h" />
+    <ClInclude Include="src\model.h" />
+    <ClInclude Include="src\mesh.h" />
+    <ClInclude Include="src\shader.h" />
+    <ClInclude Include="src\globalimguiglglfw.h" />
+    <ClInclude Include="src\renderer.h" />
     <ClInclude Include="src\app.h" />
     <ClInclude Include="src\bsp.h" />
     <ClInclude Include="src\checkpoint.h" />
@@ -62,6 +79,9 @@
     <ClInclude Include="src\ui.h" />
     <ClInclude Include="src\utils.h" />
     <ClInclude Include="src\vertex.h" />
+    <ClCompile Include="src\manual_third_party\khrplatform.h" />
+    <ClCompile Include="src\manual_third_party\glad.h" />
+    <ClCompile Include="src\manual_third_party\stb_image.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
@@ -71,19 +91,6 @@
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
-    <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
-    <CharacterSet>Unicode</CharacterSet>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
-    <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
-    <CharacterSet>Unicode</CharacterSet>
-  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
@@ -102,12 +109,6 @@
   </ImportGroup>
   <ImportGroup Label="Shared">
   </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
@@ -115,52 +116,20 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
-      <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)third_party\imgui\;$(SolutionDir)third_party\portable-file-dialogs\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-    </ClCompile>
-    <Link>
-      <SubSystem>Console</SubSystem>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-    </Link>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)third_party\imgui\;$(SolutionDir)third_party\portable-file-dialogs\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-    </ClCompile>
-    <Link>
-      <SubSystem>Console</SubSystem>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <OptimizeReferences>true</OptimizeReferences>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-    </Link>
-  </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NOMINMAX;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)third_party\imgui\;$(SolutionDir)third_party\portable-file-dialogs\;$(SolutionDir)third_party\json\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+		<AdditionalIncludeDirectories>$(SolutionDir)third_party\imgui\;$(SolutionDir)third_party\imgui\backends;$(SolutionDir)third_party\portable-file-dialogs\;$(SolutionDir)third_party\glfw\include\;$(SolutionDir)third_party\glm\glm\;$(SolutionDir)third_party\json\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/wd4189 /wd4100 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opengl32.lib;$(SolutionDir)glfw-build-win\src\$(Configuration)\glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -169,10 +138,10 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NOMINMAX;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)third_party\imgui\;$(SolutionDir)third_party\portable-file-dialogs\;$(SolutionDir)third_party\json\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+		<AdditionalIncludeDirectories>$(SolutionDir)third_party\imgui\;$(SolutionDir)third_party\imgui\backends;$(SolutionDir)third_party\portable-file-dialogs\;$(SolutionDir)third_party\glfw\include\;$(SolutionDir)third_party\glm\glm\;$(SolutionDir)third_party\json\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/wd4189 /wd4100 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -180,19 +149,9 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opengl32.lib;$(SolutionDir)glfw-build-win\src\$(Configuration)\glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
-  <ImportGroup Label="ExtensionTargets">
-    <Import Project="packages\sdl2.nuget.redist.2.30.9\build\native\sdl2.nuget.redist.targets" Condition="Exists('packages\sdl2.nuget.redist.2.30.9\build\native\sdl2.nuget.redist.targets')" />
-    <Import Project="packages\sdl2.nuget.2.30.9\build\native\sdl2.nuget.targets" Condition="Exists('packages\sdl2.nuget.2.30.9\build\native\sdl2.nuget.targets')" />
-  </ImportGroup>
-  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
-    <PropertyGroup>
-      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
-    </PropertyGroup>
-    <Error Condition="!Exists('packages\sdl2.nuget.redist.2.30.9\build\native\sdl2.nuget.redist.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\sdl2.nuget.redist.2.30.9\build\native\sdl2.nuget.redist.targets'))" />
-    <Error Condition="!Exists('packages\sdl2.nuget.2.30.9\build\native\sdl2.nuget.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\sdl2.nuget.2.30.9\build\native\sdl2.nuget.targets'))" />
-  </Target>
+  <ImportGroup Label="ExtensionTargets" />
 </Project>
