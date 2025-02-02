@@ -264,6 +264,7 @@ void Level::RenderUI()
 	static bool w_quadblocks = false;
 	static bool w_checkpoints = false;
 	static bool w_bsp = false;
+	static bool w_ghost = false;
 
 	if (ImGui::BeginMainMenuBar())
 	{
@@ -273,6 +274,7 @@ void Level::RenderUI()
 		if (ImGui::MenuItem("Quadblocks")) { w_quadblocks = !w_quadblocks; }
 		if (ImGui::MenuItem("Checkpoints")) { w_checkpoints = !w_checkpoints; }
 		if (ImGui::MenuItem("BSP Tree")) { w_bsp = !w_bsp; }
+		if (ImGui::MenuItem("Ghosts")) { w_ghost = !w_ghost; }
 		ImGui::EndMainMenuBar();
 	}
 
@@ -600,6 +602,65 @@ void Level::RenderUI()
 				{
 					m_bsp.Clear();
 					buttonMessage = "Failed generating the BSP tree.";
+				}
+			}
+		}
+		ImGui::End();
+	}
+
+	if (w_ghost)
+	{
+		if (ImGui::Begin("Ghost", &w_ghost))
+		{
+			static std::string ghostName;
+			static ButtonUI saveGhostButton(20);
+			static std::string saveGhostFeedback;
+			ImGui::InputText("##saveghost", &ghostName); ImGui::SameLine();
+			ImGui::BeginDisabled(ghostName.empty());
+			if (saveGhostButton.Show("Save Ghost", saveGhostFeedback, false))
+			{
+				ghostName += ".ctrghost";
+				saveGhostFeedback = "Failed retrieving ghost data from the emulator.\nMake sure that you have saved your ghost in-game\nbefore clicking this button.";
+
+				auto selection = pfd::select_folder("Level Folder").result();
+				if (!selection.empty())
+				{
+					const std::filesystem::path path = selection + "\\" + ghostName;
+					if (SaveGhostData("duckstation", path)) { saveGhostFeedback = "Ghost file successfully saved."; }
+				}
+			}
+			ImGui::EndDisabled();
+			if (ghostName.empty()) { ImGui::SetItemTooltip("You must choose a filename before saving the ghost file."); }
+
+			static std::string tropyPath;
+			static ButtonUI tropyPathButton(20);
+			static std::string tropyImportFeedback;
+			ImGui::Text("Tropy Ghost:"); ImGui::SameLine();
+			ImGui::InputText("##tropyghost", &tropyPath, ImGuiInputTextFlags_ReadOnly); ImGui::SameLine();
+			if (tropyPathButton.Show("...##tropypath", tropyImportFeedback, false))
+			{
+				tropyImportFeedback = "Error: invalid ghost file format.";
+				auto selection = pfd::open_file("CTR Ghost File", ".", {"CTR Ghost Files", "*.ctrghost"}).result();
+				if (!selection.empty())
+				{
+					tropyPath = selection.front();
+					if (SetGhostData(tropyPath, true)) { tropyImportFeedback = "Tropy ghost successfully set."; }
+				}
+			}
+
+			static std::string oxidePath;
+			static ButtonUI oxidePathButton(20);
+			static std::string oxideImportFeedback;
+			ImGui::Text("Oxide Ghost:"); ImGui::SameLine();
+			ImGui::InputText("##oxideghost", &oxidePath, ImGuiInputTextFlags_ReadOnly); ImGui::SameLine();
+			if (oxidePathButton.Show("...##oxidepath", oxideImportFeedback, false))
+			{
+				oxideImportFeedback = "Error: invalid ghost file format.";
+				auto selection = pfd::open_file("CTR Ghost File", ".", {"CTR Ghost Files", "*.ctrghost"}).result();
+				if (!selection.empty())
+				{
+					oxidePath = selection.front();
+					if (SetGhostData(oxidePath, false)) { oxideImportFeedback = "Oxide ghost successfully set"; }
 				}
 			}
 		}

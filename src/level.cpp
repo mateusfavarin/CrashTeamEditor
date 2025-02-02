@@ -58,6 +58,8 @@ void Level::Clear(bool clearErrors)
 	m_bsp.Clear();
 	m_materialToQuadblocks.clear();
 	m_checkpointPaths.clear();
+	m_tropyGhost.clear();
+	m_oxideGhost.clear();
 	ClearMaterials();
 }
 
@@ -265,7 +267,9 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	*		- Array of vertices
 	*		- Array of BSP
 	*		- Array of checkpoints
-	*		- SpawnType
+	*		- N. Tropy Ghost
+	*		- N. Oxide Ghost
+	*		- LevelExtraHeader
 	*		- VisMem
 	*		- PointerMap
 	*/
@@ -431,14 +435,20 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 		currOffset += serializedCheckpoints.back().size();
 	}
 
+	const size_t offTropyGhost = m_tropyGhost.empty() ? 0 : currOffset;
+	currOffset += m_tropyGhost.size();
+
+	const size_t offOxideGhost = m_oxideGhost.empty() ? 0 : currOffset;
+	currOffset += m_oxideGhost.size();
+
 	PSX::LevelExtraHeader extraHeader = {};
 	extraHeader.count = PSX::LevelExtra::COUNT;
 	extraHeader.offsets[PSX::LevelExtra::MINIMAP] = 0;
 	extraHeader.offsets[PSX::LevelExtra::SPAWN] = 0;
 	extraHeader.offsets[PSX::LevelExtra::CAMERA_END_OF_RACE] = 0;
 	extraHeader.offsets[PSX::LevelExtra::CAMERA_DEMO] = 0;
-	extraHeader.offsets[PSX::LevelExtra::N_TROPY_GHOST] = 0;
-	extraHeader.offsets[PSX::LevelExtra::N_OXIDE_GHOST] = 0;
+	extraHeader.offsets[PSX::LevelExtra::N_TROPY_GHOST] = static_cast<uint32_t>(offTropyGhost);
+	extraHeader.offsets[PSX::LevelExtra::N_OXIDE_GHOST] = static_cast<uint32_t>(offOxideGhost);
 	extraHeader.offsets[PSX::LevelExtra::CREDITS] = 0;
 
 	const size_t offExtraHeader = currOffset;
@@ -498,6 +508,8 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 		CALCULATE_OFFSET(PSX::VisualMem, offNodes[0], offVisMem),
 		CALCULATE_OFFSET(PSX::VisualMem, offQuads[0], offVisMem),
 		CALCULATE_OFFSET(PSX::VisualMem, offBSP[0], offVisMem),
+		CALCULATE_OFFSET(PSX::LevelExtraHeader, offsets[PSX::LevelExtra::N_TROPY_GHOST], offExtraHeader),
+		CALCULATE_OFFSET(PSX::LevelExtraHeader, offsets[PSX::LevelExtra::N_OXIDE_GHOST], offExtraHeader),
 	};
 
 	size_t offCurrQuad = offQuadblocks;
@@ -549,6 +561,8 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	for (const std::vector<uint8_t>& serializedVertex : serializedVertices) { Write(file, serializedVertex.data(), serializedVertex.size()); }
 	for (const std::vector<uint8_t>& serializedBSP : serializedBSPs) { Write(file, serializedBSP.data(), serializedBSP.size()); }
 	for (const std::vector<uint8_t>& serializedCheckpoint : serializedCheckpoints) { Write(file, serializedCheckpoint.data(), serializedCheckpoint.size()); }
+	if (!m_tropyGhost.empty()) { Write(file, m_tropyGhost.data(), m_tropyGhost.size()); }
+	if (!m_oxideGhost.empty()) { Write(file, m_oxideGhost.data(), m_oxideGhost.size()); }
 	Write(file, &extraHeader, sizeof(extraHeader));
 	Write(file, visMemNodesP1.data(), visMemNodesP1.size() * sizeof(uint32_t));
 	Write(file, visMemQuadsP1.data(), visMemQuadsP1.size() * sizeof(uint32_t));
@@ -738,6 +752,14 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 	return ret;
 }
 
+bool Level::StartEmuIPC(const std::string& emulator)
+{
+	constexpr size_t PSX_RAM_SIZE = 0x800000;
+	int pid = Process::GetPID(emulator);
+	if (pid == Process::INVALID_PID || !Process::OpenMemoryMap(emulator + "_" + std::to_string(pid), PSX_RAM_SIZE)) { return false; }
+	return true;
+}
+
 bool Level::HotReload(const std::string& levPath, const std::string& vrmPath, const std::string& emulator)
 {
 	bool vrmOnly = false;
@@ -747,9 +769,7 @@ bool Level::HotReload(const std::string& levPath, const std::string& vrmPath, co
 		vrmOnly = true;
 	}
 
-	constexpr size_t PSX_RAM_SIZE = 0x800000;
-	int pid = Process::GetPID(emulator);
-	if (pid == Process::INVALID_PID || !Process::OpenMemoryMap(emulator + "_" + std::to_string(pid), PSX_RAM_SIZE)) { return false; }
+	if (!StartEmuIPC(emulator)) { return false; }
 
 	constexpr size_t GAMEMODE_ADDR = 0x80096b20;
 	constexpr uint32_t GAME_PAUSED = 0xF;
@@ -785,5 +805,35 @@ bool Level::HotReload(const std::string& levPath, const std::string& vrmPath, co
 	if (vrmOnly) { Process::At<int32_t>(SIGNAL_ADDR_VRAM_ONLY) = 1; }
 	else { Process::At<int32_t>(SIGNAL_ADDR) = HOT_RELOAD_EXEC; }
 
+	return true;
+}
+
+bool Level::SaveGhostData(const std::string& emulator, const std::filesystem::path& path)
+{
+	constexpr size_t SIGNAL_ADDR = 0x8000C008;
+	if (!StartEmuIPC(emulator) || Process::At<int32_t>(SIGNAL_ADDR) == 0) { return false; }
+
+	std::vector<uint8_t> data;
+	constexpr size_t GHOST_SIZE_ADDR = 0x80280000;
+	constexpr size_t GHOST_DATA_ADDR = 0x80280004;
+	data.resize(Process::At<uint32_t>(GHOST_SIZE_ADDR));
+	for (size_t i = 0; i < data.size(); i++) { data[i] = Process::At<uint8_t>(GHOST_DATA_ADDR + i); }
+	Process::At<int32_t>(SIGNAL_ADDR) = 0;
+
+	std::ofstream file(path, std::ios::binary);
+	Write(file, data.data(), data.size() * sizeof(uint8_t));
+	file.close();
+	return true;
+}
+
+bool Level::SetGhostData(const std::filesystem::path& path, bool tropy)
+{
+	std::vector<uint8_t> data;
+	ReadBinaryFile(data, path);
+	if (data.size() != GHOST_DATA_FILESIZE) { return false; }
+
+	if (tropy) { m_tropyGhost.resize(GHOST_DATA_FILESIZE); }
+	else { m_oxideGhost.resize(GHOST_DATA_FILESIZE); }
+	memcpy(tropy ? m_tropyGhost.data() : m_oxideGhost.data(), data.data(), data.size());
 	return true;
 }
