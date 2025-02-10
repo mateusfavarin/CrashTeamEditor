@@ -443,7 +443,9 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	currOffset += m_oxideGhost.size();
 
 	PSX::LevelExtraHeader extraHeader = {};
-	extraHeader.count = PSX::LevelExtra::COUNT;
+	// This will disable Fly-in Startline camera
+	extraHeader.count = 3;
+	// to prevent visual bug caused by uninmplemented camera path
 	extraHeader.offsets[PSX::LevelExtra::MINIMAP] = 0;
 	extraHeader.offsets[PSX::LevelExtra::SPAWN] = 0;
 	extraHeader.offsets[PSX::LevelExtra::CAMERA_END_OF_RACE] = 0;
