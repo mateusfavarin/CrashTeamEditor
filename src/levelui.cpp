@@ -587,6 +587,7 @@ void Level::RenderUI()
             node.UpdateUp(static_cast<int>(linkNodeIndexes[linkUp]));
           }
         }
+        GenerateRenderCheckpointData(m_checkpoints);
       }
       ImGui::EndDisabled();
       ImGui::TreePop();
@@ -750,7 +751,7 @@ void Level::RenderUI()
           ImGui::TableSetColumnIndex(0);
           ImGui::Text("FPS: %d", FPS);
 
-          if (ImGui::Combo("Render", &GuiRenderSettings::renderType, GuiRenderSettings::renderTypeLabels, 6)) {} //change to 4 for world normals (todo)
+          if (ImGui::Combo("Render", &GuiRenderSettings::renderType, GuiRenderSettings::renderTypeLabels, 5)) {}
           ImGui::Checkbox("Show Level", &GuiRenderSettings::showLevel);
           ImGui::Checkbox("Show Low LOD", &GuiRenderSettings::showLowLOD);
           ImGui::Checkbox("Show Wireframe", &GuiRenderSettings::showWireframe);

@@ -11,7 +11,6 @@ struct GuiRenderSettings
     ObjFaceDirection,
     CalcFaceDirection,
     WorldNormals,
-    AbsWorldNormals,
   };
   static const char* renderTypeLabels[];
 };

@@ -139,11 +139,7 @@ void main()
   }
   else if (drawType == 4) //4 == "World Normals"
   {
-    FragColor = vec4(normalize(Normal), 1.0);
-  }
-  else if (drawType == 5) //5 == "World Normals"
-  {
-    FragColor = vec4(normalize(abs(Normal)), 1.0);
+    FragColor = vec4((normalize(Normal) + vec3(1.0, 1.0, 1.0)) * 0.5, 1.0);
   }
 }
 )*";
