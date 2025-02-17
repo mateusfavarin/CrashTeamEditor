@@ -16,6 +16,7 @@
 
 #include <string>
 #include <chrono>
+#include <functional>
 #include <cmath>
 
 static constexpr size_t MAX_QUADBLOCKS_LEAF = 32;
@@ -309,6 +310,7 @@ void Level::RenderUI()
             m_spawn[i].rot.y = Clamp(m_spawn[i].rot.y, -360.0f, 360.0f);
             m_spawn[i].rot.z = Clamp(m_spawn[i].rot.z, -360.0f, 360.0f);
           };
+          GenerateRenderStartpointData(m_spawn);
           ImGui::TreePop();
         }
       }
@@ -462,6 +464,7 @@ void Level::RenderUI()
 		if (resetBsp && m_bsp.Valid())
 		{
 			m_bsp.Clear();
+      GenerateRenderBspData(m_bsp);
 			m_showLogWindow = true;
 			m_logMessage = "Modifying quadblock position or turbo pad state automatically resets the BSP tree.";
 		}
@@ -618,6 +621,7 @@ void Level::RenderUI()
 					m_bsp.Clear();
 					buttonMessage = "Failed generating the BSP tree.";
 				}
+        GenerateRenderBspData(m_bsp);
 			}
 		}
 		ImGui::End();
@@ -685,24 +689,25 @@ void Level::RenderUI()
   if (w_renderer)
   {
     constexpr int bottomPaneHeight = 200;
-    //ImGui::SetNextWindowSize(ImVec2(rend.width, rend.height + bottomPaneHeight), ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(rend.width, rend.height + bottomPaneHeight), ImGuiCond_Always);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-    //if (ImGui::IsWindowFocused()) //doesn't seem to work.
-    //	title.append("true");
-
-    if (ImGui::Begin("Renderer", &w_renderer, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings))
-      //ImGui::Begin("Renderer", &w_renderer, ImGuiWindowFlags_NoSavedSettings); //TODO: handle dynamic buffer sizing later
+    
+    if (ImGui::Begin("Renderer", &w_renderer, ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse))
     {
+      ImGui::SetScrollY(0);
 
       ImVec2 pos = ImGui::GetCursorScreenPos();
       ImVec2 min = ImGui::GetItemRectMin();
       ImVec2 max = ImGui::GetItemRectMax();
       ImTextureID tex = (ImTextureID)rend.texturebuffer;
 
+      ImVec2 rect = ImGui::GetWindowSize();
+
+      rend.RescaleFramebuffer(rect.x, rect.y - bottomPaneHeight);
 
       ImGui::GetWindowDrawList()->AddImage(tex,
         ImVec2(pos.x, pos.y),
-        ImVec2(pos.x + rend.width, pos.y + rend.height),
+        ImVec2(pos.x + rect.x, pos.y + rect.y - bottomPaneHeight),
         ImVec2(0, 1),
         ImVec2(1, 0));
 
@@ -722,7 +727,6 @@ void Level::RenderUI()
         if (ImGui::BeginTable("Renderer Settings Table", 2))
         {
             /*
-              * *** Enable viewport resizing
               * Filter by material (highlight all quads with a specified subset of materials)
               * Filter by quad flags (higlight all quads with a specified subset of quadflags)
               * Filter by draw flags ""
@@ -738,9 +742,6 @@ void Level::RenderUI()
             camRotateMult = "1",
             camSprintMult = "2",
             camFOV = "70";
-          static bool showCheckpoints = false,
-            showStartingPositions = false,
-            showBspRectTree = false;
 
           int textFieldWidth = (rend.width / 2) / 3;
           textFieldWidth = textFieldWidth < 50 ? 50 : textFieldWidth;
@@ -749,15 +750,28 @@ void Level::RenderUI()
           ImGui::TableSetColumnIndex(0);
           ImGui::Text("FPS: %d", FPS);
 
-          if (ImGui::Combo("Render", &GuiRenderSettings::renderType, GuiRenderSettings::renderTypeLabels, 3)) {}
-
+          if (ImGui::Combo("Render", &GuiRenderSettings::renderType, GuiRenderSettings::renderTypeLabels, 6)) {} //change to 4 for world normals (todo)
+          ImGui::Checkbox("Show Level", &GuiRenderSettings::showLevel);
           ImGui::Checkbox("Show Low LOD", &GuiRenderSettings::showLowLOD);
           ImGui::Checkbox("Show Wireframe", &GuiRenderSettings::showWireframe);
           ImGui::Checkbox("Show Backfaces", &GuiRenderSettings::showBackfaces);
           ImGui::Checkbox("Show Level Verts", &GuiRenderSettings::showLevVerts);
-          ImGui::Checkbox("(NOT IMPL) Show Checkpoints", &showCheckpoints);
-          ImGui::Checkbox("(NOT IMPL) Show Starting Positions", &showStartingPositions);
-          ImGui::Checkbox("(NOT IMPL) Show BSP Rect Tree", &showBspRectTree);
+          ImGui::Checkbox("Show Checkpoints", &GuiRenderSettings::showCheckpoints);
+          ImGui::Checkbox("Show Starting Positions", &GuiRenderSettings::showStartpoints);
+          ImGui::Checkbox("Show BSP Rect Tree", &GuiRenderSettings::showBspRectTree);
+          {
+            int temp = GuiRenderSettings::bspTreeTopDepth, temp2 = GuiRenderSettings::bspTreeBottomDepth;
+            ImGui::SliderInt("BSP Rect Tree top depth", &GuiRenderSettings::bspTreeTopDepth, 0, GuiRenderSettings::bspTreeMaxDepth);
+            ImGui::SliderInt("BSP Rect Tree bottom depth", &GuiRenderSettings::bspTreeBottomDepth, 0, GuiRenderSettings::bspTreeMaxDepth);
+            if (temp != GuiRenderSettings::bspTreeTopDepth) //top changed
+              if (GuiRenderSettings::bspTreeTopDepth >= GuiRenderSettings::bspTreeBottomDepth)
+                GuiRenderSettings::bspTreeBottomDepth = GuiRenderSettings::bspTreeTopDepth;
+            if (temp2 != GuiRenderSettings::bspTreeBottomDepth) //bottom changed
+              if (GuiRenderSettings::bspTreeBottomDepth <= GuiRenderSettings::bspTreeTopDepth)
+                GuiRenderSettings::bspTreeTopDepth = GuiRenderSettings::bspTreeBottomDepth;
+            if (temp != GuiRenderSettings::bspTreeTopDepth || temp2 != GuiRenderSettings::bspTreeBottomDepth)
+              GenerateRenderBspData(m_bsp);
+          }
           ImGui::PushItemWidth(textFieldWidth);
           if (ImGui::BeginCombo("(NOT IMPL) Mask by Materials", "..."))
           {
@@ -866,19 +880,34 @@ void Level::RenderUI()
 
     std::vector<Model> modelsToRender;
 
-    if (GuiRenderSettings::showLowLOD)
+    if (GuiRenderSettings::showLevel)
     {
-      if (GuiRenderSettings::showLevVerts)
-        modelsToRender.push_back(m_pointsLowLODLevelModel);
+      if (GuiRenderSettings::showLowLOD)
+      {
+        if (GuiRenderSettings::showLevVerts)
+          modelsToRender.push_back(m_pointsLowLODLevelModel);
+        else
+          modelsToRender.push_back(m_lowLODLevelModel);
+      }
       else
-        modelsToRender.push_back(m_lowLODLevelModel);
+      {
+        if (GuiRenderSettings::showLevVerts)
+          modelsToRender.push_back(m_pointsHighLODLevelModel);
+        else
+          modelsToRender.push_back(m_highLODLevelModel);
+      }
     }
-    else
+    if (GuiRenderSettings::showBspRectTree)
     {
-      if (GuiRenderSettings::showLevVerts)
-        modelsToRender.push_back(m_pointsHighLODLevelModel);
-      else
-        modelsToRender.push_back(m_highLODLevelModel);
+      modelsToRender.push_back(m_bspModel);
+    }
+    if (GuiRenderSettings::showCheckpoints)
+    {
+      modelsToRender.push_back(m_checkModel);
+    }
+    if (GuiRenderSettings::showStartpoints)
+    {
+      modelsToRender.push_back(m_spawnsModel);
     }
 
     rend.Render(modelsToRender);
@@ -1104,7 +1133,7 @@ void Vertex::RenderUI(size_t index, bool& editedPos)
   }
 }
 
-void Level::GenerateRasterizableData(std::vector<Quadblock>& quadblocks)
+void Level::GenerateRenderLevData(std::vector<Quadblock>& quadblocks)
 {
   static Mesh lowLODMesh, highLODMesh, vertexLowLODMesh, vertexHighLODMesh;
   std::vector<float> highLODData, lowLODData, vertexHighLODData, vertexLowLODData;
@@ -1269,4 +1298,240 @@ void Level::GenerateRasterizableData(std::vector<Quadblock>& quadblocks)
 
   vertexLowLODMesh.UpdateMesh(vertexLowLODData.data(), vertexLowLODData.size() * sizeof(float), (Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
   this->m_pointsLowLODLevelModel.SetMesh(&vertexLowLODMesh);
+}
+
+void Level::GenerateRenderBspData(BSP bsp)
+{
+  static Mesh bspMesh;
+  std::vector<float> bspData;
+
+  auto point = [](const Vertex* verts, int ind, std::vector<float>& data) {
+    data.push_back(verts[ind].m_pos.x);
+    data.push_back(verts[ind].m_pos.y);
+    data.push_back(verts[ind].m_pos.z);
+    data.push_back(verts[ind].m_normal.x);
+    data.push_back(verts[ind].m_normal.y);
+    data.push_back(verts[ind].m_normal.z);
+    Color col = verts[ind].GetColor(true);
+    data.push_back(col.r);
+    data.push_back(col.g);
+    data.push_back(col.b);
+    };
+
+  std::function<void(const BSP*, int)> createGeom = [&createGeom, &point, &bspData](const BSP* b, int depth) {
+    if (GuiRenderSettings::bspTreeMaxDepth < depth)
+      GuiRenderSettings::bspTreeMaxDepth = depth;
+    const BoundingBox& bb = b->GetBoundingBox();
+    Color c = Color(depth * 30.0, 1.0, 1.0);
+    Vertex verts[] = {
+      Vertex(Point(bb.min.x, bb.min.y, bb.min.z, c.rb, c.gb, c.bb)), //---
+      Vertex(Point(bb.min.x, bb.min.y, bb.max.z, c.rb, c.gb, c.bb)), //--+
+      Vertex(Point(bb.min.x, bb.max.y, bb.min.z, c.rb, c.gb, c.bb)), //-+-
+      Vertex(Point(bb.max.x, bb.min.y, bb.min.z, c.rb, c.gb, c.bb)), //+--
+      Vertex(Point(bb.max.x, bb.max.y, bb.min.z, c.rb, c.gb, c.bb)), //++-
+      Vertex(Point(bb.min.x, bb.max.y, bb.max.z, c.rb, c.gb, c.bb)), //-++
+      Vertex(Point(bb.max.x, bb.min.y, bb.max.z, c.rb, c.gb, c.bb)), //+-+
+      Vertex(Point(bb.max.x, bb.max.y, bb.max.z, c.rb, c.gb, c.bb)), //+++
+    };
+    //these normals are octohedral, should technechally be duplicated and vertex normals should probably be for faces.
+    verts[0].m_normal = Vec3(-1.f / 1.44224957031f, -1.f / 1.44224957031f, -1.f / 1.44224957031f);
+    verts[1].m_normal = Vec3(-1.f / 1.44224957031f, -1.f / 1.44224957031f, 1.f / 1.44224957031f);
+    verts[2].m_normal = Vec3(-1.f / 1.44224957031f, 1.f / 1.44224957031f, -1.f / 1.44224957031f);
+    verts[3].m_normal = Vec3(1.f / 1.44224957031f, -1.f / 1.44224957031f, -1.f / 1.44224957031f);
+    verts[4].m_normal = Vec3(1.f / 1.44224957031f, 1.f / 1.44224957031f, -1.f / 1.44224957031f);
+    verts[5].m_normal = Vec3(-1.f / 1.44224957031f, 1.f / 1.44224957031f, 1.f / 1.44224957031f);
+    verts[6].m_normal = Vec3(1.f / 1.44224957031f, -1.f / 1.44224957031f, 1.f / 1.44224957031f);
+    verts[7].m_normal = Vec3(1.f / 1.44224957031f, 1.f / 1.44224957031f, 1.f / 1.44224957031f);
+
+    if (GuiRenderSettings::bspTreeTopDepth <= depth && GuiRenderSettings::bspTreeBottomDepth >= depth) {
+      point(verts, 2, bspData); //-+-
+      point(verts, 1, bspData); //--+
+      point(verts, 0, bspData); //---
+      point(verts, 5, bspData); //-++
+      point(verts, 1, bspData); //--+
+      point(verts, 2, bspData); //-+-
+
+      point(verts, 6, bspData); //+-+
+      point(verts, 3, bspData); //+--
+      point(verts, 0, bspData); //---
+      point(verts, 0, bspData); //---
+      point(verts, 1, bspData); //--+
+      point(verts, 6, bspData); //+-+
+
+      point(verts, 4, bspData); //++-
+      point(verts, 2, bspData); //-+-
+      point(verts, 0, bspData); //---
+      point(verts, 0, bspData); //---
+      point(verts, 3, bspData); //+--
+      point(verts, 4, bspData); //++-
+
+      point(verts, 7, bspData); //+++
+      point(verts, 4, bspData); //++-
+      point(verts, 3, bspData); //+--
+      point(verts, 3, bspData); //+--
+      point(verts, 6, bspData); //+-+
+      point(verts, 7, bspData); //+++
+
+      point(verts, 7, bspData); //+++
+      point(verts, 6, bspData); //+-+
+      point(verts, 5, bspData); //-++
+      point(verts, 5, bspData); //-++
+      point(verts, 6, bspData); //+-+
+      point(verts, 1, bspData); //--+
+
+      point(verts, 5, bspData); //-++
+      point(verts, 4, bspData); //++-
+      point(verts, 7, bspData); //+++
+      point(verts, 2, bspData); //-+-
+      point(verts, 4, bspData); //++-
+      point(verts, 5, bspData); //-++
+    }
+
+    if (b->GetLeftChildren() != nullptr)
+      createGeom(b->GetLeftChildren(), depth + 1);
+    if (b->GetRightChildren() != nullptr)
+      createGeom(b->GetRightChildren(), depth + 1);
+    };
+
+  GuiRenderSettings::bspTreeMaxDepth = 0;
+  createGeom(&bsp, 0);
+
+  bspMesh.UpdateMesh(bspData.data(), bspData.size() * sizeof(float), (Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
+  this->m_bspModel.SetMesh(&bspMesh);
+}
+
+void Level::GenerateRenderCheckpointData(std::vector<Checkpoint>& checkpoints)
+{
+  static Mesh checkMesh;
+  std::vector<float> checkData;
+
+  auto point = [](const Vertex* verts, int ind, std::vector<float>& data) {
+    //barycentricIndex is essentially "which index" is this vertex for the face.
+    data.push_back(verts[ind].m_pos.x);
+    data.push_back(verts[ind].m_pos.y);
+    data.push_back(verts[ind].m_pos.z);
+    data.push_back(verts[ind].m_normal.x);
+    data.push_back(verts[ind].m_normal.y);
+    data.push_back(verts[ind].m_normal.z);
+    Color col = verts[ind].GetColor(true);
+    data.push_back(col.r);
+    data.push_back(col.g);
+    data.push_back(col.b);
+    };
+
+  auto octohedralPoint = [&point](Vertex v, std::vector<float>& data) {
+    constexpr float radius = 0.5f;
+
+    v.m_pos.x += radius; v.m_normal = Vec3(1.f / 1.44224957031f, 1.f / 1.44224957031f, 1.f / 1.44224957031f); point(&v, 0, data); v.m_pos.x -= radius;
+    v.m_pos.y += radius; point(&v, 0, data); v.m_pos.y -= radius;
+    v.m_pos.z += radius; point(&v, 0, data); v.m_pos.z -= radius;
+
+    v.m_pos.x -= radius; v.m_normal = Vec3(-1.f / 1.44224957031f, 1.f / 1.44224957031f, 1.f / 1.44224957031f); point(&v, 0, data); v.m_pos.x += radius;
+    v.m_pos.y += radius; point(&v, 0, data); v.m_pos.y -= radius;
+    v.m_pos.z += radius; point(&v, 0, data); v.m_pos.z -= radius;
+
+    v.m_pos.x += radius; v.m_normal = Vec3(1.f / 1.44224957031f, -1.f / 1.44224957031f, 1.f / 1.44224957031f); point(&v, 0, data); v.m_pos.x -= radius;
+    v.m_pos.y -= radius; point(&v, 0, data); v.m_pos.y += radius;
+    v.m_pos.z += radius; point(&v, 0, data); v.m_pos.z -= radius;
+
+    v.m_pos.x += radius; v.m_normal = Vec3(1.f / 1.44224957031f, 1.f / 1.44224957031f, -1.f / 1.44224957031f); point(&v, 0, data); v.m_pos.x -= radius;
+    v.m_pos.y += radius; point(&v, 0, data); v.m_pos.y -= radius;
+    v.m_pos.z -= radius; point(&v, 0, data); v.m_pos.z += radius;
+
+    v.m_pos.x -= radius; v.m_normal = Vec3(-1.f / 1.44224957031f, -1.f / 1.44224957031f, 1.f / 1.44224957031f); point(&v, 0, data); v.m_pos.x += radius;
+    v.m_pos.y -= radius; point(&v, 0, data); v.m_pos.y += radius;
+    v.m_pos.z += radius; point(&v, 0, data); v.m_pos.z -= radius;
+
+    v.m_pos.x += radius; v.m_normal = Vec3(1.f / 1.44224957031f, -1.f / 1.44224957031f, -1.f / 1.44224957031f); point(&v, 0, data); v.m_pos.x -= radius;
+    v.m_pos.y -= radius; point(&v, 0, data); v.m_pos.y += radius;
+    v.m_pos.z -= radius; point(&v, 0, data); v.m_pos.z += radius;
+
+    v.m_pos.x -= radius; v.m_normal = Vec3(-1.f / 1.44224957031f, 1.f / 1.44224957031f, -1.f / 1.44224957031f); point(&v, 0, data); v.m_pos.x += radius;
+    v.m_pos.y += radius; point(&v, 0, data); v.m_pos.y -= radius;
+    v.m_pos.z -= radius; point(&v, 0, data); v.m_pos.z += radius;
+
+    v.m_pos.x -= radius; v.m_normal = Vec3(-1.f / 1.44224957031f, -1.f / 1.44224957031f, -1.f / 1.44224957031f); point(&v, 0, data); v.m_pos.x += radius;
+    v.m_pos.y -= radius; point(&v, 0, data); v.m_pos.y += radius;
+    v.m_pos.z -= radius; point(&v, 0, data); v.m_pos.z += radius;
+    };
+
+  /*for (Spawn& e : spawns)
+  {
+    Vertex v = Vertex(Point(e.pos.x, e.pos.y, e.pos.z, 0, 128, 255));
+    octohedralPoint(v, spawnsData);
+  }*/
+
+  for (Checkpoint& e : checkpoints)
+  {
+    Vertex v = Vertex(Point(e.Pos().x, e.Pos().y, e.Pos().z, 255, 0, 128));
+    octohedralPoint(v, checkData);
+  }
+
+  checkMesh.UpdateMesh(checkData.data(), checkData.size() * sizeof(float), (Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
+  this->m_checkModel.SetMesh(&checkMesh);
+}
+
+void Level::GenerateRenderStartpointData(std::array<Spawn, NUM_DRIVERS>& spawns)
+{
+  static Mesh spawnsMesh;
+  std::vector<float> spawnsData;
+
+  auto point = [](const Vertex* verts, int ind, std::vector<float>& data) {
+    //barycentricIndex is essentially "which index" is this vertex for the face.
+    data.push_back(verts[ind].m_pos.x);
+    data.push_back(verts[ind].m_pos.y);
+    data.push_back(verts[ind].m_pos.z);
+    data.push_back(verts[ind].m_normal.x);
+    data.push_back(verts[ind].m_normal.y);
+    data.push_back(verts[ind].m_normal.z);
+    Color col = verts[ind].GetColor(true);
+    data.push_back(col.r);
+    data.push_back(col.g);
+    data.push_back(col.b);
+    };
+
+  auto octohedralPoint = [&point](Vertex v, std::vector<float>& data) {
+    constexpr float radius = 0.5f;
+
+    v.m_pos.x += radius; v.m_normal = Vec3(1.f / 1.44224957031f, 1.f / 1.44224957031f, 1.f / 1.44224957031f); point(&v, 0, data); v.m_pos.x -= radius;
+    v.m_pos.y += radius; point(&v, 0, data); v.m_pos.y -= radius;
+    v.m_pos.z += radius; point(&v, 0, data); v.m_pos.z -= radius;
+
+    v.m_pos.x -= radius; v.m_normal = Vec3(-1.f / 1.44224957031f, 1.f / 1.44224957031f, 1.f / 1.44224957031f); point(&v, 0, data); v.m_pos.x += radius;
+    v.m_pos.y += radius; point(&v, 0, data); v.m_pos.y -= radius;
+    v.m_pos.z += radius; point(&v, 0, data); v.m_pos.z -= radius;
+
+    v.m_pos.x += radius; v.m_normal = Vec3(1.f / 1.44224957031f, -1.f / 1.44224957031f, 1.f / 1.44224957031f); point(&v, 0, data); v.m_pos.x -= radius;
+    v.m_pos.y -= radius; point(&v, 0, data); v.m_pos.y += radius;
+    v.m_pos.z += radius; point(&v, 0, data); v.m_pos.z -= radius;
+
+    v.m_pos.x += radius; v.m_normal = Vec3(1.f / 1.44224957031f, 1.f / 1.44224957031f, -1.f / 1.44224957031f); point(&v, 0, data); v.m_pos.x -= radius;
+    v.m_pos.y += radius; point(&v, 0, data); v.m_pos.y -= radius;
+    v.m_pos.z -= radius; point(&v, 0, data); v.m_pos.z += radius;
+
+    v.m_pos.x -= radius; v.m_normal = Vec3(-1.f / 1.44224957031f, -1.f / 1.44224957031f, 1.f / 1.44224957031f); point(&v, 0, data); v.m_pos.x += radius;
+    v.m_pos.y -= radius; point(&v, 0, data); v.m_pos.y += radius;
+    v.m_pos.z += radius; point(&v, 0, data); v.m_pos.z -= radius;
+
+    v.m_pos.x += radius; v.m_normal = Vec3(1.f / 1.44224957031f, -1.f / 1.44224957031f, -1.f / 1.44224957031f); point(&v, 0, data); v.m_pos.x -= radius;
+    v.m_pos.y -= radius; point(&v, 0, data); v.m_pos.y += radius;
+    v.m_pos.z -= radius; point(&v, 0, data); v.m_pos.z += radius;
+
+    v.m_pos.x -= radius; v.m_normal = Vec3(-1.f / 1.44224957031f, 1.f / 1.44224957031f, -1.f / 1.44224957031f); point(&v, 0, data); v.m_pos.x += radius;
+    v.m_pos.y += radius; point(&v, 0, data); v.m_pos.y -= radius;
+    v.m_pos.z -= radius; point(&v, 0, data); v.m_pos.z += radius;
+
+    v.m_pos.x -= radius; v.m_normal = Vec3(-1.f / 1.44224957031f, -1.f / 1.44224957031f, -1.f / 1.44224957031f); point(&v, 0, data); v.m_pos.x += radius;
+    v.m_pos.y -= radius; point(&v, 0, data); v.m_pos.y += radius;
+    v.m_pos.z -= radius; point(&v, 0, data); v.m_pos.z += radius;
+    };
+
+  for (Spawn& e : spawns)
+  {
+    Vertex v = Vertex(Point(e.pos.x, e.pos.y, e.pos.z, 0, 128, 255));
+    octohedralPoint(v, spawnsData);
+  }
+
+  spawnsMesh.UpdateMesh(spawnsData.data(), spawnsData.size() * sizeof(float), (Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
+  this->m_spawnsModel.SetMesh(&spawnsMesh);
 }

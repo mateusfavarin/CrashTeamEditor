@@ -112,29 +112,38 @@ uniform float wireframeWireThickness;
 //and requires no invasive changes to how the Shader/Mesh class works, but it might not be hard to impl.
 void main()
 {
-  if (drawType != 3) //3 == "DontDraw", so only draw if neq 3.
+  float diffuseLit = max(dot(-normalize(Normal), lightDir), 0.0);
+  vec4 diffCol = vec4(diffuseLit, diffuseLit, diffuseLit, 1.0);
+  if (drawType == 0) //0 == "VColor"
+    FragColor = vec4(VertColor.rgb, 1.0);
+  else if (drawType == 1) //1 == "Diffuse"
   {
-    float diffuseLit = max(dot(-normalize(Normal), lightDir), 0.0);
-    vec4 diffCol = vec4(diffuseLit, diffuseLit, diffuseLit, 1.0);
-    if (drawType == 0) //0 == "VColor"
-      FragColor = vec4(VertColor.rgb, 1.0);
-    else if (drawType == 1) //1 == "Diffuse"
-    {
-      vec4 finalCol = (vec4(0.1, 0.0, 0.3, 1.0) + diffCol) * vec4(0.2, 1.0, 0.2, 1.0); //(ambient + diffuse) * objcolor;
-	    FragColor = finalCol;
-    }
-    else if (drawType == 2) //2 == "Normals"
-    { //Exterior normals=blue, interior normals=red
-      //this logic for red/blue might be backwards idk (compare to blender to make sure).
-      float normalDir = dot(-normalize(Normal), (camWorldPos - FragWorldPos));
-      vec4 chosenColor;
-      if (normalDir < 0)
-        chosenColor = vec4(0.0, 0.0, 1.0, 1.0);
-      else
-        chosenColor = vec4(1.0, 0.0, 0.0, 1.0);
-      chosenColor = (vec4(0.1, 0.1, 0.1, 1.0) + diffCol) * chosenColor;  //(ambient + diffuse) * objcolor;
-      FragColor = chosenColor;
-    }
+    vec4 finalCol = (vec4(0.1, 0.0, 0.3, 1.0) + diffCol) * vec4(0.2, 1.0, 0.2, 1.0); //(ambient + diffuse) * objcolor;
+	  FragColor = finalCol;
+  }
+  else if (drawType == 2) //2 == "(.obj Normals) Face Direction"
+  { //Exterior normals=blue, interior normals=red
+    //this logic for red/blue might be backwards idk (compare to blender to make sure).
+    float normalDir = dot(-normalize(Normal), (camWorldPos - FragWorldPos));
+    vec4 chosenColor;
+    if (normalDir < 0)
+      chosenColor = vec4(0.0, 0.0, 1.0, 1.0);
+    else
+      chosenColor = vec4(1.0, 0.0, 0.0, 1.0);
+    chosenColor = (vec4(0.1, 0.1, 0.1, 1.0) + diffCol) * chosenColor;  //(ambient + diffuse) * objcolor;
+    FragColor = chosenColor;
+  }
+  else if (drawType == 3) //3 == "(calc Normals) Face Direction"
+  { //Exterior normals=blue, interior normals=red
+    //todo
+  }
+  else if (drawType == 4) //4 == "World Normals"
+  {
+    FragColor = vec4(normalize(Normal), 1.0);
+  }
+  else if (drawType == 5) //5 == "World Normals"
+  {
+    FragColor = vec4(normalize(abs(Normal)), 1.0);
   }
 }
 )*";
