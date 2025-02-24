@@ -66,6 +66,7 @@ private:
 	MaterialProperty<uint16_t, MaterialType::QUAD_FLAGS> m_propQuadFlags;
 	MaterialProperty<bool, MaterialType::DRAW_FLAGS> m_propDoubleSided;
 	MaterialProperty<bool, MaterialType::CHECKPOINT> m_propCheckpoints;
+	MaterialProperty<uint8_t, MaterialType::TEXTURE_INDEX> m_propTextureIndex;
 	std::vector<Path> m_checkpointPaths;
 	Model m_highLODLevelModel;
 	Model m_lowLODLevelModel;

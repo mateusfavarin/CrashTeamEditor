@@ -114,6 +114,8 @@ Quadblock::Quadblock(const std::string& name, Tri& t0, Tri& t1, Tri& t2, Tri& t3
 	m_trigger = QuadblockTrigger::NONE;
 	m_turboPadIndex = TURBO_PAD_INDEX_NONE;
 	m_hide = false;
+
+	SetTextureIndex(0);
 }
 
 Quadblock::Quadblock(const std::string& name, Quad& q0, Quad& q1, Quad& q2, Quad& q3, const Vec3& normal, const std::string& material)
@@ -218,6 +220,8 @@ Quadblock::Quadblock(const std::string& name, Quad& q0, Quad& q1, Quad& q2, Quad
 	m_trigger = QuadblockTrigger::NONE;
 	m_turboPadIndex = TURBO_PAD_INDEX_NONE;
 	m_hide = false;
+
+	SetTextureIndex(0);
 }
 
 const std::string& Quadblock::Name() const
@@ -439,4 +443,17 @@ void Quadblock::ComputeBoundingBox()
 	}
 	m_bbox.min = min;
 	m_bbox.max = max;
+}
+
+const std::string& Quadblock::GetMaterial() const
+{
+	return m_material;
+}
+
+void Quadblock::SetTextureIndex(uint8_t index) {
+    m_textureIndex = index;
+}
+
+uint8_t Quadblock::TextureIndex() const {
+    return m_textureIndex;
 }

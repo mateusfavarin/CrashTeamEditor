@@ -130,6 +130,9 @@ public:
 	bool Neighbours(const Quadblock& quadblock, float threshold = 0.1f) const;
 	std::vector<uint8_t> Serialize(size_t id, size_t offTextures, const std::vector<size_t>& vertexIndexes) const;
 	bool RenderUI(size_t checkpointCount, bool& resetBsp);
+	const std::string& GetMaterial() const;
+	void SetTextureIndex(uint8_t index);
+    uint8_t TextureIndex() const;
 
 private:
 	Vec3 ComputeNormalVector(size_t id0, size_t id1, size_t id2) const;
@@ -158,6 +161,7 @@ private:
 	uint8_t m_terrain;
 	QuadblockTrigger m_trigger;
 	size_t m_turboPadIndex;
+	uint8_t m_textureIndex;
 };
 
 class QuadException : public std::exception

@@ -390,6 +390,22 @@ void Level::RenderUI()
 						m_propTerrain.Apply(material, quadblockIndexes, m_quadblocks);
 					}
 
+          ImGui::Text("Texture ID:");
+          ImGui::SameLine();
+          int texId = static_cast<int>(m_propTextureIndex.GetPreview(material));
+          if (ImGui::InputInt(("##texId_" + material).c_str(), &texId)) {
+              texId = std::clamp(texId, 0, 16); // TODO: Clamp to TextureCount
+              m_propTextureIndex.SetPreview(material, static_cast<uint8_t>(texId));
+          }
+
+          static ButtonUI texApplyBtn;
+          if (texApplyBtn.Show("Apply Texture##" + material, 
+              "Texture ID saved", 
+              m_propTextureIndex.UnsavedChanges(material))) 
+          {
+              m_propTextureIndex.Apply(material, quadblockIndexes, m_quadblocks);
+          }
+
           if (ImGui::TreeNode("Quad Flags"))
           {
             for (const auto& [label, flag] : QuadFlags::LABELS)

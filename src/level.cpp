@@ -105,6 +105,8 @@ bool Level::LoadPreset(const std::filesystem::path& filename)
 				m_propDoubleSided.Apply(material, m_materialToQuadblocks[material], m_quadblocks);
 				m_propCheckpoints.SetPreview(material, json[material + "_checkpoint"]);
 				m_propCheckpoints.Apply(material, m_materialToQuadblocks[material], m_quadblocks);
+				m_propTextureIndex.SetPreview(material, json.value(material + "_texture", 0));
+				m_propTextureIndex.Apply(material, m_materialToQuadblocks[material], m_quadblocks);
 			}
 		}
 	}
@@ -167,6 +169,7 @@ bool Level::SavePreset(const std::filesystem::path& path)
 			materialJson[key + "_quadflags"] = m_propQuadFlags.GetBackup(key);
 			materialJson[key + "_drawflags"] = m_propDoubleSided.GetBackup(key);
 			materialJson[key + "_checkpoint"] = m_propCheckpoints.GetBackup(key);
+			materialJson[key + "_texture"] = m_propTextureIndex.GetBackup(key);
 		}
 		materialJson["materials"] = materials;
 		std::ofstream materialFile(dirPath / "material.json");
@@ -290,28 +293,35 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	const size_t offMeshInfo = currOffset;
 	currOffset += sizeof(meshInfo);
 
-	/*
-		TODO: Add texture support. For now, load default white texture
-	*/
-	PSX::TextureLayout tex = {};
-	tex.clut = 32 | (20 << 6);
-	tex.texPage = (512 >> 6) | ((0 >> 8) << 4) | (0 << 5) | (0 << 7);
-	tex.u0 = 0;		tex.v0 = 0;
-	tex.u1 = 15;	tex.v1 = 0;
-	tex.u2 = 0;		tex.v2 = 15;
-	tex.u3 = 15;	tex.v3 = 15;
+	// Texture config (needs a lev that already have a chunk of the desired size, e.g 16 textures of 16 px needs 64px reserved in .lev)
+	constexpr int textureCount = 16;  // Total number of textures
+	constexpr int texturesPerRow = 4; // Number of textures per row (e.g 4x4)
+	constexpr int textureSize = 16;   // Size of each texture in pixels
 
-	/*
-		TODO: Add texture support. For now, load default white texture
-	*/
-	PSX::TextureGroup texGroup = {};
-	texGroup.far = tex;
-	texGroup.middle = tex;
-	texGroup.near = tex;
-	texGroup.mosaic = tex;
+	std::vector<PSX::TextureGroup> textureGroups(textureCount);
+	for (int i = 0; i < textureCount; i++) {
+		int row = i / texturesPerRow;
+		int col = i % texturesPerRow;
 
-	const size_t offTexture = currOffset;
-	currOffset += sizeof(texGroup);
+		PSX::TextureLayout layout;
+		layout.clut = 32 | (20 << 6);
+		layout.texPage = (512 >> 6) | ((0 >> 8) << 4) | (0 << 5) | (0 << 7);
+
+		layout.u0 = static_cast<uint8_t>(col * textureSize); 						layout.v0 = static_cast<uint8_t>(row * textureSize);
+		layout.u1 = static_cast<uint8_t>(col * textureSize + (textureSize - 1)); 	layout.v1 = static_cast<uint8_t>(row * textureSize);
+		layout.u2 = static_cast<uint8_t>(col * textureSize);						layout.v2 = static_cast<uint8_t>(row * textureSize + (textureSize - 1));
+		layout.u3 = static_cast<uint8_t>(col * textureSize + (textureSize - 1));	layout.v3 = static_cast<uint8_t>(row * textureSize + (textureSize - 1));
+
+		textureGroups[i].far = layout;
+		textureGroups[i].middle = layout;
+		textureGroups[i].near = layout;
+		textureGroups[i].mosaic = layout;
+	}
+
+	const size_t offTextureStart = currOffset;
+	for (const auto& group : textureGroups) {
+		currOffset += sizeof(group);
+	}
 
 	const size_t offQuadblocks = currOffset;
 	std::vector<std::vector<uint8_t>> serializedBSPs;
@@ -326,23 +336,29 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 		bspSize += serializedBSPs.back().size();
 		if (bsp->IsBranch()) { continue; }
 		const std::vector<size_t>& quadIndexes = bsp->GetQuadblockIndexes();
+
 		for (const size_t index : quadIndexes)
 		{
 			const Quadblock& quadblock = m_quadblocks[index];
 			std::vector<Vertex> quadVertices = quadblock.GetVertices();
 			std::vector<size_t> verticesIndexes;
-			for (const Vertex& vertex : quadVertices)
-			{
-				if (!vertexMap.contains(vertex))
-				{
+			
+			for (const Vertex& vertex : quadVertices) {
+				if (!vertexMap.contains(vertex)) {
 					size_t vertexIndex = orderedVertices.size();
 					orderedVertices.push_back(vertex);
 					vertexMap[vertex] = vertexIndex;
 				}
 				verticesIndexes.push_back(vertexMap[vertex]);
 			}
+
 			size_t quadIndex = serializedQuads.size();
-			serializedQuads.push_back(quadblock.Serialize(quadIndex, offTexture, verticesIndexes));
+
+			int textureIndex = quadblock.TextureIndex();
+			textureIndex = textureIndex % textureCount;
+			size_t textureOffset = offTextureStart + textureIndex * sizeof(PSX::TextureGroup);
+			
+			serializedQuads.push_back(quadblock.Serialize(quadIndex, textureOffset, verticesIndexes));
 			orderedQuads.push_back(&quadblock);
 			currOffset += serializedQuads.back().size();
 		}
@@ -551,7 +567,9 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	Write(file, &offPointerMap, sizeof(uint32_t));
 	Write(file, &header, sizeof(header));
 	Write(file, &meshInfo, sizeof(meshInfo));
-	Write(file, &texGroup, sizeof(texGroup));
+	for (const PSX::TextureGroup& group : textureGroups) {
+		Write(file, &group, sizeof(group));
+	}
 	for (const std::vector<uint8_t>& serializedQuad : serializedQuads) { Write(file, serializedQuad.data(), serializedQuad.size()); }
 	for (size_t i = 0; i < visibleNodes.size(); i++)
 	{
@@ -694,6 +712,7 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 					m_propQuadFlags.SetDefaultValue(material, QuadFlags::DEFAULT);
 					m_propDoubleSided.SetDefaultValue(material, false);
 					m_propCheckpoints.SetDefaultValue(material, true);
+					m_propTextureIndex.SetDefaultValue(material, 0);
 				}
 				if (isQuadblock)
 				{

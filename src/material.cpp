@@ -8,6 +8,7 @@ template class MaterialProperty<std::string, MaterialType::TERRAIN>;
 template class MaterialProperty<uint16_t, MaterialType::QUAD_FLAGS>;
 template class MaterialProperty<bool, MaterialType::DRAW_FLAGS>;
 template class MaterialProperty<bool, MaterialType::CHECKPOINT>;
+template class MaterialProperty<uint8_t, MaterialType::TEXTURE_INDEX>;
 
 static std::vector<MaterialBase*> g_materials;
 
@@ -95,6 +96,7 @@ void MaterialProperty<T, M>::Apply(const std::string& material, const std::vecto
 			else if constexpr (M == MaterialType::QUAD_FLAGS) { quadblock.SetFlag(preview); }
 			else if constexpr (M == MaterialType::DRAW_FLAGS) { quadblock.SetDrawDoubleSided(preview); }
 			else if constexpr (M == MaterialType::CHECKPOINT) { quadblock.CheckpointStatus() = preview; }
+			else if constexpr (M == MaterialType::TEXTURE_INDEX) { quadblock.SetTextureIndex(preview); }
 		}
 	}
 	m_backup[material] = preview;
