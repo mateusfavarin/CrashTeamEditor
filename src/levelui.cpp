@@ -76,52 +76,52 @@ bool ButtonUI::Show(const std::string& label, const std::string& message, bool u
 template<typename T>
 static bool UIFlagCheckbox(T& var, const T flag, const std::string& title)
 {
-  bool active = var & flag;
-  if (ImGui::Checkbox(title.c_str(), &active))
-  {
-    if (active) { var |= flag; }
-    else { var &= ~flag; }
-    return true;
-  }
-  return false;
+	bool active = var & flag;
+	if (ImGui::Checkbox(title.c_str(), &active))
+	{
+		if (active) { var |= flag; }
+		else { var &= ~flag; }
+		return true;
+	}
+	return false;
 }
 
 void BoundingBox::RenderUI() const
 {
-  ImGui::Text("Max:"); ImGui::SameLine();
-  ImGui::BeginDisabled();
-  ImGui::InputFloat3("##max", const_cast<float*>(&max.x));
-  ImGui::EndDisabled();
-  ImGui::Text("Min:"); ImGui::SameLine();
-  ImGui::BeginDisabled();
-  ImGui::InputFloat3("##min", const_cast<float*>(&min.x));
-  ImGui::EndDisabled();
+	ImGui::Text("Max:"); ImGui::SameLine();
+	ImGui::BeginDisabled();
+	ImGui::InputFloat3("##max", const_cast<float*>(&max.x));
+	ImGui::EndDisabled();
+	ImGui::Text("Min:"); ImGui::SameLine();
+	ImGui::BeginDisabled();
+	ImGui::InputFloat3("##min", const_cast<float*>(&min.x));
+	ImGui::EndDisabled();
 }
 
 void BSP::RenderUI(size_t& index, const std::vector<Quadblock>& quadblocks)
 {
-  std::string title = GetType() + " " + std::to_string(index++);
-  if (ImGui::TreeNode(title.c_str()))
-  {
-    if (IsBranch()) { ImGui::Text(("Axis:  " + GetAxis()).c_str()); }
-    ImGui::Text(("Quads: " + std::to_string(m_quadblockIndexes.size())).c_str());
-    if (ImGui::TreeNode("Quadblock List:"))
-    {
-      constexpr size_t QUADS_PER_LINE = 10;
-      for (size_t i = 0; i < m_quadblockIndexes.size(); i++)
-      {
-        ImGui::Text((quadblocks[m_quadblockIndexes[i]].Name() + ", ").c_str());
-        if (((i + 1) % QUADS_PER_LINE) == 0 || i == m_quadblockIndexes.size() - 1) { continue; }
-        ImGui::SameLine();
-      }
-      ImGui::TreePop();
-    }
-    ImGui::Text("Bounding Box:");
-    m_bbox.RenderUI();
-    if (m_left) { m_left->RenderUI(++index, quadblocks); }
-    if (m_right) { m_right->RenderUI(++index, quadblocks); }
-    ImGui::TreePop();
-  }
+	std::string title = GetType() + " " + std::to_string(index++);
+	if (ImGui::TreeNode(title.c_str()))
+	{
+		if (IsBranch()) { ImGui::Text(("Axis:  " + GetAxis()).c_str()); }
+		ImGui::Text(("Quads: " + std::to_string(m_quadblockIndexes.size())).c_str());
+		if (ImGui::TreeNode("Quadblock List:"))
+		{
+			constexpr size_t QUADS_PER_LINE = 10;
+			for (size_t i = 0; i < m_quadblockIndexes.size(); i++)
+			{
+				ImGui::Text((quadblocks[m_quadblockIndexes[i]].Name() + ", ").c_str());
+				if (((i + 1) % QUADS_PER_LINE) == 0 || i == m_quadblockIndexes.size() - 1) { continue; }
+				ImGui::SameLine();
+			}
+			ImGui::TreePop();
+		}
+		ImGui::Text("Bounding Box:");
+		m_bbox.RenderUI();
+		if (m_left) { m_left->RenderUI(++index, quadblocks); }
+		if (m_right) { m_right->RenderUI(++index, quadblocks); }
+		ImGui::TreePop();
+	}
 }
 
 void Checkpoint::RenderUI(size_t numCheckpoints, const std::vector<Quadblock>& quadblocks)
@@ -144,47 +144,39 @@ void Checkpoint::RenderUI(size_t numCheckpoints, const std::vector<Quadblock>& q
 		}
 		ImGui::SetItemTooltip("Update checkpoint position by selecting a specific quadblock.");
 
-    ImGui::Text("Distance:  "); ImGui::SameLine();
-    if (ImGui::InputFloat("##dist", &m_distToFinish)) { m_distToFinish = m_distToFinish < 0.0f ? 0.0f : m_distToFinish; }
-    ImGui::SetItemTooltip("Distance from checkpoint to the finish line.");
+		ImGui::Text("Distance:  "); ImGui::SameLine();
+		if (ImGui::InputFloat("##dist", &m_distToFinish)) { m_distToFinish = m_distToFinish < 0.0f ? 0.0f : m_distToFinish; }
+		ImGui::SetItemTooltip("Distance from checkpoint to the finish line.");
 
-    auto LinkUI = [](int index, size_t numCheckpoints, int& dir, std::string& s, const std::string& title)
-      {
-        if (dir == NONE_CHECKPOINT_INDEX) { s = DEFAULT_UI_CHECKBOX_LABEL; }
-        ImGui::Text(title.c_str()); ImGui::SameLine();
-        if (ImGui::BeginCombo(("##" + title).c_str(), s.c_str()))
-        {
-          if (ImGui::Selectable(DEFAULT_UI_CHECKBOX_LABEL.c_str())) { dir = NONE_CHECKPOINT_INDEX; }
-          for (int i = 0; i < numCheckpoints; i++)
-          {
-            if (i == index) { continue; }
-            std::string str = "Checkpoint " + std::to_string(i);
-            if (ImGui::Selectable(str.c_str()))
-            {
-              s = str;
-              dir = i;
-            }
-          }
-          ImGui::EndCombo();
-        }
-      };
+		auto LinkUI = [](int index, size_t numCheckpoints, int& dir, std::string& s, const std::string& title)
+			{
+				if (dir == NONE_CHECKPOINT_INDEX) { s = DEFAULT_UI_CHECKBOX_LABEL; }
+				ImGui::Text(title.c_str()); ImGui::SameLine();
+				if (ImGui::BeginCombo(("##" + title).c_str(), s.c_str()))
+				{
+					if (ImGui::Selectable(DEFAULT_UI_CHECKBOX_LABEL.c_str())) { dir = NONE_CHECKPOINT_INDEX; }
+					for (int i = 0; i < numCheckpoints; i++)
+					{
+						if (i == index) { continue; }
+						std::string str = "Checkpoint " + std::to_string(i);
+						if (ImGui::Selectable(str.c_str()))
+						{
+							s = str;
+							dir = i;
+						}
+					}
+					ImGui::EndCombo();
+				}
+			};
 
-    LinkUI(m_index, numCheckpoints, m_up, m_uiLinkUp, "Link up:   ");
-    LinkUI(m_index, numCheckpoints, m_down, m_uiLinkDown, "Link down: ");
-    LinkUI(m_index, numCheckpoints, m_left, m_uiLinkLeft, "Link left: ");
-    LinkUI(m_index, numCheckpoints, m_right, m_uiLinkRight, "Link right:");
+		LinkUI(m_index, numCheckpoints, m_up, m_uiLinkUp, "Link up:   ");
+		LinkUI(m_index, numCheckpoints, m_down, m_uiLinkDown, "Link down: ");
+		LinkUI(m_index, numCheckpoints, m_left, m_uiLinkLeft, "Link left: ");
+		LinkUI(m_index, numCheckpoints, m_right, m_uiLinkRight, "Link right:");
 
-    if (ImGui::Button("Delete")) { m_delete = true; }
-    ImGui::TreePop();
-  }
-}
-
-static bool try_parse_float(const std::string& str, float* out) {
-  std::istringstream iss(str);
-  if (iss >> *out && iss.eof())
-    return true;
-  else
-    return false;
+		if (ImGui::Button("Delete")) { m_delete = true; }
+		ImGui::TreePop();
+	}
 }
 
 template<typename T, MaterialType M>
@@ -265,28 +257,28 @@ void MaterialProperty<T, M>::RenderUI(const std::string& material, const std::ve
 
 void Level::RenderUI()
 {
-  if (m_showLogWindow)
-  {
-    if (ImGui::Begin("Log", &m_showLogWindow))
-    {
-      if (!m_logMessage.empty()) { ImGui::Text(m_logMessage.c_str()); }
-      if (!m_invalidQuadblocks.empty())
-      {
-        ImGui::Text("Error - the following quadblocks are not in the valid format:");
-        for (size_t i = 0; i < m_invalidQuadblocks.size(); i++)
-        {
-          const std::string& quadblock = std::get<0>(m_invalidQuadblocks[i]);
-          const std::string& errorMessage = std::get<1>(m_invalidQuadblocks[i]);
-          if (ImGui::TreeNode(quadblock.c_str()))
-          {
-            ImGui::Text(errorMessage.c_str());
-            ImGui::TreePop();
-          }
-        }
-      }
-    }
-    ImGui::End();
-  }
+	if (m_showLogWindow)
+	{
+		if (ImGui::Begin("Log", &m_showLogWindow))
+		{
+			if (!m_logMessage.empty()) { ImGui::Text(m_logMessage.c_str()); }
+			if (!m_invalidQuadblocks.empty())
+			{
+				ImGui::Text("Error - the following quadblocks are not in the valid format:");
+				for (size_t i = 0; i < m_invalidQuadblocks.size(); i++)
+				{
+					const std::string& quadblock = std::get<0>(m_invalidQuadblocks[i]);
+					const std::string& errorMessage = std::get<1>(m_invalidQuadblocks[i]);
+					if (ImGui::TreeNode(quadblock.c_str()))
+					{
+						ImGui::Text(errorMessage.c_str());
+						ImGui::TreePop();
+					}
+				}
+			}
+		}
+		ImGui::End();
+	}
 
 	if (m_showHotReloadWindow)
 	{
@@ -345,107 +337,107 @@ void Level::RenderUI()
 	}
 
 	if (!m_loaded) { return; }
-  static Renderer rend = Renderer(800, 600);
+	static Renderer rend = Renderer(800, 600);
 
-  static bool w_spawn = false;
-  static bool w_level = false;
-  static bool w_material = false;
-  static bool w_quadblocks = false;
-  static bool w_checkpoints = false;
-  static bool w_bsp = false;
-  static bool w_renderer = false;
-  static bool w_ghost = false;
+	static bool w_spawn = false;
+	static bool w_level = false;
+	static bool w_material = false;
+	static bool w_quadblocks = false;
+	static bool w_checkpoints = false;
+	static bool w_bsp = false;
+	static bool w_renderer = false;
+	static bool w_ghost = false;
 
-  if (ImGui::BeginMainMenuBar())
-  {
-    if (ImGui::MenuItem("Spawn")) { w_spawn = !w_spawn; }
-    if (ImGui::MenuItem("Level")) { w_level = !w_level; }
-    if (!m_materialToQuadblocks.empty() && ImGui::MenuItem("Material")) { w_material = !w_material; }
-    if (ImGui::MenuItem("Quadblocks")) { w_quadblocks = !w_quadblocks; }
-    if (ImGui::MenuItem("Checkpoints")) { w_checkpoints = !w_checkpoints; }
-    if (ImGui::MenuItem("BSP Tree")) { w_bsp = !w_bsp; }
-    if (ImGui::MenuItem("Renderer")) { w_renderer = !w_renderer; }
-    if (ImGui::MenuItem("Ghosts")) { w_ghost = !w_ghost; }
-    ImGui::EndMainMenuBar();
-  }
+	if (ImGui::BeginMainMenuBar())
+	{
+		if (ImGui::MenuItem("Spawn")) { w_spawn = !w_spawn; }
+		if (ImGui::MenuItem("Level")) { w_level = !w_level; }
+		if (!m_materialToQuadblocks.empty() && ImGui::MenuItem("Material")) { w_material = !w_material; }
+		if (ImGui::MenuItem("Quadblocks")) { w_quadblocks = !w_quadblocks; }
+		if (ImGui::MenuItem("Checkpoints")) { w_checkpoints = !w_checkpoints; }
+		if (ImGui::MenuItem("BSP Tree")) { w_bsp = !w_bsp; }
+		if (ImGui::MenuItem("Renderer")) { w_renderer = !w_renderer; }
+		if (ImGui::MenuItem("Ghosts")) { w_ghost = !w_ghost; }
+		ImGui::EndMainMenuBar();
+	}
 
-  if (w_spawn)
-  {
-    if (ImGui::Begin("Spawn", &w_spawn))
-    {
-      for (size_t i = 0; i < NUM_DRIVERS; i++)
-      {
-        if (ImGui::TreeNode(("Driver " + std::to_string(i)).c_str()))
-        {
-          ImGui::Text("Pos:"); ImGui::SameLine(); ImGui::InputFloat3("##pos", m_spawn[i].pos.Data());
-          ImGui::Text("Rot:"); ImGui::SameLine();
-          if (ImGui::InputFloat3("##rot", m_spawn[i].rot.Data()))
-          {
-            m_spawn[i].rot.x = Clamp(m_spawn[i].rot.x, -360.0f, 360.0f);
-            m_spawn[i].rot.y = Clamp(m_spawn[i].rot.y, -360.0f, 360.0f);
-            m_spawn[i].rot.z = Clamp(m_spawn[i].rot.z, -360.0f, 360.0f);
-          };
-          ImGui::TreePop();
-        }
-      }
-    }
-    ImGui::End();
-  }
+	if (w_spawn)
+	{
+		if (ImGui::Begin("Spawn", &w_spawn))
+		{
+			for (size_t i = 0; i < NUM_DRIVERS; i++)
+			{
+				if (ImGui::TreeNode(("Driver " + std::to_string(i)).c_str()))
+				{
+					ImGui::Text("Pos:"); ImGui::SameLine(); ImGui::InputFloat3("##pos", m_spawn[i].pos.Data());
+					ImGui::Text("Rot:"); ImGui::SameLine();
+					if (ImGui::InputFloat3("##rot", m_spawn[i].rot.Data()))
+					{
+						m_spawn[i].rot.x = Clamp(m_spawn[i].rot.x, -360.0f, 360.0f);
+						m_spawn[i].rot.y = Clamp(m_spawn[i].rot.y, -360.0f, 360.0f);
+						m_spawn[i].rot.z = Clamp(m_spawn[i].rot.z, -360.0f, 360.0f);
+					};
+					ImGui::TreePop();
+				}
+			}
+		}
+		ImGui::End();
+	}
 
-  if (w_level)
-  {
-    if (ImGui::Begin("Level", &w_level))
-    {
-      if (ImGui::TreeNode("Flags"))
-      {
-        UIFlagCheckbox(m_configFlags, LevConfigFlags::ENABLE_SKYBOX_GRADIENT, "Enable Skybox Gradient");
-        UIFlagCheckbox(m_configFlags, LevConfigFlags::MASK_GRAB_UNDERWATER, "Mask Grab Underwater");
-        UIFlagCheckbox(m_configFlags, LevConfigFlags::ANIMATE_WATER_VERTEX, "Animate Water Vertex");
-        ImGui::TreePop();
-      }
-      if (ImGui::TreeNode("Sky Gradient"))
-      {
-        for (size_t i = 0; i < NUM_GRADIENT; i++)
-        {
-          if (ImGui::TreeNode(("Gradient " + std::to_string(i)).c_str()))
-          {
-            ImGui::Text("From:"); ImGui::SameLine(); ImGui::InputFloat("##pos_from", &m_skyGradient[i].posFrom);
-            ImGui::Text("To:  "); ImGui::SameLine(); ImGui::InputFloat("##pos_to", &m_skyGradient[i].posTo);
-            ImGui::Text("From:"); ImGui::SameLine(); ImGui::ColorEdit3("##color_from", m_skyGradient[i].colorFrom.Data());
-            ImGui::Text("To:  "); ImGui::SameLine(); ImGui::ColorEdit3("##color_to", m_skyGradient[i].colorTo.Data());
-            ImGui::TreePop();
-          }
-        }
-        ImGui::TreePop();
-      }
-      if (ImGui::TreeNode("Clear Color"))
-      {
-        ImGui::ColorEdit3("##color", m_clearColor.Data());
-        ImGui::TreePop();
-      }
-    }
-    ImGui::End();
-  }
+	if (w_level)
+	{
+		if (ImGui::Begin("Level", &w_level))
+		{
+			if (ImGui::TreeNode("Flags"))
+			{
+				UIFlagCheckbox(m_configFlags, LevConfigFlags::ENABLE_SKYBOX_GRADIENT, "Enable Skybox Gradient");
+				UIFlagCheckbox(m_configFlags, LevConfigFlags::MASK_GRAB_UNDERWATER, "Mask Grab Underwater");
+				UIFlagCheckbox(m_configFlags, LevConfigFlags::ANIMATE_WATER_VERTEX, "Animate Water Vertex");
+				ImGui::TreePop();
+			}
+			if (ImGui::TreeNode("Sky Gradient"))
+			{
+				for (size_t i = 0; i < NUM_GRADIENT; i++)
+				{
+					if (ImGui::TreeNode(("Gradient " + std::to_string(i)).c_str()))
+					{
+						ImGui::Text("From:"); ImGui::SameLine(); ImGui::InputFloat("##pos_from", &m_skyGradient[i].posFrom);
+						ImGui::Text("To:  "); ImGui::SameLine(); ImGui::InputFloat("##pos_to", &m_skyGradient[i].posTo);
+						ImGui::Text("From:"); ImGui::SameLine(); ImGui::ColorEdit3("##color_from", m_skyGradient[i].colorFrom.Data());
+						ImGui::Text("To:  "); ImGui::SameLine(); ImGui::ColorEdit3("##color_to", m_skyGradient[i].colorTo.Data());
+						ImGui::TreePop();
+					}
+				}
+				ImGui::TreePop();
+			}
+			if (ImGui::TreeNode("Clear Color"))
+			{
+				ImGui::ColorEdit3("##color", m_clearColor.Data());
+				ImGui::TreePop();
+			}
+		}
+		ImGui::End();
+	}
 
-  if (w_material)
-  {
-    if (ImGui::Begin("Material", &w_material))
-    {
-      for (const auto& [material, quadblockIndexes] : m_materialToQuadblocks)
-      {
-        if (ImGui::TreeNode(material.c_str()))
-        {
-          if (ImGui::TreeNode("Quadblocks"))
-          {
-            constexpr size_t QUADS_PER_LINE = 10;
-            for (size_t i = 0; i < quadblockIndexes.size(); i++)
-            {
-              ImGui::Text((m_quadblocks[quadblockIndexes[i]].Name() + ", ").c_str());
-              if (((i + 1) % QUADS_PER_LINE) == 0 || i == quadblockIndexes.size() - 1) { continue; }
-              ImGui::SameLine();
-            }
-            ImGui::TreePop();
-          }
+	if (w_material)
+	{
+		if (ImGui::Begin("Material", &w_material))
+		{
+			for (const auto& [material, quadblockIndexes] : m_materialToQuadblocks)
+			{
+				if (ImGui::TreeNode(material.c_str()))
+				{
+					if (ImGui::TreeNode("Quadblocks"))
+					{
+						constexpr size_t QUADS_PER_LINE = 10;
+						for (size_t i = 0; i < quadblockIndexes.size(); i++)
+						{
+							ImGui::Text((m_quadblocks[quadblockIndexes[i]].Name() + ", ").c_str());
+							if (((i + 1) % QUADS_PER_LINE) == 0 || i == quadblockIndexes.size() - 1) { continue; }
+							ImGui::SameLine();
+						}
+						ImGui::TreePop();
+					}
 
 					m_propTerrain.RenderUI(material, quadblockIndexes, m_quadblocks);
 					m_propQuadFlags.RenderUI(material, quadblockIndexes, m_quadblocks);
@@ -459,7 +451,7 @@ void Level::RenderUI()
 		ImGui::End();
 	}
 
-  if (!w_material) { RestoreMaterials(); }
+	if (!w_material) { RestoreMaterials(); }
 
 	static std::string quadblockQuery;
 	if (w_quadblocks)
@@ -488,7 +480,7 @@ void Level::RenderUI()
 		}
 	}
 
-  if (!quadblockQuery.empty() && !w_quadblocks) { quadblockQuery.clear(); }
+	if (!quadblockQuery.empty() && !w_quadblocks) { quadblockQuery.clear(); }
 
 	static std::string checkpointQuery;
 	if (w_checkpoints)
@@ -545,15 +537,15 @@ void Level::RenderUI()
 				}
 			}
 
-      if (ImGui::Button("Create Path"))
-      {
-        m_checkpointPaths.push_back(Path(m_checkpointPaths.size()));
-      }
-      ImGui::SameLine();
-      if (ImGui::Button("Delete Path"))
-      {
-        m_checkpointPaths.pop_back();
-      }
+			if (ImGui::Button("Create Path"))
+			{
+				m_checkpointPaths.push_back(Path(m_checkpointPaths.size()));
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("Delete Path"))
+			{
+				m_checkpointPaths.pop_back();
+			}
 
 			bool ready = !m_checkpointPaths.empty();
 			for (const Path& path : m_checkpointPaths)
@@ -583,46 +575,46 @@ void Level::RenderUI()
 					}
 				}
 
-        int lastPathIndex = static_cast<int>(m_checkpointPaths.size()) - 1;
-        const Checkpoint* currStartCheckpoint = &m_checkpoints[m_checkpointPaths[lastPathIndex].Start()];
-        for (int i = lastPathIndex - 1; i >= 0; i--)
-        {
-          m_checkpointPaths[i].UpdateDist(currStartCheckpoint->DistFinish(), currStartCheckpoint->Pos(), m_checkpoints);
-          currStartCheckpoint = &m_checkpoints[m_checkpointPaths[i].Start()];
-        }
+				int lastPathIndex = static_cast<int>(m_checkpointPaths.size()) - 1;
+				const Checkpoint* currStartCheckpoint = &m_checkpoints[m_checkpointPaths[lastPathIndex].Start()];
+				for (int i = lastPathIndex - 1; i >= 0; i--)
+				{
+					m_checkpointPaths[i].UpdateDist(currStartCheckpoint->DistFinish(), currStartCheckpoint->Pos(), m_checkpoints);
+					currStartCheckpoint = &m_checkpoints[m_checkpointPaths[i].Start()];
+				}
 
-        for (size_t i = 0; i < linkNodeIndexes.size(); i++)
-        {
-          Checkpoint& node = m_checkpoints[linkNodeIndexes[i]];
-          if (i % 2 == 0)
-          {
-            size_t linkDown = (i == 0) ? linkNodeIndexes.size() - 1 : i - 1;
-            node.UpdateDown(static_cast<int>(linkNodeIndexes[linkDown]));
-          }
-          else
-          {
-            size_t linkUp = (i + 1) % linkNodeIndexes.size();
-            node.UpdateUp(static_cast<int>(linkNodeIndexes[linkUp]));
-          }
-        }
-      }
-      ImGui::EndDisabled();
-      ImGui::TreePop();
-    }
-    ImGui::End();
-  }
+				for (size_t i = 0; i < linkNodeIndexes.size(); i++)
+				{
+					Checkpoint& node = m_checkpoints[linkNodeIndexes[i]];
+					if (i % 2 == 0)
+					{
+						size_t linkDown = (i == 0) ? linkNodeIndexes.size() - 1 : i - 1;
+						node.UpdateDown(static_cast<int>(linkNodeIndexes[linkDown]));
+					}
+					else
+					{
+						size_t linkUp = (i + 1) % linkNodeIndexes.size();
+						node.UpdateUp(static_cast<int>(linkNodeIndexes[linkUp]));
+					}
+				}
+			}
+			ImGui::EndDisabled();
+			ImGui::TreePop();
+		}
+		ImGui::End();
+	}
 
-  if (!checkpointQuery.empty() && !w_checkpoints) { checkpointQuery.clear(); }
+	if (!checkpointQuery.empty() && !w_checkpoints) { checkpointQuery.clear(); }
 
-  if (w_bsp)
-  {
-    if (ImGui::Begin("BSP Tree", &w_bsp))
-    {
-      if (!m_bsp.Empty())
-      {
-        size_t bspIndex = 0;
-        m_bsp.RenderUI(bspIndex, m_quadblocks);
-      }
+	if (w_bsp)
+	{
+		if (ImGui::Begin("BSP Tree", &w_bsp))
+		{
+			if (!m_bsp.Empty())
+			{
+				size_t bspIndex = 0;
+				m_bsp.RenderUI(bspIndex, m_quadblocks);
+			}
 
 			static std::string buttonMessage;
 			static ButtonUI generateBSPButton = ButtonUI();
@@ -644,7 +636,7 @@ void Level::RenderUI()
 		ImGui::End();
 	}
 
-  if (w_ghost)
+	if (w_ghost)
 	{
 		if (ImGui::Begin("Ghost", &w_ghost))
 		{
@@ -703,207 +695,161 @@ void Level::RenderUI()
 		ImGui::End();
 	}
 
-  if (w_renderer)
-  {
-    constexpr int bottomPaneHeight = 200;
-    //ImGui::SetNextWindowSize(ImVec2(rend.width, rend.height + bottomPaneHeight), ImGuiCond_Always);
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-    //if (ImGui::IsWindowFocused()) //doesn't seem to work.
-    //	title.append("true");
+	if (w_renderer)
+	{
+		constexpr float bottomPaneHeight = 200.0f;
+		//ImGui::SetNextWindowSize(ImVec2(rend.width, rend.height + bottomPaneHeight), ImGuiCond_Always);
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+		//if (ImGui::IsWindowFocused()) //doesn't seem to work.
+		//	title.append("true");
 
-    if (ImGui::Begin("Renderer", &w_renderer, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings))
-      //ImGui::Begin("Renderer", &w_renderer, ImGuiWindowFlags_NoSavedSettings); //TODO: handle dynamic buffer sizing later
-    {
+		if (ImGui::Begin("Renderer", &w_renderer, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings))
+			//ImGui::Begin("Renderer", &w_renderer, ImGuiWindowFlags_NoSavedSettings); //TODO: handle dynamic buffer sizing later
+		{
 
-      ImVec2 pos = ImGui::GetCursorScreenPos();
-      ImVec2 min = ImGui::GetItemRectMin();
-      ImVec2 max = ImGui::GetItemRectMax();
-      ImTextureID tex = (ImTextureID)rend.texturebuffer;
+			ImVec2 pos = ImGui::GetCursorScreenPos();
+			ImVec2 min = ImGui::GetItemRectMin();
+			ImVec2 max = ImGui::GetItemRectMax();
+			ImTextureID tex = static_cast<ImTextureID>(rend.m_texturebuffer);
 
+			float rendWidth = static_cast<float>(rend.m_width);
+			float rendHeight = static_cast<float>(rend.m_height);
 
-      ImGui::GetWindowDrawList()->AddImage(tex,
-        ImVec2(pos.x, pos.y),
-        ImVec2(pos.x + rend.width, pos.y + rend.height),
-        ImVec2(0, 1),
-        ImVec2(1, 0));
+			ImGui::GetWindowDrawList()->AddImage(tex,
+				ImVec2(pos.x, pos.y),
+				ImVec2(pos.x + rendWidth, pos.y + rendHeight),
+				ImVec2(0, 1),
+				ImVec2(1, 0));
 
-      //bottom pane
-      ImGui::SetNextWindowPos(ImVec2(pos.x, pos.y + rend.height));
-      if (ImGui::BeginChild("Renderer Settings", ImVec2(rend.width, bottomPaneHeight), ImGuiChildFlags_Border))
-      {
-        static float rollingOneSecond = 0;
-        static int FPS = -1;
-        float fm = fmod(rollingOneSecond, 1.f);
-        if (fm != rollingOneSecond && rollingOneSecond >= 1.f) //2nd condition prevents fps not updating if deltaTime exactly equals 1.f
-        {
-          FPS = (int)(1.f / rend.GetLastDeltaTime());
-          rollingOneSecond = fm;
-        }
-        rollingOneSecond += rend.GetLastDeltaTime();
-        if (ImGui::BeginTable("Renderer Settings Table", 2))
-        {
-            /*
-              * *** Enable viewport resizing
-              * Filter by material (highlight all quads with a specified subset of materials)
-              * Filter by quad flags (higlight all quads with a specified subset of quadflags)
-              * Filter by draw flags ""
-              * Filter by terrain ""
-              *
-              * NOTE: resetBsp does not trigger when vertex color changes.
-              *
-              * Make mesh read live data.
-              *
-              * Editor features (edit in viewport blender style).
-              */
-          static std::string camMoveMult = "1",
-            camRotateMult = "1",
-            camSprintMult = "2",
-            camFOV = "70";
-          static bool showCheckpoints = false,
-            showStartingPositions = false,
-            showBspRectTree = false;
+			//bottom pane
+			ImGui::SetNextWindowPos(ImVec2(pos.x, pos.y + rendHeight));
+			if (ImGui::BeginChild("Renderer Settings", ImVec2(rendWidth, bottomPaneHeight), ImGuiChildFlags_Border))
+			{
+				static float rollingOneSecond = 0;
+				static int FPS = -1;
+				float fm = fmod(rollingOneSecond, 1.f);
+				if (fm != rollingOneSecond && rollingOneSecond >= 1.f) //2nd condition prevents fps not updating if deltaTime exactly equals 1.f
+				{
+					FPS = static_cast<int>(1.f / rend.GetLastDeltaTime());
+					rollingOneSecond = fm;
+				}
+				rollingOneSecond += rend.GetLastDeltaTime();
+				if (ImGui::BeginTable("Renderer Settings Table", 2))
+				{
+					/*
+						* *** Enable viewport resizing
+						* Filter by material (highlight all quads with a specified subset of materials)
+						* Filter by quad flags (higlight all quads with a specified subset of quadflags)
+						* Filter by draw flags ""
+						* Filter by terrain ""
+						*
+						* NOTE: resetBsp does not trigger when vertex color changes.
+						*
+						* Make mesh read live data.
+						*
+						* Editor features (edit in viewport blender style).
+						*/
+					static std::string camMoveMult = "1";
+					static std::string camRotateMult = "1";
+					static std::string camSprintMult = "2";
+					static std::string camFOV = "70";
+					static bool showCheckpoints = false;
+					static bool	showStartingPositions = false;
+					static bool	showBspRectTree = false;
 
-          int textFieldWidth = (rend.width / 2) / 3;
-          textFieldWidth = textFieldWidth < 50 ? 50 : textFieldWidth;
+					float textFieldWidth = std::max(rendWidth / 6.0f, 50.0f);
 
-          ImGui::TableNextRow();
-          ImGui::TableSetColumnIndex(0);
-          ImGui::Text("FPS: %d", FPS);
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::Text("FPS: %d", FPS);
 
-          if (ImGui::Combo("Render", &GuiRenderSettings::renderType, GuiRenderSettings::renderTypeLabels, 3)) {}
+					if (ImGui::Combo("Render", &GuiRenderSettings::renderType, GuiRenderSettings::renderTypeLabels.data(), GuiRenderSettings::renderTypeLabels.size())) {}
 
-          ImGui::Checkbox("Show Low LOD", &GuiRenderSettings::showLowLOD);
-          ImGui::Checkbox("Show Wireframe", &GuiRenderSettings::showWireframe);
-          ImGui::Checkbox("Show Backfaces", &GuiRenderSettings::showBackfaces);
-          ImGui::Checkbox("Show Level Verts", &GuiRenderSettings::showLevVerts);
-          ImGui::Checkbox("(NOT IMPL) Show Checkpoints", &showCheckpoints);
-          ImGui::Checkbox("(NOT IMPL) Show Starting Positions", &showStartingPositions);
-          ImGui::Checkbox("(NOT IMPL) Show BSP Rect Tree", &showBspRectTree);
-          ImGui::PushItemWidth(textFieldWidth);
-          if (ImGui::BeginCombo("(NOT IMPL) Mask by Materials", "..."))
-          {
-            ImGui::Selectable("(NOT IMPL)");
-            ImGui::EndCombo();
-          }
-          if (ImGui::BeginCombo("(NOT IMPL) Mask by Quad flags", "..."))
-          {
-            ImGui::Selectable("(NOT IMPL)");
-            ImGui::EndCombo();
-          }
-          if (ImGui::BeginCombo("(NOT IMPL) Mask by Draw flags", "..."))
-          {
-            ImGui::Selectable("(NOT IMPL)");
-            ImGui::EndCombo();
-          }
-          if (ImGui::BeginCombo("(NOT IMPL) Mask by Terrain", "..."))
-          {
-            ImGui::Selectable("(NOT IMPL)");
-            ImGui::EndCombo();
-          }
-          ImGui::PopItemWidth();
-          ImGui::TableSetColumnIndex(1);
-          ImGui::Text(""
-            "Camera Controls:\n"
-            "\t* WASD to move in/out & pan\n"
-            "\t* Arrow keys to rotate cam\n"
-            "\t* Spacebar to move up, Shift to move down\n"
-            "\t* Ctrl to \"Sprint\"");
+					ImGui::Checkbox("Show Low LOD", &GuiRenderSettings::showLowLOD);
+					ImGui::Checkbox("Show Wireframe", &GuiRenderSettings::showWireframe);
+					ImGui::Checkbox("Show Backfaces", &GuiRenderSettings::showBackfaces);
+					ImGui::Checkbox("Show Level Verts", &GuiRenderSettings::showLevVerts);
+					ImGui::Checkbox("(NOT IMPL) Show Checkpoints", &showCheckpoints);
+					ImGui::Checkbox("(NOT IMPL) Show Starting Positions", &showStartingPositions);
+					ImGui::Checkbox("(NOT IMPL) Show BSP Rect Tree", &showBspRectTree);
+					ImGui::PushItemWidth(textFieldWidth);
+					if (ImGui::BeginCombo("(NOT IMPL) Mask by Materials", "..."))
+					{
+						ImGui::Selectable("(NOT IMPL)");
+						ImGui::EndCombo();
+					}
+					if (ImGui::BeginCombo("(NOT IMPL) Mask by Quad flags", "..."))
+					{
+						ImGui::Selectable("(NOT IMPL)");
+						ImGui::EndCombo();
+					}
+					if (ImGui::BeginCombo("(NOT IMPL) Mask by Draw flags", "..."))
+					{
+						ImGui::Selectable("(NOT IMPL)");
+						ImGui::EndCombo();
+					}
+					if (ImGui::BeginCombo("(NOT IMPL) Mask by Terrain", "..."))
+					{
+						ImGui::Selectable("(NOT IMPL)");
+						ImGui::EndCombo();
+					}
+					ImGui::PopItemWidth();
+					ImGui::TableSetColumnIndex(1);
+					ImGui::Text(""
+						"Camera Controls:\n"
+						"\t* WASD to move in/out & pan\n"
+						"\t* Arrow keys to rotate cam\n"
+						"\t* Spacebar to move up, Shift to move down\n"
+						"\t* Ctrl to \"Sprint\"");
 
-          ImGui::PushItemWidth(textFieldWidth);
-          {
-            float val;
-            bool success;
-            //move mult
-            if (try_parse_float(camMoveMult, &val))
-            {
-              val = val < 0.01f ? 0.01f : val;
-              camMoveMult = std::to_string(val);
-              GuiRenderSettings::camMoveMult = val;
-              success = true;
-            }
-            else
-              success = false;
-            if (!success)
-              ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 0.f, 0.f, 1.f));
-            ImGui::InputText("Camera Move Multiplier", &camMoveMult);
-            if (!success)
-              ImGui::PopStyleColor();
-            //rotate mult
-            if (try_parse_float(camRotateMult, &val))
-            {
-              val = val < 0.01f ? 0.01f : val;
-              camRotateMult = std::to_string(val);
-              GuiRenderSettings::camRotateMult = val;
-              success = true;
-            }
-            else
-              success = false;
-            if (!success)
-              ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 0.f, 0.f, 1.f));
-            ImGui::InputText("Camera Rotate Multiplier", &camRotateMult);
-            if (!success)
-              ImGui::PopStyleColor();
-            //sprint mult
-            if (try_parse_float(camSprintMult, &val))
-            {
-              val = val < 1.f ? 1.f : val;
-              camSprintMult = std::to_string(val);
-              GuiRenderSettings::camSprintMult = val;
-              success = true;
-            }
-            else
-              success = false;
-            if (!success)
-              ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 0.f, 0.f, 1.f));
-            ImGui::InputText("Camera Sprint Multiplier", &camSprintMult);
-            if (!success)
-              ImGui::PopStyleColor();
-            //camera fov
-            if (try_parse_float(camFOV, &val))
-            {
-              val = val < 5.f ? 5.f : val;
-              val = val > 150.f ? 150.f : val;
-              camFOV = std::to_string(val);
-              GuiRenderSettings::camFovDeg = val;
-              success = true;
-            }
-            else
-              success = false;
-            if (!success)
-              ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 0.f, 0.f, 1.f));
-            ImGui::InputText("Camera FOV", &camFOV);
-            if (!success)
-              ImGui::PopStyleColor();
-          }
-          ImGui::PopItemWidth();
+					ImGui::PushItemWidth(textFieldWidth);
+					{
+						auto textUI = [](const std::string& label, std::string& uiValue, float& renderSetting, float minThres = std::numeric_limits<float>::max(), float maxThres = -std::numeric_limits<float>::max())
+							{
+								float val;
+								bool popStyle = false;
+								if (ParseFloat(uiValue, val))
+								{
+									val = Clamp(val, minThres, maxThres);
+									uiValue = std::to_string(val);
+									renderSetting = val;
+									popStyle = true;
+									ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 0.f, 0.f, 1.f));
+								}
+								ImGui::InputText(label.c_str(), &uiValue);
+								if (popStyle) { ImGui::PopStyleColor(); }
+							};
 
-          ImGui::EndTable();
-        }
-      }
-      ImGui::EndChild();
-    }
-    ImGui::End();
-    ImGui::PopStyleVar();
+						textUI("Camera Move Multiplier", camMoveMult, GuiRenderSettings::camMoveMult, 0.01f);
+						textUI("Camera Rotate Multiplier", camRotateMult, GuiRenderSettings::camRotateMult, 0.01f);
+						textUI("Camera Sprint Multiplier", camSprintMult, GuiRenderSettings::camSprintMult, 1.0f);
+						textUI("Camera FOV", camFOV, GuiRenderSettings::camFovDeg, 5.0f, 150.0f);
+					}
+					ImGui::PopItemWidth();
 
-    std::vector<Model> modelsToRender;
+					ImGui::EndTable();
+				}
+			}
+			ImGui::EndChild();
+		}
+		ImGui::End();
+		ImGui::PopStyleVar();
 
-    if (GuiRenderSettings::showLowLOD)
-    {
-      if (GuiRenderSettings::showLevVerts)
-        modelsToRender.push_back(m_pointsLowLODLevelModel);
-      else
-        modelsToRender.push_back(m_lowLODLevelModel);
-    }
-    else
-    {
-      if (GuiRenderSettings::showLevVerts)
-        modelsToRender.push_back(m_pointsHighLODLevelModel);
-      else
-        modelsToRender.push_back(m_highLODLevelModel);
-    }
+		std::vector<Model> modelsToRender;
 
-    rend.Render(modelsToRender);
-  }
+		if (GuiRenderSettings::showLowLOD)
+		{
+			if (GuiRenderSettings::showLevVerts) { modelsToRender.push_back(m_pointsLowLODLevelModel); }
+			else { modelsToRender.push_back(m_lowLODLevelModel); }
+		}
+		else
+		{
+			if (GuiRenderSettings::showLevVerts) { modelsToRender.push_back(m_pointsHighLODLevelModel); }
+			else { modelsToRender.push_back(m_highLODLevelModel); }
+		}
+
+		rend.Render(modelsToRender);
+	}
 }
 
 void Path::RenderUI(const std::string& title, const std::vector<Quadblock>& quadblocks, const std::string& searchQuery, bool drawPathBtn, bool& insertAbove, bool& removePath)
@@ -1113,181 +1059,14 @@ bool Quadblock::RenderUI(size_t checkpointCount, bool& resetBsp)
 
 void Vertex::RenderUI(size_t index, bool& editedPos)
 {
-  if (ImGui::TreeNode(("Vertex " + std::to_string(index)).c_str()))
-  {
-    ImGui::Text("Pos: "); ImGui::SameLine();
-    if (ImGui::InputFloat3("##pos", m_pos.Data())) { editedPos = true; }
-    ImGui::Text("High:"); ImGui::SameLine();
-    ImGui::ColorEdit3("##high", m_colorHigh.Data());
-    ImGui::Text("Low: "); ImGui::SameLine();
-    ImGui::ColorEdit3("##low", m_colorLow.Data());
-    ImGui::TreePop();
-  }
-}
-
-void Level::GenerateRasterizableData(std::vector<Quadblock>& quadblocks)
-{
-  static Mesh lowLODMesh, highLODMesh, vertexLowLODMesh, vertexHighLODMesh;
-  std::vector<float> highLODData, lowLODData, vertexHighLODData, vertexLowLODData;
-  for (Quadblock qb : quadblocks)
-  {
-    /* 062 is triblock
-      p0 -- p1 -- p2
-      |  q0 |  q1 |
-      p3 -- p4 -- p5
-      |  q2 |  q3 |
-      p6 -- p7 -- p8
-    */
-    const Vertex* verts = qb.GetUnswizzledVertices();
-
-    auto point = [](const Vertex* verts, int ind, std::vector<float>& data) {
-      //barycentricIndex is essentially "which index" is this vertex for the face.
-      data.push_back(verts[ind].m_pos.x);
-      data.push_back(verts[ind].m_pos.y);
-      data.push_back(verts[ind].m_pos.z);
-      data.push_back(verts[ind].m_normal.x);
-      data.push_back(verts[ind].m_normal.y);
-      data.push_back(verts[ind].m_normal.z);
-      Color col = verts[ind].GetColor(true);
-      data.push_back(col.r);
-      data.push_back(col.g);
-      data.push_back(col.b);
-      };
-
-    auto octohedralPoint = [&point](const Vertex* verts, int ind, std::vector<float>& data) {
-      constexpr float radius = 0.5f;
-
-      Vertex v = Vertex(verts[ind]);
-      v.m_pos.x += radius; v.m_normal = Vec3(1.f / 1.44224957031f, 1.f / 1.44224957031f, 1.f / 1.44224957031f); point(&v, 0, data); v.m_pos.x -= radius;
-      v.m_pos.y += radius; point(&v, 0, data); v.m_pos.y -= radius;
-      v.m_pos.z += radius; point(&v, 0, data); v.m_pos.z -= radius;
-
-      v.m_pos.x -= radius; v.m_normal = Vec3(-1.f / 1.44224957031f, 1.f / 1.44224957031f, 1.f / 1.44224957031f); point(&v, 0, data); v.m_pos.x += radius;
-      v.m_pos.y += radius; point(&v, 0, data); v.m_pos.y -= radius;
-      v.m_pos.z += radius; point(&v, 0, data); v.m_pos.z -= radius;
-
-      v.m_pos.x += radius; v.m_normal = Vec3(1.f / 1.44224957031f, -1.f / 1.44224957031f, 1.f / 1.44224957031f); point(&v, 0, data); v.m_pos.x -= radius;
-      v.m_pos.y -= radius; point(&v, 0, data); v.m_pos.y += radius;
-      v.m_pos.z += radius; point(&v, 0, data); v.m_pos.z -= radius;
-
-      v.m_pos.x += radius; v.m_normal = Vec3(1.f / 1.44224957031f, 1.f / 1.44224957031f, -1.f / 1.44224957031f); point(&v, 0, data); v.m_pos.x -= radius;
-      v.m_pos.y += radius; point(&v, 0, data); v.m_pos.y -= radius;
-      v.m_pos.z -= radius; point(&v, 0, data); v.m_pos.z += radius;
-
-      v.m_pos.x -= radius; v.m_normal = Vec3(-1.f / 1.44224957031f, -1.f / 1.44224957031f, 1.f / 1.44224957031f); point(&v, 0, data); v.m_pos.x += radius;
-      v.m_pos.y -= radius; point(&v, 0, data); v.m_pos.y += radius;
-      v.m_pos.z += radius; point(&v, 0, data); v.m_pos.z -= radius;
-
-      v.m_pos.x += radius; v.m_normal = Vec3(1.f / 1.44224957031f, -1.f / 1.44224957031f, -1.f / 1.44224957031f); point(&v, 0, data); v.m_pos.x -= radius;
-      v.m_pos.y -= radius; point(&v, 0, data); v.m_pos.y += radius;
-      v.m_pos.z -= radius; point(&v, 0, data); v.m_pos.z += radius;
-
-      v.m_pos.x -= radius; v.m_normal = Vec3(-1.f / 1.44224957031f, 1.f / 1.44224957031f, -1.f / 1.44224957031f); point(&v, 0, data); v.m_pos.x += radius;
-      v.m_pos.y += radius; point(&v, 0, data); v.m_pos.y -= radius;
-      v.m_pos.z -= radius; point(&v, 0, data); v.m_pos.z += radius;
-
-      v.m_pos.x -= radius; v.m_normal = Vec3(-1.f / 1.44224957031f, -1.f / 1.44224957031f, -1.f / 1.44224957031f); point(&v, 0, data); v.m_pos.x += radius;
-      v.m_pos.y -= radius; point(&v, 0, data); v.m_pos.y += radius;
-      v.m_pos.z -= radius; point(&v, 0, data); v.m_pos.z += radius;
-      };
-
-    //clockwise point ordering
-    if (qb.IsQuadblock())
-    {
-      octohedralPoint(verts, 0, vertexHighLODData);
-      octohedralPoint(verts, 1, vertexHighLODData);
-      octohedralPoint(verts, 2, vertexHighLODData);
-      octohedralPoint(verts, 3, vertexHighLODData);
-      octohedralPoint(verts, 4, vertexHighLODData);
-      octohedralPoint(verts, 5, vertexHighLODData);
-      octohedralPoint(verts, 6, vertexHighLODData);
-      octohedralPoint(verts, 7, vertexHighLODData);
-      octohedralPoint(verts, 8, vertexHighLODData);
-
-      octohedralPoint(verts, 0, vertexLowLODData);
-      octohedralPoint(verts, 2, vertexLowLODData);
-      octohedralPoint(verts, 6, vertexLowLODData);
-      octohedralPoint(verts, 8, vertexLowLODData);
-
-      point(verts, 3, highLODData);
-      point(verts, 0, highLODData);
-      point(verts, 1, highLODData);
-      point(verts, 1, highLODData);
-      point(verts, 4, highLODData);
-      point(verts, 3, highLODData);
-
-      point(verts, 4, highLODData);
-      point(verts, 1, highLODData);
-      point(verts, 2, highLODData);
-      point(verts, 2, highLODData);
-      point(verts, 5, highLODData);
-      point(verts, 4, highLODData);
-
-      point(verts, 6, highLODData);
-      point(verts, 3, highLODData);
-      point(verts, 4, highLODData);
-      point(verts, 4, highLODData);
-      point(verts, 7, highLODData);
-      point(verts, 6, highLODData);
-
-      point(verts, 7, highLODData);
-      point(verts, 4, highLODData);
-      point(verts, 5, highLODData);
-      point(verts, 5, highLODData);
-      point(verts, 8, highLODData);
-      point(verts, 7, highLODData);
-
-      point(verts, 6, lowLODData);
-      point(verts, 0, lowLODData);
-      point(verts, 2, lowLODData);
-
-      point(verts, 2, lowLODData);
-      point(verts, 8, lowLODData);
-      point(verts, 6, lowLODData);
-    }
-    else
-    {
-      octohedralPoint(verts, 0, vertexHighLODData);
-      octohedralPoint(verts, 1, vertexHighLODData);
-      octohedralPoint(verts, 2, vertexHighLODData);
-      octohedralPoint(verts, 3, vertexHighLODData);
-      octohedralPoint(verts, 4, vertexHighLODData);
-      octohedralPoint(verts, 6, vertexHighLODData);
-
-      octohedralPoint(verts, 0, vertexLowLODData);
-      octohedralPoint(verts, 2, vertexLowLODData);
-      octohedralPoint(verts, 6, vertexLowLODData);
-
-      point(verts, 6, highLODData);
-      point(verts, 3, highLODData);
-      point(verts, 4, highLODData);
-
-      point(verts, 4, highLODData);
-      point(verts, 1, highLODData);
-      point(verts, 2, highLODData);
-
-      point(verts, 1, highLODData);
-      point(verts, 4, highLODData);
-      point(verts, 3, highLODData);
-
-      point(verts, 3, highLODData);
-      point(verts, 0, highLODData);
-      point(verts, 1, highLODData);
-
-      point(verts, 6, lowLODData);
-      point(verts, 0, lowLODData);
-      point(verts, 2, lowLODData);
-    }
-  }
-  highLODMesh.UpdateMesh(highLODData.data(), highLODData.size() * sizeof(float), (Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
-  this->m_highLODLevelModel.SetMesh(&highLODMesh);
-
-  lowLODMesh.UpdateMesh(lowLODData.data(), lowLODData.size() * sizeof(float), (Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
-  this->m_lowLODLevelModel.SetMesh(&lowLODMesh);
-
-  vertexHighLODMesh.UpdateMesh(vertexHighLODData.data(), vertexHighLODData.size() * sizeof(float), (Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
-  this->m_pointsHighLODLevelModel.SetMesh(&vertexHighLODMesh);
-
-  vertexLowLODMesh.UpdateMesh(vertexLowLODData.data(), vertexLowLODData.size() * sizeof(float), (Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
-  this->m_pointsLowLODLevelModel.SetMesh(&vertexLowLODMesh);
+	if (ImGui::TreeNode(("Vertex " + std::to_string(index)).c_str()))
+	{
+		ImGui::Text("Pos: "); ImGui::SameLine();
+		if (ImGui::InputFloat3("##pos", m_pos.Data())) { editedPos = true; }
+		ImGui::Text("High:"); ImGui::SameLine();
+		ImGui::ColorEdit3("##high", m_colorHigh.Data());
+		ImGui::Text("Low: "); ImGui::SameLine();
+		ImGui::ColorEdit3("##low", m_colorLow.Data());
+		ImGui::TreePop();
+	}
 }

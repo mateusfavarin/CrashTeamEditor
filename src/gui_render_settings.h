@@ -1,14 +1,19 @@
 #pragma once
 
+#include <vector>
+
 struct GuiRenderSettings
 {
-  static float camFovDeg, camSprintMult, camRotateMult, camMoveMult;
-  static bool showLowLOD, showWireframe, showLevVerts, showBackfaces;
-  static int renderType;
-  enum RenderType { //note: updating this also requires updating all shader source.
+	// note: updating this also requires updating all shader source.
+  enum RenderType
+	{
     VColor,
     Diffuse,
     Normals
   };
-  static const char* renderTypeLabels[];
+
+  static int renderType;
+  static float camFovDeg, camSprintMult, camRotateMult, camMoveMult;
+  static bool showLowLOD, showWireframe, showLevVerts, showBackfaces;
+  static const std::vector<const char*> renderTypeLabels;
 };

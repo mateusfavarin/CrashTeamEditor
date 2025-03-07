@@ -34,7 +34,7 @@ std::vector<uint8_t> Vertex::Serialize() const
 	return buffer;
 }
 
-Color Vertex::GetColor(bool high) const 
+Color Vertex::GetColor(bool high) const
 {
-	return high ? this->m_colorHigh : this->m_colorLow;
+	return high ? m_colorHigh : m_colorLow;
 }
