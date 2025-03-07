@@ -183,8 +183,84 @@ static bool try_parse_float(const std::string& str, float* out) {
   std::istringstream iss(str);
   if (iss >> *out && iss.eof())
     return true;
-  else 
+  else
     return false;
+}
+
+template<typename T, MaterialType M>
+void MaterialProperty<T, M>::RenderUI(const std::string& material, const std::vector<size_t>& quadblockIndexes, std::vector<Quadblock>& quadblocks)
+{
+	if constexpr (M == MaterialType::TERRAIN)
+	{
+		ImGui::Text("Terrain:"); ImGui::SameLine();
+		if (ImGui::BeginCombo("##terrain", GetPreview(material).c_str()))
+		{
+			for (const auto& [label, terrain] : TerrainType::LABELS)
+			{
+				if (ImGui::Selectable(label.c_str()))
+				{
+					SetPreview(material, label);
+				}
+			}
+			ImGui::EndCombo();
+		} ImGui::SameLine();
+
+		static ButtonUI terrainApplyButton = ButtonUI();
+		if (terrainApplyButton.Show(("Apply##terrain" + material).c_str(), "Terrain type successfully updated.", UnsavedChanges(material)))
+		{
+			Apply(material, quadblockIndexes, quadblocks);
+		}
+	}
+	else if constexpr (M == MaterialType::QUAD_FLAGS)
+	{
+		if (ImGui::TreeNode("Quad Flags"))
+		{
+			for (const auto& [label, flag] : QuadFlags::LABELS)
+			{
+				UIFlagCheckbox(GetPreview(material), flag, label);
+			}
+
+			static ButtonUI quadFlagsApplyButton = ButtonUI();
+			if (quadFlagsApplyButton.Show(("Apply##quadflags" + material).c_str(), "Quad flags successfully updated.", UnsavedChanges(material)))
+			{
+				Apply(material, quadblockIndexes, quadblocks);
+			}
+			static ButtonUI killPlaneButton = ButtonUI();
+			if (killPlaneButton.Show("Kill Plane##quadflags", "Modified quad flags to kill plane.", false))
+			{
+				SetPreview(material, QuadFlags::INVISIBLE_TRIGGER | QuadFlags::OUT_OF_BOUNDS | QuadFlags::MASK_GRAB | QuadFlags::WALL | QuadFlags::NO_COLLISION);
+				Apply(material, quadblockIndexes, quadblocks);
+			}
+			ImGui::TreePop();
+		}
+	}
+	else if constexpr (M == MaterialType::DRAW_FLAGS)
+	{
+		if (ImGui::TreeNode("Draw Flags"))
+		{
+			T& preview = GetPreview(material);
+			ImGui::Checkbox("Double Sided", &preview);
+
+			static ButtonUI drawFlagsApplyButton = ButtonUI();
+			if (drawFlagsApplyButton.Show(("Apply##drawflags" + material).c_str(), "Draw flags successfully updated.", UnsavedChanges(material)))
+			{
+				Apply(material, quadblockIndexes, quadblocks);
+			}
+			ImGui::TreePop();
+		}
+	}
+	else if constexpr (M == MaterialType::CHECKPOINT)
+	{
+		T& preview = GetPreview(material);
+		ImGui::Checkbox("Checkpoint", &preview);
+		ImGui::SameLine();
+
+		static ButtonUI checkpointApplyButton = ButtonUI();
+		if (checkpointApplyButton.Show(("Apply##checkpoint" + material).c_str(), "Checkpoint status successfully updated.", UnsavedChanges(material)))
+		{
+			Apply(material, quadblockIndexes, quadblocks);
+		}
+	}
 }
 
 void Level::RenderUI()
@@ -371,66 +447,11 @@ void Level::RenderUI()
             ImGui::TreePop();
           }
 
-          ImGui::Text("Terrain:"); ImGui::SameLine();
-          if (ImGui::BeginCombo("##terrain", m_propTerrain.GetPreview(material).c_str()))
-          {
-            for (const auto& [label, terrain] : TerrainType::LABELS)
-            {
-              if (ImGui::Selectable(label.c_str()))
-              {
-                m_propTerrain.SetPreview(material, label);
-              }
-            }
-            ImGui::EndCombo();
-          } ImGui::SameLine();
+					m_propTerrain.RenderUI(material, quadblockIndexes, m_quadblocks);
+					m_propQuadFlags.RenderUI(material, quadblockIndexes, m_quadblocks);
+					m_propDoubleSided.RenderUI(material, quadblockIndexes, m_quadblocks);
+					m_propCheckpoints.RenderUI(material, quadblockIndexes, m_quadblocks);
 
-					static ButtonUI terrainApplyButton = ButtonUI();
-					if (terrainApplyButton.Show(("Apply##terrain" + material).c_str(), "Terrain type successfully updated.", m_propTerrain.UnsavedChanges(material)))
-					{
-						m_propTerrain.Apply(material, quadblockIndexes, m_quadblocks);
-					}
-
-          if (ImGui::TreeNode("Quad Flags"))
-          {
-            for (const auto& [label, flag] : QuadFlags::LABELS)
-            {
-              UIFlagCheckbox(m_propQuadFlags.GetPreview(material), flag, label);
-            }
-
-						static ButtonUI quadFlagsApplyButton = ButtonUI();
-						if (quadFlagsApplyButton.Show(("Apply##quadflags" + material).c_str(), "Quad flags successfully updated.", m_propQuadFlags.UnsavedChanges(material)))
-						{
-							m_propQuadFlags.Apply(material, quadblockIndexes, m_quadblocks);
-						}
-						static ButtonUI killPlaneButton = ButtonUI();
-						if (killPlaneButton.Show("Kill Plane##quadflags", "Modified quad flags to kill plane.", false))
-						{
-							m_propQuadFlags.SetPreview(material, QuadFlags::INVISIBLE_TRIGGER | QuadFlags::OUT_OF_BOUNDS | QuadFlags::MASK_GRAB | QuadFlags::WALL | QuadFlags::NO_COLLISION);
-							m_propQuadFlags.Apply(material, quadblockIndexes, m_quadblocks);
-						}
-						ImGui::TreePop();
-					}
-
-          if (ImGui::TreeNode("Draw Flags"))
-          {
-            ImGui::Checkbox("Double Sided", &m_propDoubleSided.GetPreview(material));
-
-						static ButtonUI drawFlagsApplyButton = ButtonUI();
-						if (drawFlagsApplyButton.Show(("Apply##drawflags" + material).c_str(), "Draw flags successfully updated.", m_propDoubleSided.UnsavedChanges(material)))
-						{
-							m_propDoubleSided.Apply(material, quadblockIndexes, m_quadblocks);
-						}
-						ImGui::TreePop();
-					}
-
-          ImGui::Checkbox("Checkpoint", &m_propCheckpoints.GetPreview(material));
-          ImGui::SameLine();
-
-					static ButtonUI checkpointApplyButton = ButtonUI();
-					if (checkpointApplyButton.Show(("Apply##checkpoint" + material).c_str(), "Checkpoint status successfully updated.", m_propCheckpoints.UnsavedChanges(material)))
-					{
-						m_propCheckpoints.Apply(material, quadblockIndexes, m_quadblocks);
-					}
 					ImGui::TreePop();
 				}
 			}
@@ -622,7 +643,7 @@ void Level::RenderUI()
 		}
 		ImGui::End();
 	}
-  
+
   if (w_ghost)
 	{
 		if (ImGui::Begin("Ghost", &w_ghost))
@@ -726,12 +747,12 @@ void Level::RenderUI()
               * Filter by material (highlight all quads with a specified subset of materials)
               * Filter by quad flags (higlight all quads with a specified subset of quadflags)
               * Filter by draw flags ""
-              * Filter by terrain "" 
-              * 
+              * Filter by terrain ""
+              *
               * NOTE: resetBsp does not trigger when vertex color changes.
-              * 
+              *
               * Make mesh read live data.
-              * 
+              *
               * Editor features (edit in viewport blender style).
               */
           static std::string camMoveMult = "1",

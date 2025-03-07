@@ -123,8 +123,8 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-		<AdditionalIncludeDirectories>$(SolutionDir)third_party\imgui\;$(SolutionDir)third_party\imgui\backends;$(SolutionDir)third_party\portable-file-dialogs\;$(SolutionDir)third_party\glfw\include\;$(SolutionDir)third_party\glm\glm\;$(SolutionDir)third_party\json\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalOptions>/wd4189 /wd4100 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalIncludeDirectories>$(SolutionDir)third_party\imgui\;$(SolutionDir)third_party\imgui\backends;$(SolutionDir)third_party\portable-file-dialogs\;$(SolutionDir)third_party\glfw\include\;$(SolutionDir)third_party\glm\glm\;$(SolutionDir)third_party\json\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>/wd4189 /wd4100 /wd4661 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -141,8 +141,8 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-		<AdditionalIncludeDirectories>$(SolutionDir)third_party\imgui\;$(SolutionDir)third_party\imgui\backends;$(SolutionDir)third_party\portable-file-dialogs\;$(SolutionDir)third_party\glfw\include\;$(SolutionDir)third_party\glm\glm\;$(SolutionDir)third_party\json\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalOptions>/wd4189 /wd4100 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalIncludeDirectories>$(SolutionDir)third_party\imgui\;$(SolutionDir)third_party\imgui\backends;$(SolutionDir)third_party\portable-file-dialogs\;$(SolutionDir)third_party\glfw\include\;$(SolutionDir)third_party\glm\glm\;$(SolutionDir)third_party\json\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>/wd4189 /wd4100 /wd4661 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
