@@ -32,7 +32,10 @@ public:
 	bool LoadPreset(const std::filesystem::path& filename);
 	bool SavePreset(const std::filesystem::path& path);
 	void RenderUI();
-	void GenerateRasterizableData(std::vector<Quadblock>& quadblocks);
+	void GenerateRenderLevData(std::vector<Quadblock>& quadblocks);
+	void GenerateRenderBspData(BSP bsp);
+	void GenerateRenderCheckpointData(std::vector<Checkpoint>&);
+	void GenerateRenderStartpointData(std::array<Spawn, NUM_DRIVERS>&);
 
 private:
 	void ManageTurbopad(Quadblock& quadblock);
@@ -71,4 +74,7 @@ private:
 	Model m_lowLODLevelModel;
 	Model m_pointsHighLODLevelModel;
 	Model m_pointsLowLODLevelModel;
+	Model m_bspModel;
+	Model m_spawnsModel;
+	Model m_checkModel;
 };

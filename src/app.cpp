@@ -16,6 +16,7 @@ void App::Run()
 {
 	UI ui;
 	ImGuiIO& io = ImGui::GetIO();
+	io.ConfigFlags &= ~ImGuiConfigFlags_NavEnableKeyboard;
 	ImVec4 clearColor = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 	while (!glfwWindowShouldClose(m_window))
 	{
