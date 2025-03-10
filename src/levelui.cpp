@@ -337,7 +337,6 @@ void Level::RenderUI()
 	}
 
 	if (!m_loaded) { return; }
-	static Renderer rend = Renderer(800, 600);
 
 	static bool w_spawn = false;
 	static bool w_level = false;
@@ -697,23 +696,21 @@ void Level::RenderUI()
 
 	if (w_renderer)
 	{
+
+		static Renderer rend = Renderer(800.0f, 400.0f);
+		static bool initRend = true;
 		constexpr float bottomPaneHeight = 200.0f;
-		//ImGui::SetNextWindowSize(ImVec2(rend.width, rend.height + bottomPaneHeight), ImGuiCond_Always);
+
+		if (initRend) { ImGui::SetNextWindowSize({rend.GetWidth(), rend.GetHeight() + bottomPaneHeight}); initRend = false; }
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-		//if (ImGui::IsWindowFocused()) //doesn't seem to work.
-		//	title.append("true");
-
-		if (ImGui::Begin("Renderer", &w_renderer, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings))
-			//ImGui::Begin("Renderer", &w_renderer, ImGuiWindowFlags_NoSavedSettings); //TODO: handle dynamic buffer sizing later
+		if (ImGui::Begin("Renderer", &w_renderer, ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoScrollbar))
 		{
-
 			ImVec2 pos = ImGui::GetCursorScreenPos();
-			ImVec2 min = ImGui::GetItemRectMin();
-			ImVec2 max = ImGui::GetItemRectMax();
-			ImTextureID tex = static_cast<ImTextureID>(rend.m_texturebuffer);
-
-			float rendWidth = static_cast<float>(rend.m_width);
-			float rendHeight = static_cast<float>(rend.m_height);
+			ImVec2 size = ImGui::GetWindowSize();
+			rend.RescaleFramebuffer(size.x, size.y - bottomPaneHeight);
+			ImTextureID tex = static_cast<ImTextureID>(rend.GetTexBuffer());
+			float rendWidth = rend.GetWidth();
+			float rendHeight = rend.GetHeight();
 
 			ImGui::GetWindowDrawList()->AddImage(tex,
 				ImVec2(pos.x, pos.y),
@@ -721,7 +718,20 @@ void Level::RenderUI()
 				ImVec2(0, 1),
 				ImVec2(1, 0));
 
-			//bottom pane
+			std::vector<Model> modelsToRender;
+			if (GuiRenderSettings::showLowLOD)
+			{
+				if (GuiRenderSettings::showLevVerts) { modelsToRender.push_back(m_pointsLowLODLevelModel); }
+				else { modelsToRender.push_back(m_lowLODLevelModel); }
+			}
+			else
+			{
+				if (GuiRenderSettings::showLevVerts) { modelsToRender.push_back(m_pointsHighLODLevelModel); }
+				else { modelsToRender.push_back(m_highLODLevelModel); }
+			}
+
+			rend.Render(modelsToRender);
+
 			ImGui::SetNextWindowPos(ImVec2(pos.x, pos.y + rendHeight));
 			if (ImGui::BeginChild("Renderer Settings", ImVec2(rendWidth, bottomPaneHeight), ImGuiChildFlags_Border))
 			{
@@ -734,117 +744,106 @@ void Level::RenderUI()
 					rollingOneSecond = fm;
 				}
 				rollingOneSecond += rend.GetLastDeltaTime();
-				if (ImGui::BeginTable("Renderer Settings Table", 2))
+				if (ImGui::TreeNode("Options"))
 				{
-					/*
-						* *** Enable viewport resizing
-						* Filter by material (highlight all quads with a specified subset of materials)
-						* Filter by quad flags (higlight all quads with a specified subset of quadflags)
-						* Filter by draw flags ""
-						* Filter by terrain ""
-						*
-						* NOTE: resetBsp does not trigger when vertex color changes.
-						*
-						* Make mesh read live data.
-						*
-						* Editor features (edit in viewport blender style).
-						*/
-					static std::string camMoveMult = std::to_string(GuiRenderSettings::camMoveMult);
-					static std::string camRotateMult = std::to_string(GuiRenderSettings::camRotateMult);
-					static std::string camSprintMult = std::to_string(GuiRenderSettings::camSprintMult);
-					static std::string camFOV = std::to_string(GuiRenderSettings::camFovDeg);
-
-					static bool showCheckpoints = false;
-					static bool	showStartingPositions = false;
-					static bool	showBspRectTree = false;
-
-					float textFieldWidth = std::max(rendWidth / 6.0f, 50.0f);
-
-					ImGui::TableNextRow();
-					ImGui::TableSetColumnIndex(0);
-					ImGui::Text("FPS: %d", FPS);
-
-					if (ImGui::Combo("Render", &GuiRenderSettings::renderType, GuiRenderSettings::renderTypeLabels.data(), static_cast<int>(GuiRenderSettings::renderTypeLabels.size()))) {}
-
-					ImGui::Checkbox("Show Low LOD", &GuiRenderSettings::showLowLOD);
-					ImGui::Checkbox("Show Wireframe", &GuiRenderSettings::showWireframe);
-					ImGui::Checkbox("Show Backfaces", &GuiRenderSettings::showBackfaces);
-					ImGui::Checkbox("Show Level Verts", &GuiRenderSettings::showLevVerts);
-					ImGui::Checkbox("(NOT IMPL) Show Checkpoints", &showCheckpoints);
-					ImGui::Checkbox("(NOT IMPL) Show Starting Positions", &showStartingPositions);
-					ImGui::Checkbox("(NOT IMPL) Show BSP Rect Tree", &showBspRectTree);
-					ImGui::PushItemWidth(textFieldWidth);
-					if (ImGui::BeginCombo("(NOT IMPL) Mask by Materials", "..."))
+					if (ImGui::BeginTable("Renderer Settings Table", 2))
 					{
-						ImGui::Selectable("(NOT IMPL)");
-						ImGui::EndCombo();
-					}
-					if (ImGui::BeginCombo("(NOT IMPL) Mask by Quad flags", "..."))
-					{
-						ImGui::Selectable("(NOT IMPL)");
-						ImGui::EndCombo();
-					}
-					if (ImGui::BeginCombo("(NOT IMPL) Mask by Draw flags", "..."))
-					{
-						ImGui::Selectable("(NOT IMPL)");
-						ImGui::EndCombo();
-					}
-					if (ImGui::BeginCombo("(NOT IMPL) Mask by Terrain", "..."))
-					{
-						ImGui::Selectable("(NOT IMPL)");
-						ImGui::EndCombo();
-					}
-					ImGui::PopItemWidth();
-					ImGui::TableSetColumnIndex(1);
-					ImGui::Text(""
-						"Camera Controls:\n"
-						"\t* WASD to move in/out & pan\n"
-						"\t* Arrow keys to rotate cam\n"
-						"\t* Spacebar to move up, Shift to move down\n"
-						"\t* Ctrl to \"Sprint\"");
+						/*
+							* *** Enable viewport resizing
+							* Filter by material (highlight all quads with a specified subset of materials)
+							* Filter by quad flags (higlight all quads with a specified subset of quadflags)
+							* Filter by draw flags ""
+							* Filter by terrain ""
+							*
+							* NOTE: resetBsp does not trigger when vertex color changes.
+							*
+							* Make mesh read live data.
+							*
+							* Editor features (edit in viewport blender style).
+							*/
+						static std::string camMoveMult = std::to_string(GuiRenderSettings::camMoveMult);
+						static std::string camRotateMult = std::to_string(GuiRenderSettings::camRotateMult);
+						static std::string camSprintMult = std::to_string(GuiRenderSettings::camSprintMult);
+						static std::string camFOV = std::to_string(GuiRenderSettings::camFovDeg);
 
-					ImGui::PushItemWidth(textFieldWidth);
-					{
-						auto textUI = [](const std::string& label, std::string& uiValue, float& renderSetting, float minThres = -std::numeric_limits<float>::max(), float maxThres = std::numeric_limits<float>::max())
-							{
-								float val;
-								if (ImGui::InputText(label.c_str(), &uiValue) && ParseFloat(uiValue, val))
+						static bool showCheckpoints = false;
+						static bool	showStartingPositions = false;
+						static bool	showBspRectTree = false;
+
+						float textFieldWidth = std::max(rendWidth / 6.0f, 50.0f);
+
+						ImGui::TableNextRow();
+						ImGui::TableSetColumnIndex(0);
+						ImGui::Text("FPS: %d", FPS);
+
+						if (ImGui::Combo("Render", &GuiRenderSettings::renderType, GuiRenderSettings::renderTypeLabels.data(), static_cast<int>(GuiRenderSettings::renderTypeLabels.size()))) {}
+
+						ImGui::Checkbox("Show Low LOD", &GuiRenderSettings::showLowLOD);
+						ImGui::Checkbox("Show Wireframe", &GuiRenderSettings::showWireframe);
+						ImGui::Checkbox("Show Backfaces", &GuiRenderSettings::showBackfaces);
+						ImGui::Checkbox("Show Level Verts", &GuiRenderSettings::showLevVerts);
+						ImGui::Checkbox("(NOT IMPL) Show Checkpoints", &showCheckpoints);
+						ImGui::Checkbox("(NOT IMPL) Show Starting Positions", &showStartingPositions);
+						ImGui::Checkbox("(NOT IMPL) Show BSP Rect Tree", &showBspRectTree);
+						ImGui::PushItemWidth(textFieldWidth);
+						if (ImGui::BeginCombo("(NOT IMPL) Mask by Materials", "..."))
+						{
+							ImGui::Selectable("(NOT IMPL)");
+							ImGui::EndCombo();
+						}
+						if (ImGui::BeginCombo("(NOT IMPL) Mask by Quad flags", "..."))
+						{
+							ImGui::Selectable("(NOT IMPL)");
+							ImGui::EndCombo();
+						}
+						if (ImGui::BeginCombo("(NOT IMPL) Mask by Draw flags", "..."))
+						{
+							ImGui::Selectable("(NOT IMPL)");
+							ImGui::EndCombo();
+						}
+						if (ImGui::BeginCombo("(NOT IMPL) Mask by Terrain", "..."))
+						{
+							ImGui::Selectable("(NOT IMPL)");
+							ImGui::EndCombo();
+						}
+						ImGui::PopItemWidth();
+						ImGui::TableSetColumnIndex(1);
+						ImGui::Text(""
+							"Camera Controls:\n"
+							"\t* WASD to move in/out & pan\n"
+							"\t* Arrow keys to rotate cam\n"
+							"\t* Spacebar to move up, Shift to move down\n"
+							"\t* Ctrl to \"Sprint\"");
+
+						ImGui::PushItemWidth(textFieldWidth);
+						{
+							auto textUI = [](const std::string& label, std::string& uiValue, float& renderSetting, float minThres = -std::numeric_limits<float>::max(), float maxThres = std::numeric_limits<float>::max())
 								{
-									val = Clamp(val, minThres, maxThres);
-									uiValue = std::to_string(val);
-									renderSetting = val;
-								}
-							};
+									float val;
+									if (ImGui::InputText(label.c_str(), &uiValue) && ParseFloat(uiValue, val))
+									{
+										val = Clamp(val, minThres, maxThres);
+										uiValue = std::to_string(val);
+										renderSetting = val;
+									}
+								};
 
-						textUI("Camera Move Multiplier", camMoveMult, GuiRenderSettings::camMoveMult, 0.01f);
-						textUI("Camera Rotate Multiplier", camRotateMult, GuiRenderSettings::camRotateMult, 0.01f);
-						textUI("Camera Sprint Multiplier", camSprintMult, GuiRenderSettings::camSprintMult, 1.0f);
-						textUI("Camera FOV", camFOV, GuiRenderSettings::camFovDeg, 5.0f, 150.0f);
+							textUI("Camera Move Multiplier", camMoveMult, GuiRenderSettings::camMoveMult, 0.01f);
+							textUI("Camera Rotate Multiplier", camRotateMult, GuiRenderSettings::camRotateMult, 0.01f);
+							textUI("Camera Sprint Multiplier", camSprintMult, GuiRenderSettings::camSprintMult, 1.0f);
+							textUI("Camera FOV", camFOV, GuiRenderSettings::camFovDeg, 5.0f, 150.0f);
+						}
+						ImGui::PopItemWidth();
+
+						ImGui::EndTable();
 					}
-					ImGui::PopItemWidth();
-
-					ImGui::EndTable();
+					ImGui::TreePop();
 				}
 			}
 			ImGui::EndChild();
 		}
 		ImGui::End();
 		ImGui::PopStyleVar();
-
-		std::vector<Model> modelsToRender;
-
-		if (GuiRenderSettings::showLowLOD)
-		{
-			if (GuiRenderSettings::showLevVerts) { modelsToRender.push_back(m_pointsLowLODLevelModel); }
-			else { modelsToRender.push_back(m_lowLODLevelModel); }
-		}
-		else
-		{
-			if (GuiRenderSettings::showLevVerts) { modelsToRender.push_back(m_pointsHighLODLevelModel); }
-			else { modelsToRender.push_back(m_highLODLevelModel); }
-		}
-
-		rend.Render(modelsToRender);
 	}
 }
 

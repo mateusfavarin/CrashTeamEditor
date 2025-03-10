@@ -18,18 +18,19 @@
 class Renderer
 {
 public:
-  Renderer(int width, int height);
+  Renderer(float width, float height);
   void RescaleFramebuffer(float width, float height);
   void Render(std::vector<Model> models);
-  float GetLastDeltaTime(void) const;
-  float GetLastTime(void) const;
-
-public:
-	GLuint m_texturebuffer;
-	int m_width;
-	int m_height;
+  float GetLastDeltaTime() const;
+  float GetLastTime() const;
+	float GetWidth() const;
+	float GetHeight() const;
+	GLuint GetTexBuffer() const;
 
 private:
+	int m_width;
+	int m_height;
+	GLuint m_texturebuffer;
 	GLuint m_renderbuffer;
 	GLuint m_framebuffer;
 	std::map<int, Shader> m_shaderCache;

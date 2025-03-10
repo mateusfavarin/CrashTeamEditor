@@ -18,11 +18,11 @@
 #include <misc/cpp/imgui_stdlib.h>
 //#include "manual_third_party/stb_image.h"
 
-Renderer::Renderer(int width, int height)
+Renderer::Renderer(float width, float height)
 {
   //create framebuffer
-  m_width = width;
-  m_height = height;
+  m_width = static_cast<int>(width);
+  m_height = static_cast<int>(height);
 
   glGenFramebuffers(1, &m_framebuffer);
   glBindFramebuffer(GL_FRAMEBUFFER, m_framebuffer);
@@ -30,7 +30,7 @@ Renderer::Renderer(int width, int height)
   // Create a texture to store color attachment
   glGenTextures(1, &m_texturebuffer);
   glBindTexture(GL_TEXTURE_2D, m_texturebuffer);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, m_width, m_height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
   //glBindTexture(GL_TEXTURE_2D, 0);
@@ -39,7 +39,7 @@ Renderer::Renderer(int width, int height)
   // Create a renderbuffer for depth and stencil
   glGenRenderbuffers(1, &m_renderbuffer);
   glBindRenderbuffer(GL_RENDERBUFFER, m_renderbuffer);
-  glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
+  glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, m_width, m_height);
   //glBindRenderbuffer(GL_RENDERBUFFER, 0);
   glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_renderbuffer);
 
@@ -198,6 +198,21 @@ float Renderer::GetLastDeltaTime() const
 float Renderer::GetLastTime() const
 {
   return m_time;
+}
+
+float Renderer::GetWidth() const
+{
+	return static_cast<float>(m_width);
+}
+
+float Renderer::GetHeight() const
+{
+	return static_cast<float>(m_height);
+}
+
+GLuint Renderer::GetTexBuffer() const
+{
+	return m_texturebuffer;
 }
 
 void Renderer::RescaleFramebuffer(float width, float height)
