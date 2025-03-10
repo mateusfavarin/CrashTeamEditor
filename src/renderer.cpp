@@ -62,7 +62,7 @@ void Renderer::Render(std::vector<Model> models)
   glClearColor(0.0f, 0.05f, 0.1f, 1.0f);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   //time
-	m_time = clock() / (float)CLOCKS_PER_SEC;
+	m_time = clock() / static_cast<float>(CLOCKS_PER_SEC);
 	if (m_deltaTime == -1.0f) { m_deltaTime = 0.016f; } // fake ~60fps deltaTime
   else
   {
