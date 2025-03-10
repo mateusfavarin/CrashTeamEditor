@@ -11,7 +11,7 @@ static constexpr size_t NUM_VERTICES_QUADBLOCK = 9;
 static constexpr size_t NUM_FACES_QUADBLOCK = 4;
 static constexpr size_t TURBO_PAD_INDEX_NONE = 0;
 
-namespace QuadFlags
+struct QuadFlags
 {
 	static constexpr uint16_t INVISIBLE = 1 << 0;
 	static constexpr uint16_t MOON_GRAVITY = 1 << 1;
@@ -30,7 +30,7 @@ namespace QuadFlags
 	static constexpr uint16_t NO_COLLISION = 1 << 14;
 	static constexpr uint16_t INVISIBLE_TRIGGER = 1 << 15;
 	static constexpr uint16_t DEFAULT = GROUND | COLLISION_TRIGGER;
-	static const std::unordered_map<std::string, uint16_t> LABELS = {
+	static inline const std::unordered_map<std::string, uint16_t> LABELS = {
 		{"Invisible", INVISIBLE}, {"Moon Gravity", MOON_GRAVITY}, {"Reflection", REFLECTION},
 		{"Kickers (?)", KICKERS}, {"Out of Bounds", OUT_OF_BOUNDS}, {"Never Used (?)", NEVER_USED},
 		{"Trigger Script", TRIGGER_SCRIPT }, {"Reverb", REVERB}, {"Kickers Two (?)", KICKERS_TWO},
@@ -39,7 +39,7 @@ namespace QuadFlags
 	};
 };
 
-namespace TerrainType
+struct TerrainType
 {
 	static constexpr uint8_t TURBO_PAD = 1;
 	static constexpr uint8_t SUPER_TURBO_PAD = 2;
@@ -64,8 +64,8 @@ namespace TerrainType
 	static constexpr uint8_t OCEAN_ASPHALT = 18;
 	static constexpr uint8_t SLOW_GRASS = 19;
 	static constexpr uint8_t SLOW_DIRT = 20;
-	static const std::string DEFAULT = "Asphalt";
-	static const std::unordered_map<std::string, uint8_t> LABELS = {
+	static inline const std::string DEFAULT = "Asphalt";
+	static inline const std::unordered_map<std::string, uint8_t> LABELS = {
 		{"Asphalt", ASPHALT}, {"Dirt", DIRT}, {"Grass", GRASS}, {"Wood", WOOD}, {"Water", WATER}, {"Stone", STONE},
 		{"Ice", ICE}, {"Track (?)", TRACK}, {"Icy Road", ICY_ROAD}, {"Snow", SNOW}, {"None (?)", NONE},
 		{"Hard Pack (?)", HARD_PACK}, {"Metal", METAL}, {"Fast Water", FAST_WATER}, {"Mud", MUD}, {"Side Slip", SIDE_SLIP},
@@ -74,7 +74,7 @@ namespace TerrainType
 	};
 };
 
-namespace FaceRotateFlip
+struct FaceRotateFlip
 {
 	static constexpr uint32_t NONE = 0;
 	static constexpr uint32_t ROTATE_90 = 1;
@@ -86,7 +86,7 @@ namespace FaceRotateFlip
 	static constexpr uint32_t FLIP = 7;
 };
 
-namespace FaceDrawMode
+struct FaceDrawMode
 {
 	static constexpr uint32_t DRAW_BOTH = 0;
 	static constexpr uint32_t DRAW_LEFT = 1;

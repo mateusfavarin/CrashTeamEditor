@@ -16,7 +16,7 @@ enum class AxisSplit
 	NONE, X, Y, Z
 };
 
-namespace BSPFlags
+struct BSPFlags
 {
 	static constexpr uint16_t NONE = 0;
 	static constexpr uint16_t LEAF = 1 << 0;
