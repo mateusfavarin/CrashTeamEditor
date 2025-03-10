@@ -763,7 +763,7 @@ void Level::RenderUI()
 					ImGui::TableSetColumnIndex(0);
 					ImGui::Text("FPS: %d", FPS);
 
-					if (ImGui::Combo("Render", &GuiRenderSettings::renderType, GuiRenderSettings::renderTypeLabels.data(), GuiRenderSettings::renderTypeLabels.size())) {}
+					if (ImGui::Combo("Render", &GuiRenderSettings::renderType, GuiRenderSettings::renderTypeLabels.data(), static_cast<int>(GuiRenderSettings::renderTypeLabels.size()))) {}
 
 					ImGui::Checkbox("Show Low LOD", &GuiRenderSettings::showLowLOD);
 					ImGui::Checkbox("Show Wireframe", &GuiRenderSettings::showWireframe);

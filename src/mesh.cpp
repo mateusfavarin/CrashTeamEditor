@@ -63,13 +63,13 @@ void Mesh::Draw() const
 /// vcolor
 /// stuv_1
 /// </summary>
-void Mesh::UpdateMesh(const std::vector<float>& data, int includedDataFlags, unsigned shadSettings, bool dataIsInterlaced)
+void Mesh::UpdateMesh(const std::vector<float>& data, unsigned includedDataFlags, unsigned shadSettings, bool dataIsInterlaced)
 {
   Dispose();
 
   includedDataFlags |= VBufDataType::VertexPos;
 
-  m_dataBufSize = static_cast<int>(data.size() * sizeof(float));
+  m_dataBufSize = static_cast<unsigned>(data.size() * sizeof(float));
   m_includedData = includedDataFlags;
   m_shaderSettings = shadSettings;
 
@@ -85,19 +85,19 @@ void Mesh::UpdateMesh(const std::vector<float>& data, int includedDataFlags, uns
   {
     switch ((includedDataFlags) & (1 << i))
     {
-    case static_cast<int>(VBufDataType::VertexPos): //dimension = 3
+    case VBufDataType::VertexPos: //dimension = 3
       ultimateStrideSize += 3;
       break;
-    case static_cast<int>(VBufDataType::Barycentric): //dimension = 3
+    case VBufDataType::Barycentric: //dimension = 3
       ultimateStrideSize += 3;
       break;
-    case static_cast<int>(VBufDataType::VColor): //dimension = 3
+    case VBufDataType::VColor: //dimension = 3
       ultimateStrideSize += 3;
       break;
-    case static_cast<int>(VBufDataType::Normals): //dimension = 3
+    case VBufDataType::Normals: //dimension = 3
       ultimateStrideSize += 3;
       break;
-    case static_cast<int>(VBufDataType::STUV_1): //undecided 2/4 idk probably 2
+    case VBufDataType::STUV_1: //undecided 2/4 idk probably 2
       fprintf(stderr, "Unimplemented VBufDataType::STUV_1 in Mesh::UpdateMesh()");
       throw 0;
       break;

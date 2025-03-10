@@ -15,18 +15,18 @@ public:
 		static constexpr unsigned DrawBackfaces = 4;
 	};
 
-	enum VBufDataType
+	struct VBufDataType
 	{ //all are assumed to have vertex data (otherwise, what the hell are we drawing?)
-		VertexPos = 1, //implicitly always on
-		Barycentric = 2,
-		VColor = 4,
-		Normals = 8,
-		STUV_1 = 16, //tex coords
+		static constexpr unsigned VertexPos = 1; //implicitly always on
+		static constexpr unsigned Barycentric = 2;
+		static constexpr unsigned VColor = 4;
+		static constexpr unsigned Normals = 8;
+		static constexpr unsigned STUV_1 = 16; //tex coords
 	};
 
 public:
 	Mesh() {};
-	void UpdateMesh(const std::vector<float>& data, int includedDataFlags, unsigned shadSettings, bool dataIsInterlaced = true);
+	void UpdateMesh(const std::vector<float>& data, unsigned includedDataFlags, unsigned shadSettings, bool dataIsInterlaced = true);
 	int GetDatas() const;
 	int GetShaderSettings() const;
 	void SetShaderSettings(unsigned shadSettings);
@@ -41,7 +41,7 @@ private:
 	GLuint m_VAO = 0;
 	GLuint m_VBO = 0;
 	int m_dataBufSize = 0;
-	int m_includedData = 0;
+	unsigned m_includedData = 0;
 	unsigned m_shaderSettings = 0;
 
 	friend class Model;

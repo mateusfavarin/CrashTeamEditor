@@ -138,7 +138,7 @@ void Renderer::Render(std::vector<Model> models)
 
   //if (ImGui::IsKeyDown(ImGuiKey_Scroll)) //todo zoom in and out
 
-  glm::mat4 perspective = glm::perspective<float>(glm::radians(GuiRenderSettings::camFovDeg), ((float)m_width / (float)m_height), 0.1f, 1000.0f);
+  glm::mat4 perspective = glm::perspective<float>(glm::radians(GuiRenderSettings::camFovDeg), (static_cast<float>(m_width) / static_cast<float>(m_height)), 0.1f, 1000.0f);
   glm::mat4 view = glm::lookAt(camPos, camPos + camFront, camUp);
 
   static Shader* lastUsedShader = nullptr;
