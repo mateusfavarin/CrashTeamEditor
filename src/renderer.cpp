@@ -92,7 +92,7 @@ void Renderer::Render(std::vector<Model> models)
     yaw += xpos;
 
 		pitch += ypos;
-		pitch = Clamp(pitch, 89.0f, -89.0f);
+		pitch = Clamp(pitch, -89.0f, 89.0f);
 
     glm::vec3 direction;
     direction.x = cos(glm::radians(yaw - 90)) * cos(glm::radians(pitch));
