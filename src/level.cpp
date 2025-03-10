@@ -841,3 +841,170 @@ bool Level::SetGhostData(const std::filesystem::path& path, bool tropy)
 	memcpy(tropy ? m_tropyGhost.data() : m_oxideGhost.data(), data.data(), data.size());
 	return true;
 }
+
+void Level::GenerateRasterizableData(std::vector<Quadblock>& quadblocks)
+{
+	static Mesh lowLODMesh, highLODMesh, vertexLowLODMesh, vertexHighLODMesh;
+	std::vector<float> highLODData, lowLODData, vertexHighLODData, vertexLowLODData;
+	for (Quadblock qb : quadblocks)
+	{
+		/* 062 is triblock
+			p0 -- p1 -- p2
+			|  q0 |  q1 |
+			p3 -- p4 -- p5
+			|  q2 |  q3 |
+			p6 -- p7 -- p8
+		*/
+		const Vertex* verts = qb.GetUnswizzledVertices();
+
+		auto point = [](const Vertex* verts, int ind, std::vector<float>& data) {
+			//barycentricIndex is essentially "which index" is this vertex for the face.
+			data.push_back(verts[ind].m_pos.x);
+			data.push_back(verts[ind].m_pos.y);
+			data.push_back(verts[ind].m_pos.z);
+			data.push_back(verts[ind].m_normal.x);
+			data.push_back(verts[ind].m_normal.y);
+			data.push_back(verts[ind].m_normal.z);
+			Color col = verts[ind].GetColor(true);
+			data.push_back(col.r);
+			data.push_back(col.g);
+			data.push_back(col.b);
+			};
+
+		auto octohedralPoint = [&point](const Vertex* verts, int ind, std::vector<float>& data) {
+			constexpr float radius = 0.5f;
+
+			Vertex v = Vertex(verts[ind]);
+			v.m_pos.x += radius; v.m_normal = Vec3(1.f / 1.44224957031f, 1.f / 1.44224957031f, 1.f / 1.44224957031f); point(&v, 0, data); v.m_pos.x -= radius;
+			v.m_pos.y += radius; point(&v, 0, data); v.m_pos.y -= radius;
+			v.m_pos.z += radius; point(&v, 0, data); v.m_pos.z -= radius;
+
+			v.m_pos.x -= radius; v.m_normal = Vec3(-1.f / 1.44224957031f, 1.f / 1.44224957031f, 1.f / 1.44224957031f); point(&v, 0, data); v.m_pos.x += radius;
+			v.m_pos.y += radius; point(&v, 0, data); v.m_pos.y -= radius;
+			v.m_pos.z += radius; point(&v, 0, data); v.m_pos.z -= radius;
+
+			v.m_pos.x += radius; v.m_normal = Vec3(1.f / 1.44224957031f, -1.f / 1.44224957031f, 1.f / 1.44224957031f); point(&v, 0, data); v.m_pos.x -= radius;
+			v.m_pos.y -= radius; point(&v, 0, data); v.m_pos.y += radius;
+			v.m_pos.z += radius; point(&v, 0, data); v.m_pos.z -= radius;
+
+			v.m_pos.x += radius; v.m_normal = Vec3(1.f / 1.44224957031f, 1.f / 1.44224957031f, -1.f / 1.44224957031f); point(&v, 0, data); v.m_pos.x -= radius;
+			v.m_pos.y += radius; point(&v, 0, data); v.m_pos.y -= radius;
+			v.m_pos.z -= radius; point(&v, 0, data); v.m_pos.z += radius;
+
+			v.m_pos.x -= radius; v.m_normal = Vec3(-1.f / 1.44224957031f, -1.f / 1.44224957031f, 1.f / 1.44224957031f); point(&v, 0, data); v.m_pos.x += radius;
+			v.m_pos.y -= radius; point(&v, 0, data); v.m_pos.y += radius;
+			v.m_pos.z += radius; point(&v, 0, data); v.m_pos.z -= radius;
+
+			v.m_pos.x += radius; v.m_normal = Vec3(1.f / 1.44224957031f, -1.f / 1.44224957031f, -1.f / 1.44224957031f); point(&v, 0, data); v.m_pos.x -= radius;
+			v.m_pos.y -= radius; point(&v, 0, data); v.m_pos.y += radius;
+			v.m_pos.z -= radius; point(&v, 0, data); v.m_pos.z += radius;
+
+			v.m_pos.x -= radius; v.m_normal = Vec3(-1.f / 1.44224957031f, 1.f / 1.44224957031f, -1.f / 1.44224957031f); point(&v, 0, data); v.m_pos.x += radius;
+			v.m_pos.y += radius; point(&v, 0, data); v.m_pos.y -= radius;
+			v.m_pos.z -= radius; point(&v, 0, data); v.m_pos.z += radius;
+
+			v.m_pos.x -= radius; v.m_normal = Vec3(-1.f / 1.44224957031f, -1.f / 1.44224957031f, -1.f / 1.44224957031f); point(&v, 0, data); v.m_pos.x += radius;
+			v.m_pos.y -= radius; point(&v, 0, data); v.m_pos.y += radius;
+			v.m_pos.z -= radius; point(&v, 0, data); v.m_pos.z += radius;
+			};
+
+		//clockwise point ordering
+		if (qb.IsQuadblock())
+		{
+			octohedralPoint(verts, 0, vertexHighLODData);
+			octohedralPoint(verts, 1, vertexHighLODData);
+			octohedralPoint(verts, 2, vertexHighLODData);
+			octohedralPoint(verts, 3, vertexHighLODData);
+			octohedralPoint(verts, 4, vertexHighLODData);
+			octohedralPoint(verts, 5, vertexHighLODData);
+			octohedralPoint(verts, 6, vertexHighLODData);
+			octohedralPoint(verts, 7, vertexHighLODData);
+			octohedralPoint(verts, 8, vertexHighLODData);
+
+			octohedralPoint(verts, 0, vertexLowLODData);
+			octohedralPoint(verts, 2, vertexLowLODData);
+			octohedralPoint(verts, 6, vertexLowLODData);
+			octohedralPoint(verts, 8, vertexLowLODData);
+
+			point(verts, 3, highLODData);
+			point(verts, 0, highLODData);
+			point(verts, 1, highLODData);
+			point(verts, 1, highLODData);
+			point(verts, 4, highLODData);
+			point(verts, 3, highLODData);
+
+			point(verts, 4, highLODData);
+			point(verts, 1, highLODData);
+			point(verts, 2, highLODData);
+			point(verts, 2, highLODData);
+			point(verts, 5, highLODData);
+			point(verts, 4, highLODData);
+
+			point(verts, 6, highLODData);
+			point(verts, 3, highLODData);
+			point(verts, 4, highLODData);
+			point(verts, 4, highLODData);
+			point(verts, 7, highLODData);
+			point(verts, 6, highLODData);
+
+			point(verts, 7, highLODData);
+			point(verts, 4, highLODData);
+			point(verts, 5, highLODData);
+			point(verts, 5, highLODData);
+			point(verts, 8, highLODData);
+			point(verts, 7, highLODData);
+
+			point(verts, 6, lowLODData);
+			point(verts, 0, lowLODData);
+			point(verts, 2, lowLODData);
+
+			point(verts, 2, lowLODData);
+			point(verts, 8, lowLODData);
+			point(verts, 6, lowLODData);
+		}
+		else
+		{
+			octohedralPoint(verts, 0, vertexHighLODData);
+			octohedralPoint(verts, 1, vertexHighLODData);
+			octohedralPoint(verts, 2, vertexHighLODData);
+			octohedralPoint(verts, 3, vertexHighLODData);
+			octohedralPoint(verts, 4, vertexHighLODData);
+			octohedralPoint(verts, 6, vertexHighLODData);
+
+			octohedralPoint(verts, 0, vertexLowLODData);
+			octohedralPoint(verts, 2, vertexLowLODData);
+			octohedralPoint(verts, 6, vertexLowLODData);
+
+			point(verts, 6, highLODData);
+			point(verts, 3, highLODData);
+			point(verts, 4, highLODData);
+
+			point(verts, 4, highLODData);
+			point(verts, 1, highLODData);
+			point(verts, 2, highLODData);
+
+			point(verts, 1, highLODData);
+			point(verts, 4, highLODData);
+			point(verts, 3, highLODData);
+
+			point(verts, 3, highLODData);
+			point(verts, 0, highLODData);
+			point(verts, 1, highLODData);
+
+			point(verts, 6, lowLODData);
+			point(verts, 0, lowLODData);
+			point(verts, 2, lowLODData);
+		}
+	}
+	highLODMesh.UpdateMesh(highLODData, (Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
+	m_highLODLevelModel.SetMesh(&highLODMesh);
+
+	lowLODMesh.UpdateMesh(lowLODData, (Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
+	m_lowLODLevelModel.SetMesh(&lowLODMesh);
+
+	vertexHighLODMesh.UpdateMesh(vertexHighLODData, (Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
+	m_pointsHighLODLevelModel.SetMesh(&vertexHighLODMesh);
+
+	vertexLowLODMesh.UpdateMesh(vertexLowLODData, (Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
+	m_pointsLowLODLevelModel.SetMesh(&vertexLowLODMesh);
+}

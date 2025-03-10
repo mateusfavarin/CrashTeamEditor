@@ -15,19 +15,25 @@
 #include <vector>
 #include <map>
 
-class Renderer 
+class Renderer
 {
-private:
-  GLuint renderbuffer;
-  GLuint framebuffer;
-  std::map<int, Shader> shaderCache;
-  float time = 0.f, lastFrameTime = 0.f, deltaTime = -1.f;
 public:
-  GLuint texturebuffer;
-  int width, height;
   Renderer(int width, int height);
   void RescaleFramebuffer(float width, float height);
   void Render(std::vector<Model> models);
-  float GetLastDeltaTime(void);
-  float GetLastTime(void);
+  float GetLastDeltaTime(void) const;
+  float GetLastTime(void) const;
+
+public:
+	GLuint m_texturebuffer;
+	int m_width;
+	int m_height;
+
+private:
+	GLuint m_renderbuffer;
+	GLuint m_framebuffer;
+	std::map<int, Shader> m_shaderCache;
+	float m_time = 0.0f;
+	float m_lastFrameTime = 0.0f;
+	float m_deltaTime = -1.0f;
 };

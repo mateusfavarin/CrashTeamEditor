@@ -5,7 +5,7 @@ static char logBuf[LOG_BUF_SIZE];
 
 Shader::Shader() //todo make this a friend of std::map then make this private.
 {
-  this->programId = -1;
+  m_programId = static_cast<GLuint>(-1);
 }
 
 Shader::Shader(const char* geomShader, const char* vertShader, const char* fragShader)
@@ -48,16 +48,16 @@ Shader::Shader(const char* geomShader, const char* vertShader, const char* fragS
     throw 0;
   }
   //link
-  this->programId = glCreateProgram();
-  //glAttachShader(this->programId, geom);
-  glAttachShader(this->programId, vert);
-  glAttachShader(this->programId, frag);
-  glLinkProgram(this->programId);
+  m_programId = glCreateProgram();
+  //glAttachShader(m_programId, geom);
+  glAttachShader(m_programId, vert);
+  glAttachShader(m_programId, frag);
+  glLinkProgram(m_programId);
   success = 0;
-  glGetProgramiv(this->programId, GL_LINK_STATUS, &success);
+  glGetProgramiv(m_programId, GL_LINK_STATUS, &success);
   if (!success)
   {
-    glGetShaderInfoLog(this->programId, LOG_BUF_SIZE, NULL, logBuf);
+    glGetShaderInfoLog(m_programId, LOG_BUF_SIZE, NULL, logBuf);
     fprintf(stderr, "Error, shader link failed:\n%s", logBuf);
     throw 0;
   }
@@ -66,25 +66,24 @@ Shader::Shader(const char* geomShader, const char* vertShader, const char* fragS
   glDeleteShader(frag);
 }
 
-void Shader::Dispose()
+void Shader::Dispose() const
 {
-  if (this->programId != -1)
-    glDeleteProgram(this->programId);
+	if (m_programId != -1) { glDeleteProgram(m_programId); }
 }
 
-void Shader::use()
+void Shader::Use() const
 {
-  if (this->programId == -1)
+  if (m_programId == -1)
   {
     fprintf(stderr, "Error, tried to use a shader that wasn't created with vert/frag shaders. Do not use the default constructor.");
     throw 0;
   }
-  glUseProgram(this->programId);
+  glUseProgram(m_programId);
 }
 
-void Shader::unuse()
+void Shader::Unuse() const
 {
-  if (this->programId == -1)
+  if (m_programId == -1)
   {
     fprintf(stderr, "Error, tried to use a shader that wasn't created with vert/frag shaders. Do not use the default constructor.");
     throw 0;
@@ -92,53 +91,53 @@ void Shader::unuse()
   glUseProgram(0);
 }
 
-void Shader::setUniform(const char* name, bool value) const
+void Shader::SetUniform(const char* name, bool value) const
 {
-  if (this->programId == -1)
+  if (m_programId == -1)
   {
     fprintf(stderr, "Error, tried to use a shader that wasn't created with vert/frag shaders. Do not use the default constructor.");
     throw 0;
   }
-  glUniform1i(glGetUniformLocation(this->programId, name), (int)value);
+  glUniform1i(glGetUniformLocation(m_programId, name), static_cast<int>(value));
 }
 
-void Shader::setUniform(const char* name, int value) const
+void Shader::SetUniform(const char* name, int value) const
 {
-  if (this->programId == -1)
+  if (m_programId == -1)
   {
     fprintf(stderr, "Error, tried to use a shader that wasn't created with vert/frag shaders. Do not use the default constructor.");
     throw 0;
   }
-  glUniform1i(glGetUniformLocation(this->programId, name), value);
+  glUniform1i(glGetUniformLocation(m_programId, name), value);
 }
 
-void Shader::setUniform(const char* name, float value) const
+void Shader::SetUniform(const char* name, float value) const
 {
-  if (this->programId == -1)
+  if (m_programId == -1)
   {
     fprintf(stderr, "Error, tried to use a shader that wasn't created with vert/frag shaders. Do not use the default constructor.");
     throw 0;
   }
-  glUniform1f(glGetUniformLocation(this->programId, name), value);
+  glUniform1f(glGetUniformLocation(m_programId, name), value);
 }
 
-void Shader::setUniform(const char* name, glm::mat4 mat) const
+void Shader::SetUniform(const char* name, glm::mat4 mat) const
 {
-  if (this->programId == -1)
+  if (m_programId == -1)
   {
     fprintf(stderr, "Error, tried to use a shader that wasn't created with vert/frag shaders. Do not use the default constructor.");
     throw 0;
   }
-  glUniformMatrix4fv(glGetUniformLocation(this->programId, name), 1, GL_FALSE, glm::value_ptr(mat));
+  glUniformMatrix4fv(glGetUniformLocation(m_programId, name), 1, GL_FALSE, glm::value_ptr(mat));
 }
 
-void Shader::setUniform(const char* name, glm::vec3 vec3) const
+void Shader::SetUniform(const char* name, glm::vec3 vec3) const
 {
-  if (this->programId == -1)
+  if (m_programId == -1)
   {
     fprintf(stderr, "Error, tried to use a shader that wasn't created with vert/frag shaders. Do not use the default constructor.");
     throw 0;
   }
-  glUniform3f(glGetUniformLocation(this->programId, name), vec3.x, vec3.y, vec3.z);
+  glUniform3f(glGetUniformLocation(m_programId, name), vec3.x, vec3.y, vec3.z);
 }
 #undef LOG_BUF_SIZE

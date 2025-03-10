@@ -1,5 +1,6 @@
 #include "quadblock.h"
 #include "psx_types.h"
+#include "utils.h"
 
 #include <unordered_map>
 #include <unordered_set>
