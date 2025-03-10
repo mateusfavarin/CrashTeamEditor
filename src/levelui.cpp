@@ -749,10 +749,11 @@ void Level::RenderUI()
 						*
 						* Editor features (edit in viewport blender style).
 						*/
-					static std::string camMoveMult = "1";
-					static std::string camRotateMult = "1";
-					static std::string camSprintMult = "2";
-					static std::string camFOV = "70";
+					static std::string camMoveMult = std::to_string(GuiRenderSettings::camMoveMult);
+					static std::string camRotateMult = std::to_string(GuiRenderSettings::camRotateMult);
+					static std::string camSprintMult = std::to_string(GuiRenderSettings::camSprintMult);
+					static std::string camFOV = std::to_string(GuiRenderSettings::camFovDeg);
+
 					static bool showCheckpoints = false;
 					static bool	showStartingPositions = false;
 					static bool	showBspRectTree = false;
@@ -804,20 +805,15 @@ void Level::RenderUI()
 
 					ImGui::PushItemWidth(textFieldWidth);
 					{
-						auto textUI = [](const std::string& label, std::string& uiValue, float& renderSetting, float minThres = std::numeric_limits<float>::max(), float maxThres = -std::numeric_limits<float>::max())
+						auto textUI = [](const std::string& label, std::string& uiValue, float& renderSetting, float minThres = -std::numeric_limits<float>::max(), float maxThres = std::numeric_limits<float>::max())
 							{
 								float val;
-								bool popStyle = false;
-								if (ParseFloat(uiValue, val))
+								if (ImGui::InputText(label.c_str(), &uiValue) && ParseFloat(uiValue, val))
 								{
 									val = Clamp(val, minThres, maxThres);
 									uiValue = std::to_string(val);
 									renderSetting = val;
-									popStyle = true;
-									ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 0.f, 0.f, 1.f));
 								}
-								ImGui::InputText(label.c_str(), &uiValue);
-								if (popStyle) { ImGui::PopStyleColor(); }
 							};
 
 						textUI("Camera Move Multiplier", camMoveMult, GuiRenderSettings::camMoveMult, 0.01f);
