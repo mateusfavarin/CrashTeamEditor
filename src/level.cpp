@@ -841,3 +841,406 @@ bool Level::SetGhostData(const std::filesystem::path& path, bool tropy)
 	memcpy(tropy ? m_tropyGhost.data() : m_oxideGhost.data(), data.data(), data.size());
 	return true;
 }
+
+void Level::GenerateRenderLevData(std::vector<Quadblock>& quadblocks)
+{
+	static Mesh lowLODMesh, highLODMesh, vertexLowLODMesh, vertexHighLODMesh;
+	std::vector<float> highLODData, lowLODData, vertexHighLODData, vertexLowLODData;
+	for (Quadblock qb : quadblocks)
+	{
+		/* 062 is triblock
+			p0 -- p1 -- p2
+			|  q0 |  q1 |
+			p3 -- p4 -- p5
+			|  q2 |  q3 |
+			p6 -- p7 -- p8
+		*/
+		const Vertex* verts = qb.GetUnswizzledVertices();
+
+		auto point = [](const Vertex* verts, int ind, std::vector<float>& data) {
+			//barycentricIndex is essentially "which index" is this vertex for the face.
+			data.push_back(verts[ind].m_pos.x);
+			data.push_back(verts[ind].m_pos.y);
+			data.push_back(verts[ind].m_pos.z);
+			data.push_back(verts[ind].m_normal.x);
+			data.push_back(verts[ind].m_normal.y);
+			data.push_back(verts[ind].m_normal.z);
+			Color col = verts[ind].GetColor(true);
+			data.push_back(col.r);
+			data.push_back(col.g);
+			data.push_back(col.b);
+			};
+
+		auto octohedralPoint = [&point](const Vertex* verts, int ind, std::vector<float>& data) {
+			constexpr float radius = 0.5f;
+
+			Vertex v = Vertex(verts[ind]);
+			v.m_pos.x += radius; v.m_normal = Vec3(1.f / 1.44224957031f, 1.f / 1.44224957031f, 1.f / 1.44224957031f); point(&v, 0, data); v.m_pos.x -= radius;
+			v.m_pos.y += radius; point(&v, 0, data); v.m_pos.y -= radius;
+			v.m_pos.z += radius; point(&v, 0, data); v.m_pos.z -= radius;
+
+			v.m_pos.x -= radius; v.m_normal = Vec3(-1.f / 1.44224957031f, 1.f / 1.44224957031f, 1.f / 1.44224957031f); point(&v, 0, data); v.m_pos.x += radius;
+			v.m_pos.y += radius; point(&v, 0, data); v.m_pos.y -= radius;
+			v.m_pos.z += radius; point(&v, 0, data); v.m_pos.z -= radius;
+
+			v.m_pos.x += radius; v.m_normal = Vec3(1.f / 1.44224957031f, -1.f / 1.44224957031f, 1.f / 1.44224957031f); point(&v, 0, data); v.m_pos.x -= radius;
+			v.m_pos.y -= radius; point(&v, 0, data); v.m_pos.y += radius;
+			v.m_pos.z += radius; point(&v, 0, data); v.m_pos.z -= radius;
+
+			v.m_pos.x += radius; v.m_normal = Vec3(1.f / 1.44224957031f, 1.f / 1.44224957031f, -1.f / 1.44224957031f); point(&v, 0, data); v.m_pos.x -= radius;
+			v.m_pos.y += radius; point(&v, 0, data); v.m_pos.y -= radius;
+			v.m_pos.z -= radius; point(&v, 0, data); v.m_pos.z += radius;
+
+			v.m_pos.x -= radius; v.m_normal = Vec3(-1.f / 1.44224957031f, -1.f / 1.44224957031f, 1.f / 1.44224957031f); point(&v, 0, data); v.m_pos.x += radius;
+			v.m_pos.y -= radius; point(&v, 0, data); v.m_pos.y += radius;
+			v.m_pos.z += radius; point(&v, 0, data); v.m_pos.z -= radius;
+
+			v.m_pos.x += radius; v.m_normal = Vec3(1.f / 1.44224957031f, -1.f / 1.44224957031f, -1.f / 1.44224957031f); point(&v, 0, data); v.m_pos.x -= radius;
+			v.m_pos.y -= radius; point(&v, 0, data); v.m_pos.y += radius;
+			v.m_pos.z -= radius; point(&v, 0, data); v.m_pos.z += radius;
+
+			v.m_pos.x -= radius; v.m_normal = Vec3(-1.f / 1.44224957031f, 1.f / 1.44224957031f, -1.f / 1.44224957031f); point(&v, 0, data); v.m_pos.x += radius;
+			v.m_pos.y += radius; point(&v, 0, data); v.m_pos.y -= radius;
+			v.m_pos.z -= radius; point(&v, 0, data); v.m_pos.z += radius;
+
+			v.m_pos.x -= radius; v.m_normal = Vec3(-1.f / 1.44224957031f, -1.f / 1.44224957031f, -1.f / 1.44224957031f); point(&v, 0, data); v.m_pos.x += radius;
+			v.m_pos.y -= radius; point(&v, 0, data); v.m_pos.y += radius;
+			v.m_pos.z -= radius; point(&v, 0, data); v.m_pos.z += radius;
+			};
+
+		//clockwise point ordering
+		if (qb.IsQuadblock())
+		{
+			octohedralPoint(verts, 0, vertexHighLODData);
+			octohedralPoint(verts, 1, vertexHighLODData);
+			octohedralPoint(verts, 2, vertexHighLODData);
+			octohedralPoint(verts, 3, vertexHighLODData);
+			octohedralPoint(verts, 4, vertexHighLODData);
+			octohedralPoint(verts, 5, vertexHighLODData);
+			octohedralPoint(verts, 6, vertexHighLODData);
+			octohedralPoint(verts, 7, vertexHighLODData);
+			octohedralPoint(verts, 8, vertexHighLODData);
+
+			octohedralPoint(verts, 0, vertexLowLODData);
+			octohedralPoint(verts, 2, vertexLowLODData);
+			octohedralPoint(verts, 6, vertexLowLODData);
+			octohedralPoint(verts, 8, vertexLowLODData);
+
+			point(verts, 3, highLODData);
+			point(verts, 0, highLODData);
+			point(verts, 1, highLODData);
+			point(verts, 1, highLODData);
+			point(verts, 4, highLODData);
+			point(verts, 3, highLODData);
+
+			point(verts, 4, highLODData);
+			point(verts, 1, highLODData);
+			point(verts, 2, highLODData);
+			point(verts, 2, highLODData);
+			point(verts, 5, highLODData);
+			point(verts, 4, highLODData);
+
+			point(verts, 6, highLODData);
+			point(verts, 3, highLODData);
+			point(verts, 4, highLODData);
+			point(verts, 4, highLODData);
+			point(verts, 7, highLODData);
+			point(verts, 6, highLODData);
+
+			point(verts, 7, highLODData);
+			point(verts, 4, highLODData);
+			point(verts, 5, highLODData);
+			point(verts, 5, highLODData);
+			point(verts, 8, highLODData);
+			point(verts, 7, highLODData);
+
+			point(verts, 6, lowLODData);
+			point(verts, 0, lowLODData);
+			point(verts, 2, lowLODData);
+
+			point(verts, 2, lowLODData);
+			point(verts, 8, lowLODData);
+			point(verts, 6, lowLODData);
+		}
+		else
+		{
+			octohedralPoint(verts, 0, vertexHighLODData);
+			octohedralPoint(verts, 1, vertexHighLODData);
+			octohedralPoint(verts, 2, vertexHighLODData);
+			octohedralPoint(verts, 3, vertexHighLODData);
+			octohedralPoint(verts, 4, vertexHighLODData);
+			octohedralPoint(verts, 6, vertexHighLODData);
+
+			octohedralPoint(verts, 0, vertexLowLODData);
+			octohedralPoint(verts, 2, vertexLowLODData);
+			octohedralPoint(verts, 6, vertexLowLODData);
+
+			point(verts, 6, highLODData);
+			point(verts, 3, highLODData);
+			point(verts, 4, highLODData);
+
+			point(verts, 4, highLODData);
+			point(verts, 1, highLODData);
+			point(verts, 2, highLODData);
+
+			point(verts, 1, highLODData);
+			point(verts, 4, highLODData);
+			point(verts, 3, highLODData);
+
+			point(verts, 3, highLODData);
+			point(verts, 0, highLODData);
+			point(verts, 1, highLODData);
+
+			point(verts, 6, lowLODData);
+			point(verts, 0, lowLODData);
+			point(verts, 2, lowLODData);
+		}
+	}
+	highLODMesh.UpdateMesh(highLODData.data(), highLODData.size() * sizeof(float), (Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
+	this->m_highLODLevelModel.SetMesh(&highLODMesh);
+
+	lowLODMesh.UpdateMesh(lowLODData.data(), lowLODData.size() * sizeof(float), (Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
+	this->m_lowLODLevelModel.SetMesh(&lowLODMesh);
+
+	vertexHighLODMesh.UpdateMesh(vertexHighLODData.data(), vertexHighLODData.size() * sizeof(float), (Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
+	this->m_pointsHighLODLevelModel.SetMesh(&vertexHighLODMesh);
+
+	vertexLowLODMesh.UpdateMesh(vertexLowLODData.data(), vertexLowLODData.size() * sizeof(float), (Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
+	this->m_pointsLowLODLevelModel.SetMesh(&vertexLowLODMesh);
+}
+
+void Level::GenerateRenderBspData(BSP bsp)
+{
+	static Mesh bspMesh;
+	std::vector<float> bspData;
+
+	auto point = [](const Vertex* verts, int ind, std::vector<float>& data) {
+		data.push_back(verts[ind].m_pos.x);
+		data.push_back(verts[ind].m_pos.y);
+		data.push_back(verts[ind].m_pos.z);
+		data.push_back(verts[ind].m_normal.x);
+		data.push_back(verts[ind].m_normal.y);
+		data.push_back(verts[ind].m_normal.z);
+		Color col = verts[ind].GetColor(true);
+		data.push_back(col.r);
+		data.push_back(col.g);
+		data.push_back(col.b);
+		};
+
+	std::function<void(const BSP*, int)> createGeom = [&createGeom, &point, &bspData](const BSP* b, int depth) {
+		if (GuiRenderSettings::bspTreeMaxDepth < depth)
+			GuiRenderSettings::bspTreeMaxDepth = depth;
+		const BoundingBox& bb = b->GetBoundingBox();
+		Color c = Color(depth * 30.0, 1.0, 1.0);
+		Vertex verts[] = {
+			Vertex(Point(bb.min.x, bb.min.y, bb.min.z, c.rb, c.gb, c.bb)), //---
+			Vertex(Point(bb.min.x, bb.min.y, bb.max.z, c.rb, c.gb, c.bb)), //--+
+			Vertex(Point(bb.min.x, bb.max.y, bb.min.z, c.rb, c.gb, c.bb)), //-+-
+			Vertex(Point(bb.max.x, bb.min.y, bb.min.z, c.rb, c.gb, c.bb)), //+--
+			Vertex(Point(bb.max.x, bb.max.y, bb.min.z, c.rb, c.gb, c.bb)), //++-
+			Vertex(Point(bb.min.x, bb.max.y, bb.max.z, c.rb, c.gb, c.bb)), //-++
+			Vertex(Point(bb.max.x, bb.min.y, bb.max.z, c.rb, c.gb, c.bb)), //+-+
+			Vertex(Point(bb.max.x, bb.max.y, bb.max.z, c.rb, c.gb, c.bb)), //+++
+		};
+		//these normals are octohedral, should technechally be duplicated and vertex normals should probably be for faces.
+		verts[0].m_normal = Vec3(-1.f / 1.44224957031f, -1.f / 1.44224957031f, -1.f / 1.44224957031f);
+		verts[1].m_normal = Vec3(-1.f / 1.44224957031f, -1.f / 1.44224957031f, 1.f / 1.44224957031f);
+		verts[2].m_normal = Vec3(-1.f / 1.44224957031f, 1.f / 1.44224957031f, -1.f / 1.44224957031f);
+		verts[3].m_normal = Vec3(1.f / 1.44224957031f, -1.f / 1.44224957031f, -1.f / 1.44224957031f);
+		verts[4].m_normal = Vec3(1.f / 1.44224957031f, 1.f / 1.44224957031f, -1.f / 1.44224957031f);
+		verts[5].m_normal = Vec3(-1.f / 1.44224957031f, 1.f / 1.44224957031f, 1.f / 1.44224957031f);
+		verts[6].m_normal = Vec3(1.f / 1.44224957031f, -1.f / 1.44224957031f, 1.f / 1.44224957031f);
+		verts[7].m_normal = Vec3(1.f / 1.44224957031f, 1.f / 1.44224957031f, 1.f / 1.44224957031f);
+
+		if (GuiRenderSettings::bspTreeTopDepth <= depth && GuiRenderSettings::bspTreeBottomDepth >= depth) {
+			point(verts, 2, bspData); //-+-
+			point(verts, 1, bspData); //--+
+			point(verts, 0, bspData); //---
+			point(verts, 5, bspData); //-++
+			point(verts, 1, bspData); //--+
+			point(verts, 2, bspData); //-+-
+
+			point(verts, 6, bspData); //+-+
+			point(verts, 3, bspData); //+--
+			point(verts, 0, bspData); //---
+			point(verts, 0, bspData); //---
+			point(verts, 1, bspData); //--+
+			point(verts, 6, bspData); //+-+
+
+			point(verts, 4, bspData); //++-
+			point(verts, 2, bspData); //-+-
+			point(verts, 0, bspData); //---
+			point(verts, 0, bspData); //---
+			point(verts, 3, bspData); //+--
+			point(verts, 4, bspData); //++-
+
+			point(verts, 7, bspData); //+++
+			point(verts, 4, bspData); //++-
+			point(verts, 3, bspData); //+--
+			point(verts, 3, bspData); //+--
+			point(verts, 6, bspData); //+-+
+			point(verts, 7, bspData); //+++
+
+			point(verts, 7, bspData); //+++
+			point(verts, 6, bspData); //+-+
+			point(verts, 5, bspData); //-++
+			point(verts, 5, bspData); //-++
+			point(verts, 6, bspData); //+-+
+			point(verts, 1, bspData); //--+
+
+			point(verts, 5, bspData); //-++
+			point(verts, 4, bspData); //++-
+			point(verts, 7, bspData); //+++
+			point(verts, 2, bspData); //-+-
+			point(verts, 4, bspData); //++-
+			point(verts, 5, bspData); //-++
+		}
+
+		if (b->GetLeftChildren() != nullptr)
+			createGeom(b->GetLeftChildren(), depth + 1);
+		if (b->GetRightChildren() != nullptr)
+			createGeom(b->GetRightChildren(), depth + 1);
+		};
+
+	GuiRenderSettings::bspTreeMaxDepth = 0;
+	createGeom(&bsp, 0);
+
+	bspMesh.UpdateMesh(bspData.data(), bspData.size() * sizeof(float), (Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
+	this->m_bspModel.SetMesh(&bspMesh);
+}
+
+void Level::GenerateRenderCheckpointData(std::vector<Checkpoint>& checkpoints)
+{
+	static Mesh checkMesh;
+	std::vector<float> checkData;
+
+	auto point = [](const Vertex* verts, int ind, std::vector<float>& data) {
+		//barycentricIndex is essentially "which index" is this vertex for the face.
+		data.push_back(verts[ind].m_pos.x);
+		data.push_back(verts[ind].m_pos.y);
+		data.push_back(verts[ind].m_pos.z);
+		data.push_back(verts[ind].m_normal.x);
+		data.push_back(verts[ind].m_normal.y);
+		data.push_back(verts[ind].m_normal.z);
+		Color col = verts[ind].GetColor(true);
+		data.push_back(col.r);
+		data.push_back(col.g);
+		data.push_back(col.b);
+		};
+
+	auto octohedralPoint = [&point](Vertex v, std::vector<float>& data) {
+		constexpr float radius = 0.5f;
+
+		v.m_pos.x += radius; v.m_normal = Vec3(1.f / 1.44224957031f, 1.f / 1.44224957031f, 1.f / 1.44224957031f); point(&v, 0, data); v.m_pos.x -= radius;
+		v.m_pos.y += radius; point(&v, 0, data); v.m_pos.y -= radius;
+		v.m_pos.z += radius; point(&v, 0, data); v.m_pos.z -= radius;
+
+		v.m_pos.x -= radius; v.m_normal = Vec3(-1.f / 1.44224957031f, 1.f / 1.44224957031f, 1.f / 1.44224957031f); point(&v, 0, data); v.m_pos.x += radius;
+		v.m_pos.y += radius; point(&v, 0, data); v.m_pos.y -= radius;
+		v.m_pos.z += radius; point(&v, 0, data); v.m_pos.z -= radius;
+
+		v.m_pos.x += radius; v.m_normal = Vec3(1.f / 1.44224957031f, -1.f / 1.44224957031f, 1.f / 1.44224957031f); point(&v, 0, data); v.m_pos.x -= radius;
+		v.m_pos.y -= radius; point(&v, 0, data); v.m_pos.y += radius;
+		v.m_pos.z += radius; point(&v, 0, data); v.m_pos.z -= radius;
+
+		v.m_pos.x += radius; v.m_normal = Vec3(1.f / 1.44224957031f, 1.f / 1.44224957031f, -1.f / 1.44224957031f); point(&v, 0, data); v.m_pos.x -= radius;
+		v.m_pos.y += radius; point(&v, 0, data); v.m_pos.y -= radius;
+		v.m_pos.z -= radius; point(&v, 0, data); v.m_pos.z += radius;
+
+		v.m_pos.x -= radius; v.m_normal = Vec3(-1.f / 1.44224957031f, -1.f / 1.44224957031f, 1.f / 1.44224957031f); point(&v, 0, data); v.m_pos.x += radius;
+		v.m_pos.y -= radius; point(&v, 0, data); v.m_pos.y += radius;
+		v.m_pos.z += radius; point(&v, 0, data); v.m_pos.z -= radius;
+
+		v.m_pos.x += radius; v.m_normal = Vec3(1.f / 1.44224957031f, -1.f / 1.44224957031f, -1.f / 1.44224957031f); point(&v, 0, data); v.m_pos.x -= radius;
+		v.m_pos.y -= radius; point(&v, 0, data); v.m_pos.y += radius;
+		v.m_pos.z -= radius; point(&v, 0, data); v.m_pos.z += radius;
+
+		v.m_pos.x -= radius; v.m_normal = Vec3(-1.f / 1.44224957031f, 1.f / 1.44224957031f, -1.f / 1.44224957031f); point(&v, 0, data); v.m_pos.x += radius;
+		v.m_pos.y += radius; point(&v, 0, data); v.m_pos.y -= radius;
+		v.m_pos.z -= radius; point(&v, 0, data); v.m_pos.z += radius;
+
+		v.m_pos.x -= radius; v.m_normal = Vec3(-1.f / 1.44224957031f, -1.f / 1.44224957031f, -1.f / 1.44224957031f); point(&v, 0, data); v.m_pos.x += radius;
+		v.m_pos.y -= radius; point(&v, 0, data); v.m_pos.y += radius;
+		v.m_pos.z -= radius; point(&v, 0, data); v.m_pos.z += radius;
+		};
+
+	/*for (Spawn& e : spawns)
+	{
+		Vertex v = Vertex(Point(e.pos.x, e.pos.y, e.pos.z, 0, 128, 255));
+		octohedralPoint(v, spawnsData);
+	}*/
+
+	for (Checkpoint& e : checkpoints)
+	{
+		Vertex v = Vertex(Point(e.Pos().x, e.Pos().y, e.Pos().z, 255, 0, 128));
+		octohedralPoint(v, checkData);
+	}
+
+	checkMesh.UpdateMesh(checkData.data(), checkData.size() * sizeof(float), (Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
+	this->m_checkModel.SetMesh(&checkMesh);
+}
+
+void Level::GenerateRenderStartpointData(std::array<Spawn, NUM_DRIVERS>& spawns)
+{
+	static Mesh spawnsMesh;
+	std::vector<float> spawnsData;
+
+	auto point = [](const Vertex* verts, int ind, std::vector<float>& data) {
+		//barycentricIndex is essentially "which index" is this vertex for the face.
+		data.push_back(verts[ind].m_pos.x);
+		data.push_back(verts[ind].m_pos.y);
+		data.push_back(verts[ind].m_pos.z);
+		data.push_back(verts[ind].m_normal.x);
+		data.push_back(verts[ind].m_normal.y);
+		data.push_back(verts[ind].m_normal.z);
+		Color col = verts[ind].GetColor(true);
+		data.push_back(col.r);
+		data.push_back(col.g);
+		data.push_back(col.b);
+		};
+
+	auto octohedralPoint = [&point](Vertex v, std::vector<float>& data) {
+		constexpr float radius = 0.5f;
+
+		v.m_pos.x += radius; v.m_normal = Vec3(1.f / 1.44224957031f, 1.f / 1.44224957031f, 1.f / 1.44224957031f); point(&v, 0, data); v.m_pos.x -= radius;
+		v.m_pos.y += radius; point(&v, 0, data); v.m_pos.y -= radius;
+		v.m_pos.z += radius; point(&v, 0, data); v.m_pos.z -= radius;
+
+		v.m_pos.x -= radius; v.m_normal = Vec3(-1.f / 1.44224957031f, 1.f / 1.44224957031f, 1.f / 1.44224957031f); point(&v, 0, data); v.m_pos.x += radius;
+		v.m_pos.y += radius; point(&v, 0, data); v.m_pos.y -= radius;
+		v.m_pos.z += radius; point(&v, 0, data); v.m_pos.z -= radius;
+
+		v.m_pos.x += radius; v.m_normal = Vec3(1.f / 1.44224957031f, -1.f / 1.44224957031f, 1.f / 1.44224957031f); point(&v, 0, data); v.m_pos.x -= radius;
+		v.m_pos.y -= radius; point(&v, 0, data); v.m_pos.y += radius;
+		v.m_pos.z += radius; point(&v, 0, data); v.m_pos.z -= radius;
+
+		v.m_pos.x += radius; v.m_normal = Vec3(1.f / 1.44224957031f, 1.f / 1.44224957031f, -1.f / 1.44224957031f); point(&v, 0, data); v.m_pos.x -= radius;
+		v.m_pos.y += radius; point(&v, 0, data); v.m_pos.y -= radius;
+		v.m_pos.z -= radius; point(&v, 0, data); v.m_pos.z += radius;
+
+		v.m_pos.x -= radius; v.m_normal = Vec3(-1.f / 1.44224957031f, -1.f / 1.44224957031f, 1.f / 1.44224957031f); point(&v, 0, data); v.m_pos.x += radius;
+		v.m_pos.y -= radius; point(&v, 0, data); v.m_pos.y += radius;
+		v.m_pos.z += radius; point(&v, 0, data); v.m_pos.z -= radius;
+
+		v.m_pos.x += radius; v.m_normal = Vec3(1.f / 1.44224957031f, -1.f / 1.44224957031f, -1.f / 1.44224957031f); point(&v, 0, data); v.m_pos.x -= radius;
+		v.m_pos.y -= radius; point(&v, 0, data); v.m_pos.y += radius;
+		v.m_pos.z -= radius; point(&v, 0, data); v.m_pos.z += radius;
+
+		v.m_pos.x -= radius; v.m_normal = Vec3(-1.f / 1.44224957031f, 1.f / 1.44224957031f, -1.f / 1.44224957031f); point(&v, 0, data); v.m_pos.x += radius;
+		v.m_pos.y += radius; point(&v, 0, data); v.m_pos.y -= radius;
+		v.m_pos.z -= radius; point(&v, 0, data); v.m_pos.z += radius;
+
+		v.m_pos.x -= radius; v.m_normal = Vec3(-1.f / 1.44224957031f, -1.f / 1.44224957031f, -1.f / 1.44224957031f); point(&v, 0, data); v.m_pos.x += radius;
+		v.m_pos.y -= radius; point(&v, 0, data); v.m_pos.y += radius;
+		v.m_pos.z -= radius; point(&v, 0, data); v.m_pos.z += radius;
+		};
+
+	for (Spawn& e : spawns)
+	{
+		Vertex v = Vertex(Point(e.pos.x, e.pos.y, e.pos.z, 0, 128, 255));
+		octohedralPoint(v, spawnsData);
+	}
+
+	spawnsMesh.UpdateMesh(spawnsData.data(), spawnsData.size() * sizeof(float), (Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
+	this->m_spawnsModel.SetMesh(&spawnsMesh);
+}

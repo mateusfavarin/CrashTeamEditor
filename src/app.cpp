@@ -32,7 +32,7 @@ void App::Run()
 		glClearColor(clearColor.x * clearColor.w, clearColor.y * clearColor.w, clearColor.z * clearColor.w, clearColor.w);
 		glClear(GL_COLOR_BUFFER_BIT);
 		ImGui::NewFrame();
-		glViewport(0, 0, (int)io.DisplaySize.x, (int)io.DisplaySize.y);
+		glViewport(0, 0, static_cast<int>(io.DisplaySize.x), static_cast<int>(io.DisplaySize.y));
 		int width, height;
 		glfwGetWindowSize(m_window, &width, &height);
 		ui.Render(width, height);

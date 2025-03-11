@@ -1,16 +1,21 @@
 #pragma once
 
+#include <vector>
+
 struct GuiRenderSettings
 {
-  static float camFovDeg, camSprintMult, camRotateMult, camMoveMult;
-  static bool showLowLOD, showWireframe, showLevVerts, showBackfaces, showBspRectTree, showLevel, showCheckpoints, showStartpoints;
-  static int renderType, bspTreeTopDepth, bspTreeBottomDepth, bspTreeMaxDepth;
-  enum RenderType { //note: updating this also requires updating all shader source.
+	// note: updating this also requires updating all shader source.
+  enum RenderType
+	{
     VColor,
     Diffuse,
     ObjFaceDirection,
     CalcFaceDirection,
     WorldNormals,
   };
-  static const char* renderTypeLabels[];
+
+  static int renderType, bspTreeTopDepth, bspTreeBottomDepth, bspTreeMaxDepth;
+  static float camFovDeg, camSprintMult, camRotateMult, camMoveMult;
+  static bool showLowLOD, showWireframe, showLevVerts, showBackfaces, showBspRectTree, showLevel, showCheckpoints, showStartpoints;
+  static const std::vector<const char*> renderTypeLabels;
 };

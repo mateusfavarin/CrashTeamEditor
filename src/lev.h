@@ -7,7 +7,7 @@
 static constexpr size_t NUM_GRADIENT = 3;
 static constexpr size_t NUM_DRIVERS = 8;
 
-namespace LevConfigFlags
+struct LevConfigFlags
 {
 	static constexpr uint32_t NONE = 0;
 	static constexpr uint32_t ENABLE_SKYBOX_GRADIENT = 1 << 0;
