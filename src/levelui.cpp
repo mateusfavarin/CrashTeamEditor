@@ -16,6 +16,7 @@
 
 #include <string>
 #include <chrono>
+#include <functional>
 #include <cmath>
 
 static constexpr size_t MAX_QUADBLOCKS_LEAF = 32;
@@ -360,28 +361,29 @@ void Level::RenderUI()
 		ImGui::EndMainMenuBar();
 	}
 
-	if (w_spawn)
-	{
-		if (ImGui::Begin("Spawn", &w_spawn))
-		{
-			for (size_t i = 0; i < NUM_DRIVERS; i++)
-			{
-				if (ImGui::TreeNode(("Driver " + std::to_string(i)).c_str()))
-				{
-					ImGui::Text("Pos:"); ImGui::SameLine(); ImGui::InputFloat3("##pos", m_spawn[i].pos.Data());
-					ImGui::Text("Rot:"); ImGui::SameLine();
-					if (ImGui::InputFloat3("##rot", m_spawn[i].rot.Data()))
-					{
-						m_spawn[i].rot.x = Clamp(m_spawn[i].rot.x, -360.0f, 360.0f);
-						m_spawn[i].rot.y = Clamp(m_spawn[i].rot.y, -360.0f, 360.0f);
-						m_spawn[i].rot.z = Clamp(m_spawn[i].rot.z, -360.0f, 360.0f);
-					};
-					ImGui::TreePop();
-				}
-			}
-		}
-		ImGui::End();
-	}
+  if (w_spawn)
+  {
+    if (ImGui::Begin("Spawn", &w_spawn))
+    {
+      for (size_t i = 0; i < NUM_DRIVERS; i++)
+      {
+        if (ImGui::TreeNode(("Driver " + std::to_string(i)).c_str()))
+        {
+          ImGui::Text("Pos:"); ImGui::SameLine(); ImGui::InputFloat3("##pos", m_spawn[i].pos.Data());
+          ImGui::Text("Rot:"); ImGui::SameLine();
+          if (ImGui::InputFloat3("##rot", m_spawn[i].rot.Data()))
+          {
+            m_spawn[i].rot.x = Clamp(m_spawn[i].rot.x, -360.0f, 360.0f);
+            m_spawn[i].rot.y = Clamp(m_spawn[i].rot.y, -360.0f, 360.0f);
+            m_spawn[i].rot.z = Clamp(m_spawn[i].rot.z, -360.0f, 360.0f);
+          };
+          GenerateRenderStartpointData(m_spawn);
+          ImGui::TreePop();
+        }
+      }
+    }
+    ImGui::End();
+  }
 
 	if (w_level)
 	{
@@ -402,8 +404,18 @@ void Level::RenderUI()
 					{
 						ImGui::Text("From:"); ImGui::SameLine(); ImGui::InputFloat("##pos_from", &m_skyGradient[i].posFrom);
 						ImGui::Text("To:  "); ImGui::SameLine(); ImGui::InputFloat("##pos_to", &m_skyGradient[i].posTo);
-						ImGui::Text("From:"); ImGui::SameLine(); ImGui::ColorEdit3("##color_from", m_skyGradient[i].colorFrom.Data());
-						ImGui::Text("To:  "); ImGui::SameLine(); ImGui::ColorEdit3("##color_to", m_skyGradient[i].colorTo.Data());
+						ImGui::Text("From:"); ImGui::SameLine(); 
+						float colorFrom[3];
+						if (ImGui::ColorEdit3("##color_from", colorFrom))
+						{
+							m_skyGradient[i].colorFrom = Color(static_cast<float>(colorFrom[0]), colorFrom[1], colorFrom[2]);
+						}
+						ImGui::Text("To:  "); ImGui::SameLine(); 
+						float colorTo[3];
+						if (ImGui::ColorEdit3("##color_to", colorTo))
+						{
+							m_skyGradient[i].colorTo = Color(static_cast<float>(colorTo[0]), colorTo[1], colorTo[2]);
+						}
 						ImGui::TreePop();
 					}
 				}
@@ -411,7 +423,11 @@ void Level::RenderUI()
 			}
 			if (ImGui::TreeNode("Clear Color"))
 			{
-				ImGui::ColorEdit3("##color", m_clearColor.Data());
+				float clearColor[3];
+				if (ImGui::ColorEdit3("##color", clearColor))
+				{
+					m_clearColor = Color(static_cast<float>(clearColor[0]), clearColor[1], clearColor[2]);
+				}
 				ImGui::TreePop();
 			}
 		}
@@ -474,6 +490,7 @@ void Level::RenderUI()
 		if (resetBsp && m_bsp.Valid())
 		{
 			m_bsp.Clear();
+      GenerateRenderBspData(m_bsp);
 			m_showLogWindow = true;
 			m_logMessage = "Modifying quadblock position or turbo pad state automatically resets the BSP tree.";
 		}
@@ -582,26 +599,27 @@ void Level::RenderUI()
 					currStartCheckpoint = &m_checkpoints[m_checkpointPaths[i].Start()];
 				}
 
-				for (size_t i = 0; i < linkNodeIndexes.size(); i++)
-				{
-					Checkpoint& node = m_checkpoints[linkNodeIndexes[i]];
-					if (i % 2 == 0)
-					{
-						size_t linkDown = (i == 0) ? linkNodeIndexes.size() - 1 : i - 1;
-						node.UpdateDown(static_cast<int>(linkNodeIndexes[linkDown]));
-					}
-					else
-					{
-						size_t linkUp = (i + 1) % linkNodeIndexes.size();
-						node.UpdateUp(static_cast<int>(linkNodeIndexes[linkUp]));
-					}
-				}
-			}
-			ImGui::EndDisabled();
-			ImGui::TreePop();
-		}
-		ImGui::End();
-	}
+        for (size_t i = 0; i < linkNodeIndexes.size(); i++)
+        {
+          Checkpoint& node = m_checkpoints[linkNodeIndexes[i]];
+          if (i % 2 == 0)
+          {
+            size_t linkDown = (i == 0) ? linkNodeIndexes.size() - 1 : i - 1;
+            node.UpdateDown(static_cast<int>(linkNodeIndexes[linkDown]));
+          }
+          else
+          {
+            size_t linkUp = (i + 1) % linkNodeIndexes.size();
+            node.UpdateUp(static_cast<int>(linkNodeIndexes[linkUp]));
+          }
+        }
+        GenerateRenderCheckpointData(m_checkpoints);
+      }
+      ImGui::EndDisabled();
+      ImGui::TreePop();
+    }
+    ImGui::End();
+  }
 
 	if (!checkpointQuery.empty() && !w_checkpoints) { checkpointQuery.clear(); }
 
@@ -630,6 +648,7 @@ void Level::RenderUI()
 					m_bsp.Clear();
 					buttonMessage = "Failed generating the BSP tree.";
 				}
+        GenerateRenderBspData(m_bsp);
 			}
 		}
 		ImGui::End();
@@ -703,7 +722,7 @@ void Level::RenderUI()
 
 		if (initRend) { ImGui::SetNextWindowSize({rend.GetWidth(), rend.GetHeight() + bottomPaneHeight}); initRend = false; }
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-		if (ImGui::Begin("Renderer", &w_renderer, ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoScrollbar))
+		if (ImGui::Begin("Renderer", &w_renderer, ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse))
 		{
 			ImVec2 pos = ImGui::GetCursorScreenPos();
 			ImVec2 size = ImGui::GetWindowSize();
@@ -719,15 +738,43 @@ void Level::RenderUI()
 				ImVec2(1, 0));
 
 			std::vector<Model> modelsToRender;
-			if (GuiRenderSettings::showLowLOD)
+
+			if (GuiRenderSettings::showLevel)
 			{
-				if (GuiRenderSettings::showLevVerts) { modelsToRender.push_back(m_pointsLowLODLevelModel); }
-				else { modelsToRender.push_back(m_lowLODLevelModel); }
+				if (GuiRenderSettings::showLowLOD)
+				{
+					if (GuiRenderSettings::showLevVerts)
+					{
+						modelsToRender.push_back(m_pointsLowLODLevelModel);
+					}
+					else
+					{
+						modelsToRender.push_back(m_lowLODLevelModel);
+					}
+				}
+				else
+				{
+					if (GuiRenderSettings::showLevVerts)
+					{
+						modelsToRender.push_back(m_pointsHighLODLevelModel);
+					}
+					else
+					{
+						modelsToRender.push_back(m_highLODLevelModel);
+					}
+				}
 			}
-			else
+			if (GuiRenderSettings::showBspRectTree)
 			{
-				if (GuiRenderSettings::showLevVerts) { modelsToRender.push_back(m_pointsHighLODLevelModel); }
-				else { modelsToRender.push_back(m_highLODLevelModel); }
+				modelsToRender.push_back(m_bspModel);
+			}
+			if (GuiRenderSettings::showCheckpoints)
+			{
+				modelsToRender.push_back(m_checkModel);
+			}
+			if (GuiRenderSettings::showStartpoints)
+			{
+				modelsToRender.push_back(m_spawnsModel);
 			}
 
 			rend.Render(modelsToRender);
@@ -782,10 +829,20 @@ void Level::RenderUI()
 						ImGui::Checkbox("Show Wireframe", &GuiRenderSettings::showWireframe);
 						ImGui::Checkbox("Show Backfaces", &GuiRenderSettings::showBackfaces);
 						ImGui::Checkbox("Show Level Verts", &GuiRenderSettings::showLevVerts);
-						ImGui::Checkbox("(NOT IMPL) Show Checkpoints", &showCheckpoints);
-						ImGui::Checkbox("(NOT IMPL) Show Starting Positions", &showStartingPositions);
-						ImGui::Checkbox("(NOT IMPL) Show BSP Rect Tree", &showBspRectTree);
+						ImGui::Checkbox("Show Checkpoints", &GuiRenderSettings::showCheckpoints);
+						ImGui::Checkbox("Show Starting Positions", &GuiRenderSettings::showStartpoints);
+						ImGui::Checkbox("Show BSP Rect Tree", &GuiRenderSettings::showBspRectTree);
 						ImGui::PushItemWidth(textFieldWidth);
+						if (ImGui::SliderInt("BSP Rect Tree top depth", &GuiRenderSettings::bspTreeTopDepth, 0, GuiRenderSettings::bspTreeMaxDepth)) //top changed
+						{
+							GuiRenderSettings::bspTreeBottomDepth = std::max(GuiRenderSettings::bspTreeBottomDepth, GuiRenderSettings::bspTreeTopDepth);
+							GenerateRenderBspData(m_bsp);
+						}
+						if (ImGui::SliderInt("BSP Rect Tree bottom depth", &GuiRenderSettings::bspTreeBottomDepth, 0, GuiRenderSettings::bspTreeMaxDepth)) //bottom changed
+						{
+							GuiRenderSettings::bspTreeTopDepth = std::min(GuiRenderSettings::bspTreeTopDepth, GuiRenderSettings::bspTreeBottomDepth);
+							GenerateRenderBspData(m_bsp);
+						}
 						if (ImGui::BeginCombo("(NOT IMPL) Mask by Materials", "..."))
 						{
 							ImGui::Selectable("(NOT IMPL)");
@@ -1059,9 +1116,17 @@ void Vertex::RenderUI(size_t index, bool& editedPos)
 		ImGui::Text("Pos: "); ImGui::SameLine();
 		if (ImGui::InputFloat3("##pos", m_pos.Data())) { editedPos = true; }
 		ImGui::Text("High:"); ImGui::SameLine();
-		ImGui::ColorEdit3("##high", m_colorHigh.Data());
+		float colorHighData[3];
+		if (ImGui::ColorEdit3("##high", colorHighData))
+		{
+			m_colorHigh = Color(static_cast<float>(colorHighData[0]), colorHighData[1], colorHighData[2]);
+		}
 		ImGui::Text("Low: "); ImGui::SameLine();
-		ImGui::ColorEdit3("##low", m_colorLow.Data());
+		float colorLowData[3];
+		if (ImGui::ColorEdit3("##low", colorLowData))
+		{
+			m_colorLow = Color(static_cast<float>(colorLowData[0]), colorLowData[1], colorLowData[2]);
+		}
 		ImGui::TreePop();
 	}
 }

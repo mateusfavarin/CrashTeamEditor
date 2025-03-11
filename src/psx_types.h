@@ -285,9 +285,9 @@ static inline PSX::Vec3 ConvertVec3(Vec3 v, int16_t one = FP_ONE)
 static inline PSX::Color ConvertColor(Color c)
 {
 	PSX::Color out = {};
-	out.r = static_cast<uint8_t>(std::round(c.r * 255.0f));
-	out.g = static_cast<uint8_t>(std::round(c.g * 255.0f));
-	out.b = static_cast<uint8_t>(std::round(c.b * 255.0f));
+	out.r = c.rb;
+	out.g = c.gb;
+	out.b = c.bb;
 	out.a = c.a ? 1 : 0;
 	return out;
 }

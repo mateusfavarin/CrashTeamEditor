@@ -1,26 +1,88 @@
 #pragma once
 
+#include "utils.h"
+
 #include <vector>
 #include <cstdint>
 #include <cmath>
 
 struct Color
 {
-	Color() : r(0.0f), g(0.0f), b(0.0f), a(false) {};
-	Color(float r, float g, float b) : r(r), g(g), b(b), a(false) {};
-	Color(unsigned r, unsigned g, unsigned b) : a(false)
+	Color() : rb(0u), gb(0u), bb(0u), a(false) {};
+	Color(float r, float g, float b) : rb(static_cast<unsigned char>(Clamp(r * 255.0f, 0.0f, 255.0f))), gb(static_cast<unsigned char>(Clamp(g * 255.0f, 0.0f, 255.0f))), bb(static_cast<unsigned char>(Clamp(b * 255.0f, 0.0f, 255.0f))), a(false) {};
+	Color(unsigned char r, unsigned char g, unsigned char b) : a(false)
 	{
-		this->r = static_cast<float>(r) / 255.0f;
-		this->g = static_cast<float>(g) / 255.0f;
-		this->b = static_cast<float>(b) / 255.0f;
+		this->rb = r;
+		this->gb = g;
+		this->bb = b;
 	};
-	float* Data() { return &r; }
-	inline bool operator==(const Color& color) const { return (r == color.r) && (g == color.g) && (b == color.b) && (a == color.a); }
+	Color(double hue, double sat, double value) : a(false) {
+		double      hh, p, q, t, ff;
+		long        i;
 
-	float r;
-	float g;
-	float b;
+		if (sat == 0) {
+			this->rb = this->gb = this->bb = 0;
+			return;
+		}
+		else {
+			hh = hue;
+			if (hh >= 360.0) hh = 0.0;
+			hh /= 60.0;
+			i = (long)hh;
+			ff = hh - i;
+			p = value * (1.0 - sat);
+			q = value * (1.0 - (sat * ff));
+			t = value * (1.0 - (sat * (1.0 - ff)));
+
+			t = Clamp(t, 0.0, 1.0);
+			p = Clamp(p, 0.0, 1.0);
+			q = Clamp(q, 0.0, 1.0);
+			value = Clamp(value, 0.0, 1.0);
+
+			switch (i) {
+			case 0:
+				this->rb = static_cast<unsigned char>(value * 255.0f);
+				this->gb = static_cast<unsigned char>(t * 255.0f);
+				this->bb = static_cast<unsigned char>(p * 255.0f);
+				break;
+			case 1:
+				this->rb = static_cast<unsigned char>(q * 255.0f);
+				this->gb = static_cast<unsigned char>(value * 255.0f);
+				this->bb = static_cast<unsigned char>(p * 255.0f);
+				break;
+			case 2:
+				this->rb = static_cast<unsigned char>(p * 255.0f);
+				this->gb = static_cast<unsigned char>(value * 255.0f);
+				this->bb = static_cast<unsigned char>(t * 255.0f);
+				break;
+			case 3:
+				this->rb = static_cast<unsigned char>(p * 255.0f);
+				this->gb = static_cast<unsigned char>(q * 255.0f);
+				this->bb = static_cast<unsigned char>(value * 255.0f);
+				break;
+			case 4:
+				this->rb = static_cast<unsigned char>(t * 255.0f);
+				this->gb = static_cast<unsigned char>(p * 255.0f);
+				this->bb = static_cast<unsigned char>(value * 255.0f);
+				break;
+			case 5:
+			default:
+				this->rb = static_cast<unsigned char>(value * 255.0f);
+				this->gb = static_cast<unsigned char>(p * 255.0f);
+				this->bb = static_cast<unsigned char>(q * 255.0f);
+				break;
+			}
+		}
+	}
+	//float* Data() { return &r; }
+	inline bool operator==(const Color& color) const { return (rb == color.rb) && (gb == color.gb) && (bb == color.bb) && (a == color.a); }
+
+	unsigned char rb, gb, bb;
 	bool a;
+
+	float RAsFloat() const { return static_cast<float>(rb) / 255.0f; }
+	float GAsFloat() const { return static_cast<float>(gb) / 255.0f; }
+	float BAsFloat() const { return static_cast<float>(bb) / 255.0f; }
 };
 
 template<>
@@ -28,7 +90,7 @@ struct std::hash<Color>
 {
 	inline std::size_t operator()(const Color& key) const
 	{
-		return ((((std::hash<float>()(key.r) ^ (std::hash<float>()(key.g) << 1)) >> 1) ^ (std::hash<float>()(key.b) << 1)) >> 2) ^ (std::hash<bool>()(key.a) << 2);
+		return ((((std::hash<float>()(key.RAsFloat()) ^ (std::hash<float>()(key.GAsFloat()) << 1)) >> 1) ^ (std::hash<float>()(key.BAsFloat()) << 1)) >> 2) ^ (std::hash<bool>()(key.a) << 2);
 	}
 };
 
@@ -88,10 +150,10 @@ struct Point
 	Point(float x, float y, float z)
 	{
 		pos = Vec3(x, y, z);
-		color = Color(255u, 255u, 255u);
+		color = Color((unsigned char)255u, 255u, 255u);
 		normal = Vec3();
 	};
-	Point(float x, float y, float z, unsigned r, unsigned g, unsigned b)
+	Point(float x, float y, float z, unsigned char r, unsigned char g, unsigned char b)
 	{
 		pos = Vec3(x, y, z);
 		color = Color(r, g, b);

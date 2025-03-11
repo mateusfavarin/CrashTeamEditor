@@ -30,7 +30,7 @@ Renderer::Renderer(float width, float height)
   // Create a texture to store color attachment
   glGenTextures(1, &m_texturebuffer);
   glBindTexture(GL_TEXTURE_2D, m_texturebuffer);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, m_width, m_height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_width, m_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
   //glBindTexture(GL_TEXTURE_2D, 0);
@@ -217,10 +217,16 @@ GLuint Renderer::GetTexBuffer() const
 
 void Renderer::RescaleFramebuffer(float width, float height)
 {
-  m_width = static_cast<int>(width);
-  m_height = static_cast<int>(height);
+  int tempWidth = static_cast<int>(width);
+  int tempHeight = static_cast<int>(height);
+  if (tempWidth == m_width && tempHeight == m_height) { return; /*no need to resize*/ }
+
+  m_width = tempWidth;
+  m_height = tempHeight;
+
+  glBindFramebuffer(GL_FRAMEBUFFER, m_framebuffer);
   glBindTexture(GL_TEXTURE_2D, m_texturebuffer);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, m_width, m_height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_width, m_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
   glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_texturebuffer, 0);
@@ -228,4 +234,8 @@ void Renderer::RescaleFramebuffer(float width, float height)
   glBindRenderbuffer(GL_RENDERBUFFER, m_renderbuffer);
   glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, m_width, m_height);
   glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_renderbuffer);
+
+  glBindTexture(GL_TEXTURE_2D, 0);
+  glBindRenderbuffer(GL_RENDERBUFFER, 0);
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
