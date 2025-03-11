@@ -19,25 +19,25 @@ void from_json(const nlohmann::json& json, Vec3& v)
 
 void to_json(nlohmann::json& json, const Color& c)
 {
-	float r = c.RAsFloat();
-	float g = c.RAsFloat();
-	float b = c.RAsFloat();
+	float r = c.Red();
+	float g = c.Red();
+	float b = c.Red();
 	json = {{"r", r}, {"g", g}, {"b", b}, {"a", c.a}};
 }
 
 void from_json(const nlohmann::json& json, Color& c)
 {
-	float r = c.RAsFloat();
+	float r = c.Red();
 	json.at("r").get_to(r);
-	c.rb = static_cast<unsigned char>(Clamp(r * 255.0f, 0.0f, 255.0f));
+	c.r = static_cast<unsigned char>(Clamp(r * 255.0f, 0.0f, 255.0f));
 
-	float g = c.GAsFloat();
+	float g = c.Green();
 	json.at("g").get_to(g);
-	c.gb = static_cast<unsigned char>(Clamp(g * 255.0f, 0.0f, 255.0f));
+	c.g = static_cast<unsigned char>(Clamp(g * 255.0f, 0.0f, 255.0f));
 
-	float b = c.BAsFloat();
+	float b = c.Blue();
 	json.at("b").get_to(b);
-	c.bb = static_cast<unsigned char>(Clamp(b * 255.0f, 0.0f, 255.0f));
+	c.b = static_cast<unsigned char>(Clamp(b * 255.0f, 0.0f, 255.0f));
 
 	json.at("a").get_to(c.a);
 }

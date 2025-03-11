@@ -852,9 +852,9 @@ void Level::GeomPoint(const Vertex* verts, int ind, std::vector<float>& data)
 	data.push_back(verts[ind].m_normal.y);
 	data.push_back(verts[ind].m_normal.z);
 	Color col = verts[ind].GetColor(true);
-	data.push_back(col.RAsFloat());
-	data.push_back(col.GAsFloat());
-	data.push_back(col.BAsFloat());
+	data.push_back(col.Red());
+	data.push_back(col.Green());
+	data.push_back(col.Blue());
 }
 
 void Level::GeomOctopoint(const Vertex* verts, int ind, std::vector<float>& data)
@@ -905,14 +905,14 @@ void Level::GeomBoundingRect(const BSP* b, int depth, std::vector<float>& data)
 	const BoundingBox& bb = b->GetBoundingBox();
 	Color c = Color(depth * 30.0, 1.0, 1.0);
 	Vertex verts[] = {
-		Vertex(Point(bb.min.x, bb.min.y, bb.min.z, c.rb, c.gb, c.bb)), //---
-		Vertex(Point(bb.min.x, bb.min.y, bb.max.z, c.rb, c.gb, c.bb)), //--+
-		Vertex(Point(bb.min.x, bb.max.y, bb.min.z, c.rb, c.gb, c.bb)), //-+-
-		Vertex(Point(bb.max.x, bb.min.y, bb.min.z, c.rb, c.gb, c.bb)), //+--
-		Vertex(Point(bb.max.x, bb.max.y, bb.min.z, c.rb, c.gb, c.bb)), //++-
-		Vertex(Point(bb.min.x, bb.max.y, bb.max.z, c.rb, c.gb, c.bb)), //-++
-		Vertex(Point(bb.max.x, bb.min.y, bb.max.z, c.rb, c.gb, c.bb)), //+-+
-		Vertex(Point(bb.max.x, bb.max.y, bb.max.z, c.rb, c.gb, c.bb)), //+++
+		Vertex(Point(bb.min.x, bb.min.y, bb.min.z, c.r, c.g, c.b)), //---
+		Vertex(Point(bb.min.x, bb.min.y, bb.max.z, c.r, c.g, c.b)), //--+
+		Vertex(Point(bb.min.x, bb.max.y, bb.min.z, c.r, c.g, c.b)), //-+-
+		Vertex(Point(bb.max.x, bb.min.y, bb.min.z, c.r, c.g, c.b)), //+--
+		Vertex(Point(bb.max.x, bb.max.y, bb.min.z, c.r, c.g, c.b)), //++-
+		Vertex(Point(bb.min.x, bb.max.y, bb.max.z, c.r, c.g, c.b)), //-++
+		Vertex(Point(bb.max.x, bb.min.y, bb.max.z, c.r, c.g, c.b)), //+-+
+		Vertex(Point(bb.max.x, bb.max.y, bb.max.z, c.r, c.g, c.b)), //+++
 	};
 	//these normals are octohedral, should technechally be duplicated and vertex normals should probably be for faces.
 	verts[0].m_normal = Vec3(-1.f / 1.44224957031f, -1.f / 1.44224957031f, -1.f / 1.44224957031f);

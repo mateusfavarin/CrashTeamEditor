@@ -285,9 +285,9 @@ static inline PSX::Vec3 ConvertVec3(Vec3 v, int16_t one = FP_ONE)
 static inline PSX::Color ConvertColor(Color c)
 {
 	PSX::Color out = {};
-	out.r = c.rb;
-	out.g = c.gb;
-	out.b = c.bb;
+	out.r = c.r;
+	out.g = c.g;
+	out.b = c.b;
 	out.a = c.a ? 1 : 0;
 	return out;
 }
