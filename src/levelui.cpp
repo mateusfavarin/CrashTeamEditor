@@ -810,6 +810,7 @@ void Level::RenderUI()
 						ImGui::Checkbox("Show Checkpoints", &GuiRenderSettings::showCheckpoints);
 						ImGui::Checkbox("Show Starting Positions", &GuiRenderSettings::showStartpoints);
 						ImGui::Checkbox("Show BSP Rect Tree", &GuiRenderSettings::showBspRectTree);
+						ImGui::PushItemWidth(textFieldWidth);
 						{
 							int temp = GuiRenderSettings::bspTreeTopDepth, temp2 = GuiRenderSettings::bspTreeBottomDepth;
 							ImGui::SliderInt("BSP Rect Tree top depth", &GuiRenderSettings::bspTreeTopDepth, 0, GuiRenderSettings::bspTreeMaxDepth);
@@ -823,7 +824,6 @@ void Level::RenderUI()
 							if (temp != GuiRenderSettings::bspTreeTopDepth || temp2 != GuiRenderSettings::bspTreeBottomDepth)
 								GenerateRenderBspData(m_bsp);
 						}
-						ImGui::PushItemWidth(textFieldWidth);
 						if (ImGui::BeginCombo("(NOT IMPL) Mask by Materials", "..."))
 						{
 							ImGui::Selectable("(NOT IMPL)");
