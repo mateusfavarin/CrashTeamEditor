@@ -187,17 +187,3 @@ struct Quad
 
 	Point p[4];
 };
-
-template<typename T>
-T Clamp(T n, T min, T max)
-{
-	return std::max(std::min(n, max), min);
-}
-
-template<typename T>
-void Swap(T& x, T& y)
-{
-	T temp = y;
-	y = x;
-	x = temp;
-}

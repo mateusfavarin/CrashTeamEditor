@@ -4,7 +4,7 @@
 
 #include <cstdint>
 
-namespace VertexFlags
+struct VertexFlags
 {
 	static constexpr uint16_t NONE = 0;
 };
