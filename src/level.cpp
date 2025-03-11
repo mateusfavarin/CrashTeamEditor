@@ -4,6 +4,7 @@
 #include "utils.h"
 #include "geo.h"
 #include "process.h"
+#include "gui_render_settings.h"
 
 #include <fstream>
 #include <unordered_set>
@@ -996,16 +997,16 @@ void Level::GenerateRenderLevData(std::vector<Quadblock>& quadblocks)
 			point(verts, 2, lowLODData);
 		}
 	}
-	highLODMesh.UpdateMesh(highLODData.data(), highLODData.size() * sizeof(float), (Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
+	highLODMesh.UpdateMesh(highLODData, (Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
 	this->m_highLODLevelModel.SetMesh(&highLODMesh);
 
-	lowLODMesh.UpdateMesh(lowLODData.data(), lowLODData.size() * sizeof(float), (Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
+	lowLODMesh.UpdateMesh(lowLODData, (Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
 	this->m_lowLODLevelModel.SetMesh(&lowLODMesh);
 
-	vertexHighLODMesh.UpdateMesh(vertexHighLODData.data(), vertexHighLODData.size() * sizeof(float), (Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
+	vertexHighLODMesh.UpdateMesh(vertexHighLODData, (Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
 	this->m_pointsHighLODLevelModel.SetMesh(&vertexHighLODMesh);
 
-	vertexLowLODMesh.UpdateMesh(vertexLowLODData.data(), vertexLowLODData.size() * sizeof(float), (Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
+	vertexLowLODMesh.UpdateMesh(vertexLowLODData, (Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
 	this->m_pointsLowLODLevelModel.SetMesh(&vertexLowLODMesh);
 }
 
@@ -1105,7 +1106,7 @@ void Level::GenerateRenderBspData(BSP bsp)
 	GuiRenderSettings::bspTreeMaxDepth = 0;
 	createGeom(&bsp, 0);
 
-	bspMesh.UpdateMesh(bspData.data(), bspData.size() * sizeof(float), (Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
+	bspMesh.UpdateMesh(bspData, (Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
 	this->m_bspModel.SetMesh(&bspMesh);
 }
 
@@ -1176,7 +1177,7 @@ void Level::GenerateRenderCheckpointData(std::vector<Checkpoint>& checkpoints)
 		octohedralPoint(v, checkData);
 	}
 
-	checkMesh.UpdateMesh(checkData.data(), checkData.size() * sizeof(float), (Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
+	checkMesh.UpdateMesh(checkData, (Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
 	this->m_checkModel.SetMesh(&checkMesh);
 }
 
@@ -1241,6 +1242,6 @@ void Level::GenerateRenderStartpointData(std::array<Spawn, NUM_DRIVERS>& spawns)
 		octohedralPoint(v, spawnsData);
 	}
 
-	spawnsMesh.UpdateMesh(spawnsData.data(), spawnsData.size() * sizeof(float), (Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
+	spawnsMesh.UpdateMesh(spawnsData, (Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
 	this->m_spawnsModel.SetMesh(&spawnsMesh);
 }

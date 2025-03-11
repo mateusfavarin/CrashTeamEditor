@@ -219,7 +219,7 @@ void Renderer::RescaleFramebuffer(float width, float height)
 {
   int tempWidth = static_cast<int>(width);
   int tempHeight = static_cast<int>(height);
-  if (tempWidth == this->width && tempHeight == this->height)
+  if (tempWidth == m_width && tempHeight == m_height)
     return; //no need to resize
 
   m_width = tempWidth;

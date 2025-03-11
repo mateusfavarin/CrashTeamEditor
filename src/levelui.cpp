@@ -719,7 +719,7 @@ void Level::RenderUI()
 
 			ImGui::GetWindowDrawList()->AddImage(tex,
 				ImVec2(pos.x, pos.y),
-				ImVec2(pos.x + rendWidth, pos.y + rendHeight - bottomPaneHeight),
+				ImVec2(pos.x + rendWidth, pos.y + rendHeight),
 				ImVec2(0, 1),
 				ImVec2(1, 0));
 
