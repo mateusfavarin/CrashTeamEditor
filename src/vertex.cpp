@@ -9,8 +9,8 @@ Vertex::Vertex()
 	m_pos = Vec3();
 	m_normal = Vec3();
 	m_flags = VertexFlags::NONE;
-	m_colorHigh = Color((unsigned char)255u, 255u, 255u);
-	m_colorLow = Color((unsigned char)255u, 255u, 255u);
+	m_colorHigh = Color(static_cast<unsigned char>(255u), 255u, 255u);
+	m_colorLow = Color(static_cast<unsigned char>(255u), 255u, 255u);
 }
 
 Vertex::Vertex(const Point& point)

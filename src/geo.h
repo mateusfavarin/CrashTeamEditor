@@ -1,18 +1,17 @@
 #pragma once
 
+#include "utils.h"
+
 #include <vector>
 #include <cstdint>
 #include <cmath>
 
 struct Color
 {
-	Color() : r(0.0f), g(0.0f), b(0.0f), a(false) {};
-	Color(float r, float g, float b) : r(r), g(g), b(b), a(false) {};
+	Color() : rb(0u), gb(0u), bb(0u), a(false) {};
+	Color(float r, float g, float b) : rb(static_cast<unsigned char>(Clamp(r * 255.0f, 0.0f, 255.0f))), gb(static_cast<unsigned char>(Clamp(g * 255.0f, 0.0f, 255.0f))), bb(static_cast<unsigned char>(Clamp(b * 255.0f, 0.0f, 255.0f))), a(false) {};
 	Color(unsigned char r, unsigned char g, unsigned char b) : a(false)
 	{
-		this->r = static_cast<float>(r) / 255.0f;
-		this->g = static_cast<float>(g) / 255.0f;
-		this->b = static_cast<float>(b) / 255.0f;
 		this->rb = r;
 		this->gb = g;
 		this->bb = b;
@@ -22,7 +21,7 @@ struct Color
 		long        i;
 
 		if (sat == 0) {
-			this->r = this->g = this->b = 0;
+			this->rb = this->gb = this->bb = 0;
 			return;
 		}
 		else {
@@ -35,52 +34,39 @@ struct Color
 			q = value * (1.0 - (sat * ff));
 			t = value * (1.0 - (sat * (1.0 - ff)));
 
+			t = Clamp(t, 0.0, 1.0);
+			p = Clamp(p, 0.0, 1.0);
+			q = Clamp(q, 0.0, 1.0);
+			value = Clamp(value, 0.0, 1.0);
+
 			switch (i) {
 			case 0:
-				this->r = value;
-				this->g = t;
-				this->b = p;
 				this->rb = static_cast<unsigned char>(value * 255.0f);
 				this->gb = static_cast<unsigned char>(t * 255.0f);
 				this->bb = static_cast<unsigned char>(p * 255.0f);
 				break;
 			case 1:
-				this->r = q;
-				this->g = value;
-				this->b = p;
 				this->rb = static_cast<unsigned char>(q * 255.0f);
 				this->gb = static_cast<unsigned char>(value * 255.0f);
 				this->bb = static_cast<unsigned char>(p * 255.0f);
 				break;
 			case 2:
-				this->r = p;
-				this->g = value;
-				this->b = t;
 				this->rb = static_cast<unsigned char>(p * 255.0f);
 				this->gb = static_cast<unsigned char>(value * 255.0f);
 				this->bb = static_cast<unsigned char>(t * 255.0f);
 				break;
 			case 3:
-				this->r = p;
-				this->g = q;
-				this->b = value;
 				this->rb = static_cast<unsigned char>(p * 255.0f);
 				this->gb = static_cast<unsigned char>(q * 255.0f);
 				this->bb = static_cast<unsigned char>(value * 255.0f);
 				break;
 			case 4:
-				this->r = t;
-				this->g = p;
-				this->b = value;
 				this->rb = static_cast<unsigned char>(t * 255.0f);
 				this->gb = static_cast<unsigned char>(p * 255.0f);
 				this->bb = static_cast<unsigned char>(value * 255.0f);
 				break;
 			case 5:
 			default:
-				this->r = value;
-				this->g = p;
-				this->b = q;
 				this->rb = static_cast<unsigned char>(value * 255.0f);
 				this->gb = static_cast<unsigned char>(p * 255.0f);
 				this->bb = static_cast<unsigned char>(q * 255.0f);
@@ -88,12 +74,15 @@ struct Color
 			}
 		}
 	}
-	float* Data() { return &r; }
-	inline bool operator==(const Color& color) const { return (r == color.r) && (g == color.g) && (b == color.b) && (a == color.a); }
+	//float* Data() { return &r; }
+	inline bool operator==(const Color& color) const { return (rb == color.rb) && (gb == color.gb) && (bb == color.bb) && (a == color.a); }
 
-	float r, g, b;
 	unsigned char rb, gb, bb;
 	bool a;
+
+	float RAsFloat() const { return static_cast<float>(rb) / 255.0f; }
+	float GAsFloat() const { return static_cast<float>(gb) / 255.0f; }
+	float BAsFloat() const { return static_cast<float>(bb) / 255.0f; }
 };
 
 template<>
@@ -101,7 +90,7 @@ struct std::hash<Color>
 {
 	inline std::size_t operator()(const Color& key) const
 	{
-		return ((((std::hash<float>()(key.r) ^ (std::hash<float>()(key.g) << 1)) >> 1) ^ (std::hash<float>()(key.b) << 1)) >> 2) ^ (std::hash<bool>()(key.a) << 2);
+		return ((((std::hash<float>()(key.RAsFloat()) ^ (std::hash<float>()(key.GAsFloat()) << 1)) >> 1) ^ (std::hash<float>()(key.BAsFloat()) << 1)) >> 2) ^ (std::hash<bool>()(key.a) << 2);
 	}
 };
 

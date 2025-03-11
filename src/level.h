@@ -36,6 +36,9 @@ public:
 	void GenerateRenderBspData(BSP bsp);
 	void GenerateRenderCheckpointData(std::vector<Checkpoint>&);
 	void GenerateRenderStartpointData(std::array<Spawn, NUM_DRIVERS>&);
+	void GeomPoint(const Vertex* verts, int ind, std::vector<float>& data);
+	void GeomOctopoint(const Vertex* verts, int ind, std::vector<float>& data);
+	void GeomBoundingRect(const BSP* b, int depth, std::vector<float>& data);
 
 private:
 	void ManageTurbopad(Quadblock& quadblock);

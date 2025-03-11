@@ -404,8 +404,18 @@ void Level::RenderUI()
 					{
 						ImGui::Text("From:"); ImGui::SameLine(); ImGui::InputFloat("##pos_from", &m_skyGradient[i].posFrom);
 						ImGui::Text("To:  "); ImGui::SameLine(); ImGui::InputFloat("##pos_to", &m_skyGradient[i].posTo);
-						ImGui::Text("From:"); ImGui::SameLine(); ImGui::ColorEdit3("##color_from", m_skyGradient[i].colorFrom.Data());
-						ImGui::Text("To:  "); ImGui::SameLine(); ImGui::ColorEdit3("##color_to", m_skyGradient[i].colorTo.Data());
+						ImGui::Text("From:"); ImGui::SameLine(); 
+						float colorFrom[3];
+						if (ImGui::ColorEdit3("##color_from", colorFrom))
+						{
+							m_skyGradient[i].colorFrom = Color(static_cast<float>(colorFrom[0]), colorFrom[1], colorFrom[2]);
+						}
+						ImGui::Text("To:  "); ImGui::SameLine(); 
+						float colorTo[3];
+						if (ImGui::ColorEdit3("##color_to", colorTo))
+						{
+							m_skyGradient[i].colorTo = Color(static_cast<float>(colorTo[0]), colorTo[1], colorTo[2]);
+						}
 						ImGui::TreePop();
 					}
 				}
@@ -413,7 +423,11 @@ void Level::RenderUI()
 			}
 			if (ImGui::TreeNode("Clear Color"))
 			{
-				ImGui::ColorEdit3("##color", m_clearColor.Data());
+				float clearColor[3];
+				if (ImGui::ColorEdit3("##color", clearColor))
+				{
+					m_clearColor = Color(static_cast<float>(clearColor[0]), clearColor[1], clearColor[2]);
+				}
 				ImGui::TreePop();
 			}
 		}
@@ -730,16 +744,24 @@ void Level::RenderUI()
 				if (GuiRenderSettings::showLowLOD)
 				{
 					if (GuiRenderSettings::showLevVerts)
+					{
 						modelsToRender.push_back(m_pointsLowLODLevelModel);
+					}
 					else
+					{
 						modelsToRender.push_back(m_lowLODLevelModel);
+					}
 				}
 				else
 				{
 					if (GuiRenderSettings::showLevVerts)
+					{
 						modelsToRender.push_back(m_pointsHighLODLevelModel);
+					}
 					else
+					{
 						modelsToRender.push_back(m_highLODLevelModel);
+					}
 				}
 			}
 			if (GuiRenderSettings::showBspRectTree)
@@ -811,18 +833,15 @@ void Level::RenderUI()
 						ImGui::Checkbox("Show Starting Positions", &GuiRenderSettings::showStartpoints);
 						ImGui::Checkbox("Show BSP Rect Tree", &GuiRenderSettings::showBspRectTree);
 						ImGui::PushItemWidth(textFieldWidth);
+						if (ImGui::SliderInt("BSP Rect Tree top depth", &GuiRenderSettings::bspTreeTopDepth, 0, GuiRenderSettings::bspTreeMaxDepth)) //top changed
 						{
-							int temp = GuiRenderSettings::bspTreeTopDepth, temp2 = GuiRenderSettings::bspTreeBottomDepth;
-							ImGui::SliderInt("BSP Rect Tree top depth", &GuiRenderSettings::bspTreeTopDepth, 0, GuiRenderSettings::bspTreeMaxDepth);
-							ImGui::SliderInt("BSP Rect Tree bottom depth", &GuiRenderSettings::bspTreeBottomDepth, 0, GuiRenderSettings::bspTreeMaxDepth);
-							if (temp != GuiRenderSettings::bspTreeTopDepth) //top changed
-								if (GuiRenderSettings::bspTreeTopDepth >= GuiRenderSettings::bspTreeBottomDepth)
-									GuiRenderSettings::bspTreeBottomDepth = GuiRenderSettings::bspTreeTopDepth;
-							if (temp2 != GuiRenderSettings::bspTreeBottomDepth) //bottom changed
-								if (GuiRenderSettings::bspTreeBottomDepth <= GuiRenderSettings::bspTreeTopDepth)
-									GuiRenderSettings::bspTreeTopDepth = GuiRenderSettings::bspTreeBottomDepth;
-							if (temp != GuiRenderSettings::bspTreeTopDepth || temp2 != GuiRenderSettings::bspTreeBottomDepth)
-								GenerateRenderBspData(m_bsp);
+							GuiRenderSettings::bspTreeBottomDepth = std::max(GuiRenderSettings::bspTreeBottomDepth, GuiRenderSettings::bspTreeTopDepth);
+							GenerateRenderBspData(m_bsp);
+						}
+						if (ImGui::SliderInt("BSP Rect Tree bottom depth", &GuiRenderSettings::bspTreeBottomDepth, 0, GuiRenderSettings::bspTreeMaxDepth)) //bottom changed
+						{
+							GuiRenderSettings::bspTreeTopDepth = std::min(GuiRenderSettings::bspTreeTopDepth, GuiRenderSettings::bspTreeBottomDepth);
+							GenerateRenderBspData(m_bsp);
 						}
 						if (ImGui::BeginCombo("(NOT IMPL) Mask by Materials", "..."))
 						{
@@ -1097,9 +1116,17 @@ void Vertex::RenderUI(size_t index, bool& editedPos)
 		ImGui::Text("Pos: "); ImGui::SameLine();
 		if (ImGui::InputFloat3("##pos", m_pos.Data())) { editedPos = true; }
 		ImGui::Text("High:"); ImGui::SameLine();
-		ImGui::ColorEdit3("##high", m_colorHigh.Data());
+		float colorHighData[3];
+		if (ImGui::ColorEdit3("##high", colorHighData))
+		{
+			m_colorHigh = Color(static_cast<float>(colorHighData[0]), colorHighData[1], colorHighData[2]);
+		}
 		ImGui::Text("Low: "); ImGui::SameLine();
-		ImGui::ColorEdit3("##low", m_colorLow.Data());
+		float colorLowData[3];
+		if (ImGui::ColorEdit3("##low", colorLowData))
+		{
+			m_colorLow = Color(static_cast<float>(colorLowData[0]), colorLowData[1], colorLowData[2]);
+		}
 		ImGui::TreePop();
 	}
 }

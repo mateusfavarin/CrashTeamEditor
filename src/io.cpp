@@ -1,5 +1,6 @@
 #include "io.h"
 #include "geo.h"
+#include "utils.h"
 
 #include <unordered_map>
 #include <filesystem>
@@ -18,14 +19,26 @@ void from_json(const nlohmann::json& json, Vec3& v)
 
 void to_json(nlohmann::json& json, const Color& c)
 {
-	json = {{"r", c.r}, {"g", c.g}, {"b", c.b}, {"a", c.a}};
+	float r = c.RAsFloat();
+	float g = c.RAsFloat();
+	float b = c.RAsFloat();
+	json = {{"r", r}, {"g", g}, {"b", b}, {"a", c.a}};
 }
 
 void from_json(const nlohmann::json& json, Color& c)
 {
-	json.at("r").get_to(c.r);
-	json.at("g").get_to(c.g);
-	json.at("b").get_to(c.b);
+	float r = c.RAsFloat();
+	json.at("r").get_to(r);
+	c.rb = static_cast<unsigned char>(Clamp(r * 255.0f, 0.0f, 255.0f));
+
+	float g = c.GAsFloat();
+	json.at("g").get_to(g);
+	c.gb = static_cast<unsigned char>(Clamp(g * 255.0f, 0.0f, 255.0f));
+
+	float b = c.BAsFloat();
+	json.at("b").get_to(b);
+	c.bb = static_cast<unsigned char>(Clamp(b * 255.0f, 0.0f, 255.0f));
+
 	json.at("a").get_to(c.a);
 }
 
