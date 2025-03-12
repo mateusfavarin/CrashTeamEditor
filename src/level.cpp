@@ -88,7 +88,7 @@ bool Level::LoadPreset(const std::filesystem::path& filename)
 		{
 			Path path = Path();
 			path.FromJson(json["path" + std::to_string(i)], m_quadblocks);
-			m_checkpointPaths[path.Index()] = path;
+			m_checkpointPaths[path.GetIndex()] = path;
 		}
 	}
 	else if (header == PresetHeader::MATERIAL)
@@ -114,7 +114,7 @@ bool Level::LoadPreset(const std::filesystem::path& filename)
 		std::unordered_set<std::string> turboPads = json["turbopads"];
 		for (Quadblock& quadblock : m_quadblocks)
 		{
-			const std::string& quadName = quadblock.Name();
+			const std::string& quadName = quadblock.GetName();
 			if (turboPads.contains(quadName))
 			{
 				quadblock.SetTrigger(json[quadName + "_trigger"]);
@@ -178,10 +178,10 @@ bool Level::SavePreset(const std::filesystem::path& path)
 	nlohmann::json turboPadJson = {};
 	for (const Quadblock& quadblock : m_quadblocks)
 	{
-		if (quadblock.TurboPadIndex() == TURBO_PAD_INDEX_NONE) { continue; }
-		const std::string& quadName = quadblock.Name();
+		if (quadblock.GetTurboPadIndex() == TURBO_PAD_INDEX_NONE) { continue; }
+		const std::string& quadName = quadblock.GetName();
 		turboPads.insert(quadName);
-		turboPadJson[quadName + "_trigger"] = quadblock.Trigger();
+		turboPadJson[quadName + "_trigger"] = quadblock.GetTrigger();
 	}
 	if (!turboPads.empty())
 	{
@@ -198,7 +198,7 @@ void Level::ManageTurbopad(Quadblock& quadblock)
 {
 	bool stp = true;
 	size_t turboPadIndex = TURBO_PAD_INDEX_NONE;
-	switch (quadblock.Trigger())
+	switch (quadblock.GetTrigger())
 	{
 	case QuadblockTrigger::TURBO_PAD:
 		stp = false;
@@ -208,14 +208,14 @@ void Level::ManageTurbopad(Quadblock& quadblock)
 		turboPad.TranslateNormalVec(0.25f);
 		turboPad.SetCheckpoint(-1);
 		turboPad.SetCheckpointStatus(false);
-		turboPad.SetName(quadblock.Name() + (stp ? "_stp" : "_tp"));
+		turboPad.SetName(quadblock.GetName() + (stp ? "_stp" : "_tp"));
 		turboPad.SetFlag(QuadFlags::TRIGGER_SCRIPT | QuadFlags::INVISIBLE_TRIGGER | QuadFlags::WALL | QuadFlags::DEFAULT);
 		turboPad.SetTerrain(stp ? TerrainType::SUPER_TURBO_PAD : TerrainType::TURBO_PAD);
 		turboPad.SetTurboPadIndex(TURBO_PAD_INDEX_NONE);
 		turboPad.SetHide(true);
 
 		size_t index = m_quadblocks.size();
-		turboPadIndex = quadblock.TurboPadIndex();
+		turboPadIndex = quadblock.GetTurboPadIndex();
 		quadblock.SetTurboPadIndex(index);
 		m_quadblocks.push_back(turboPad);
 		if (turboPadIndex == TURBO_PAD_INDEX_NONE) { break; }
@@ -226,13 +226,13 @@ void Level::ManageTurbopad(Quadblock& quadblock)
 		if (turboPadIndex == TURBO_PAD_INDEX_NONE)
 		{
 			clearTurboPadIndex = true;
-			turboPadIndex = quadblock.TurboPadIndex();
+			turboPadIndex = quadblock.GetTurboPadIndex();
 		}
 		if (turboPadIndex == TURBO_PAD_INDEX_NONE) { break; }
 
 		for (Quadblock& quad : m_quadblocks)
 		{
-			size_t index = quad.TurboPadIndex();
+			size_t index = quad.GetTurboPadIndex();
 			if (index > turboPadIndex) { quad.SetTurboPadIndex(index - 1); }
 		}
 
@@ -361,7 +361,7 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	std::vector<uint32_t> visibleNodeAll(visNodeSize, 0xFFFFFFFF);
 	for (const BSP* bsp : orderedBSPNodes)
 	{
-		if (bsp->Flags() & BSPFlags::INVISIBLE) { visibleNodeAll[bsp->Id()] &= ~(1 << bsp->Id()); }
+		if (bsp->GetFlags() & BSPFlags::INVISIBLE) { visibleNodeAll[bsp->Id()] &= ~(1 << bsp->Id()); }
 	}
 	visibleNodes.push_back({visibleNodeAll, currOffset});
 	currOffset += visibleNodeAll.size() * sizeof(uint32_t);
@@ -370,7 +370,7 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	size_t quadIndex = 0;
 	for (const Quadblock* quad : orderedQuads)
 	{
-		if (quad->Flags() & (QuadFlags::INVISIBLE | QuadFlags::INVISIBLE_TRIGGER))
+		if (quad->GetFlags() & (QuadFlags::INVISIBLE | QuadFlags::INVISIBLE_TRIGGER))
 		{
 			visibleQuadsAll[quadIndex / 32] &= ~(1 << quadIndex);
 		}
@@ -1113,7 +1113,7 @@ void Level::GenerateRenderCheckpointData(std::vector<Checkpoint>& checkpoints)
 
 	for (Checkpoint& e : checkpoints)
 	{
-		Vertex v = Vertex(Point(e.Pos().x, e.Pos().y, e.Pos().z, 255, 0, 128));
+		Vertex v = Vertex(Point(e.GetPos().x, e.GetPos().y, e.GetPos().z, 255, 0, 128));
 		GeomOctopoint(&v, 0, checkData);
 	}
 

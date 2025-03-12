@@ -6,6 +6,8 @@
 
 static constexpr size_t NUM_GRADIENT = 3;
 static constexpr size_t NUM_DRIVERS = 8;
+static constexpr size_t NUM_LEV_CONFIG_FLAGS = 3;
+static constexpr size_t GHOST_DATA_FILESIZE = 0x3E00;
 
 struct LevConfigFlags
 {
@@ -14,8 +16,6 @@ struct LevConfigFlags
 	static constexpr uint32_t MASK_GRAB_UNDERWATER = 1 << 1;
 	static constexpr uint32_t ANIMATE_WATER_VERTEX = 1 << 2;
 };
-
-static constexpr size_t NUM_LEV_CONFIG_FLAGS = 3;
 
 struct Spawn
 {

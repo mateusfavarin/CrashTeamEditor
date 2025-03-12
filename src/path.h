@@ -13,9 +13,9 @@ public:
 	Path();
 	Path(size_t index);
 	~Path();
-	size_t Index() const;
-	size_t Start() const;
-	size_t End() const;
+	size_t GetIndex() const;
+	size_t GetStart() const;
+	size_t GetEnd() const;
 	bool Ready() const;
 	void SetIndex(size_t index);
 	void UpdateDist(float dist, const Vec3& refPoint, std::vector<Checkpoint>& checkpoints);

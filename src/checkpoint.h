@@ -14,13 +14,13 @@ class Checkpoint
 public:
 	Checkpoint(int index);
 	Checkpoint(int index, const Vec3& pos, const std::string& quadName);
-	int Index() const;
-	float DistFinish() const;
-	const Vec3& Pos() const;
-	int Up() const;
-	int Down() const;
-	int Left() const;
-	int Right() const;
+	int GetIndex() const;
+	float GetDistFinish() const;
+	const Vec3& GetPos() const;
+	int GetUp() const;
+	int GetDown() const;
+	int GetLeft() const;
+	int GetRight() const;
 	void UpdateDistFinish(float dist);
 	void UpdateIndex(int index);
 	void UpdateUp(int up);

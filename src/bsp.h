@@ -36,7 +36,7 @@ public:
 	bool Empty() const;
 	bool Valid() const;
 	bool IsBranch() const;
-	uint16_t Flags() const;
+	uint16_t GetFlags() const;
 	const std::string& GetType() const;
 	const std::string& GetAxis() const;
 	const BoundingBox& GetBoundingBox() const;

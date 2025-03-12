@@ -11,73 +11,16 @@ struct Color
 	Color() : r(0u), g(0u), b(0u), a(false) {};
 	Color(float r, float g, float b) : r(static_cast<unsigned char>(Clamp(r * 255.0f, 0.0f, 255.0f))), g(static_cast<unsigned char>(Clamp(g * 255.0f, 0.0f, 255.0f))), b(static_cast<unsigned char>(Clamp(b * 255.0f, 0.0f, 255.0f))), a(false) {};
 	Color(unsigned char r, unsigned char g, unsigned char b) : r(r), g(g), b(b), a(false) {};
-	Color(double hue, double sat, double value) : a(false) {
-		double      hh, p, q, t, ff;
-		long        i;
+	Color(double hue, double sat, double value);
 
-		if (sat == 0) {
-			this->r = this->g = this->b = 0;
-			return;
-		}
-		else {
-			hh = hue;
-			if (hh >= 360.0) hh = 0.0;
-			hh /= 60.0;
-			i = (long)hh;
-			ff = hh - i;
-			p = value * (1.0 - sat);
-			q = value * (1.0 - (sat * ff));
-			t = value * (1.0 - (sat * (1.0 - ff)));
-
-			t = Clamp(t, 0.0, 1.0);
-			p = Clamp(p, 0.0, 1.0);
-			q = Clamp(q, 0.0, 1.0);
-			value = Clamp(value, 0.0, 1.0);
-
-			switch (i) {
-			case 0:
-				this->r = static_cast<unsigned char>(value * 255.0f);
-				this->g = static_cast<unsigned char>(t * 255.0f);
-				this->b = static_cast<unsigned char>(p * 255.0f);
-				break;
-			case 1:
-				this->r = static_cast<unsigned char>(q * 255.0f);
-				this->g = static_cast<unsigned char>(value * 255.0f);
-				this->b = static_cast<unsigned char>(p * 255.0f);
-				break;
-			case 2:
-				this->r = static_cast<unsigned char>(p * 255.0f);
-				this->g = static_cast<unsigned char>(value * 255.0f);
-				this->b = static_cast<unsigned char>(t * 255.0f);
-				break;
-			case 3:
-				this->r = static_cast<unsigned char>(p * 255.0f);
-				this->g = static_cast<unsigned char>(q * 255.0f);
-				this->b = static_cast<unsigned char>(value * 255.0f);
-				break;
-			case 4:
-				this->r = static_cast<unsigned char>(t * 255.0f);
-				this->g = static_cast<unsigned char>(p * 255.0f);
-				this->b = static_cast<unsigned char>(value * 255.0f);
-				break;
-			case 5:
-			default:
-				this->r = static_cast<unsigned char>(value * 255.0f);
-				this->g = static_cast<unsigned char>(p * 255.0f);
-				this->b = static_cast<unsigned char>(q * 255.0f);
-				break;
-			}
-		}
-	}
-	//float* Data() { return &r; }
 	inline bool operator==(const Color& color) const { return (r == color.r) && (g == color.g) && (b == color.b) && (a == color.a); }
 
 	unsigned char r, g, b;
 	bool a;
 
-	float Red() const { return static_cast<float>(r) / 255.0f; }
-	float Green() const { return static_cast<float>(g) / 255.0f; }
-	float Blue() const { return static_cast<float>(b) / 255.0f; }
+	inline float Red() const { return static_cast<float>(r) / 255.0f; }
+	inline float Green() const { return static_cast<float>(g) / 255.0f; }
+	inline float Blue() const { return static_cast<float>(b) / 255.0f; }
 };
 
 template<>

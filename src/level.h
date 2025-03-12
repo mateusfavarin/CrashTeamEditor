@@ -18,8 +18,6 @@
 #include <filesystem>
 #include <cstdint>
 
-static constexpr size_t GHOST_DATA_FILESIZE = 0x3E00;
-
 class Level
 {
 public:

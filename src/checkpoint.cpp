@@ -37,37 +37,37 @@ Checkpoint::Checkpoint(int index, const Vec3& pos, const std::string& quadName)
 	m_uiLinkRight = DEFAULT_UI_CHECKBOX_LABEL;
 }
 
-int Checkpoint::Index() const
+int Checkpoint::GetIndex() const
 {
 	return m_index;
 }
 
-float Checkpoint::DistFinish() const
+float Checkpoint::GetDistFinish() const
 {
 	return m_distToFinish;
 }
 
-const Vec3& Checkpoint::Pos() const
+const Vec3& Checkpoint::GetPos() const
 {
 	return m_pos;
 }
 
-int Checkpoint::Up() const
+int Checkpoint::GetUp() const
 {
 	return m_up;
 }
 
-int Checkpoint::Down() const
+int Checkpoint::GetDown() const
 {
 	return m_down;
 }
 
-int Checkpoint::Left() const
+int Checkpoint::GetLeft() const
 {
 	return m_left;
 }
 
-int Checkpoint::Right() const
+int Checkpoint::GetRight() const
 {
 	return m_right;
 }

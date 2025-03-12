@@ -111,7 +111,7 @@ void BSP::RenderUI(size_t& index, const std::vector<Quadblock>& quadblocks)
 			constexpr size_t QUADS_PER_LINE = 10;
 			for (size_t i = 0; i < m_quadblockIndexes.size(); i++)
 			{
-				ImGui::Text((quadblocks[m_quadblockIndexes[i]].Name() + ", ").c_str());
+				ImGui::Text((quadblocks[m_quadblockIndexes[i]].GetName() + ", ").c_str());
 				if (((i + 1) % QUADS_PER_LINE) == 0 || i == m_quadblockIndexes.size() - 1) { continue; }
 				ImGui::SameLine();
 			}
@@ -135,10 +135,10 @@ void Checkpoint::RenderUI(size_t numCheckpoints, const std::vector<Quadblock>& q
 		{
 			for (const Quadblock& quadblock : quadblocks)
 			{
-				if (ImGui::Selectable(quadblock.Name().c_str()))
+				if (ImGui::Selectable(quadblock.GetName().c_str()))
 				{
-					m_uiPosQuad = quadblock.Name();
-					m_pos = quadblock.Center();
+					m_uiPosQuad = quadblock.GetName();
+					m_pos = quadblock.GetCenter();
 				}
 			}
 			ImGui::EndCombo();
@@ -404,13 +404,13 @@ void Level::RenderUI()
 					{
 						ImGui::Text("From:"); ImGui::SameLine(); ImGui::InputFloat("##pos_from", &m_skyGradient[i].posFrom);
 						ImGui::Text("To:  "); ImGui::SameLine(); ImGui::InputFloat("##pos_to", &m_skyGradient[i].posTo);
-						ImGui::Text("From:"); ImGui::SameLine(); 
+						ImGui::Text("From:"); ImGui::SameLine();
 						float colorFrom[3];
 						if (ImGui::ColorEdit3("##color_from", colorFrom))
 						{
 							m_skyGradient[i].colorFrom = Color(static_cast<float>(colorFrom[0]), colorFrom[1], colorFrom[2]);
 						}
-						ImGui::Text("To:  "); ImGui::SameLine(); 
+						ImGui::Text("To:  "); ImGui::SameLine();
 						float colorTo[3];
 						if (ImGui::ColorEdit3("##color_to", colorTo))
 						{
@@ -447,7 +447,7 @@ void Level::RenderUI()
 						constexpr size_t QUADS_PER_LINE = 10;
 						for (size_t i = 0; i < quadblockIndexes.size(); i++)
 						{
-							ImGui::Text((m_quadblocks[quadblockIndexes[i]].Name() + ", ").c_str());
+							ImGui::Text((m_quadblocks[quadblockIndexes[i]].GetName() + ", ").c_str());
 							if (((i + 1) % QUADS_PER_LINE) == 0 || i == quadblockIndexes.size() - 1) { continue; }
 							ImGui::SameLine();
 						}
@@ -477,7 +477,7 @@ void Level::RenderUI()
 			ImGui::InputTextWithHint("Search", "Search Quadblocks...", &quadblockQuery);
 			for (Quadblock& quadblock : m_quadblocks)
 			{
-				if (!quadblock.Hide() && Matches(quadblock.Name(), quadblockQuery))
+				if (!quadblock.Hide() && Matches(quadblock.GetName(), quadblockQuery))
 				{
 					if (quadblock.RenderUI(m_checkpoints.size() - 1, resetBsp))
 					{
@@ -539,16 +539,16 @@ void Level::RenderUI()
 				bool insertAbove = false;
 				bool removePath = false;
 				Path& path = m_checkpointPaths[i];
-				const std::string pathTitle = "Path " + std::to_string(path.Index());
+				const std::string pathTitle = "Path " + std::to_string(path.GetIndex());
 				path.RenderUI(pathTitle, m_quadblocks, checkpointQuery, true, insertAbove, removePath);
 				if (insertAbove)
 				{
-					m_checkpointPaths.insert(m_checkpointPaths.begin() + path.Index(), Path());
+					m_checkpointPaths.insert(m_checkpointPaths.begin() + path.GetIndex(), Path());
 					for (size_t j = 0; j < m_checkpointPaths.size(); j++) { m_checkpointPaths[j].SetIndex(j); }
 				}
 				if (removePath)
 				{
-					m_checkpointPaths.erase(m_checkpointPaths.begin() + path.Index());
+					m_checkpointPaths.erase(m_checkpointPaths.begin() + path.GetIndex());
 					for (size_t j = 0; j < m_checkpointPaths.size(); j++) { m_checkpointPaths[j].SetIndex(j); }
 				}
 			}
@@ -579,8 +579,8 @@ void Level::RenderUI()
 				{
 					pathCheckpoints.push_back(path.GeneratePath(checkpointIndex, m_quadblocks));
 					checkpointIndex += pathCheckpoints.back().size();
-					linkNodeIndexes.push_back(path.Start());
-					linkNodeIndexes.push_back(path.End());
+					linkNodeIndexes.push_back(path.GetStart());
+					linkNodeIndexes.push_back(path.GetEnd());
 				}
 				m_checkpoints.clear();
 				for (const std::vector<Checkpoint>& checkpoints : pathCheckpoints)
@@ -592,11 +592,11 @@ void Level::RenderUI()
 				}
 
 				int lastPathIndex = static_cast<int>(m_checkpointPaths.size()) - 1;
-				const Checkpoint* currStartCheckpoint = &m_checkpoints[m_checkpointPaths[lastPathIndex].Start()];
+				const Checkpoint* currStartCheckpoint = &m_checkpoints[m_checkpointPaths[lastPathIndex].GetStart()];
 				for (int i = lastPathIndex - 1; i >= 0; i--)
 				{
-					m_checkpointPaths[i].UpdateDist(currStartCheckpoint->DistFinish(), currStartCheckpoint->Pos(), m_checkpoints);
-					currStartCheckpoint = &m_checkpoints[m_checkpointPaths[i].Start()];
+					m_checkpointPaths[i].UpdateDist(currStartCheckpoint->GetDistFinish(), currStartCheckpoint->GetPos(), m_checkpoints);
+					currStartCheckpoint = &m_checkpoints[m_checkpointPaths[i].GetStart()];
 				}
 
         for (size_t i = 0; i < linkNodeIndexes.size(); i++)
@@ -916,7 +916,7 @@ void Path::RenderUI(const std::string& title, const std::vector<Quadblock>& quad
 					std::vector<size_t> deleteList;
 					for (size_t i = 0; i < indexes.size(); i++)
 					{
-						ImGui::Text(quadblocks[indexes[i]].Name().c_str()); ImGui::SameLine();
+						ImGui::Text(quadblocks[indexes[i]].GetName().c_str()); ImGui::SameLine();
 						if (ImGui::Button(("Remove##" + title + std::to_string(i)).c_str()))
 						{
 							deleteList.push_back(i);
@@ -936,11 +936,11 @@ void Path::RenderUI(const std::string& title, const std::vector<Quadblock>& quad
 				{
 					for (size_t i = 0; i < quadblocks.size(); i++)
 					{
-						if (Matches(quadblocks[i].Name(), searchQuery))
+						if (Matches(quadblocks[i].GetName(), searchQuery))
 						{
-							if (ImGui::Selectable(quadblocks[i].Name().c_str()))
+							if (ImGui::Selectable(quadblocks[i].GetName().c_str()))
 							{
-								label = quadblocks[i].Name();
+								label = quadblocks[i].GetName();
 								value = i;
 							}
 						}

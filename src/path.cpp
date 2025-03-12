@@ -46,17 +46,17 @@ Path::~Path()
 	m_right = nullptr;
 }
 
-size_t Path::Index() const
+size_t Path::GetIndex() const
 {
 	return m_index;
 }
 
-size_t Path::Start() const
+size_t Path::GetStart() const
 {
 	return m_start;
 }
 
-size_t Path::End() const
+size_t Path::GetEnd() const
 {
 	return m_end;
 }
@@ -75,17 +75,17 @@ void Path::SetIndex(size_t index)
 
 void Path::UpdateDist(float dist, const Vec3& refPoint, std::vector<Checkpoint>& checkpoints)
 {
-	dist += (refPoint - checkpoints[m_end].Pos()).Length();
+	dist += (refPoint - checkpoints[m_end].GetPos()).Length();
 	size_t currIndex = m_end;
 	while (true)
 	{
 		Checkpoint& currCheckpoint = checkpoints[currIndex];
-		currCheckpoint.UpdateDistFinish(dist + currCheckpoint.DistFinish());
+		currCheckpoint.UpdateDistFinish(dist + currCheckpoint.GetDistFinish());
 		if (currIndex == m_start) { break; }
-		currIndex = currCheckpoint.Down();
+		currIndex = currCheckpoint.GetDown();
 	}
-	if (m_left) { m_left->UpdateDist(dist, checkpoints[m_end].Pos(), checkpoints); }
-	if (m_right) { m_right->UpdateDist(dist, checkpoints[m_end].Pos(), checkpoints); }
+	if (m_left) { m_left->UpdateDist(dist, checkpoints[m_end].GetPos(), checkpoints); }
+	if (m_right) { m_right->UpdateDist(dist, checkpoints[m_end].GetPos(), checkpoints); }
 }
 
 std::vector<Checkpoint> Path::GeneratePath(size_t pathStartIndex, std::vector<Quadblock>& quadblocks)
@@ -177,7 +177,7 @@ std::vector<Checkpoint> Path::GeneratePath(size_t pathStartIndex, std::vector<Qu
 		}
 		if (!checkpoints.empty()) { distFinish += (lastChunkVertex - chunkVertex).Length(); }
 		distFinishes.push_back(distFinish);
-		checkpoints.emplace_back(currCheckpointIndex, chunkVertex, quadblocks[chunkQuadIndex].Name());
+		checkpoints.emplace_back(currCheckpointIndex, chunkVertex, quadblocks[chunkQuadIndex].GetName());
 		checkpoints.back().UpdateUp(currCheckpointIndex + 1);
 		checkpoints.back().UpdateDown(currCheckpointIndex - 1);
 		currCheckpointIndex++;
@@ -201,19 +201,19 @@ std::vector<Checkpoint> Path::GeneratePath(size_t pathStartIndex, std::vector<Qu
 	if (m_left)
 	{
 		leftCheckpoints = m_left->GeneratePath(pathStartIndex, quadblocks);
-		checkpoints.back().UpdateLeft(leftCheckpoints.back().Index());
-		checkpoints.front().UpdateLeft(leftCheckpoints.front().Index());
-		leftCheckpoints.back().UpdateRight(checkpoints.back().Index());
-		leftCheckpoints.front().UpdateRight(checkpoints.front().Index());
+		checkpoints.back().UpdateLeft(leftCheckpoints.back().GetIndex());
+		checkpoints.front().UpdateLeft(leftCheckpoints.front().GetIndex());
+		leftCheckpoints.back().UpdateRight(checkpoints.back().GetIndex());
+		leftCheckpoints.front().UpdateRight(checkpoints.front().GetIndex());
 		pathStartIndex += leftCheckpoints.size();
 	}
 	if (m_right)
 	{
 		rightCheckpoints = m_right->GeneratePath(pathStartIndex, quadblocks);
-		checkpoints.back().UpdateRight(rightCheckpoints.back().Index());
-		checkpoints.front().UpdateRight(rightCheckpoints.front().Index());
-		rightCheckpoints.back().UpdateLeft(checkpoints.back().Index());
-		rightCheckpoints.front().UpdateLeft(checkpoints.front().Index());
+		checkpoints.back().UpdateRight(rightCheckpoints.back().GetIndex());
+		checkpoints.front().UpdateRight(rightCheckpoints.front().GetIndex());
+		rightCheckpoints.back().UpdateLeft(checkpoints.back().GetIndex());
+		rightCheckpoints.front().UpdateLeft(checkpoints.front().GetIndex());
 	}
 
 	for (const Checkpoint& checkpoint : leftCheckpoints) { checkpoints.push_back(checkpoint); }

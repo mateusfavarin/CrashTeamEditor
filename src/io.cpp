@@ -82,9 +82,9 @@ void Path::ToJson(nlohmann::json& json, const std::vector<Quadblock>& quadblocks
 	json = {{"index", m_index}, {"hasLeft", m_left != nullptr}, {"hasRight", m_right != nullptr}};
 
 	std::vector<std::string> quadStart, quadEnd, quadIgnore;
-	for (size_t index : m_quadIndexesStart) { quadStart.push_back(quadblocks[index].Name()); }
-	for (size_t index : m_quadIndexesEnd) { quadEnd.push_back(quadblocks[index].Name()); }
-	for (size_t index : m_quadIndexesIgnore) { quadIgnore.push_back(quadblocks[index].Name()); }
+	for (size_t index : m_quadIndexesStart) { quadStart.push_back(quadblocks[index].GetName()); }
+	for (size_t index : m_quadIndexesEnd) { quadEnd.push_back(quadblocks[index].GetName()); }
+	for (size_t index : m_quadIndexesIgnore) { quadIgnore.push_back(quadblocks[index].GetName()); }
 	json["quadStart"] = quadStart;
 	json["quadEnd"] = quadEnd;
 	json["quadIgnore"] = quadIgnore;
@@ -106,7 +106,7 @@ void Path::FromJson(const nlohmann::json& json, const std::vector<Quadblock>& qu
 	json.at("quadIgnore").get_to(quadIgnore);
 
 	std::unordered_map<std::string, size_t> quadNameMap;
-	for (size_t i = 0; i < quadblocks.size(); i++) { quadNameMap[quadblocks[i].Name()] = i; }
+	for (size_t i = 0; i < quadblocks.size(); i++) { quadNameMap[quadblocks[i].GetName()] = i; }
 	for (const std::string& name : quadStart) { if (quadNameMap.contains(name)) { m_quadIndexesStart.push_back(quadNameMap[name]); } }
 	for (const std::string& name : quadEnd) { if (quadNameMap.contains(name)) { m_quadIndexesEnd.push_back(quadNameMap[name]); } }
 	for (const std::string& name : quadIgnore) { if (quadNameMap.contains(name)) { m_quadIndexesIgnore.push_back(quadNameMap[name]); } }

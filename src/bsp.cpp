@@ -53,7 +53,7 @@ bool BSP::IsBranch() const
 	return m_node == BSPNode::BRANCH;
 }
 
-uint16_t BSP::Flags() const
+uint16_t BSP::GetFlags() const
 {
 	return m_flags;
 }
@@ -230,15 +230,15 @@ float BSP::Split(std::vector<size_t>& left, std::vector<size_t>& right, const Ax
 		switch (axis)
 		{
 		case AxisSplit::X:
-			if (quad.Center().x > midpoint) { right.push_back(index); }
+			if (quad.GetCenter().x > midpoint) { right.push_back(index); }
 			else { left.push_back(index); }
 			break;
 		case AxisSplit::Y:
-			if (quad.Center().y > midpoint) { right.push_back(index); }
+			if (quad.GetCenter().y > midpoint) { right.push_back(index); }
 			else { left.push_back(index); }
 			break;
 		case AxisSplit::Z:
-			if (quad.Center().z > midpoint) { right.push_back(index); }
+			if (quad.GetCenter().z > midpoint) { right.push_back(index); }
 			else { left.push_back(index); }
 			break;
 		}

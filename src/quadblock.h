@@ -104,12 +104,12 @@ class Quadblock
 public:
 	Quadblock(const std::string& name, Tri& t0, Tri& t1, Tri& t2, Tri& t3, const Vec3& normal, const std::string& material);
 	Quadblock(const std::string& name, Quad& q0, Quad& q1, Quad& q2, Quad& q3, const Vec3& normal, const std::string& material);
-	const std::string& Name() const;
-	const Vec3& Center() const;
-	uint8_t Terrain() const;
-	uint16_t Flags() const;
-	QuadblockTrigger Trigger() const;
-	size_t TurboPadIndex() const;
+	const std::string& GetName() const;
+	const Vec3& GetCenter() const;
+	uint8_t GetTerrain() const;
+	uint16_t GetFlags() const;
+	QuadblockTrigger GetTrigger() const;
+	size_t GetTurboPadIndex() const;
 	bool Hide() const;
 	bool& CheckpointStatus();
 	void SetTerrain(uint8_t terrain);

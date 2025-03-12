@@ -221,7 +221,7 @@ Quadblock::Quadblock(const std::string& name, Quad& q0, Quad& q1, Quad& q2, Quad
 	m_hide = false;
 }
 
-const std::string& Quadblock::Name() const
+const std::string& Quadblock::GetName() const
 {
 	return m_name;
 }
@@ -231,27 +231,27 @@ bool Quadblock::IsQuadblock()
 	return !m_triblock;
 }
 
-const Vec3& Quadblock::Center() const
+const Vec3& Quadblock::GetCenter() const
 {
 	return m_p[4].m_pos;
 }
 
-uint8_t Quadblock::Terrain() const
+uint8_t Quadblock::GetTerrain() const
 {
 	return m_terrain;
 }
 
-uint16_t Quadblock::Flags() const
+uint16_t Quadblock::GetFlags() const
 {
 	return m_flags;
 }
 
-QuadblockTrigger Quadblock::Trigger() const
+QuadblockTrigger Quadblock::GetTrigger() const
 {
 	return m_trigger;
 }
 
-size_t Quadblock::TurboPadIndex() const
+size_t Quadblock::GetTurboPadIndex() const
 {
 	return m_turboPadIndex;
 }
