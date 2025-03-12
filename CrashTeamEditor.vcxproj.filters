@@ -93,9 +93,6 @@
     <ClCompile Include="src\manual_third_party\glad.h">
       <Filter>ManualThirdParty</Filter>
     </ClCompile>
-    <ClCompile Include="src\manual_third_party\stb_image.h">
-      <Filter>ManualThirdParty</Filter>
-    </ClCompile>
     <ClCompile Include="src\manual_third_party\khrplatform.h">
       <Filter>ManualThirdParty</Filter>
     </ClCompile>
@@ -200,6 +197,5 @@
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="$(SolutionDir)third_party\glfw" />
-
   </ItemGroup>
 </Project>

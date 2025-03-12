@@ -16,7 +16,6 @@
 #include <imgui.h>
 #include <../deps/linmath.h>
 #include <misc/cpp/imgui_stdlib.h>
-//#include "manual_third_party/stb_image.h"
 
 Renderer::Renderer(float width, float height)
 {
