@@ -183,7 +183,7 @@ void Texture::CreateTexture()
 	}
 	Texture::BPP bpp = GetBPP();
 	if (bpp == Texture::BPP::BPP_4) { ConvertPixels(colorIndexes, 4); }
-	else if (bpp == Texture::BPP::BPP_8) { ConvertPixels(colorIndexes, 8); }
+	else if (bpp == Texture::BPP::BPP_8) { ConvertPixels(colorIndexes, 2); }
 	else { m_image = m_clut; }
 	stbi_image_free(image);
 }
@@ -242,15 +242,15 @@ static void BufferToVRM(std::vector<uint16_t>& vram, std::vector<bool>& vramUsed
 	}
 }
 
-static bool TestRect(std::vector<bool>& vramUsed, size_t x, size_t y, size_t width, size_t height)
+static bool TestRect(std::vector<bool>& vramUsed, size_t x, size_t y, size_t width, size_t height, bool clut)
 {
 	if (((x + width) >= VRAM_WIDTH) || (y + height) >= VRAM_HEIGHT) { return false; }
 
 	size_t texPage = GetTexPage(x, y);
+	size_t texPageLastCorner = GetTexPage(x + width - 1, y + height - 1);
 	if (texPage == RESERVED_TEXPAGES[0] || texPage == RESERVED_TEXPAGES[1]) { return false; }
-
-	size_t texPageLastCorner = GetTexPage(x + width, y + height);
-	if (texPage != texPageLastCorner) { return false; }
+	if (texPageLastCorner == RESERVED_TEXPAGES[0] || texPageLastCorner == RESERVED_TEXPAGES[1]) { return false; }
+	if (!clut && texPage != texPageLastCorner) { return false; }
 
 	size_t relWidth = 0;
 	size_t relHeight = 0;
@@ -270,7 +270,7 @@ static bool FindAvailableSpace(std::vector<bool>& vramUsed, size_t width, size_t
 	while (GetVRAMLocation(x, y) < vramUsed.size())
 	{
 		if (x == VRAM_WIDTH) { x = 0; y++; }
-		if (TestRect(vramUsed, x, y, width, height))
+		if (TestRect(vramUsed, x, y, width, height, clut))
 		{
 			retX = x;
 			retY = y;

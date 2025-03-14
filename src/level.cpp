@@ -292,9 +292,16 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	currOffset += sizeof(meshInfo);
 
 	std::vector<Texture*> textures;
+	size_t textureID = 0;
 	for (auto& [material, texture] : m_materialToTexture)
 	{
+		std::vector<size_t>& quadIndexes = m_materialToQuadblocks[material];
+		for (size_t index : quadIndexes)
+		{
+			m_quadblocks[index].SetTextureID(textureID);
+		}
 		textures.push_back(&texture);
+		textureID++;
 	}
 
 	std::vector<uint8_t> vrm = PackVRM(textures);
@@ -343,7 +350,7 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	}
 
 	const size_t offTexture = currOffset;
-	currOffset += sizeof(defaultTexGroup) * texGroups.size();
+	currOffset += sizeof(PSX::TextureGroup) * texGroups.size();
 
 	const size_t offQuadblocks = currOffset;
 	std::vector<std::vector<uint8_t>> serializedBSPs;
@@ -791,7 +798,8 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 				if (command == "newmtl") { currMaterial = tokens[1]; }
 				else if (command == "map_Kd")
 				{
-					std::filesystem::path materialPath = parentPath / Split(tokens[1], '/').back();
+					std::filesystem::path materialPath = tokens[1];
+					if (!std::filesystem::exists(materialPath)) { materialPath = parentPath / Split(tokens[1], '/').back(); }
 					if (std::filesystem::exists(materialPath))
 					{
 						m_materialToTexture[currMaterial] = Texture(materialPath);

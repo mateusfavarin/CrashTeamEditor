@@ -120,6 +120,7 @@ public:
 	void SetName(const std::string& name);
 	void SetTurboPadIndex(size_t index);
 	void SetHide(bool active);
+	void SetTextureID(size_t id);
 	bool IsQuadblock();
 	void SetTrigger(QuadblockTrigger trigger);
 	void TranslateNormalVec(float ratio);
@@ -158,6 +159,7 @@ private:
 	uint8_t m_terrain;
 	QuadblockTrigger m_trigger;
 	size_t m_turboPadIndex;
+	size_t m_textureID = 0;
 };
 
 class QuadException : public std::exception

@@ -467,7 +467,10 @@ void Level::RenderUI()
 						{
 							ImGui::Text("Path:"); ImGui::SameLine();
 							std::string texPath = texture.GetPath().string();
+							ImGui::BeginDisabled();
 							ImGui::InputText("##texpath", &texPath, ImGuiInputTextFlags_ReadOnly);
+							ImGui::EndDisabled();
+							ImGui::SetItemTooltip(texPath.c_str());
 							if (!texture.Empty())
 							{
 								constexpr size_t NUM_BLEND_MODES = 4;

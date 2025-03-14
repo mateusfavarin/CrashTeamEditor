@@ -306,6 +306,11 @@ void Quadblock::SetHide(bool active)
 	m_hide = active;
 }
 
+void Quadblock::SetTextureID(size_t id)
+{
+	m_textureID = id;
+}
+
 void Quadblock::SetTrigger(QuadblockTrigger trigger)
 {
 	m_trigger = trigger;
@@ -376,10 +381,10 @@ std::vector<uint8_t> Quadblock::Serialize(size_t id, size_t offTextures, const s
 		quadblock.drawOrderLow |= packedFace << (8 + i * 5);
 	}
 	quadblock.drawOrderHigh = 0;
-	quadblock.offMidTextures[0] = static_cast<uint32_t>(offTextures);
-	quadblock.offMidTextures[1] = static_cast<uint32_t>(offTextures);
-	quadblock.offMidTextures[2] = static_cast<uint32_t>(offTextures);
-	quadblock.offMidTextures[3] = static_cast<uint32_t>(offTextures);
+	quadblock.offMidTextures[0] = static_cast<uint32_t>(offTextures + (m_textureID * sizeof(PSX::TextureGroup)));
+	quadblock.offMidTextures[1] = static_cast<uint32_t>(offTextures + (m_textureID * sizeof(PSX::TextureGroup)));
+	quadblock.offMidTextures[2] = static_cast<uint32_t>(offTextures + (m_textureID * sizeof(PSX::TextureGroup)));
+	quadblock.offMidTextures[3] = static_cast<uint32_t>(offTextures + (m_textureID * sizeof(PSX::TextureGroup)));
 	quadblock.bbox.min = ConvertVec3(m_bbox.min, FP_ONE_GEO);
 	quadblock.bbox.max = ConvertVec3(m_bbox.max, FP_ONE_GEO);
 	quadblock.terrain = m_terrain;
