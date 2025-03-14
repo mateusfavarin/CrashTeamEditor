@@ -291,28 +291,59 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	const size_t offMeshInfo = currOffset;
 	currOffset += sizeof(meshInfo);
 
-	/*
-		TODO: Add texture support. For now, load default white texture
-	*/
-	PSX::TextureLayout tex = {};
-	tex.clut = 32 | (20 << 6);
-	tex.texPage = (512 >> 6) | ((0 >> 8) << 4) | (0 << 5) | (0 << 7);
-	tex.u0 = 0;		tex.v0 = 0;
-	tex.u1 = 15;	tex.v1 = 0;
-	tex.u2 = 0;		tex.v2 = 15;
-	tex.u3 = 15;	tex.v3 = 15;
+	std::vector<Texture*> textures;
+	for (auto& [material, texture] : m_materialToTexture)
+	{
+		textures.push_back(&texture);
+	}
 
-	/*
-		TODO: Add texture support. For now, load default white texture
-	*/
-	PSX::TextureGroup texGroup = {};
-	texGroup.far = tex;
-	texGroup.middle = tex;
-	texGroup.near = tex;
-	texGroup.mosaic = tex;
+	std::vector<uint8_t> vrm = PackVRM(textures);
+	const bool hasVRM = !vrm.empty();
+	if (hasVRM)
+	{
+		std::ofstream vrmFile(path / (m_name + ".vrm"), std::ios::binary);
+		Write(vrmFile, vrm.data(), vrm.size());
+		vrmFile.close();
+	}
+
+	PSX::TextureLayout defaultTex = {};
+	defaultTex.clut.self = 32 | (20 << 6);
+	defaultTex.texPage.self = (512 >> 6) | ((0 >> 8) << 4) | (0 << 5) | (0 << 7);
+	defaultTex.u0 = 0;		defaultTex.v0 = 0;
+	defaultTex.u1 = 15;		defaultTex.v1 = 0;
+	defaultTex.u2 = 0;		defaultTex.v2 = 15;
+	defaultTex.u3 = 15;		defaultTex.v3 = 15;
+
+	PSX::TextureGroup defaultTexGroup = {};
+	defaultTexGroup.far = defaultTex;
+	defaultTexGroup.middle = defaultTex;
+	defaultTexGroup.near = defaultTex;
+	defaultTexGroup.mosaic = defaultTex;
+
+	std::vector<PSX::TextureGroup> texGroups;
+	if (hasVRM)
+	{
+		for (Texture* texture : textures)
+		{
+			const std::vector<PSX::TextureLayout> layouts = texture->Serialize();
+			for (const PSX::TextureLayout& layout : layouts)
+			{
+				PSX::TextureGroup texGroup = {};
+				texGroup.far = layout;
+				texGroup.middle = layout;
+				texGroup.near = layout;
+				texGroup.mosaic = layout;
+				texGroups.push_back(texGroup);
+			}
+		}
+	}
+	else
+	{
+		texGroups.push_back(defaultTexGroup);
+	}
 
 	const size_t offTexture = currOffset;
-	currOffset += sizeof(texGroup);
+	currOffset += sizeof(defaultTexGroup) * texGroups.size();
 
 	const size_t offQuadblocks = currOffset;
 	std::vector<std::vector<uint8_t>> serializedBSPs;
@@ -552,7 +583,7 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	Write(file, &offPointerMap, sizeof(uint32_t));
 	Write(file, &header, sizeof(header));
 	Write(file, &meshInfo, sizeof(meshInfo));
-	Write(file, &texGroup, sizeof(texGroup));
+	Write(file, texGroups.data(), texGroups.size() * sizeof(PSX::TextureGroup));
 	for (const std::vector<uint8_t>& serializedQuad : serializedQuads) { Write(file, serializedQuad.data(), serializedQuad.size()); }
 	for (size_t i = 0; i < visibleNodes.size(); i++)
 	{
@@ -583,6 +614,7 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 	std::string line;
 	std::ifstream file(objFile);
 	m_name = objFile.filename().replace_extension().string();
+	std::filesystem::path parentPath = objFile.parent_path();
 
 	bool ret = true;
 	std::unordered_map<std::string, std::vector<Tri>> triMap;
@@ -590,6 +622,7 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 	std::unordered_map<std::string, std::vector<Vec3>> normalMap;
 	std::unordered_map<std::string, std::string> materialMap;
 	std::unordered_map<std::string, bool> meshMap;
+	std::unordered_set<std::string> materials;
 	std::vector<Point> vertices;
 	std::vector<Vec3> normals;
 	std::string currQuadblockName;
@@ -691,10 +724,15 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 				{
 					material = materialMap[currQuadblockName];
 					m_materialToQuadblocks[material].push_back(m_quadblocks.size());
-					m_propTerrain.SetDefaultValue(material, TerrainType::DEFAULT);
-					m_propQuadFlags.SetDefaultValue(material, QuadFlags::DEFAULT);
-					m_propDoubleSided.SetDefaultValue(material, false);
-					m_propCheckpoints.SetDefaultValue(material, true);
+					if (!materials.contains(material))
+					{
+						materials.insert(material);
+						m_materialToTexture[material] = Texture();
+						m_propTerrain.SetDefaultValue(material, TerrainType::DEFAULT);
+						m_propQuadFlags.SetDefaultValue(material, QuadFlags::DEFAULT);
+						m_propDoubleSided.SetDefaultValue(material, false);
+						m_propCheckpoints.SetDefaultValue(material, true);
+					}
 				}
 				if (isQuadblock)
 				{
@@ -736,6 +774,33 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 		}
 	}
 	file.close();
+
+	if (!materials.empty())
+	{
+		std::filesystem::path mtlPath = parentPath / (objFile.stem().string() + ".mtl");
+		if (std::filesystem::exists(mtlPath))
+		{
+			std::ifstream mtl(mtlPath);
+			std::string currMaterial;
+			while (std::getline(mtl, line))
+			{
+				std::vector<std::string> tokens = Split(line);
+				if (tokens.empty()) { continue; }
+
+				const std::string& command = tokens[0];
+				if (command == "newmtl") { currMaterial = tokens[1]; }
+				else if (command == "map_Kd")
+				{
+					std::filesystem::path materialPath = parentPath / Split(tokens[1], '/').back();
+					if (std::filesystem::exists(materialPath))
+					{
+						m_materialToTexture[currMaterial] = Texture(materialPath);
+					}
+				}
+			}
+		}
+	}
+
 	if (quadblockCount != m_quadblocks.size())
 	{
 		m_showLogWindow = true;

@@ -40,14 +40,61 @@ namespace PSX
 		PSX::Vec3 max;
 	};
 
+	struct VRMHeader
+	{
+		uint32_t size;
+		uint32_t magic;
+		uint32_t flags;
+		uint32_t len;
+		uint16_t x;
+		uint16_t y;
+		uint16_t width;
+		uint16_t height;
+	};
+
+	struct BlendMode
+	{
+		static constexpr uint16_t HALF_TRANSPARENT = 0;
+		static constexpr uint16_t ADDITIVE = 1;
+		static constexpr uint16_t SUBTRACTIVE = 2;
+		static constexpr uint16_t ADDITIVE_TRANSLUCENT = 3;
+	};
+
+	union Texpage
+	{
+		struct
+		{
+			uint16_t x : 4; /* x * 64 */
+			uint16_t y : 1; /* y * 256 */
+			uint16_t blendMode : 2; /* (0=B/2+F/2, 1=B+F, 2=B-F, 3=B+F/4) */
+			uint16_t texpageColors : 2; /* (0=4bit, 1=8bit, 2=15bit, 3=Reserved) */
+			uint16_t unused : 2;
+			uint16_t y_VRAM_EXP : 1; /* ununsed in retail */
+			uint16_t unused2 : 2;
+			uint16_t nop : 2;
+		};
+		uint16_t self;
+	};
+
+	union CLUT
+	{
+		struct
+		{
+			uint16_t x : 6; /* X/16  (ie. in 16-halfword steps) */
+			uint16_t y : 9; /* 0-511 (ie. in 1-line steps) */
+			uint16_t nop : 1; /* Should be 0 */
+		};
+		uint16_t self;
+	};
+
 	struct TextureLayout
 	{
 		uint8_t u0;
 		uint8_t v0;
-		uint16_t clut;
+		CLUT clut;
 		uint8_t u1;
 		uint8_t v1;
-		uint16_t texPage;
+		Texpage texPage;
 		uint8_t u2;
 		uint8_t v2;
 		uint8_t u3;

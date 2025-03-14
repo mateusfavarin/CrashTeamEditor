@@ -7,6 +7,7 @@
 #include "bsp.h"
 #include "path.h"
 #include "material.h"
+#include "texture.h"
 
 #include "model.h"
 #include "mesh.h"
@@ -66,6 +67,7 @@ private:
 	std::vector<Checkpoint> m_checkpoints;
 	BSP m_bsp;
 	std::unordered_map<std::string, std::vector<size_t>> m_materialToQuadblocks;
+	std::unordered_map<std::string, Texture> m_materialToTexture;
 	MaterialProperty<std::string, MaterialType::TERRAIN> m_propTerrain;
 	MaterialProperty<uint16_t, MaterialType::QUAD_FLAGS> m_propQuadFlags;
 	MaterialProperty<bool, MaterialType::DRAW_FLAGS> m_propDoubleSided;

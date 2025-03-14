@@ -9,6 +9,7 @@
 #include "renderer.h"
 #include "gui_render_settings.h"
 #include "mesh.h"
+#include "texture.h"
 
 #include <imgui.h>
 #include <misc/cpp/imgui_stdlib.h>
@@ -458,6 +459,36 @@ void Level::RenderUI()
 					m_propQuadFlags.RenderUI(material, quadblockIndexes, m_quadblocks);
 					m_propDoubleSided.RenderUI(material, quadblockIndexes, m_quadblocks);
 					m_propCheckpoints.RenderUI(material, quadblockIndexes, m_quadblocks);
+
+					if (m_materialToTexture.contains(material))
+					{
+						Texture& texture = m_materialToTexture[material];
+						if (ImGui::TreeNode("Texture"))
+						{
+							ImGui::Text("Path:"); ImGui::SameLine();
+							std::string texPath = texture.GetPath().string();
+							ImGui::InputText("##texpath", &texPath, ImGuiInputTextFlags_ReadOnly);
+							if (!texture.Empty())
+							{
+								constexpr size_t NUM_BLEND_MODES = 4;
+								const std::array<std::string, NUM_BLEND_MODES> BLEND_MODES = { "Half Transparent", "Additive", "Subtractive", "Additive Translucent" };
+								uint16_t blendMode = texture.GetBlendMode();
+								ImGui::Text("Blend Mode:"); ImGui::SameLine();
+								if (ImGui::BeginCombo("##blendmode", BLEND_MODES[blendMode].c_str()))
+								{
+									for (size_t i = 0; i < NUM_BLEND_MODES; i++)
+									{
+										if (ImGui::Selectable(BLEND_MODES[i].c_str()))
+										{
+											texture.SetBlendMode(i);
+										}
+									}
+									ImGui::EndCombo();
+								}
+							}
+							ImGui::TreePop();
+						}
+					}
 
 					ImGui::TreePop();
 				}
@@ -1116,13 +1147,13 @@ void Vertex::RenderUI(size_t index, bool& editedPos)
 		ImGui::Text("Pos: "); ImGui::SameLine();
 		if (ImGui::InputFloat3("##pos", m_pos.Data())) { editedPos = true; }
 		ImGui::Text("High:"); ImGui::SameLine();
-		float colorHighData[3];
+		float colorHighData[3] = { m_colorHigh.Red(), m_colorHigh.Green(), m_colorHigh.Blue() };
 		if (ImGui::ColorEdit3("##high", colorHighData))
 		{
 			m_colorHigh = Color(static_cast<float>(colorHighData[0]), colorHighData[1], colorHighData[2]);
 		}
 		ImGui::Text("Low: "); ImGui::SameLine();
-		float colorLowData[3];
+		float colorLowData[3] = { m_colorLow.Red(), m_colorLow.Green(), m_colorLow.Blue() };
 		if (ImGui::ColorEdit3("##low", colorLowData))
 		{
 			m_colorLow = Color(static_cast<float>(colorLowData[0]), colorLowData[1], colorLowData[2]);

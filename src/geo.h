@@ -88,7 +88,7 @@ struct Point
 	Point(float x, float y, float z)
 	{
 		pos = Vec3(x, y, z);
-		color = Color((unsigned char)255u, 255u, 255u);
+		color = Color(static_cast<unsigned char>(128), 128, 128);
 		normal = Vec3();
 	};
 	Point(float x, float y, float z, unsigned char r, unsigned char g, unsigned char b)
