@@ -226,7 +226,7 @@ const std::string& Quadblock::GetName() const
 	return m_name;
 }
 
-bool Quadblock::IsQuadblock()
+bool Quadblock::IsQuadblock() const
 {
 	return !m_triblock;
 }

@@ -26,6 +26,7 @@ public:
 	float GetWidth() const;
 	float GetHeight() const;
 	GLuint GetTexBuffer() const;
+	std::tuple<glm::vec3, float> PixelRayFromCameraCollidesWithTri(int pixelX, int pixelY, glm::vec3 tri[3]) const;
 
 private:
 	int m_width;
@@ -37,4 +38,7 @@ private:
 	float m_time = 0.0f;
 	float m_lastFrameTime = 0.0f;
 	float m_deltaTime = -1.0f;
+	glm::mat4 m_cameraView;
+	glm::mat4 m_perspective;
+	glm::vec3 m_camWorldPos = glm::vec3(0.f, 0.f, 3.f);
 };

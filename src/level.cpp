@@ -928,6 +928,17 @@ void Level::GeomPoint(const Vertex* verts, int ind, std::vector<float>& data)
 	data.push_back(col.Red());
 	data.push_back(col.Green());
 	data.push_back(col.Blue());
+	//2nd set of normals
+	//2nd set of normals
+	//2nd set of normals
+	//001
+	//010
+	//100
+	//stuv coords
+	//stuv coords
+	//stuv coords
+	//stuv coords
+	//quadblock id
 }
 
 void Level::GeomOctopoint(const Vertex* verts, int ind, std::vector<float>& data)
@@ -1084,41 +1095,19 @@ void Level::GenerateRenderLevData(std::vector<Quadblock>& quadblocks)
 			GeomOctopoint(verts, 6, vertexLowLODData);
 			GeomOctopoint(verts, 8, vertexLowLODData);
 
-			GeomPoint(verts, 3, highLODData);
-			GeomPoint(verts, 0, highLODData);
-			GeomPoint(verts, 1, highLODData);
-			GeomPoint(verts, 1, highLODData);
-			GeomPoint(verts, 4, highLODData);
-			GeomPoint(verts, 3, highLODData);
+ 			for (int triIndex = 0; triIndex < 8; triIndex++)
+			{
+				GeomPoint(verts, FaceIndexConstants::quadHLODVertArrangements[triIndex][0], highLODData);
+				GeomPoint(verts, FaceIndexConstants::quadHLODVertArrangements[triIndex][1], highLODData);
+				GeomPoint(verts, FaceIndexConstants::quadHLODVertArrangements[triIndex][2], highLODData);
+			}
 
-			GeomPoint(verts, 4, highLODData);
-			GeomPoint(verts, 1, highLODData);
-			GeomPoint(verts, 2, highLODData);
-			GeomPoint(verts, 2, highLODData);
-			GeomPoint(verts, 5, highLODData);
-			GeomPoint(verts, 4, highLODData);
-
-			GeomPoint(verts, 6, highLODData);
-			GeomPoint(verts, 3, highLODData);
-			GeomPoint(verts, 4, highLODData);
-			GeomPoint(verts, 4, highLODData);
-			GeomPoint(verts, 7, highLODData);
-			GeomPoint(verts, 6, highLODData);
-
-			GeomPoint(verts, 7, highLODData);
-			GeomPoint(verts, 4, highLODData);
-			GeomPoint(verts, 5, highLODData);
-			GeomPoint(verts, 5, highLODData);
-			GeomPoint(verts, 8, highLODData);
-			GeomPoint(verts, 7, highLODData);
-
-			GeomPoint(verts, 6, lowLODData);
-			GeomPoint(verts, 0, lowLODData);
-			GeomPoint(verts, 2, lowLODData);
-
-			GeomPoint(verts, 2, lowLODData);
-			GeomPoint(verts, 8, lowLODData);
-			GeomPoint(verts, 6, lowLODData);
+			for (int triIndex = 0; triIndex < 2; triIndex++)
+			{
+				GeomPoint(verts, FaceIndexConstants::quadLLODVertArrangements[triIndex][0], lowLODData);
+				GeomPoint(verts, FaceIndexConstants::quadLLODVertArrangements[triIndex][1], lowLODData);
+				GeomPoint(verts, FaceIndexConstants::quadLLODVertArrangements[triIndex][2], lowLODData);
+			}
 		}
 		else
 		{
@@ -1133,25 +1122,19 @@ void Level::GenerateRenderLevData(std::vector<Quadblock>& quadblocks)
 			GeomOctopoint(verts, 2, vertexLowLODData);
 			GeomOctopoint(verts, 6, vertexLowLODData);
 
-			GeomPoint(verts, 6, highLODData);
-			GeomPoint(verts, 3, highLODData);
-			GeomPoint(verts, 4, highLODData);
-
-			GeomPoint(verts, 4, highLODData);
-			GeomPoint(verts, 1, highLODData);
-			GeomPoint(verts, 2, highLODData);
-
-			GeomPoint(verts, 1, highLODData);
-			GeomPoint(verts, 4, highLODData);
-			GeomPoint(verts, 3, highLODData);
-
-			GeomPoint(verts, 3, highLODData);
-			GeomPoint(verts, 0, highLODData);
-			GeomPoint(verts, 1, highLODData);
-
-			GeomPoint(verts, 6, lowLODData);
-			GeomPoint(verts, 0, lowLODData);
-			GeomPoint(verts, 2, lowLODData);
+			for (int triIndex = 0; triIndex < 4; triIndex++)
+ 			{
+ 				GeomPoint(verts, FaceIndexConstants::triHLODVertArrangements[triIndex][0], highLODData);
+ 				GeomPoint(verts, FaceIndexConstants::triHLODVertArrangements[triIndex][1], highLODData);
+ 				GeomPoint(verts, FaceIndexConstants::triHLODVertArrangements[triIndex][2], highLODData);
+ 			}
+ 
+ 			for (int triIndex = 0; triIndex < 1; triIndex++)
+ 			{
+ 				GeomPoint(verts, FaceIndexConstants::triLLODVertArrangements[triIndex][0], lowLODData);
+ 				GeomPoint(verts, FaceIndexConstants::triLLODVertArrangements[triIndex][1], lowLODData);
+ 				GeomPoint(verts, FaceIndexConstants::triLLODVertArrangements[triIndex][2], lowLODData);
+ 			}
 		}
 	}
 	highLODMesh.UpdateMesh(highLODData, (Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
@@ -1167,7 +1150,7 @@ void Level::GenerateRenderLevData(std::vector<Quadblock>& quadblocks)
 	m_pointsLowLODLevelModel.SetMesh(&vertexLowLODMesh);
 }
 
-void Level::GenerateRenderBspData(BSP bsp)
+void Level::GenerateRenderBspData(const BSP& bsp)
 {
 	static Mesh bspMesh;
 	std::vector<float> bspData;
@@ -1207,4 +1190,61 @@ void Level::GenerateRenderStartpointData(std::array<Spawn, NUM_DRIVERS>& spawns)
 
 	spawnsMesh.UpdateMesh(spawnsData, (Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
 	m_spawnsModel.SetMesh(&spawnsMesh);
+}
+
+void Level::GenerateRenderSelectedBlockData(const Quadblock& quadblock, const Vec3& queryPoint)
+{
+	static Mesh quadblockMesh;
+	std::vector<float> data;
+	const Vertex* verts = quadblock.GetUnswizzledVertices();
+	bool isQuadblock = quadblock.IsQuadblock();
+	Vertex recoloredVerts[9];
+	for (int i = 0; i < (isQuadblock ? 9 : 6); i++)
+	{
+		Color negated = verts[i].GetColor(true).Negated();
+		recoloredVerts[i] = Point(0, 0, 0, negated.r, negated.g, negated.b); //pos reassigned in next line
+		recoloredVerts[i].m_pos = verts[i].m_pos;
+		recoloredVerts[i].m_normal = verts[i].m_normal;
+	}
+
+	if (quadblock.IsQuadblock())
+	{
+		//LLOD
+		/*for (int triIndex = 0; triIndex < 2; triIndex++)
+		{
+			GeomPoint(recoloredVerts, FaceIndexConstants::quadLLODVertArrangements[triIndex][0], data);
+			GeomPoint(recoloredVerts, FaceIndexConstants::quadLLODVertArrangements[triIndex][1], data);
+			GeomPoint(recoloredVerts, FaceIndexConstants::quadLLODVertArrangements[triIndex][2], data);
+		}*/
+		//HLOD
+		for (int triIndex = 0; triIndex < 8; triIndex++)
+		{
+			GeomPoint(recoloredVerts, FaceIndexConstants::quadHLODVertArrangements[triIndex][0], data);
+			GeomPoint(recoloredVerts, FaceIndexConstants::quadHLODVertArrangements[triIndex][1], data);
+			GeomPoint(recoloredVerts, FaceIndexConstants::quadHLODVertArrangements[triIndex][2], data);
+		}
+	}
+	else
+	{
+		//LLOD
+		/*for (int triIndex = 0; triIndex < 1; triIndex++)
+		{
+			GeomPoint(recoloredVerts, FaceIndexConstants::triLLODVertArrangements[triIndex][0], data);
+			GeomPoint(recoloredVerts, FaceIndexConstants::triLLODVertArrangements[triIndex][1], data);
+			GeomPoint(recoloredVerts, FaceIndexConstants::triLLODVertArrangements[triIndex][2], data);
+		}*/
+		//HLOD
+		for (int triIndex = 0; triIndex < 4; triIndex++)
+		{
+			GeomPoint(recoloredVerts, FaceIndexConstants::triHLODVertArrangements[triIndex][0], data);
+			GeomPoint(recoloredVerts, FaceIndexConstants::triHLODVertArrangements[triIndex][1], data);
+			GeomPoint(recoloredVerts, FaceIndexConstants::triHLODVertArrangements[triIndex][2], data);
+		}
+	}
+
+	Vertex v = Vertex(Point(queryPoint.x, queryPoint.y, queryPoint.z, 255, 0, 0));
+	GeomOctopoint(&v, 0, data);
+
+	quadblockMesh.UpdateMesh(data, (Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals), (Mesh::ShaderSettings::DrawWireframe | Mesh::ShaderSettings::DrawBackfaces | Mesh::ShaderSettings::ForceDrawOnTop | Mesh::ShaderSettings::DrawLinesAA | Mesh::ShaderSettings::DontOverrideShaderSettings | Mesh::ShaderSettings::Blinky));
+	m_selectedBlockModel.SetMesh(&quadblockMesh);
 }

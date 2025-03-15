@@ -32,9 +32,10 @@ public:
 	bool SavePreset(const std::filesystem::path& path);
 	void RenderUI();
 	void GenerateRenderLevData(std::vector<Quadblock>& quadblocks);
-	void GenerateRenderBspData(BSP bsp);
+	void GenerateRenderBspData(const BSP& bsp);
 	void GenerateRenderCheckpointData(std::vector<Checkpoint>&);
 	void GenerateRenderStartpointData(std::array<Spawn, NUM_DRIVERS>&);
+	void GenerateRenderSelectedBlockData(const Quadblock& quadblock, const Vec3& queryPoint);
 	void GeomPoint(const Vertex* verts, int ind, std::vector<float>& data);
 	void GeomOctopoint(const Vertex* verts, int ind, std::vector<float>& data);
 	void GeomBoundingRect(const BSP* b, int depth, std::vector<float>& data);
@@ -81,4 +82,5 @@ private:
 	Model m_bspModel;
 	Model m_spawnsModel;
 	Model m_checkModel;
+	Model m_selectedBlockModel;
 };

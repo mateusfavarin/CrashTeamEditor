@@ -141,6 +141,14 @@ void main()
   {
     FragColor = vec4((normalize(Normal) + vec3(1.0, 1.0, 1.0)) * 0.5, 1.0);
   }
+
+  if ((shaderSettings & 32) != 0) //32 == "Blinky"
+  {
+    if (mod(time * 1.5, 1.0) < 0.5)
+    {
+      FragColor = vec4(1.0 - FragColor.r, 1.0 - FragColor.g, 1.0 - FragColor.b, FragColor.a);
+    }
+  }
 }
 )*";
 std::string ShaderTemplates::frag_vcolor;
