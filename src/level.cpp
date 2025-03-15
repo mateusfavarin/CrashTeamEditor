@@ -54,6 +54,7 @@ void Level::Clear(bool clearErrors)
 	m_clearColor = Color();
 	m_name.clear();
 	m_savedLevPath.clear();
+	m_savedVRMPath.clear();
 	m_quadblocks.clear();
 	m_checkpoints.clear();
 	m_bsp.Clear();
@@ -482,9 +483,8 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	currOffset += m_oxideGhost.size();
 
 	PSX::LevelExtraHeader extraHeader = {};
-	// This will disable Fly-in Startline camera
-	extraHeader.count = 3;
-	// to prevent visual bug caused by uninmplemented camera path
+	extraHeader.count = 0; /* TODO: Fix Ghosts */
+	//extraHeader.count = PSX::LevelExtra::COUNT;
 	extraHeader.offsets[PSX::LevelExtra::MINIMAP] = 0;
 	extraHeader.offsets[PSX::LevelExtra::SPAWN] = 0;
 	extraHeader.offsets[PSX::LevelExtra::CAMERA_END_OF_RACE] = 0;

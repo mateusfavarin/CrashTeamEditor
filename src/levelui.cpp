@@ -289,6 +289,7 @@ void Level::RenderUI()
 			static std::string levPath;
 			static std::string vrmPath;
 			if (levPath.empty() && !m_savedLevPath.empty()) { levPath = m_savedLevPath.string(); }
+			if (vrmPath.empty() && !m_savedVRMPath.empty()) { vrmPath = m_savedVRMPath.string(); }
 
 			ImGui::Text("Lev Path"); ImGui::SameLine();
 			ImGui::InputText("##levpath", &levPath, ImGuiInputTextFlags_ReadOnly);

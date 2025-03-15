@@ -57,6 +57,7 @@ private:
 	std::string m_logMessage;
 	std::string m_name;
 	std::filesystem::path m_savedLevPath;
+	std::filesystem::path m_savedVRMPath;
 	std::array<Spawn, NUM_DRIVERS> m_spawn;
 	uint32_t m_configFlags;
 	std::array<ColorGradient, NUM_GRADIENT> m_skyGradient;
