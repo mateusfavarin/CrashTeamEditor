@@ -407,13 +407,13 @@ void Level::RenderUI()
 						ImGui::Text("From:"); ImGui::SameLine(); ImGui::InputFloat("##pos_from", &m_skyGradient[i].posFrom);
 						ImGui::Text("To:  "); ImGui::SameLine(); ImGui::InputFloat("##pos_to", &m_skyGradient[i].posTo);
 						ImGui::Text("From:"); ImGui::SameLine();
-						float colorFrom[3];
+						float colorFrom[3] = { m_skyGradient[i].colorFrom.Red(), m_skyGradient[i].colorFrom.Green(), m_skyGradient[i].colorFrom.Blue() };
 						if (ImGui::ColorEdit3("##color_from", colorFrom))
 						{
 							m_skyGradient[i].colorFrom = Color(static_cast<float>(colorFrom[0]), colorFrom[1], colorFrom[2]);
 						}
 						ImGui::Text("To:  "); ImGui::SameLine();
-						float colorTo[3];
+						float colorTo[3] = { m_skyGradient[i].colorTo.Red(), m_skyGradient[i].colorTo.Green(), m_skyGradient[i].colorTo.Blue() };
 						if (ImGui::ColorEdit3("##color_to", colorTo))
 						{
 							m_skyGradient[i].colorTo = Color(static_cast<float>(colorTo[0]), colorTo[1], colorTo[2]);
@@ -425,7 +425,7 @@ void Level::RenderUI()
 			}
 			if (ImGui::TreeNode("Clear Color"))
 			{
-				float clearColor[3];
+				float clearColor[3] = { m_clearColor.Red(), m_clearColor.Green(), m_clearColor.Blue() };
 				if (ImGui::ColorEdit3("##color", clearColor))
 				{
 					m_clearColor = Color(static_cast<float>(clearColor[0]), clearColor[1], clearColor[2]);
