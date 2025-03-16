@@ -244,17 +244,19 @@ void Renderer::RescaleFramebuffer(float width, float height)
 std::tuple<glm::vec3, float> Renderer::PixelRayFromCameraCollidesWithTri(int pixelX, int pixelY, glm::vec3 tri[3]) const
 {
   constexpr float epsilon = glm::epsilon<float>();
-  float aspectRatio = (static_cast<float>(m_width) / static_cast<float>(m_height));
+
   float normalizeDeviceX = ((2.0f * static_cast<float>(pixelX)) / static_cast<float>(m_width)) - 1.0f;
   float normalizeDeviceY = 1.0f - ((2.0f * static_cast<float>(pixelY)) / static_cast<float>(m_height));
 
-  float tanFovX = tan(aspectRatio / 2.0f);
-  //float tanFovX = tan(2.0f / aspectRatio);
-  float tanFovY = tanFovX / aspectRatio;
+  glm::vec4 cameraSpaceRay = glm::vec4(normalizeDeviceX, normalizeDeviceY, -1.0f, 0.0f);
 
-  glm::vec4 cameraSpaceRay = glm::vec4(normalizeDeviceX * tanFovX, normalizeDeviceY * tanFovY, -1.0f, 0.0f);
-  glm::vec3 worldSpaceRay = glm::inverse(m_cameraView) * cameraSpaceRay;
-  worldSpaceRay = glm::normalize(worldSpaceRay);
+  glm::mat4 invProj = glm::inverse(m_perspective);
+  glm::vec4 rayCam = invProj * cameraSpaceRay;
+  rayCam.z = -1.0f;
+  rayCam.w = 0.0f;
+
+  glm::mat4 invView = glm::inverse(m_cameraView);
+  glm::vec3 worldSpaceRay = glm::normalize(invView * rayCam);
 
   //moller-trumbore intersection test
   //https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
