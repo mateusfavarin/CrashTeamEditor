@@ -6,7 +6,7 @@
 #include <unordered_set>
 #include <cstring>
 
-Quadblock::Quadblock(const std::string& name, Tri& t0, Tri& t1, Tri& t2, Tri& t3, const Vec3& normal, const std::string& material)
+Quadblock::Quadblock(const std::string& name, Tri& t0, Tri& t1, Tri& t2, Tri& t3, const Vec3& normal, const std::string& material, bool hasUV)
 {
 	std::unordered_map<Vec3, unsigned> vRefCount;
 	for (size_t i = 0; i < 3; i++)
@@ -93,9 +93,51 @@ Quadblock::Quadblock(const std::string& name, Tri& t0, Tri& t1, Tri& t2, Tri& t3
 		Swap(m_p[3], m_p[4]);
 	}
 
-	m_p[5] = m_p[4];
-	m_p[7] = m_p[4];
+	m_p[5] = m_p[2];
+	m_p[7] = m_p[6];
 	m_p[8] = m_p[4];
+
+	auto FindTri = [](const Vec3& pos, const Tri& t0, const Tri& t1, const Tri& t2, const Tri& t3) -> const Tri*
+		{
+			const Tri* tris[] = {&t0, &t1, &t2, &t3};
+			for (size_t i = 0; i < 4; i++)
+			{
+				const Tri* tri = tris[i];
+				for (size_t j = 0; j < 3; j++)
+				{
+					if (tri->p[j].pos == pos) { return tri; }
+				}
+			}
+			return nullptr;
+		};
+
+	auto GetUV = [](const Vec3& pos, const Tri& tri) -> Vec2
+		{
+			for (size_t i = 0; i < 3; i++)
+			{
+				if (tri.p[i].pos == pos) { return tri.p[i].uv; }
+			}
+			return Vec2();
+		};
+
+	if (hasUV)
+	{
+		const Tri* uvt0 = FindTri(m_p[0].m_pos, t0, t1, t2, t3);
+		const Tri* uvt1 = FindTri(m_p[2].m_pos, t0, t1, t2, t3);
+		const Tri* uvt2 = FindTri(m_p[6].m_pos, t0, t1, t2, t3);
+
+		m_uvs[0] = { GetUV(m_p[0].m_pos, *uvt0), GetUV(m_p[1].m_pos, *uvt0), GetUV(m_p[3].m_pos, *uvt0), GetUV(m_p[4].m_pos, *centerTri) };
+		m_uvs[1] = { GetUV(m_p[1].m_pos, *uvt1), GetUV(m_p[2].m_pos, *uvt1), GetUV(m_p[4].m_pos, *uvt1), Vec2() };
+		m_uvs[2] = { GetUV(m_p[3].m_pos, *uvt2), GetUV(m_p[4].m_pos, *uvt2), GetUV(m_p[6].m_pos, *uvt2), Vec2() };
+		m_uvs[3] = { Vec2(), Vec2(), Vec2(), Vec2() };
+	}
+	else
+	{
+		m_uvs[0] = { Vec2(0.0f, 0.0f), Vec2(0.5f, 0.0f), Vec2(0.0f, 0.5f), Vec2(0.5f, 0.5f) };
+		m_uvs[1] = { Vec2(0.5f, 0.0f), Vec2(1.0f, 0.0f), Vec2(0.5f, 0.5f), Vec2(1.0f, 0.5f) };
+		m_uvs[2] = { Vec2(0.0f, 0.5f), Vec2(0.5f, 0.5f), Vec2(0.0f, 1.0f), Vec2(0.5f, 1.0f) };
+		m_uvs[3] = { Vec2(0.5f, 0.5f), Vec2(1.0f, 0.5f), Vec2(0.5f, 1.0f), Vec2(1.0f, 1.0f) };
+	}
 
 	ComputeBoundingBox();
 	m_name = name;
@@ -117,7 +159,7 @@ Quadblock::Quadblock(const std::string& name, Tri& t0, Tri& t1, Tri& t2, Tri& t3
 	m_hide = false;
 }
 
-Quadblock::Quadblock(const std::string& name, Quad& q0, Quad& q1, Quad& q2, Quad& q3, const Vec3& normal, const std::string& material)
+Quadblock::Quadblock(const std::string& name, Quad& q0, Quad& q1, Quad& q2, Quad& q3, const Vec3& normal, const std::string& material, bool hasUV)
 {
 	std::unordered_map<Vec3, unsigned> vRefCount;
 	for (size_t i = 0; i < 4; i++)
@@ -202,6 +244,49 @@ Quadblock::Quadblock(const std::string& name, Quad& q0, Quad& q1, Quad& q2, Quad
 		Swap(m_p[6], m_p[8]);
 	}
 
+	auto FindQuad = [](const Vec3& pos, const Quad& q0, const Quad& q1, const Quad& q2, const Quad& q3) -> const Quad*
+		{
+			const Quad* quads[] = { &q0, &q1, &q2, &q3 };
+			for (size_t i = 0; i < 4; i++)
+			{
+				const Quad* quad = quads[i];
+				for (size_t j = 0; j < 4; j++)
+				{
+					if (quad->p[j].pos == pos) { return quad; }
+				}
+			}
+			return nullptr;
+		};
+
+	auto GetUV = [](const Vec3& pos, const Quad& quad) -> Vec2
+		{
+			for (size_t i = 0; i < 4; i++)
+			{
+				if (quad.p[i].pos == pos) { return quad.p[i].uv; }
+			}
+			return Vec2();
+		};
+
+	const Quad* uvq0 = FindQuad(m_p[0].m_pos, q0, q1, q2, q3);
+	const Quad* uvq1 = FindQuad(m_p[2].m_pos, q0, q1, q2, q3);
+	const Quad* uvq2 = FindQuad(m_p[6].m_pos, q0, q1, q2, q3);
+	const Quad* uvq3 = FindQuad(m_p[8].m_pos, q0, q1, q2, q3);
+
+	if (hasUV)
+	{
+		m_uvs[0] = { GetUV(m_p[0].m_pos, *uvq0), GetUV(m_p[1].m_pos, *uvq0), GetUV(m_p[3].m_pos, *uvq0), GetUV(m_p[4].m_pos, *uvq0) };
+		m_uvs[1] = { GetUV(m_p[1].m_pos, *uvq1), GetUV(m_p[2].m_pos, *uvq1), GetUV(m_p[4].m_pos, *uvq1), GetUV(m_p[5].m_pos, *uvq1) };
+		m_uvs[2] = { GetUV(m_p[3].m_pos, *uvq2), GetUV(m_p[4].m_pos, *uvq2), GetUV(m_p[6].m_pos, *uvq2), GetUV(m_p[7].m_pos, *uvq2) };
+		m_uvs[3] = { GetUV(m_p[4].m_pos, *uvq3), GetUV(m_p[5].m_pos, *uvq3), GetUV(m_p[7].m_pos, *uvq3), GetUV(m_p[8].m_pos, *uvq3) };
+	}
+	else
+	{
+		m_uvs[0] = { Vec2(0.0f, 0.0f), Vec2(0.5f, 0.0f), Vec2(0.0f, 0.5f), Vec2(0.5f, 0.5f) };
+		m_uvs[1] = { Vec2(0.5f, 0.0f), Vec2(1.0f, 0.0f), Vec2(0.5f, 0.5f), Vec2(1.0f, 0.5f) };
+		m_uvs[2] = { Vec2(0.0f, 0.5f), Vec2(0.5f, 0.5f), Vec2(0.0f, 1.0f), Vec2(0.5f, 1.0f) };
+		m_uvs[3] = { Vec2(0.5f, 0.5f), Vec2(1.0f, 0.5f), Vec2(0.5f, 1.0f), Vec2(1.0f, 1.0f) };
+	}
+
 	ComputeBoundingBox();
 	m_name = name;
 	m_material = material;
@@ -266,6 +351,11 @@ bool& Quadblock::CheckpointStatus()
 	return m_checkpointStatus;
 }
 
+const QuadUV& Quadblock::GetQuadUV(size_t quad) const
+{
+	return m_uvs[quad];
+}
+
 void Quadblock::SetTerrain(uint8_t terrain)
 {
 	m_terrain = terrain;
@@ -306,9 +396,9 @@ void Quadblock::SetHide(bool active)
 	m_hide = active;
 }
 
-void Quadblock::SetTextureID(size_t id)
+void Quadblock::SetTextureID(size_t id, size_t quad)
 {
-	m_textureID = id;
+	m_textureIDs[quad] = id;
 }
 
 void Quadblock::SetTrigger(QuadblockTrigger trigger)
@@ -381,10 +471,10 @@ std::vector<uint8_t> Quadblock::Serialize(size_t id, size_t offTextures, const s
 		quadblock.drawOrderLow |= packedFace << (8 + i * 5);
 	}
 	quadblock.drawOrderHigh = 0;
-	quadblock.offMidTextures[0] = static_cast<uint32_t>(offTextures + (m_textureID * sizeof(PSX::TextureGroup)));
-	quadblock.offMidTextures[1] = static_cast<uint32_t>(offTextures + (m_textureID * sizeof(PSX::TextureGroup)));
-	quadblock.offMidTextures[2] = static_cast<uint32_t>(offTextures + (m_textureID * sizeof(PSX::TextureGroup)));
-	quadblock.offMidTextures[3] = static_cast<uint32_t>(offTextures + (m_textureID * sizeof(PSX::TextureGroup)));
+	quadblock.offMidTextures[0] = static_cast<uint32_t>(offTextures + (m_textureIDs[0] * sizeof(PSX::TextureGroup)));
+	quadblock.offMidTextures[1] = static_cast<uint32_t>(offTextures + (m_textureIDs[1] * sizeof(PSX::TextureGroup)));
+	quadblock.offMidTextures[2] = static_cast<uint32_t>(offTextures + (m_textureIDs[2] * sizeof(PSX::TextureGroup)));
+	quadblock.offMidTextures[3] = static_cast<uint32_t>(offTextures + (m_textureIDs[3] * sizeof(PSX::TextureGroup)));
 	quadblock.bbox.min = ConvertVec3(m_bbox.min, FP_ONE_GEO);
 	quadblock.bbox.max = ConvertVec3(m_bbox.max, FP_ONE_GEO);
 	quadblock.terrain = m_terrain;

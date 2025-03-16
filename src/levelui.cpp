@@ -271,7 +271,7 @@ void Level::RenderUI()
 				{
 					const std::string& quadblock = std::get<0>(m_invalidQuadblocks[i]);
 					const std::string& errorMessage = std::get<1>(m_invalidQuadblocks[i]);
-					if (ImGui::TreeNode(quadblock.c_str()))
+					if (ImGui::TreeNode((quadblock + "##" + std::to_string(i)).c_str()))
 					{
 						ImGui::Text(errorMessage.c_str());
 						ImGui::TreePop();

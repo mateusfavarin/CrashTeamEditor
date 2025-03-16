@@ -1,6 +1,7 @@
 #pragma once
 
 #include "psx_types.h"
+#include "quadblock.h"
 
 #include <cstdint>
 #include <vector>
@@ -29,7 +30,7 @@ public:
 	void SetImageCoords(size_t x, size_t y);
 	void SetCLUTCoords(size_t x, size_t y);
 	void SetBlendMode(size_t mode);
-	const std::vector<PSX::TextureLayout> Serialize();
+	const std::vector<PSX::TextureLayout> Serialize(const QuadUV& uvs);
 
 private:
 	void ClearTexture();
