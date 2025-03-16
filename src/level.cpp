@@ -59,6 +59,7 @@ void Level::Clear(bool clearErrors)
 	m_checkpoints.clear();
 	m_bsp.Clear();
 	m_materialToQuadblocks.clear();
+	m_materialToTexture.clear();
 	m_checkpointPaths.clear();
 	m_tropyGhost.clear();
 	m_oxideGhost.clear();
@@ -276,9 +277,8 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	*		- VisMem
 	*		- PointerMap
 	*/
-	std::filesystem::path filepath = path / (m_name + ".lev");
-	m_savedLevPath = filepath;
-	std::ofstream file(filepath, std::ios::binary);
+	m_savedLevPath = path / (m_name + ".lev");
+	std::ofstream file(m_savedLevPath, std::ios::binary);
 
 	std::vector<const BSP*> bspNodes = m_bsp.GetTree();
 	std::vector<const BSP*> orderedBSPNodes(bspNodes.size());
@@ -309,7 +309,8 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	const bool hasVRM = !vrm.empty();
 	if (hasVRM)
 	{
-		std::ofstream vrmFile(path / (m_name + ".vrm"), std::ios::binary);
+		m_savedVRMPath = path / (m_name + ".vrm");
+		std::ofstream vrmFile(m_savedVRMPath, std::ios::binary);
 		Write(vrmFile, vrm.data(), vrm.size());
 		vrmFile.close();
 	}
@@ -798,8 +799,10 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 				if (command == "newmtl") { currMaterial = tokens[1]; }
 				else if (command == "map_Kd")
 				{
-					std::filesystem::path materialPath = tokens[1];
-					if (!std::filesystem::exists(materialPath)) { materialPath = parentPath / Split(tokens[1], '/').back(); }
+					std::string imagePath = tokens[1];
+					for (size_t i = 2; i < tokens.size(); i++) { imagePath += " " + tokens[i]; }
+					std::filesystem::path materialPath = imagePath;
+					if (!std::filesystem::exists(materialPath)) { materialPath = parentPath / Split(imagePath, '/').back(); }
 					if (std::filesystem::exists(materialPath))
 					{
 						m_materialToTexture[currMaterial] = Texture(materialPath);
