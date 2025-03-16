@@ -8,6 +8,7 @@
 #include "path.h"
 #include "material.h"
 #include "texture.h"
+#include "renderer.h"
 
 #include "model.h"
 #include "mesh.h"
@@ -39,6 +40,7 @@ public:
 	void GeomPoint(const Vertex* verts, int ind, std::vector<float>& data);
 	void GeomOctopoint(const Vertex* verts, int ind, std::vector<float>& data);
 	void GeomBoundingRect(const BSP* b, int depth, std::vector<float>& data);
+	void ViewportClickHandleBlockSelection(int pixelX, int pixelY, const Renderer& rend);
 
 private:
 	void ManageTurbopad(Quadblock& quadblock);

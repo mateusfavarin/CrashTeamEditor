@@ -27,6 +27,7 @@ public:
 	float GetHeight() const;
 	GLuint GetTexBuffer() const;
 	std::tuple<glm::vec3, float> PixelRayFromCameraCollidesWithTri(int pixelX, int pixelY, glm::vec3 tri[3]) const;
+	glm::vec3 ScreenspacePixelToWorldspaceRayViaCamera(int pixelX, int pixelY) const;
 
 private:
 	int m_width;

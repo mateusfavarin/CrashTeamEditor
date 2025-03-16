@@ -5,6 +5,7 @@
 #include "geo.h"
 #include "process.h"
 #include "gui_render_settings.h"
+#include "renderer.h"
 
 #include <fstream>
 #include <unordered_set>
@@ -1247,4 +1248,120 @@ void Level::GenerateRenderSelectedBlockData(const Quadblock& quadblock, const Ve
 
 	quadblockMesh.UpdateMesh(data, (Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals), (Mesh::ShaderSettings::DrawWireframe | Mesh::ShaderSettings::DrawBackfaces | Mesh::ShaderSettings::ForceDrawOnTop | Mesh::ShaderSettings::DrawLinesAA | Mesh::ShaderSettings::DontOverrideShaderSettings | Mesh::ShaderSettings::Blinky));
 	m_selectedBlockModel.SetMesh(&quadblockMesh);
+}
+
+void Level::ViewportClickHandleBlockSelection(int pixelX, int pixelY, const Renderer& rend)
+{
+	std::function<std::optional<std::tuple<const Quadblock, const glm::vec3>>(int, int, std::vector<Quadblock>&, unsigned)> check = [&rend](int pixelCoordX, int pixelCoordY, std::vector<Quadblock>& qbs, unsigned index)
+		{
+			std::vector<std::tuple<Quadblock, glm::vec3, float>> passed;
+
+			//we're currently checking ALL quadblocks on a click (bad), so we should
+			//use an acceleration structure (good thing we can have a BSP :) )
+			//although it may be better to use a different acceleration structure.
+			//I don't care for right now, clicking causes a little lag spike. TODO.
+			//another option to speed this up is to do collision testing for the low LOD instead.
+			for (Quadblock& qb : qbs)
+			{
+				bool collided = false;
+				const Vertex* verts = qb.GetUnswizzledVertices();
+				glm::vec3 tri[3];
+				bool isQuadblock = qb.IsQuadblock();
+
+				std::tuple<glm::vec3, float> queryResult;
+				//high LOD
+				for (int triIndex = 0; triIndex < (isQuadblock ? 8 : 4); triIndex++)
+				{
+					if (isQuadblock)
+					{
+						tri[0] = glm::vec3(verts[FaceIndexConstants::quadHLODVertArrangements[triIndex][0]].m_pos.x, verts[FaceIndexConstants::quadHLODVertArrangements[triIndex][0]].m_pos.y, verts[FaceIndexConstants::quadHLODVertArrangements[triIndex][0]].m_pos.z);
+						tri[1] = glm::vec3(verts[FaceIndexConstants::quadHLODVertArrangements[triIndex][1]].m_pos.x, verts[FaceIndexConstants::quadHLODVertArrangements[triIndex][1]].m_pos.y, verts[FaceIndexConstants::quadHLODVertArrangements[triIndex][1]].m_pos.z);
+						tri[2] = glm::vec3(verts[FaceIndexConstants::quadHLODVertArrangements[triIndex][2]].m_pos.x, verts[FaceIndexConstants::quadHLODVertArrangements[triIndex][2]].m_pos.y, verts[FaceIndexConstants::quadHLODVertArrangements[triIndex][2]].m_pos.z);
+					}
+					else
+					{
+						tri[0] = glm::vec3(verts[FaceIndexConstants::triHLODVertArrangements[triIndex][0]].m_pos.x, verts[FaceIndexConstants::triHLODVertArrangements[triIndex][0]].m_pos.y, verts[FaceIndexConstants::triHLODVertArrangements[triIndex][0]].m_pos.z);
+						tri[1] = glm::vec3(verts[FaceIndexConstants::triHLODVertArrangements[triIndex][1]].m_pos.x, verts[FaceIndexConstants::triHLODVertArrangements[triIndex][1]].m_pos.y, verts[FaceIndexConstants::triHLODVertArrangements[triIndex][1]].m_pos.z);
+						tri[2] = glm::vec3(verts[FaceIndexConstants::triHLODVertArrangements[triIndex][2]].m_pos.x, verts[FaceIndexConstants::triHLODVertArrangements[triIndex][2]].m_pos.y, verts[FaceIndexConstants::triHLODVertArrangements[triIndex][2]].m_pos.z);
+					}
+
+					queryResult = rend.PixelRayFromCameraCollidesWithTri(pixelCoordX, pixelCoordY, tri); //if we have multiple collisions in one block, just pick one idc
+					collided |= (std::get<1>(queryResult) != -1.0f);
+
+					if (collided) { break; }
+				}
+
+				//low LOD THIS ONE MIGHT HAVE A BUG
+				//for (int triIndex = 0; triIndex < (isQuadblock ? 2 : 1); triIndex++)
+				//{
+				//  if (isQuadblock)
+				//  {
+				//    tri[0] = glm::vec3(verts[FaceIndexConstants::quadLLODVertArrangements[triIndex][0]].m_pos.x, verts[FaceIndexConstants::quadHLODVertArrangements[triIndex][0]].m_pos.y, verts[FaceIndexConstants::quadHLODVertArrangements[triIndex][0]].m_pos.z);
+				//    tri[1] = glm::vec3(verts[FaceIndexConstants::quadLLODVertArrangements[triIndex][1]].m_pos.x, verts[FaceIndexConstants::quadHLODVertArrangements[triIndex][1]].m_pos.y, verts[FaceIndexConstants::quadHLODVertArrangements[triIndex][1]].m_pos.z);
+				//    tri[2] = glm::vec3(verts[FaceIndexConstants::quadLLODVertArrangements[triIndex][2]].m_pos.x, verts[FaceIndexConstants::quadHLODVertArrangements[triIndex][2]].m_pos.y, verts[FaceIndexConstants::quadHLODVertArrangements[triIndex][2]].m_pos.z);
+				//  }
+				//  else
+				//  {
+				//    tri[0] = glm::vec3(verts[FaceIndexConstants::triLLODVertArrangements[triIndex][0]].m_pos.x, verts[FaceIndexConstants::triHLODVertArrangements[triIndex][0]].m_pos.y, verts[FaceIndexConstants::triHLODVertArrangements[triIndex][0]].m_pos.z);
+				//    tri[1] = glm::vec3(verts[FaceIndexConstants::triLLODVertArrangements[triIndex][1]].m_pos.x, verts[FaceIndexConstants::triHLODVertArrangements[triIndex][1]].m_pos.y, verts[FaceIndexConstants::triHLODVertArrangements[triIndex][1]].m_pos.z);
+				//    tri[2] = glm::vec3(verts[FaceIndexConstants::triLLODVertArrangements[triIndex][2]].m_pos.x, verts[FaceIndexConstants::triHLODVertArrangements[triIndex][2]].m_pos.y, verts[FaceIndexConstants::triHLODVertArrangements[triIndex][2]].m_pos.z);
+				//  }
+
+				//  queryResult = rend.PixelRayFromCameraCollidesWithTri(pixelCoordX, pixelCoordY, tri); //if we have multiple collisions in one block, just pick one idc
+				//  collided |= (std::get<1>(queryResult) != -1.0f);
+
+				//  if (collided) { break; }
+				//}
+
+
+				if (collided) { passed.push_back(std::make_tuple(qb, std::get<0>(queryResult), std::get<1>(queryResult))); continue; }
+			}
+
+			//sort collided blocks by time value (distance from camera).
+			std::sort(passed.begin(), passed.end(),
+				[](const std::tuple<Quadblock, glm::vec3, float>& a, const std::tuple<Quadblock, glm::vec3, float>& b) {
+					return std::get<2>(a) < std::get<2>(b);
+				});
+
+			std::optional<std::tuple<Quadblock, glm::vec3>> result;
+			//at the very end
+			if (passed.size() > 0)
+			{
+				auto tuple = passed[index % passed.size()];
+				result = std::make_optional(std::make_tuple(std::get<0>(tuple), std::get<1>(tuple)));
+			}
+			else
+			{
+				result.reset();
+			}
+			return result;
+		};
+
+	static int lastClickedX = pixelX;
+	static int lastClickedY = pixelY;
+	static int indenticalClickTimes = -1;
+
+	if (pixelX == lastClickedX && pixelY == lastClickedY)
+	{
+		indenticalClickTimes++;
+	}
+	else
+	{
+		lastClickedX = pixelX;
+		lastClickedY = pixelY;
+		indenticalClickTimes = 0;
+	}
+
+	std::optional<std::tuple<const Quadblock, const glm::vec3>> collidedQB = check(pixelX, pixelY, m_quadblocks, indenticalClickTimes);
+
+	if (collidedQB.has_value())
+	{
+		glm::vec3 p = std::get<1>(collidedQB.value());
+		Vec3 point = Vec3(p.x, p.y, p.z);
+		GenerateRenderSelectedBlockData(std::get<0>(collidedQB.value()), point);
+	}
+	else
+	{
+		m_selectedBlockModel.SetMesh();
+	}
 }

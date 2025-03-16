@@ -245,18 +245,7 @@ std::tuple<glm::vec3, float> Renderer::PixelRayFromCameraCollidesWithTri(int pix
 {
   constexpr float epsilon = glm::epsilon<float>();
 
-  float normalizeDeviceX = ((2.0f * static_cast<float>(pixelX)) / static_cast<float>(m_width)) - 1.0f;
-  float normalizeDeviceY = 1.0f - ((2.0f * static_cast<float>(pixelY)) / static_cast<float>(m_height));
-
-  glm::vec4 cameraSpaceRay = glm::vec4(normalizeDeviceX, normalizeDeviceY, -1.0f, 0.0f);
-
-  glm::mat4 invProj = glm::inverse(m_perspective);
-  glm::vec4 rayCam = invProj * cameraSpaceRay;
-  rayCam.z = -1.0f;
-  rayCam.w = 0.0f;
-
-  glm::mat4 invView = glm::inverse(m_cameraView);
-  glm::vec3 worldSpaceRay = glm::normalize(invView * rayCam);
+  glm::vec3 worldSpaceRay = ScreenspacePixelToWorldspaceRayViaCamera(pixelX, pixelY);
 
   //moller-trumbore intersection test
   //https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
@@ -293,4 +282,22 @@ std::tuple<glm::vec3, float> Renderer::PixelRayFromCameraCollidesWithTri(int pix
     //line intersects, but ray does not (i.e., behind camera)
     return std::make_tuple(glm::zero<glm::vec3>(), -1.0f);
   }
+}
+
+glm::vec3 Renderer::ScreenspacePixelToWorldspaceRayViaCamera(int pixelX, int pixelY) const
+{
+  float normalizeDeviceX = ((2.0f * static_cast<float>(pixelX)) / static_cast<float>(m_width)) - 1.0f;
+  float normalizeDeviceY = 1.0f - ((2.0f * static_cast<float>(pixelY)) / static_cast<float>(m_height));
+
+  glm::vec4 cameraSpaceRay = glm::vec4(normalizeDeviceX, normalizeDeviceY, -1.0f, 0.0f);
+
+  glm::mat4 invProj = glm::inverse(m_perspective);
+  glm::vec4 rayCam = invProj * cameraSpaceRay;
+  rayCam.z = -1.0f;
+  rayCam.w = 0.0f;
+
+  glm::mat4 invView = glm::inverse(m_cameraView);
+  glm::vec3 worldSpaceRay = glm::normalize(invView * rayCam);
+
+  return worldSpaceRay;
 }
