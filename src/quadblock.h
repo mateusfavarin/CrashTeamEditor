@@ -163,8 +163,8 @@ private:
 	uint8_t m_terrain;
 	QuadblockTrigger m_trigger;
 	size_t m_turboPadIndex;
-	std::array<QuadUV, NUM_FACES_QUADBLOCK> m_uvs;
-	std::array<size_t, NUM_FACES_QUADBLOCK> m_textureIDs = { 0, 0, 0, 0 };
+	std::array<QuadUV, NUM_FACES_QUADBLOCK + 1> m_uvs; /* Last id is reserved for low tex */
+	std::array<size_t, NUM_FACES_QUADBLOCK + 1> m_textureIDs = { 0, 0, 0, 0, 0 };
 };
 
 class QuadException : public std::exception

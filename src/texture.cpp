@@ -107,7 +107,7 @@ void Texture::SetBlendMode(size_t mode)
 	m_blendMode = static_cast<uint16_t>(mode);
 }
 
-const std::vector<PSX::TextureLayout> Texture::Serialize(const QuadUV& uvs)
+const std::vector<PSX::TextureLayout> Texture::Serialize(const QuadUV& uvs, bool lowLOD)
 {
 	std::vector<PSX::TextureLayout> ret;
 	const std::vector<Texture*> textures = GetTextures();
@@ -148,15 +148,18 @@ const std::vector<PSX::TextureLayout> Texture::Serialize(const QuadUV& uvs)
 		layout.u2 = x + static_cast<uint8_t>(std::round(uvs[2].x * width));	layout.v2 = y + static_cast<uint8_t>(std::round(uvs[2].y * height));
 		layout.u3 = x + static_cast<uint8_t>(std::round(uvs[3].x * width));	layout.v3 = y + static_cast<uint8_t>(std::round(uvs[3].y * height));
 
-		auto FixOffByOne = [](const uint8_t& n0, uint8_t& n1, float expected)
-			{
-				n1 -= static_cast<int>(n1 - n0) - static_cast<int>(std::trunc(expected));
-			};
+		if (!lowLOD)
+		{
+			auto FixOffByOne = [](const uint8_t& n0, uint8_t& n1, float expected)
+				{
+					n1 -= static_cast<uint8_t>(static_cast<int>(n1 - n0) - static_cast<int>(std::trunc(expected)));
+				};
 
-		FixOffByOne(layout.u0, layout.u1, (uvs[1].x * width) - (uvs[0].x * width));
-		FixOffByOne(layout.u2, layout.u3, (uvs[3].x * width) - (uvs[2].x * width));
-		FixOffByOne(layout.v0, layout.v2, (uvs[2].y * height) - (uvs[0].y * height));
-		FixOffByOne(layout.v1, layout.v3, (uvs[3].y * height) - (uvs[1].y * height));
+			FixOffByOne(layout.u0, layout.u1, (uvs[1].x * width) - (uvs[0].x * width));
+			FixOffByOne(layout.u2, layout.u3, (uvs[3].x * width) - (uvs[2].x * width));
+			FixOffByOne(layout.v0, layout.v2, (uvs[2].y * height) - (uvs[0].y * height));
+			FixOffByOne(layout.v1, layout.v3, (uvs[3].y * height) - (uvs[1].y * height));
+		}
 
 		ret.push_back(layout);
 	}

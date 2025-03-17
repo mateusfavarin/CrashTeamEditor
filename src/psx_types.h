@@ -157,7 +157,7 @@ namespace PSX
 		uint32_t null_0x30; // 0x30
 		uint32_t numWaterVertices; // 0x34
 		uint32_t offWaterVertices; // 0x38
-		uint32_t offLevTexLookup; // 0x3C
+		uint32_t offIconsLookup; // 0x3C
 		uint32_t offIcons; // 0x40
 		uint32_t offEnvironmentMap; // 0x44
 		PSX::ColorGradient skyGradient[NUM_GRADIENT]; // 0x48

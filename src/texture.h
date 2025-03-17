@@ -30,7 +30,7 @@ public:
 	void SetImageCoords(size_t x, size_t y);
 	void SetCLUTCoords(size_t x, size_t y);
 	void SetBlendMode(size_t mode);
-	const std::vector<PSX::TextureLayout> Serialize(const QuadUV& uvs);
+	const std::vector<PSX::TextureLayout> Serialize(const QuadUV& uvs, bool lowLOD);
 
 private:
 	void ClearTexture();

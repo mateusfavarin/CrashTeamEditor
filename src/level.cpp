@@ -48,6 +48,7 @@ void Level::Clear(bool clearErrors)
 	if (clearErrors)
 	{
 		m_showLogWindow = false;
+		m_logMessage.clear();
 		m_invalidQuadblocks.clear();
 	}
 	m_configFlags = LevConfigFlags::NONE;
@@ -321,14 +322,14 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 			for (size_t index : quadIndexes)
 			{
 				Quadblock& currQuad = m_quadblocks[index];
-				for (size_t i = 0; i < NUM_FACES_QUADBLOCK; i++)
+				for (size_t i = 0; i < NUM_FACES_QUADBLOCK + 1; i++)
 				{
 					const QuadUV& uvs = currQuad.GetQuadUV(i);
-					const std::vector<PSX::TextureLayout> layouts = texture.Serialize(uvs);
+					const std::vector<PSX::TextureLayout> layouts = texture.Serialize(uvs, i == NUM_FACES_QUADBLOCK);
 					size_t textureID = 0;
 					for (const PSX::TextureLayout& layout : layouts)
 					{
-						if (savedLayouts.contains(layout)) { textureID = savedLayouts[layout]; continue; }
+						if (savedLayouts.contains(layout)) { textureID = savedLayouts[layout]; break; }
 						textureID = texGroups.size();
 						savedLayouts[layout] = textureID;
 
@@ -338,6 +339,7 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 						texGroup.near = layout;
 						texGroup.mosaic = layout;
 						texGroups.push_back(texGroup);
+						break;
 					}
 					currQuad.SetTextureID(textureID, i);
 				}
