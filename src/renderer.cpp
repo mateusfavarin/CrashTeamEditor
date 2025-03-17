@@ -241,7 +241,7 @@ void Renderer::RescaleFramebuffer(float width, float height)
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-std::tuple<glm::vec3, float> Renderer::WorldspaceRayTriIntersection(glm::vec3 worldSpaceRay, glm::vec3 tri[3]) const
+std::tuple<glm::vec3, float> Renderer::WorldspaceRayTriIntersection(glm::vec3 worldSpaceRay, const glm::vec3 tri[3]) const
 {
   constexpr float epsilon = glm::epsilon<float>();
 

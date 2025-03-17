@@ -33,7 +33,7 @@ public:
 	/// <param name="worldSpaceRay">Ray direction. Origin point is implicitly the camera's worldspace position.</param>
 	/// <param name="tri">Worldspace positions for triangle</param>
 	/// <returns>(Query Result Position (or vec3::0 if failed), time interpolant value for ray (or -1.0f if failed))</returns>
-	std::tuple<glm::vec3, float> WorldspaceRayTriIntersection(glm::vec3 worldSpaceRay, glm::vec3 tri[3]) const;
+	std::tuple<glm::vec3, float> WorldspaceRayTriIntersection(glm::vec3 worldSpaceRay, const glm::vec3 tri[3]) const;
 	/// <summary>
 	/// Converts a screenspace (pixel X & Y) to a worldspace ray emitted from the camera.
 	/// </summary>
