@@ -1269,6 +1269,7 @@ void Level::ViewportClickHandleBlockSelection(int pixelX, int pixelY, const Rend
 				bool isQuadblock = qb.IsQuadblock();
 
 				std::tuple<glm::vec3, float> queryResult;
+				glm::vec3 worldSpaceRay = rend.ScreenspaceToWorldRay(pixelCoordX, pixelCoordY);
 				//high LOD
 				for (int triIndex = 0; triIndex < (isQuadblock ? 8 : 4); triIndex++)
 				{
@@ -1285,7 +1286,7 @@ void Level::ViewportClickHandleBlockSelection(int pixelX, int pixelY, const Rend
 						tri[2] = glm::vec3(verts[FaceIndexConstants::triHLODVertArrangements[triIndex][2]].m_pos.x, verts[FaceIndexConstants::triHLODVertArrangements[triIndex][2]].m_pos.y, verts[FaceIndexConstants::triHLODVertArrangements[triIndex][2]].m_pos.z);
 					}
 
-					queryResult = rend.PixelRayFromCameraCollidesWithTri(pixelCoordX, pixelCoordY, tri); //if we have multiple collisions in one block, just pick one idc
+					queryResult = rend.WorldspaceRayTriIntersection(worldSpaceRay, tri); //if we have multiple collisions in one block, just pick one idc
 					collided |= (std::get<1>(queryResult) != -1.0f);
 
 					if (collided) { break; }
@@ -1307,7 +1308,7 @@ void Level::ViewportClickHandleBlockSelection(int pixelX, int pixelY, const Rend
 				//    tri[2] = glm::vec3(verts[FaceIndexConstants::triLLODVertArrangements[triIndex][2]].m_pos.x, verts[FaceIndexConstants::triHLODVertArrangements[triIndex][2]].m_pos.y, verts[FaceIndexConstants::triHLODVertArrangements[triIndex][2]].m_pos.z);
 				//  }
 
-				//  queryResult = rend.PixelRayFromCameraCollidesWithTri(pixelCoordX, pixelCoordY, tri); //if we have multiple collisions in one block, just pick one idc
+				//  queryResult = rend.WorldspaceRayTriIntersection(worldSpaceRay, tri); //if we have multiple collisions in one block, just pick one idc
 				//  collided |= (std::get<1>(queryResult) != -1.0f);
 
 				//  if (collided) { break; }

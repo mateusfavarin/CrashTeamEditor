@@ -241,11 +241,9 @@ void Renderer::RescaleFramebuffer(float width, float height)
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-std::tuple<glm::vec3, float> Renderer::PixelRayFromCameraCollidesWithTri(int pixelX, int pixelY, glm::vec3 tri[3]) const
+std::tuple<glm::vec3, float> Renderer::WorldspaceRayTriIntersection(glm::vec3 worldSpaceRay, glm::vec3 tri[3]) const
 {
   constexpr float epsilon = glm::epsilon<float>();
-
-  glm::vec3 worldSpaceRay = ScreenspacePixelToWorldspaceRayViaCamera(pixelX, pixelY);
 
   //moller-trumbore intersection test
   //https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
@@ -284,7 +282,7 @@ std::tuple<glm::vec3, float> Renderer::PixelRayFromCameraCollidesWithTri(int pix
   }
 }
 
-glm::vec3 Renderer::ScreenspacePixelToWorldspaceRayViaCamera(int pixelX, int pixelY) const
+glm::vec3 Renderer::ScreenspaceToWorldRay(int pixelX, int pixelY) const
 {
   float normalizeDeviceX = ((2.0f * static_cast<float>(pixelX)) / static_cast<float>(m_width)) - 1.0f;
   float normalizeDeviceY = 1.0f - ((2.0f * static_cast<float>(pixelY)) / static_cast<float>(m_height));
