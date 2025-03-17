@@ -12,7 +12,11 @@ public:
 	{
 		static constexpr unsigned None = 0;
 		static constexpr unsigned DrawWireframe = 1;
+		static constexpr unsigned ForceDrawOnTop = 2;
 		static constexpr unsigned DrawBackfaces = 4;
+		static constexpr unsigned DrawLinesAA = 8;
+		static constexpr unsigned DontOverrideShaderSettings = 16;
+		static constexpr unsigned Blinky = 32;
 	};
 
 	struct VBufDataType
