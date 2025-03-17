@@ -32,6 +32,22 @@ void Mesh::Bind() const
   {
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
   }
+  if (m_shaderSettings & Mesh::ShaderSettings::ForceDrawOnTop)
+  {
+    glDisable(GL_DEPTH_TEST);
+  }
+  else
+  {
+    glEnable(GL_DEPTH_TEST);
+  }
+  if (m_shaderSettings & Mesh::ShaderSettings::DrawLinesAA)
+  {
+    glEnable(GL_LINE_SMOOTH);
+  }
+  else
+  {
+    glDisable(GL_LINE_SMOOTH);
+  }
 }
 
 void Mesh::Unbind() const

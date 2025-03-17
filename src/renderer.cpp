@@ -74,7 +74,6 @@ void Renderer::Render(std::vector<Model> models)
   float thisFrameLookSpeed = 50.f * m_deltaTime * GuiRenderSettings::camRotateMult;
 	if (ImGui::IsKeyDown(ImGuiKey_LeftCtrl)) { thisFrameMoveSpeed *= GuiRenderSettings::camSprintMult; }
 
-  static glm::vec3 camPos = glm::vec3(0.f, 0.f, 3.f);
   static glm::vec3 camFront = glm::vec3(0.f, 0.f, -1.f);
   static glm::vec3 camUp = glm::vec3(0.f, 1.f, 0.f);
 
@@ -102,43 +101,43 @@ void Renderer::Render(std::vector<Model> models)
 
 	if (ImGui::IsKeyDown(ImGuiKey_W))
 	{
-    camPos += glm::vec3(thisFrameMoveSpeed * camFront.x, thisFrameMoveSpeed * camFront.y, thisFrameMoveSpeed * camFront.z);
+    m_camWorldPos += glm::vec3(thisFrameMoveSpeed * camFront.x, thisFrameMoveSpeed * camFront.y, thisFrameMoveSpeed * camFront.z);
 	}
 	if (ImGui::IsKeyDown(ImGuiKey_S))
 	{
-    camPos -= glm::vec3(thisFrameMoveSpeed * camFront.x, thisFrameMoveSpeed * camFront.y, thisFrameMoveSpeed * camFront.z);
+    m_camWorldPos -= glm::vec3(thisFrameMoveSpeed * camFront.x, thisFrameMoveSpeed * camFront.y, thisFrameMoveSpeed * camFront.z);
 	}
   if (ImGui::IsKeyDown(ImGuiKey_A))
   {
     glm::vec3 interm = glm::normalize(glm::cross(camFront, camUp));
     glm::vec3 moveBy = glm::vec3(thisFrameMoveSpeed * interm.x, thisFrameMoveSpeed * interm.y, thisFrameMoveSpeed * interm.z);
-    camPos -= moveBy;
+    m_camWorldPos -= moveBy;
   }
   if (ImGui::IsKeyDown(ImGuiKey_D))
   {
     glm::vec3 interm = glm::normalize(glm::cross(camFront, camUp));
     glm::vec3 moveBy = glm::vec3(thisFrameMoveSpeed * interm.x, thisFrameMoveSpeed * interm.y, thisFrameMoveSpeed * interm.z);
-    camPos += moveBy;
+    m_camWorldPos += moveBy;
   }
   if (ImGui::IsKeyDown(ImGuiKey_Space))
   {
     glm::vec3 interm = glm::normalize(glm::cross(camFront, camUp));
     interm = glm::normalize(glm::cross(camFront, interm));
     glm::vec3 moveBy = glm::vec3(thisFrameMoveSpeed * interm.x, thisFrameMoveSpeed * interm.y, thisFrameMoveSpeed * interm.z);
-    camPos -= moveBy;
+    m_camWorldPos -= moveBy;
   }
   if (ImGui::IsKeyDown(ImGuiKey_LeftShift))
   {
     glm::vec3 interm = glm::normalize(glm::cross(camFront, camUp));
     interm = glm::normalize(glm::cross(camFront, interm));
     glm::vec3 moveBy = glm::vec3(thisFrameMoveSpeed * interm.x, thisFrameMoveSpeed * interm.y, thisFrameMoveSpeed * interm.z);
-    camPos += moveBy;
+    m_camWorldPos += moveBy;
   }
 
   //if (ImGui::IsKeyDown(ImGuiKey_Scroll)) //todo zoom in and out
 
-  glm::mat4 perspective = glm::perspective<float>(glm::radians(GuiRenderSettings::camFovDeg), (static_cast<float>(m_width) / static_cast<float>(m_height)), 0.1f, 1000.0f);
-  glm::mat4 view = glm::lookAt(camPos, camPos + camFront, camUp);
+  m_perspective = glm::perspective<float>(glm::radians(GuiRenderSettings::camFovDeg), (static_cast<float>(m_width) / static_cast<float>(m_height)), 0.1f, 1000.0f);
+  m_cameraView = glm::lookAt(m_camWorldPos, m_camWorldPos + camFront, camUp);
 
   static Shader* lastUsedShader = nullptr;
   for (Model m : models)
@@ -164,18 +163,21 @@ void Renderer::Render(std::vector<Model> models)
       lastUsedShader = shad;
     }
 
-    int newShadSettings = Mesh::ShaderSettings::None;
-		if (GuiRenderSettings::showWireframe) { newShadSettings |= Mesh::ShaderSettings::DrawWireframe; }
-		if (GuiRenderSettings::showBackfaces) { newShadSettings |= Mesh::ShaderSettings::DrawBackfaces; }
-    m.GetMesh()->SetShaderSettings(newShadSettings);
+    if ((m.GetMesh()->GetShaderSettings() & Mesh::ShaderSettings::DontOverrideShaderSettings) == 0)
+    {
+      int newShadSettings = Mesh::ShaderSettings::None;
+		  if (GuiRenderSettings::showWireframe) { newShadSettings |= Mesh::ShaderSettings::DrawWireframe; }
+		  if (GuiRenderSettings::showBackfaces) { newShadSettings |= Mesh::ShaderSettings::DrawBackfaces; }
+      m.GetMesh()->SetShaderSettings(newShadSettings);
+    }
 
     glm::mat4 model = m.CalculateModelMatrix();
-    glm::mat4 mvp = perspective * view * model;
+    glm::mat4 mvp = m_perspective * m_cameraView * model;
     //world
     shad->SetUniform("mvp", mvp);
     shad->SetUniform("model", model);
     shad->SetUniform("camViewDir", camFront);
-    shad->SetUniform("camWorldPos", camPos);
+    shad->SetUniform("camWorldPos", m_camWorldPos);
     //draw variations
     shad->SetUniform("drawType", GuiRenderSettings::renderType);
     shad->SetUniform("shaderSettings", m.GetMesh()->GetShaderSettings());
@@ -237,4 +239,63 @@ void Renderer::RescaleFramebuffer(float width, float height)
   glBindTexture(GL_TEXTURE_2D, 0);
   glBindRenderbuffer(GL_RENDERBUFFER, 0);
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+std::tuple<glm::vec3, float> Renderer::WorldspaceRayTriIntersection(glm::vec3 worldSpaceRay, const glm::vec3 tri[3]) const
+{
+  constexpr float epsilon = glm::epsilon<float>();
+
+  //moller-trumbore intersection test
+  //https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
+
+  glm::vec3 edge_1 = tri[1] - tri[0], edge_2 = tri[2] - tri[0];
+  glm::vec3 ray_cross_e2 = glm::cross(worldSpaceRay, edge_2);
+  float det = glm::dot(edge_1, ray_cross_e2);
+
+  if (glm::abs(det) < epsilon)
+    return std::make_tuple(glm::zero<glm::vec3>(), -1.0f); //ray is parallel to plane, couldn't possibly intersect with triangle.
+
+  float inv_det = 1.0f / det;
+  glm::vec3 s = m_camWorldPos - tri[0];
+  float u = inv_det * glm::dot(s, ray_cross_e2);
+
+  if ((u < 0 && glm::abs(u) > epsilon) || (u > 1 && glm::abs(u - 1.0f) > epsilon))
+    return std::make_tuple(glm::zero<glm::vec3>(), -1.0f); //fails a barycentric test
+
+  glm::vec3 s_cross_e1 = glm::cross(s, edge_1);
+  float v = inv_det * glm::dot(worldSpaceRay, s_cross_e1);
+
+  if ((v < 0 && glm::abs(v) > epsilon) || (u + v > 1 && glm::abs(u + v - 1) > epsilon))
+    return std::make_tuple(glm::zero<glm::vec3>(), -1.0f); //fails a barycentric test
+
+  float t = inv_det * glm::dot(edge_2, s_cross_e1); //time value (interpolant)
+  
+  if (t > epsilon)
+  {
+    glm::vec3 collisionPoint = glm::vec3(m_camWorldPos + (worldSpaceRay * t)); //this is the point *on* the triangle that was collided with.
+    return std::make_tuple(collisionPoint, t);
+  }
+  else
+  {
+    //line intersects, but ray does not (i.e., behind camera)
+    return std::make_tuple(glm::zero<glm::vec3>(), -1.0f);
+  }
+}
+
+glm::vec3 Renderer::ScreenspaceToWorldRay(int pixelX, int pixelY) const
+{
+  float normalizeDeviceX = ((2.0f * static_cast<float>(pixelX)) / static_cast<float>(m_width)) - 1.0f;
+  float normalizeDeviceY = 1.0f - ((2.0f * static_cast<float>(pixelY)) / static_cast<float>(m_height));
+
+  glm::vec4 cameraSpaceRay = glm::vec4(normalizeDeviceX, normalizeDeviceY, -1.0f, 0.0f);
+
+  glm::mat4 invProj = glm::inverse(m_perspective);
+  glm::vec4 rayCam = invProj * cameraSpaceRay;
+  rayCam.z = -1.0f;
+  rayCam.w = 0.0f;
+
+  glm::mat4 invView = glm::inverse(m_cameraView);
+  glm::vec3 worldSpaceRay = glm::normalize(invView * rayCam);
+
+  return worldSpaceRay;
 }
