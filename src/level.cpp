@@ -49,6 +49,7 @@ void Level::Clear(bool clearErrors)
 	if (clearErrors)
 	{
 		m_showLogWindow = false;
+		m_logMessage.clear();
 		m_invalidQuadblocks.clear();
 	}
 	m_configFlags = LevConfigFlags::NONE;
@@ -60,6 +61,7 @@ void Level::Clear(bool clearErrors)
 	m_checkpoints.clear();
 	m_bsp.Clear();
 	m_materialToQuadblocks.clear();
+	m_materialToTexture.clear();
 	m_checkpointPaths.clear();
 	m_tropyGhost.clear();
 	m_oxideGhost.clear();
@@ -277,9 +279,8 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	*		- VisMem
 	*		- PointerMap
 	*/
-	std::filesystem::path filepath = path / (m_name + ".lev");
-	m_savedLevPath = filepath;
-	std::ofstream file(filepath, std::ios::binary);
+	m_savedLevPath = path / (m_name + ".lev");
+	std::ofstream file(m_savedLevPath, std::ios::binary);
 
 	std::vector<const BSP*> bspNodes = m_bsp.GetTree();
 	std::vector<const BSP*> orderedBSPNodes(bspNodes.size());
@@ -292,28 +293,6 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	PSX::MeshInfo meshInfo = {};
 	const size_t offMeshInfo = currOffset;
 	currOffset += sizeof(meshInfo);
-
-	std::vector<Texture*> textures;
-	size_t textureID = 0;
-	for (auto& [material, texture] : m_materialToTexture)
-	{
-		std::vector<size_t>& quadIndexes = m_materialToQuadblocks[material];
-		for (size_t index : quadIndexes)
-		{
-			m_quadblocks[index].SetTextureID(textureID);
-		}
-		textures.push_back(&texture);
-		textureID++;
-	}
-
-	std::vector<uint8_t> vrm = PackVRM(textures);
-	const bool hasVRM = !vrm.empty();
-	if (hasVRM)
-	{
-		std::ofstream vrmFile(path / (m_name + ".vrm"), std::ios::binary);
-		Write(vrmFile, vrm.data(), vrm.size());
-		vrmFile.close();
-	}
 
 	PSX::TextureLayout defaultTex = {};
 	defaultTex.clut.self = 32 | (20 << 6);
@@ -329,27 +308,51 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	defaultTexGroup.near = defaultTex;
 	defaultTexGroup.mosaic = defaultTex;
 
+	std::vector<Texture*> textures;
+	for (auto& [material, texture] : m_materialToTexture) { textures.push_back(&texture); }
+	std::vector<uint8_t> vrm = PackVRM(textures);
+	const bool hasVRM = !vrm.empty();
+
 	std::vector<PSX::TextureGroup> texGroups;
+	std::unordered_map<PSX::TextureLayout, size_t> savedLayouts;
 	if (hasVRM)
 	{
-		for (Texture* texture : textures)
+		for (auto& [material, texture] : m_materialToTexture)
 		{
-			const std::vector<PSX::TextureLayout> layouts = texture->Serialize();
-			for (const PSX::TextureLayout& layout : layouts)
+			std::vector<size_t>& quadIndexes = m_materialToQuadblocks[material];
+			for (size_t index : quadIndexes)
 			{
-				PSX::TextureGroup texGroup = {};
-				texGroup.far = layout;
-				texGroup.middle = layout;
-				texGroup.near = layout;
-				texGroup.mosaic = layout;
-				texGroups.push_back(texGroup);
+				Quadblock& currQuad = m_quadblocks[index];
+				for (size_t i = 0; i < NUM_FACES_QUADBLOCK + 1; i++)
+				{
+					const QuadUV& uvs = currQuad.GetQuadUV(i);
+					const std::vector<PSX::TextureLayout> layouts = texture.Serialize(uvs, i == NUM_FACES_QUADBLOCK);
+					size_t textureID = 0;
+					for (const PSX::TextureLayout& layout : layouts)
+					{
+						if (savedLayouts.contains(layout)) { textureID = savedLayouts[layout]; break; }
+						textureID = texGroups.size();
+						savedLayouts[layout] = textureID;
+
+						PSX::TextureGroup texGroup = {};
+						texGroup.far = layout;
+						texGroup.middle = layout;
+						texGroup.near = layout;
+						texGroup.mosaic = layout;
+						texGroups.push_back(texGroup);
+						break;
+					}
+					currQuad.SetTextureID(textureID, i);
+				}
 			}
 		}
+
+		m_savedVRMPath = path / (m_name + ".vrm");
+		std::ofstream vrmFile(m_savedVRMPath, std::ios::binary);
+		Write(vrmFile, vrm.data(), vrm.size());
+		vrmFile.close();
 	}
-	else
-	{
-		texGroups.push_back(defaultTexGroup);
-	}
+	else { texGroups.push_back(defaultTexGroup); }
 
 	const size_t offTexture = currOffset;
 	currOffset += sizeof(PSX::TextureGroup) * texGroups.size();
@@ -633,7 +636,9 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 	std::unordered_set<std::string> materials;
 	std::vector<Point> vertices;
 	std::vector<Vec3> normals;
+	std::vector<Vec2> uvs;
 	std::string currQuadblockName;
+	bool currQuadblockGoodUV = true;
 	size_t quadblockCount = 0;
 	while (std::getline(file, line))
 	{
@@ -652,6 +657,18 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 			if (tokens.size() < 4) { continue; }
 			normals.emplace_back(std::stof(tokens[1]), std::stof(tokens[2]), std::stof(tokens[3]));
 		}
+		else if (command == "vt")
+		{
+			if (tokens.size() < 3) { continue; }
+			Vec2 uv = {std::stof(tokens[1]), 1.0f - std::stof(tokens[2])};
+			if (currQuadblockGoodUV && (uv.x < 0 || uv.x > 1 || uv.y < 0 || uv.y > 1))
+			{
+				m_showLogWindow = true;
+				currQuadblockGoodUV = false;
+				m_invalidQuadblocks.emplace_back(currQuadblockName, "UV outside of expect range [0.0f, 1.0f].");
+			}
+			uvs.emplace_back(uv);
+		}
 		else if (command == "o")
 		{
 			if (tokens.size() < 2 || meshMap.contains(tokens[1]))
@@ -662,6 +679,7 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 				continue;
 			}
 			currQuadblockName = tokens[1];
+			currQuadblockGoodUV = true;
 			meshMap[currQuadblockName] = false;
 			quadblockCount++;
 		}
@@ -695,9 +713,34 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 			int ni0 = std::stoi(token0[2]) - 1;
 			int ni1 = std::stoi(token1[2]) - 1;
 			int ni2 = std::stoi(token2[2]) - 1;
-			normalMap[currQuadblockName].push_back(normals[ni0]); vertices[i0].normal = normals[ni0];
-			normalMap[currQuadblockName].push_back(normals[ni1]); vertices[i1].normal = normals[ni1];
-			normalMap[currQuadblockName].push_back(normals[ni2]); vertices[i2].normal = normals[ni2];
+			normalMap[currQuadblockName].push_back(normals[ni0]);
+			normalMap[currQuadblockName].push_back(normals[ni1]);
+			normalMap[currQuadblockName].push_back(normals[ni2]);
+
+			vertices[i0].normal = normals[ni0];
+			vertices[i1].normal = normals[ni1];
+			vertices[i2].normal = normals[ni2];
+
+			if (currQuadblockGoodUV)
+			{
+				int uv0 = 0;
+				int uv1 = 0;
+				int uv2 = 0;
+				try
+				{
+					uv0 = std::stoi(token0[1]) - 1;
+					uv1 = std::stoi(token1[1]) - 1;
+					uv2 = std::stoi(token2[1]) - 1;
+				}
+				catch (...) { currQuadblockGoodUV = false; }
+
+				if (currQuadblockGoodUV)
+				{
+					vertices[i0].uv = uvs[uv0];
+					vertices[i1].uv = uvs[uv1];
+					vertices[i2].uv = uvs[uv2];
+				}
+			}
 
 			bool blockFetched = false;
 			if (isQuadblock)
@@ -707,6 +750,11 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 				int ni3 = std::stoi(token3[2]) - 1;
 				normalMap[currQuadblockName].push_back(normals[ni3]);
 				vertices[i3].normal = normals[ni3];
+				if (currQuadblockGoodUV)
+				{
+					int uv3 = std::stoi(token3[1]) - 1;
+					vertices[i3].uv = uvs[uv3];
+				}
 
 				if (!quadMap.contains(currQuadblockName)) { quadMap[currQuadblockName] = std::vector<Quad>(); }
 				quadMap[currQuadblockName].emplace_back(vertices[i0], vertices[i1], vertices[i2], vertices[i3]);
@@ -750,7 +798,7 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 					Quad& q3 = quadMap[currQuadblockName][3];
 					try
 					{
-						m_quadblocks.emplace_back(currQuadblockName, q0, q1, q2, q3, averageNormal, material);
+						m_quadblocks.emplace_back(currQuadblockName, q0, q1, q2, q3, averageNormal, material, currQuadblockGoodUV);
 						meshMap[currQuadblockName] = true;
 					}
 					catch (const QuadException& e)
@@ -768,7 +816,7 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 					Tri& t3 = triMap[currQuadblockName][3];
 					try
 					{
-						m_quadblocks.emplace_back(currQuadblockName, t0, t1, t2, t3, averageNormal, material);
+						m_quadblocks.emplace_back(currQuadblockName, t0, t1, t2, t3, averageNormal, material, currQuadblockGoodUV);
 						meshMap[currQuadblockName] = true;
 					}
 					catch (const QuadException& e)
@@ -799,8 +847,10 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 				if (command == "newmtl") { currMaterial = tokens[1]; }
 				else if (command == "map_Kd")
 				{
-					std::filesystem::path materialPath = tokens[1];
-					if (!std::filesystem::exists(materialPath)) { materialPath = parentPath / Split(tokens[1], '/').back(); }
+					std::string imagePath = tokens[1];
+					for (size_t i = 2; i < tokens.size(); i++) { imagePath += " " + tokens[i]; }
+					std::filesystem::path materialPath = imagePath;
+					if (!std::filesystem::exists(materialPath)) { materialPath = parentPath / Split(imagePath, '/').back(); }
 					if (std::filesystem::exists(materialPath))
 					{
 						m_materialToTexture[currMaterial] = Texture(materialPath);

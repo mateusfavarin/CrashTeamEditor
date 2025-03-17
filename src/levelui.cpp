@@ -259,109 +259,109 @@ void MaterialProperty<T, M>::RenderUI(const std::string& material, const std::ve
 
 void Level::RenderUI()
 {
-  if (m_showLogWindow)
-  {
-    if (ImGui::Begin("Log", &m_showLogWindow))
-    {
-      if (!m_logMessage.empty()) { ImGui::Text(m_logMessage.c_str()); }
-      if (!m_invalidQuadblocks.empty())
-      {
-        ImGui::Text("Error - the following quadblocks are not in the valid format:");
-        for (size_t i = 0; i < m_invalidQuadblocks.size(); i++)
-        {
-          const std::string& quadblock = std::get<0>(m_invalidQuadblocks[i]);
-          const std::string& errorMessage = std::get<1>(m_invalidQuadblocks[i]);
-          if (ImGui::TreeNode(quadblock.c_str()))
-          {
-            ImGui::Text(errorMessage.c_str());
-            ImGui::TreePop();
-          }
-        }
-      }
-    }
-    ImGui::End();
-  }
+	if (m_showLogWindow)
+	{
+		if (ImGui::Begin("Log", &m_showLogWindow))
+		{
+			if (!m_logMessage.empty()) { ImGui::Text(m_logMessage.c_str()); }
+			if (!m_invalidQuadblocks.empty())
+			{
+				ImGui::Text("Error - the following quadblocks are not in the valid format:");
+				for (size_t i = 0; i < m_invalidQuadblocks.size(); i++)
+				{
+					const std::string& quadblock = std::get<0>(m_invalidQuadblocks[i]);
+					const std::string& errorMessage = std::get<1>(m_invalidQuadblocks[i]);
+					if (ImGui::TreeNode((quadblock + "##" + std::to_string(i)).c_str()))
+					{
+						ImGui::Text(errorMessage.c_str());
+						ImGui::TreePop();
+					}
+				}
+			}
+		}
+		ImGui::End();
+	}
 
-  if (m_showHotReloadWindow)
-  {
-    if (ImGui::Begin("Hot Reload", &m_showHotReloadWindow))
-    {
-      static std::string levPath;
-      static std::string vrmPath;
-      if (levPath.empty() && !m_savedLevPath.empty()) { levPath = m_savedLevPath.string(); }
-      if (vrmPath.empty() && !m_savedVRMPath.empty()) { vrmPath = m_savedVRMPath.string(); }
+	if (m_showHotReloadWindow)
+	{
+		if (ImGui::Begin("Hot Reload", &m_showHotReloadWindow))
+		{
+			static std::string levPath;
+			static std::string vrmPath;
+			if (levPath.empty() && !m_savedLevPath.empty()) { levPath = m_savedLevPath.string(); }
+			if (vrmPath.empty() && !m_savedVRMPath.empty()) { vrmPath = m_savedVRMPath.string(); }
 
-      ImGui::Text("Lev Path"); ImGui::SameLine();
-      ImGui::InputText("##levpath", &levPath, ImGuiInputTextFlags_ReadOnly);
-      ImGui::SetItemTooltip(levPath.c_str()); ImGui::SameLine();
-      if (ImGui::Button("...##levhotreload"))
-      {
-        auto selection = pfd::open_file("Lev File", ".", {"Lev Files", "*.lev"}).result();
-        if (!selection.empty()) { levPath = selection.front(); }
-      }
+			ImGui::Text("Lev Path"); ImGui::SameLine();
+			ImGui::InputText("##levpath", &levPath, ImGuiInputTextFlags_ReadOnly);
+			ImGui::SetItemTooltip(levPath.c_str()); ImGui::SameLine();
+			if (ImGui::Button("...##levhotreload"))
+			{
+				auto selection = pfd::open_file("Lev File", ".", {"Lev Files", "*.lev"}).result();
+				if (!selection.empty()) { levPath = selection.front(); }
+			}
 
-      ImGui::Text("Vrm Path"); ImGui::SameLine();
-      ImGui::InputText("##vrmpath", &vrmPath, ImGuiInputTextFlags_ReadOnly);
-      ImGui::SetItemTooltip(vrmPath.c_str()); ImGui::SameLine();
-      if (ImGui::Button("...##vrmhotreload"))
-      {
-        auto selection = pfd::open_file("Vrm File", ".", {"Vrm Files", "*.vrm"}).result();
-        if (!selection.empty()) { vrmPath = selection.front(); }
-      }
+			ImGui::Text("Vrm Path"); ImGui::SameLine();
+			ImGui::InputText("##vrmpath", &vrmPath, ImGuiInputTextFlags_ReadOnly);
+			ImGui::SetItemTooltip(vrmPath.c_str()); ImGui::SameLine();
+			if (ImGui::Button("...##vrmhotreload"))
+			{
+				auto selection = pfd::open_file("Vrm File", ".", {"Vrm Files", "*.vrm"}).result();
+				if (!selection.empty()) { vrmPath = selection.front(); }
+			}
 
-      const std::string successMessage = "Successfully hot reloaded.";
-      const std::string failMessage = "Failed hot reloading.\nMake sure Duckstation is opened and that the game is unpaused.";
+			const std::string successMessage = "Successfully hot reloaded.";
+			const std::string failMessage = "Failed hot reloading.\nMake sure Duckstation is opened and that the game is unpaused.";
 
-      bool disabled = levPath.empty();
-      ImGui::BeginDisabled(disabled);
-      static ButtonUI hotReloadButton = ButtonUI(5);
-      static std::string hotReloadMessage;
-      if (hotReloadButton.Show("Hot Reload##btn", hotReloadMessage, false))
-      {
-        if (HotReload(levPath, vrmPath, "duckstation")) { hotReloadMessage = successMessage; }
-        else { hotReloadMessage = failMessage; }
-      }
-      ImGui::EndDisabled();
-      if (disabled) { ImGui::SetItemTooltip("You must select the lev path before hot reloading."); }
+			bool disabled = levPath.empty();
+			ImGui::BeginDisabled(disabled);
+			static ButtonUI hotReloadButton = ButtonUI(5);
+			static std::string hotReloadMessage;
+			if (hotReloadButton.Show("Hot Reload##btn", hotReloadMessage, false))
+			{
+				if (HotReload(levPath, vrmPath, "duckstation")) { hotReloadMessage = successMessage; }
+				else { hotReloadMessage = failMessage; }
+			}
+			ImGui::EndDisabled();
+			if (disabled) { ImGui::SetItemTooltip("You must select the lev path before hot reloading."); }
 
-      bool vrmDisabled = vrmPath.empty();
-      ImGui::BeginDisabled(vrmDisabled);
-      static ButtonUI vrmOnlyButton = ButtonUI(5);
-      static std::string vrmOnlyMessage;
-      if (vrmOnlyButton.Show("Vrm Only##btn", vrmOnlyMessage, false))
-      {
-        if (HotReload(std::string(), vrmPath, "duckstation")) { hotReloadMessage = successMessage; }
-        else { hotReloadMessage = failMessage; }
-      }
-      ImGui::EndDisabled();
-      if (vrmDisabled) { ImGui::SetItemTooltip("You must select the vrm path before hot reloading the vram."); }
-    }
-    ImGui::End();
-  }
+			bool vrmDisabled = vrmPath.empty();
+			ImGui::BeginDisabled(vrmDisabled);
+			static ButtonUI vrmOnlyButton = ButtonUI(5);
+			static std::string vrmOnlyMessage;
+			if (vrmOnlyButton.Show("Vrm Only##btn", vrmOnlyMessage, false))
+			{
+				if (HotReload(std::string(), vrmPath, "duckstation")) { hotReloadMessage = successMessage; }
+				else { hotReloadMessage = failMessage; }
+			}
+			ImGui::EndDisabled();
+			if (vrmDisabled) { ImGui::SetItemTooltip("You must select the vrm path before hot reloading the vram."); }
+		}
+		ImGui::End();
+	}
 
-  if (!m_loaded) { return; }
+	if (!m_loaded) { return; }
 
-  static bool w_spawn = false;
-  static bool w_level = false;
-  static bool w_material = false;
-  static bool w_quadblocks = false;
-  static bool w_checkpoints = false;
-  static bool w_bsp = false;
-  static bool w_renderer = false;
-  static bool w_ghost = false;
+	static bool w_spawn = false;
+	static bool w_level = false;
+	static bool w_material = false;
+	static bool w_quadblocks = false;
+	static bool w_checkpoints = false;
+	static bool w_bsp = false;
+	static bool w_renderer = false;
+	static bool w_ghost = false;
 
-  if (ImGui::BeginMainMenuBar())
-  {
-    if (ImGui::MenuItem("Spawn")) { w_spawn = !w_spawn; }
-    if (ImGui::MenuItem("Level")) { w_level = !w_level; }
-    if (!m_materialToQuadblocks.empty() && ImGui::MenuItem("Material")) { w_material = !w_material; }
-    if (ImGui::MenuItem("Quadblocks")) { w_quadblocks = !w_quadblocks; }
-    if (ImGui::MenuItem("Checkpoints")) { w_checkpoints = !w_checkpoints; }
-    if (ImGui::MenuItem("BSP Tree")) { w_bsp = !w_bsp; }
-    if (ImGui::MenuItem("Renderer")) { w_renderer = !w_renderer; }
-    if (ImGui::MenuItem("Ghosts")) { w_ghost = !w_ghost; }
-    ImGui::EndMainMenuBar();
-  }
+	if (ImGui::BeginMainMenuBar())
+	{
+		if (ImGui::MenuItem("Spawn")) { w_spawn = !w_spawn; }
+		if (ImGui::MenuItem("Level")) { w_level = !w_level; }
+		if (!m_materialToQuadblocks.empty() && ImGui::MenuItem("Material")) { w_material = !w_material; }
+		if (ImGui::MenuItem("Quadblocks")) { w_quadblocks = !w_quadblocks; }
+		if (ImGui::MenuItem("Checkpoints")) { w_checkpoints = !w_checkpoints; }
+		if (ImGui::MenuItem("BSP Tree")) { w_bsp = !w_bsp; }
+		if (ImGui::MenuItem("Renderer")) { w_renderer = !w_renderer; }
+		if (ImGui::MenuItem("Ghosts")) { w_ghost = !w_ghost; }
+		ImGui::EndMainMenuBar();
+	}
 
   if (w_spawn)
   {

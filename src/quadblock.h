@@ -6,6 +6,7 @@
 #include <string>
 #include <unordered_map>
 #include <cstdint>
+#include <array>
 
 static constexpr size_t NUM_VERTICES_QUADBLOCK = 9;
 static constexpr size_t NUM_FACES_QUADBLOCK = 4;
@@ -133,11 +134,13 @@ enum class QuadblockTrigger
 	NONE, TURBO_PAD, SUPER_TURBO_PAD
 };
 
+typedef std::array<Vec2, NUM_FACES_QUADBLOCK> QuadUV;
+
 class Quadblock
 {
 public:
-	Quadblock(const std::string& name, Tri& t0, Tri& t1, Tri& t2, Tri& t3, const Vec3& normal, const std::string& material);
-	Quadblock(const std::string& name, Quad& q0, Quad& q1, Quad& q2, Quad& q3, const Vec3& normal, const std::string& material);
+	Quadblock(const std::string& name, Tri& t0, Tri& t1, Tri& t2, Tri& t3, const Vec3& normal, const std::string& material, bool hasUV);
+	Quadblock(const std::string& name, Quad& q0, Quad& q1, Quad& q2, Quad& q3, const Vec3& normal, const std::string& material, bool hasUV);
 	const std::string& GetName() const;
 	const Vec3& GetCenter() const;
 	uint8_t GetTerrain() const;
@@ -146,6 +149,7 @@ public:
 	size_t GetTurboPadIndex() const;
 	bool Hide() const;
 	bool& CheckpointStatus();
+	const QuadUV& GetQuadUV(size_t quad) const;
 	void SetTerrain(uint8_t terrain);
 	void SetFlag(uint16_t flag);
 	void SetCheckpoint(int index);
@@ -154,7 +158,7 @@ public:
 	void SetName(const std::string& name);
 	void SetTurboPadIndex(size_t index);
 	void SetHide(bool active);
-	void SetTextureID(size_t id);
+	void SetTextureID(size_t id, size_t quad);
 	bool IsQuadblock() const;
 	void SetTrigger(QuadblockTrigger trigger);
 	void TranslateNormalVec(float ratio);
@@ -193,7 +197,8 @@ private:
 	uint8_t m_terrain;
 	QuadblockTrigger m_trigger;
 	size_t m_turboPadIndex;
-	size_t m_textureID = 0;
+	std::array<QuadUV, NUM_FACES_QUADBLOCK + 1> m_uvs; /* Last id is reserved for low tex */
+	std::array<size_t, NUM_FACES_QUADBLOCK + 1> m_textureIDs = { 0, 0, 0, 0, 0 };
 };
 
 class QuadException : public std::exception

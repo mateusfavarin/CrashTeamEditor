@@ -99,6 +99,16 @@ namespace PSX
 		uint8_t v2;
 		uint8_t u3;
 		uint8_t v3;
+
+		inline bool operator==(const TextureLayout& layout) const
+		{
+			return u0 == layout.u0 && v0 == layout.v0 &&
+						 u1 == layout.u1 && v1 == layout.v1 &&
+						 u2 == layout.u2 && v2 == layout.v2 &&
+						 u3 == layout.u3 && v3 == layout.v3 &&
+						 clut.self == layout.clut.self &&
+						 texPage.self == layout.texPage.self;
+		}
 	};
 
 	struct TextureGroup
@@ -147,7 +157,7 @@ namespace PSX
 		uint32_t null_0x30; // 0x30
 		uint32_t numWaterVertices; // 0x34
 		uint32_t offWaterVertices; // 0x38
-		uint32_t offLevTexLookup; // 0x3C
+		uint32_t offIconsLookup; // 0x3C
 		uint32_t offIcons; // 0x40
 		uint32_t offEnvironmentMap; // 0x44
 		PSX::ColorGradient skyGradient[NUM_GRADIENT]; // 0x48
@@ -290,8 +300,6 @@ namespace PSX
 						 offVisibleInstances == v.offVisibleInstances &&
 						 offVisibleExtra == v.offVisibleExtra;
 		}
-
-		friend std::hash<VisibleSet>;
 	};
 
 	struct VisualMem
@@ -307,6 +315,18 @@ namespace PSX
 		uint32_t offBSP[MAX_NUM_PLAYERS];
 	};
 }
+
+template<>
+struct std::hash<PSX::TextureLayout>
+{
+	inline std::size_t operator()(const PSX::TextureLayout& key) const
+	{
+		uint32_t pos0 = key.u0 | (key.v0 << 8) | (key.u1 << 16) | (key.v1 << 24);
+		uint32_t pos1 = key.u2 | (key.v2 << 8) | (key.u3 << 16) | (key.v3 << 24);
+		uint32_t extra = key.clut.self | (key.texPage.self << 16);
+		return ((((std::hash<uint32_t>()(pos0) ^ (std::hash<uint32_t>()(pos1) << 1)) >> 1) ^ (std::hash<uint32_t>()(extra) << 1)) >> 2);
+	}
+};
 
 template<>
 struct std::hash<PSX::VisibleSet>

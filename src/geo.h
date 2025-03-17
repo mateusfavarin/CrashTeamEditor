@@ -36,6 +36,15 @@ struct std::hash<Color>
 	}
 };
 
+struct Vec2
+{
+	Vec2() : x(0.0f), y(0.0f) {};
+	Vec2(float x, float y) : x(x), y(y) {};
+
+	float x;
+	float y;
+};
+
 struct Vec3
 {
 	Vec3() : x(0.0f), y(0.0f), z(0.0f) {};
@@ -87,6 +96,7 @@ struct Point
 	Vec3 pos;
 	Vec3 normal;
 	Color color;
+	Vec2 uv;
 
 	Point() {};
 	Point(float x, float y, float z)
@@ -94,12 +104,14 @@ struct Point
 		pos = Vec3(x, y, z);
 		color = Color(static_cast<unsigned char>(128), 128, 128);
 		normal = Vec3();
+		uv = Vec2();
 	};
 	Point(float x, float y, float z, unsigned char r, unsigned char g, unsigned char b)
 	{
 		pos = Vec3(x, y, z);
 		color = Color(r, g, b);
 		normal = Vec3();
+		uv = Vec2();
 	};
 };
 
