@@ -16,7 +16,6 @@ public:
 	};
 	Texture() : m_width(0), m_height(0), m_imageX(0), m_imageY(0), m_clutX(0), m_clutY(0), m_blendMode(0) {};
 	Texture(const std::filesystem::path& path);
-	Texture(const std::filesystem::path& path, const std::vector<uint16_t>& clut, uint16_t blendMode);
 	Texture::BPP GetBPP() const;
 	int GetWidth() const;
 	int GetVRAMWidth() const;
@@ -26,11 +25,10 @@ public:
 	bool Empty() const;
 	const std::vector<uint16_t>& GetImage() const;
 	const std::vector<uint16_t>& GetClut() const;
-	const std::vector<Texture*> GetTextures();
 	void SetImageCoords(size_t x, size_t y);
 	void SetCLUTCoords(size_t x, size_t y);
 	void SetBlendMode(size_t mode);
-	const std::vector<PSX::TextureLayout> Serialize(const QuadUV& uvs, bool lowLOD);
+	PSX::TextureLayout Serialize(const QuadUV& uvs, bool lowLOD);
 
 private:
 	void ClearTexture();
@@ -45,7 +43,6 @@ private:
 	size_t m_clutX, m_clutY;
 	std::vector<uint16_t> m_image;
 	std::vector<uint16_t> m_clut;
-	std::vector<Texture> m_animTextures;
 	std::filesystem::path m_path;
 };
 

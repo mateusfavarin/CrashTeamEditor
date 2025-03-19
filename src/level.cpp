@@ -325,12 +325,12 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 				Quadblock& currQuad = m_quadblocks[index];
 				for (size_t i = 0; i < NUM_FACES_QUADBLOCK + 1; i++)
 				{
-					const QuadUV& uvs = currQuad.GetQuadUV(i);
-					const std::vector<PSX::TextureLayout> layouts = texture.Serialize(uvs, i == NUM_FACES_QUADBLOCK);
 					size_t textureID = 0;
-					for (const PSX::TextureLayout& layout : layouts)
+					const QuadUV& uvs = currQuad.GetQuadUV(i);
+					PSX::TextureLayout layout = texture.Serialize(uvs, i == NUM_FACES_QUADBLOCK);
+					if (savedLayouts.contains(layout)) { textureID = savedLayouts[layout]; }
+					else
 					{
-						if (savedLayouts.contains(layout)) { textureID = savedLayouts[layout]; break; }
 						textureID = texGroups.size();
 						savedLayouts[layout] = textureID;
 
@@ -340,7 +340,6 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 						texGroup.near = layout;
 						texGroup.mosaic = layout;
 						texGroups.push_back(texGroup);
-						break;
 					}
 					currQuad.SetTextureID(textureID, i);
 				}
@@ -1179,7 +1178,7 @@ void Level::GenerateRenderLevData(std::vector<Quadblock>& quadblocks)
  				GeomPoint(verts, FaceIndexConstants::triHLODVertArrangements[triIndex][1], highLODData);
  				GeomPoint(verts, FaceIndexConstants::triHLODVertArrangements[triIndex][2], highLODData);
  			}
- 
+
  			for (int triIndex = 0; triIndex < 1; triIndex++)
  			{
  				GeomPoint(verts, FaceIndexConstants::triLLODVertArrangements[triIndex][0], lowLODData);

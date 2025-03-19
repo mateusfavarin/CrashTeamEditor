@@ -22,14 +22,6 @@ Texture::Texture(const std::filesystem::path& path)
 	CreateTexture();
 }
 
-Texture::Texture(const std::filesystem::path& path, const std::vector<uint16_t>& clut, uint16_t blendMode)
-{
-	m_path = path;
-	m_clut = clut;
-	m_blendMode = blendMode;
-	CreateTexture();
-}
-
 Texture::BPP Texture::GetBPP() const
 {
 	size_t colorCount = m_clut.size();
@@ -82,14 +74,6 @@ const std::vector<uint16_t>& Texture::GetClut() const
 	return m_clut;
 }
 
-const std::vector<Texture*> Texture::GetTextures()
-{
-	std::vector<Texture*> ret;
-	ret.push_back(this);
-	for (Texture& texture : m_animTextures) { ret.push_back(&texture); }
-	return ret;
-}
-
 void Texture::SetImageCoords(size_t x, size_t y)
 {
 	m_imageX = x + 512;
@@ -107,71 +91,67 @@ void Texture::SetBlendMode(size_t mode)
 	m_blendMode = static_cast<uint16_t>(mode);
 }
 
-const std::vector<PSX::TextureLayout> Texture::Serialize(const QuadUV& uvs, bool lowLOD)
+PSX::TextureLayout Texture::Serialize(const QuadUV& uvs, bool lowLOD)
 {
-	std::vector<PSX::TextureLayout> ret;
-	const std::vector<Texture*> textures = GetTextures();
-	for (Texture* texture : textures)
+	PSX::TextureLayout layout = {};
+	if (Empty()) { return layout; }
+
+	layout.texPage.blendMode = m_blendMode;
+	size_t bppMultiplier = 1;
+	Texture::BPP bpp = GetBPP();
+	switch (bpp)
 	{
-		if (texture->Empty()) { continue; }
-
-		PSX::TextureLayout layout = {};
-		layout.texPage.blendMode = m_blendMode;
-		size_t bppMultiplier = 1;
-		Texture::BPP bpp = GetBPP();
-		switch (bpp)
-		{
-		case Texture::BPP::BPP_4:
-			layout.texPage.texpageColors = 0;
-			bppMultiplier = 4;
-			break;
-		case Texture::BPP::BPP_8:
-			layout.texPage.texpageColors = 1;
-			bppMultiplier = 2;
-			break;
-		case Texture::BPP::BPP_16:
-			layout.texPage.texpageColors = 2;
-			break;
-		}
-		layout.texPage.x = static_cast<uint16_t>(m_imageX / TEXPAGE_WIDTH);
-		layout.texPage.y = static_cast<uint16_t>(m_imageY / TEXPAGE_HEIGHT);
-
-		layout.clut.x = static_cast<uint16_t>(m_clutX / MIN_CLUT_WIDTH);
-		layout.clut.y = static_cast<uint16_t>(m_clutY);
-
-		uint8_t x = static_cast<uint8_t>((m_imageX % TEXPAGE_WIDTH) * bppMultiplier);
-		uint8_t y = static_cast<uint8_t>(m_imageY % TEXPAGE_HEIGHT);
-		float width = static_cast<float>(GetWidth() - 1);
-		float height = static_cast<float>(GetHeight() - 1);
-		layout.u0 = x + static_cast<uint8_t>(std::round(uvs[0].x * width));	layout.v0 = y + static_cast<uint8_t>(std::round(uvs[0].y * height));
-		layout.u1 = x + static_cast<uint8_t>(std::round(uvs[1].x * width));	layout.v1 = y + static_cast<uint8_t>(std::round(uvs[1].y * height));
-		layout.u2 = x + static_cast<uint8_t>(std::round(uvs[2].x * width));	layout.v2 = y + static_cast<uint8_t>(std::round(uvs[2].y * height));
-		layout.u3 = x + static_cast<uint8_t>(std::round(uvs[3].x * width));	layout.v3 = y + static_cast<uint8_t>(std::round(uvs[3].y * height));
-
-		if (!lowLOD)
-		{
-			auto FixOffByOne = [](const uint8_t& n0, uint8_t& n1, float expected)
-				{
-					n1 -= static_cast<uint8_t>(static_cast<int>(n1 - n0) - static_cast<int>(std::trunc(expected)));
-				};
-
-			FixOffByOne(layout.u0, layout.u1, (uvs[1].x * width) - (uvs[0].x * width));
-			FixOffByOne(layout.u2, layout.u3, (uvs[3].x * width) - (uvs[2].x * width));
-			FixOffByOne(layout.v0, layout.v2, (uvs[2].y * height) - (uvs[0].y * height));
-			FixOffByOne(layout.v1, layout.v3, (uvs[3].y * height) - (uvs[1].y * height));
-		}
-
-		ret.push_back(layout);
+	case Texture::BPP::BPP_4:
+		layout.texPage.texpageColors = 0;
+		bppMultiplier = 4;
+		break;
+	case Texture::BPP::BPP_8:
+		layout.texPage.texpageColors = 1;
+		bppMultiplier = 2;
+		break;
+	case Texture::BPP::BPP_16:
+		layout.texPage.texpageColors = 2;
+		break;
 	}
-	return ret;
+	layout.texPage.x = static_cast<uint16_t>(m_imageX / TEXPAGE_WIDTH);
+	layout.texPage.y = static_cast<uint16_t>(m_imageY / TEXPAGE_HEIGHT);
+
+	layout.clut.x = static_cast<uint16_t>(m_clutX / MIN_CLUT_WIDTH);
+	layout.clut.y = static_cast<uint16_t>(m_clutY);
+
+	uint8_t x = static_cast<uint8_t>((m_imageX % TEXPAGE_WIDTH) * bppMultiplier);
+	uint8_t y = static_cast<uint8_t>(m_imageY % TEXPAGE_HEIGHT);
+	float width = static_cast<float>(GetWidth() - 1);
+	float height = static_cast<float>(GetHeight() - 1);
+	layout.u0 = x + static_cast<uint8_t>(std::round(uvs[0].x * width));	layout.v0 = y + static_cast<uint8_t>(std::round(uvs[0].y * height));
+	layout.u1 = x + static_cast<uint8_t>(std::round(uvs[1].x * width));	layout.v1 = y + static_cast<uint8_t>(std::round(uvs[1].y * height));
+	layout.u2 = x + static_cast<uint8_t>(std::round(uvs[2].x * width));	layout.v2 = y + static_cast<uint8_t>(std::round(uvs[2].y * height));
+	layout.u3 = x + static_cast<uint8_t>(std::round(uvs[3].x * width));	layout.v3 = y + static_cast<uint8_t>(std::round(uvs[3].y * height));
+
+	if (!lowLOD)
+	{
+		auto FixOffByOne = [](const uint8_t& n0, uint8_t& n1, float expected)
+			{
+				n1 -= static_cast<uint8_t>(static_cast<int>(n1 - n0) - static_cast<int>(std::trunc(expected)));
+			};
+
+		FixOffByOne(layout.u0, layout.u1, (uvs[1].x * width) - (uvs[0].x * width));
+		FixOffByOne(layout.u2, layout.u3, (uvs[3].x * width) - (uvs[2].x * width));
+		FixOffByOne(layout.v0, layout.v2, (uvs[2].y * height) - (uvs[0].y * height));
+		FixOffByOne(layout.v1, layout.v3, (uvs[3].y * height) - (uvs[1].y * height));
+	}
+
+	return layout;
 }
 
 void Texture::ClearTexture()
 {
+	m_blendMode = 0;
 	m_width = m_height = 0;
 	m_imageX = m_imageY = 0;
 	m_clutX = m_clutY = 0;
-	m_image.clear(); m_clut.clear(); m_animTextures.clear();
+	m_image.clear(); m_clut.clear();
+	m_path.clear();
 }
 
 void Texture::CreateTexture()
@@ -304,20 +284,16 @@ std::vector<uint8_t> PackVRM(std::vector<Texture*>& textures)
 
 	for (Texture* texture : textures)
 	{
-		const std::vector<Texture*> texPack = texture->GetTextures();
-		for (Texture* tex : texPack)
-		{
-			if (tex->Empty()) { continue; }
+		if (texture->Empty()) { continue; }
 
-			size_t x, y;
-			if (!FindAvailableSpace(vramUsed, tex->GetVRAMWidth(), tex->GetHeight(), x, y, false))
-			{
-				return std::vector<uint8_t>();
-			}
-			empty = false;
-			tex->SetImageCoords(x, y);
-			BufferToVRM(vram, vramUsed, tex->GetImage(), x, y, tex->GetVRAMWidth());
+		size_t x, y;
+		if (!FindAvailableSpace(vramUsed, texture->GetVRAMWidth(), texture->GetHeight(), x, y, false))
+		{
+			return std::vector<uint8_t>();
 		}
+		empty = false;
+		texture->SetImageCoords(x, y);
+		BufferToVRM(vram, vramUsed, texture->GetImage(), x, y, texture->GetVRAMWidth());
 	}
 
 	for (Texture* texture : textures)
@@ -336,11 +312,6 @@ std::vector<uint8_t> PackVRM(std::vector<Texture*>& textures)
 		}
 		texture->SetCLUTCoords(x, y);
 		BufferToVRM(vram, vramUsed, clut, x, y, clut.size());
-		const std::vector<Texture*> texPack = texture->GetTextures();
-		for (Texture* tex : texPack)
-		{
-			tex->SetCLUTCoords(x, y);
-		}
 	}
 
 	constexpr size_t vrmSize = 0x70038;
