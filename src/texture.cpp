@@ -74,6 +74,16 @@ const std::vector<uint16_t>& Texture::GetClut() const
 	return m_clut;
 }
 
+size_t Texture::GetImageX() const
+{
+	return m_imageX - 512;
+}
+
+size_t Texture::GetImageY() const
+{
+	return m_imageY;
+}
+
 void Texture::SetImageCoords(size_t x, size_t y)
 {
 	m_imageX = x + 512;
@@ -144,6 +154,46 @@ PSX::TextureLayout Texture::Serialize(const QuadUV& uvs, bool lowLOD)
 	return layout;
 }
 
+bool Texture::CompareEquivalency(const Texture& tex)
+{
+	Texture::BPP bpp = GetBPP();
+	if ((bpp == Texture::BPP::BPP_16) || (GetWidth() != tex.GetWidth()) || (GetHeight() != tex.GetHeight()) || (bpp != tex.GetBPP())) { return false; }
+	for (const Shape& aShape : m_shapes)
+	{
+		bool foundShape = false;
+		size_t idx = *aShape.begin();
+		for (const Shape& bShape : tex.m_shapes)
+		{
+			if (!bShape.contains(idx)) { continue; }
+
+			foundShape = true;
+			for (size_t bIdx : bShape)
+			{
+				if (!aShape.contains(bIdx)) { return false; }
+			}
+			break;
+		}
+		if (!foundShape) { return false; }
+	}
+	return true;
+}
+
+void Texture::FillShapes(const std::vector<size_t>& colorIndexes)
+{
+	Texture::BPP bpp = GetBPP();
+	if (bpp == Texture::BPP::BPP_16) { return; }
+
+	for (size_t i = 0; i < m_clut.size(); i++)
+	{
+		Shape shape;
+		for (size_t j = 0; j < colorIndexes.size(); j++)
+		{
+			if (colorIndexes[j] == i) { shape.insert(i); }
+		}
+		m_shapes.push_back(shape);
+	}
+}
+
 void Texture::ClearTexture()
 {
 	m_blendMode = 0;
@@ -151,7 +201,7 @@ void Texture::ClearTexture()
 	m_imageX = m_imageY = 0;
 	m_clutX = m_clutY = 0;
 	m_image.clear(); m_clut.clear();
-	m_path.clear();
+	m_path.clear(); m_shapes.clear();
 }
 
 void Texture::CreateTexture()
@@ -178,6 +228,7 @@ void Texture::CreateTexture()
 	if (bpp == Texture::BPP::BPP_4) { ConvertPixels(colorIndexes, 4); }
 	else if (bpp == Texture::BPP::BPP_8) { ConvertPixels(colorIndexes, 2); }
 	else { m_image = m_clut; }
+	FillShapes(colorIndexes);
 	stbi_image_free(image);
 }
 
@@ -199,7 +250,7 @@ uint16_t Texture::ConvertColor(unsigned char r, unsigned char g, unsigned char b
 	return color;
 }
 
-void Texture::ConvertPixels(const std::vector<size_t> colorIndexes, unsigned indexesPerPixel)
+void Texture::ConvertPixels(const std::vector<size_t>& colorIndexes, unsigned indexesPerPixel)
 {
 	uint16_t px = 0;
 	int relWidth = 0;
@@ -281,10 +332,24 @@ std::vector<uint8_t> PackVRM(std::vector<Texture*>& textures)
 	bool empty = true;
 	std::vector<bool> vramUsed(VRAM_WIDTH * VRAM_HEIGHT, false);
 	std::vector<uint16_t> vram(VRAM_WIDTH * VRAM_HEIGHT, 0);
+	std::vector<Texture*> cachedTextures;
 
 	for (Texture* texture : textures)
 	{
 		if (texture->Empty()) { continue; }
+
+		bool foundEquivalent = false;
+		for (Texture* cachedTexture : cachedTextures)
+		{
+			if (texture->CompareEquivalency(*cachedTexture))
+			{
+				texture->SetImageCoords(cachedTexture->GetImageX(), cachedTexture->GetImageY());
+				foundEquivalent = true;
+				break;
+			}
+		}
+
+		if (foundEquivalent) { continue; }
 
 		size_t x, y;
 		if (!FindAvailableSpace(vramUsed, texture->GetVRAMWidth(), texture->GetHeight(), x, y, false))
@@ -294,6 +359,7 @@ std::vector<uint8_t> PackVRM(std::vector<Texture*>& textures)
 		empty = false;
 		texture->SetImageCoords(x, y);
 		BufferToVRM(vram, vramUsed, texture->GetImage(), x, y, texture->GetVRAMWidth());
+		cachedTextures.push_back(texture);
 	}
 
 	for (Texture* texture : textures)

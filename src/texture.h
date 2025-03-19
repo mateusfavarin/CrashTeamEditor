@@ -6,6 +6,9 @@
 #include <cstdint>
 #include <vector>
 #include <filesystem>
+#include <unordered_set>
+
+typedef std::unordered_set<size_t> Shape;
 
 class Texture
 {
@@ -25,16 +28,20 @@ public:
 	bool Empty() const;
 	const std::vector<uint16_t>& GetImage() const;
 	const std::vector<uint16_t>& GetClut() const;
+	size_t GetImageX() const;
+	size_t GetImageY() const;
 	void SetImageCoords(size_t x, size_t y);
 	void SetCLUTCoords(size_t x, size_t y);
 	void SetBlendMode(size_t mode);
 	PSX::TextureLayout Serialize(const QuadUV& uvs, bool lowLOD);
+	bool CompareEquivalency(const Texture& tex);
 
 private:
+	void FillShapes(const std::vector<size_t>& colorIndexes);
 	void ClearTexture();
 	void CreateTexture();
 	uint16_t ConvertColor(unsigned char r, unsigned char g, unsigned char b, unsigned char a);
-	void ConvertPixels(const std::vector<size_t> colorIndexes, unsigned indexesPerPixel);
+	void ConvertPixels(const std::vector<size_t>& colorIndexes, unsigned indexesPerPixel);
 
 private:
 	int m_width, m_height;
@@ -43,6 +50,7 @@ private:
 	size_t m_clutX, m_clutY;
 	std::vector<uint16_t> m_image;
 	std::vector<uint16_t> m_clut;
+	std::vector<Shape> m_shapes;
 	std::filesystem::path m_path;
 };
 
