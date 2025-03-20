@@ -362,6 +362,8 @@ std::vector<uint8_t> PackVRM(std::vector<Texture*>& textures)
 		cachedTextures.push_back(texture);
 	}
 
+	if (empty) { return std::vector<uint8_t>(); }
+
 	for (Texture* texture : textures)
 	{
 		if (texture->Empty()) { continue; }
@@ -422,6 +424,5 @@ std::vector<uint8_t> PackVRM(std::vector<Texture*>& textures)
 
 	constexpr size_t buffer_2_Location = GetVRAMLocation(0, TEXPAGE_HEIGHT);
 	memcpy(pVrm, &vram[buffer_2_Location], buffer_2_size); pVrm += buffer_2_size;
-
-	return empty ? std::vector<uint8_t>() : vrm;
+	return vrm;
 }
