@@ -188,7 +188,7 @@ void Texture::FillShapes(const std::vector<size_t>& colorIndexes)
 		Shape shape;
 		for (size_t j = 0; j < colorIndexes.size(); j++)
 		{
-			if (colorIndexes[j] == i) { shape.insert(i); }
+			if (colorIndexes[j] == i) { shape.insert(j); }
 		}
 		m_shapes.push_back(shape);
 	}
