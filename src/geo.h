@@ -10,17 +10,19 @@ struct Color
 {
  	Color() : r(0u), g(0u), b(0u), a(false) {};
  	Color(float r, float g, float b) : r(static_cast<unsigned char>(Clamp(r * 255.0f, 0.0f, 255.0f))), g(static_cast<unsigned char>(Clamp(g * 255.0f, 0.0f, 255.0f))), b(static_cast<unsigned char>(Clamp(b * 255.0f, 0.0f, 255.0f))), a(false) {};
- 	Color(unsigned char r, unsigned char g, unsigned char b) : r(r), g(g), b(b), a(false) {};
+ 	Color(float r, float g, float b, bool a) : r(static_cast<unsigned char>(Clamp(r * 255.0f, 0.0f, 255.0f))), g(static_cast<unsigned char>(Clamp(g * 255.0f, 0.0f, 255.0f))), b(static_cast<unsigned char>(Clamp(b * 255.0f, 0.0f, 255.0f))), a(a) {};
+	Color(unsigned char r, unsigned char g, unsigned char b) : r(r), g(g), b(b), a(false) {};
+	Color(unsigned char r, unsigned char g, unsigned char b, bool a) : r(r), g(g), b(b), a(a) {};
 	Color(double hue, double sat, double value);
  	inline bool operator==(const Color& color) const { return (r == color.r) && (g == color.g) && (b == color.b) && (a == color.a); }
- 
+
  	unsigned char r, g, b;
  	bool a;
- 
+
  	float Red() const { return static_cast<float>(r) / 255.0f; }
  	float Green() const { return static_cast<float>(g) / 255.0f; }
  	float Blue() const { return static_cast<float>(b) / 255.0f; }
- 
+
  	Color Negated() const
  	{
  		return Color(static_cast<unsigned char>(255 - r), static_cast<unsigned char>(255 - g), static_cast<unsigned char>(255 - b));
