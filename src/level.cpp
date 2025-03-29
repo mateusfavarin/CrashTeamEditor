@@ -799,6 +799,7 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	std::vector<uint32_t> pointerMap =
 	{
 		CALCULATE_OFFSET(PSX::LevHeader, offMeshInfo, offHeader),
+		CALCULATE_OFFSET(PSX::LevHeader, offAnimTex, offHeader),
 		CALCULATE_OFFSET(PSX::LevHeader, offExtra, offHeader),
 		CALCULATE_OFFSET(PSX::LevHeader, offCheckpointNodes, offHeader),
 		CALCULATE_OFFSET(PSX::LevHeader, offVisMem, offHeader),
@@ -1148,6 +1149,13 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 			const std::vector<size_t>& quadblockIndexes = m_materialToQuadblocks[material];
 			for (const size_t index : quadblockIndexes) { m_quadblocks[index].SetTexPath(texPath); }
 		}
+	}
+
+	for (const auto& [material, texture] : m_materialToTexture)
+	{
+		const std::filesystem::path& texPath = texture.GetPath();
+		const std::vector<size_t>& quadblockIndexes = m_materialToQuadblocks[material];
+		for (const size_t index : quadblockIndexes) { m_quadblocks[index].SetTexPath(texPath); }
 	}
 
 	if (quadblockCount != m_quadblocks.size())
