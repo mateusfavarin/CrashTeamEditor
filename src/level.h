@@ -9,7 +9,7 @@
 #include "material.h"
 #include "texture.h"
 #include "renderer.h"
-
+#include "animtexture.h"
 #include "model.h"
 #include "mesh.h"
 
@@ -29,9 +29,11 @@ public:
 	bool Ready();
 	void OpenHotReloadWindow();
 	void Clear(bool clearErrors);
+	const std::vector<Quadblock>& GetQuadblocks() const;
 	bool LoadPreset(const std::filesystem::path& filename);
 	bool SavePreset(const std::filesystem::path& path);
 	void RenderUI();
+
 	void GenerateRenderLevData(std::vector<Quadblock>& quadblocks);
 	void GenerateRenderBspData(const BSP& bsp);
 	void GenerateRenderCheckpointData(std::vector<Checkpoint>&);
@@ -77,6 +79,7 @@ private:
 	MaterialProperty<bool, MaterialType::DRAW_FLAGS> m_propDoubleSided;
 	MaterialProperty<bool, MaterialType::CHECKPOINT> m_propCheckpoints;
 	std::vector<Path> m_checkpointPaths;
+	std::vector<AnimTexture> m_animTextures;
 	Model m_highLODLevelModel;
 	Model m_lowLODLevelModel;
 	Model m_pointsHighLODLevelModel;

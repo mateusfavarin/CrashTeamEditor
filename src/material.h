@@ -18,11 +18,14 @@ public:
 	virtual void Clear() = 0;
 };
 
+class Level;
+
 template <typename T, MaterialType M>
 class MaterialProperty : public MaterialBase
 {
 public:
 	MaterialProperty();
+	void RegisterMaterial(Level* level);
 	void SetPreview(const std::string& material, const T& preview);
 	void SetDefaultValue(const std::string& material, const T& value);
 	bool UnsavedChanges(const std::string& material) const;
@@ -39,5 +42,6 @@ private:
 	std::unordered_set<std::string> m_materialsChanged;
 };
 
-void ClearMaterials();
-void RestoreMaterials();
+void ClearMaterials(Level* level);
+void RestoreMaterials(Level* level);
+void DeleteMaterials(Level* level);

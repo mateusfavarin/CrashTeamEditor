@@ -65,7 +65,13 @@ void Level::Clear(bool clearErrors)
 	m_checkpointPaths.clear();
 	m_tropyGhost.clear();
 	m_oxideGhost.clear();
-	ClearMaterials();
+	m_animTextures.clear();
+	DeleteMaterials(this);
+}
+
+const std::vector<Quadblock>& Level::GetQuadblocks() const
+{
+	return m_quadblocks;
 }
 
 enum class PresetHeader : unsigned
@@ -267,6 +273,7 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	*		- LevHeader
 	*		- MeshInfo
 	*		- Textures
+	*		- Animated Textures
 	*		- Array of quadblocks
 	*		- Array of VisibleSets
 	*		- Array of PVS
@@ -294,6 +301,9 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	const size_t offMeshInfo = currOffset;
 	currOffset += sizeof(meshInfo);
 
+	const size_t offTexture = currOffset;
+	size_t offAnimData = 0;
+
 	PSX::TextureLayout defaultTex = {};
 	defaultTex.clut.self = 32 | (20 << 6);
 	defaultTex.texPage.self = (512 >> 6) | ((0 >> 8) << 4) | (0 << 5) | (0 << 7);
@@ -309,14 +319,59 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	defaultTexGroup.mosaic = defaultTex;
 
 	std::vector<Texture*> textures;
-	for (auto& [material, texture] : m_materialToTexture) { textures.push_back(&texture); }
+	std::vector<std::tuple<Texture*, Texture*>> copyTextureAttributes;
+	for (auto& [material, texture] : m_materialToTexture)
+	{
+		bool foundEqual = false;
+		for (Texture* addedTexture : textures)
+		{
+			if (texture == *addedTexture)
+			{
+				copyTextureAttributes.push_back({addedTexture, &texture});
+				foundEqual = true;
+				break;
+			}
+		}
+		if (foundEqual) { continue; }
+		textures.push_back(&texture);
+	}
+
+	for (const AnimTexture& animTex : m_animTextures)
+	{
+		const std::vector<AnimTextureFrame>& animFrames = animTex.GetFrames();
+		const std::vector<Texture>& animTextures = animTex.GetTextures();
+		for (const AnimTextureFrame& frame : animFrames)
+		{
+			bool foundEqual = false;
+			Texture* texture = const_cast<Texture*>(&animTextures[frame.textureIndex]);
+			for (Texture* addedTexture : textures)
+			{
+				if (*texture == *addedTexture)
+				{
+					copyTextureAttributes.push_back({addedTexture, texture});
+					foundEqual = true;
+					break;
+				}
+			}
+			if (foundEqual) { continue; }
+			textures.push_back(texture);
+		}
+	}
+
 	std::vector<uint8_t> vrm = PackVRM(textures);
 	const bool hasVRM = !vrm.empty();
 
+	std::vector<uint8_t> animData;
+	std::vector<size_t> animPtrMapOffsets;
 	std::vector<PSX::TextureGroup> texGroups;
 	std::unordered_map<PSX::TextureLayout, size_t> savedLayouts;
 	if (hasVRM)
 	{
+		for (auto& [from, to] : copyTextureAttributes)
+		{
+			to->CopyVRAMAttributes(*from);
+		}
+
 		for (auto& [material, texture] : m_materialToTexture)
 		{
 			std::vector<size_t>& quadIndexes = m_materialToQuadblocks[material];
@@ -346,6 +401,79 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 			}
 		}
 
+		if (!m_animTextures.empty())
+		{
+			std::vector<std::array<size_t, NUM_FACES_QUADBLOCK + 1>> animOffsetPerQuadblock;
+			for (AnimTexture& animTex : m_animTextures)
+			{
+				const std::vector<AnimTextureFrame>& animFrames = animTex.GetFrames();
+				const std::vector<Texture>& animTextures = animTex.GetTextures();
+				std::vector<std::vector<size_t>> texgroupIndexesPerFrame(NUM_FACES_QUADBLOCK + 1);
+				for (const AnimTextureFrame& frame : animFrames)
+				{
+					Texture& texture = const_cast<Texture&>(animTextures[frame.textureIndex]);
+					for (size_t i = 0; i < NUM_FACES_QUADBLOCK + 1; i++)
+					{
+						size_t textureID = 0;
+						const QuadUV& uvs = frame.uvs[i];
+						PSX::TextureLayout layout = texture.Serialize(uvs, i == NUM_FACES_QUADBLOCK);
+						if (savedLayouts.contains(layout)) { textureID = savedLayouts[layout]; }
+						else
+						{
+							textureID = texGroups.size();
+							savedLayouts[layout] = textureID;
+
+							PSX::TextureGroup texGroup = {};
+							texGroup.far = layout;
+							texGroup.middle = layout;
+							texGroup.near = layout;
+							texGroup.mosaic = layout;
+							texGroups.push_back(texGroup);
+						}
+						texgroupIndexesPerFrame[i].push_back(textureID);
+					}
+				}
+				std::array<size_t, NUM_FACES_QUADBLOCK + 1> offsetPerQuadblock = {};
+				for (size_t i = 0; i < NUM_FACES_QUADBLOCK + 1; i++)
+				{
+					std::vector<uint8_t> buffer = animTex.Serialize(texgroupIndexesPerFrame[i][0], offTexture);
+					size_t animTexOffset = animData.size();
+					offsetPerQuadblock[i] = animTexOffset;
+					animPtrMapOffsets.push_back(animTexOffset);
+					for (uint8_t byte : buffer) { animData.push_back(byte); }
+					for (size_t j = 0; j < animFrames.size(); j++)
+					{
+						uint32_t offset = static_cast<uint32_t>((texgroupIndexesPerFrame[i][j] * sizeof(PSX::TextureGroup)) + offTexture);
+						size_t offAnimTexArr = animData.size();
+						animPtrMapOffsets.push_back(offAnimTexArr);
+						for (size_t k = 0; k < sizeof(uint32_t); k++) { animData.push_back(0); }
+						memcpy(&animData[offAnimTexArr], &offset, sizeof(uint32_t));
+					}
+				}
+				animOffsetPerQuadblock.push_back(offsetPerQuadblock);
+			}
+
+			offAnimData = currOffset + (sizeof(PSX::TextureGroup) * texGroups.size());
+
+			animPtrMapOffsets.push_back(animData.size());
+			size_t offEndAnimData = animData.size();
+			for (size_t i = 0; i < sizeof(uint32_t); i++) { animData.push_back(0); }
+			memcpy(&animData[offEndAnimData], &offAnimData, sizeof(uint32_t));
+
+			for (size_t i = 0; i < m_animTextures.size(); i++)
+			{
+				const std::vector<size_t>& quadblockIndexes = m_animTextures[i].GetQuadblockIndexes();
+				for (size_t index : quadblockIndexes)
+				{
+					Quadblock& quadblock = m_quadblocks[index];
+					for (size_t j = 0; j < NUM_FACES_QUADBLOCK + 1; j++)
+					{
+						quadblock.SetAnimTextureOffset(animOffsetPerQuadblock[i][j], offAnimData, j);
+					}
+				}
+			}
+		}
+
 		m_savedVRMPath = path / (m_name + ".vrm");
 		std::ofstream vrmFile(m_savedVRMPath, std::ios::binary);
 		Write(vrmFile, vrm.data(), vrm.size());
@@ -353,8 +481,7 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	}
 	else { texGroups.push_back(defaultTexGroup); }
 
-	const size_t offTexture = currOffset;
-	currOffset += sizeof(PSX::TextureGroup) * texGroups.size();
+	currOffset += (sizeof(PSX::TextureGroup) * texGroups.size()) + animData.size();
 
 	const size_t offQuadblocks = currOffset;
 	std::vector<std::vector<uint8_t>> serializedBSPs;
@@ -521,6 +648,7 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	const size_t offPointerMap = currOffset;
 
 	header.offMeshInfo = static_cast<uint32_t>(offMeshInfo);
+	header.offAnimTex = static_cast<uint32_t>(offAnimData);
 	for (size_t i = 0; i < NUM_DRIVERS; i++)
 	{
 		header.driverSpawn[i].pos = ConvertVec3(m_spawn[i].pos, FP_ONE_GEO);
@@ -544,6 +672,7 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	std::vector<uint32_t> pointerMap =
 	{
 		CALCULATE_OFFSET(PSX::LevHeader, offMeshInfo, offHeader),
+		CALCULATE_OFFSET(PSX::LevHeader, offAnimTex, offHeader),
 		CALCULATE_OFFSET(PSX::LevHeader, offExtra, offHeader),
 		CALCULATE_OFFSET(PSX::LevHeader, offCheckpointNodes, offHeader),
 		CALCULATE_OFFSET(PSX::LevHeader, offVisMem, offHeader),
@@ -556,6 +685,11 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 		CALCULATE_OFFSET(PSX::LevelExtraHeader, offsets[PSX::LevelExtra::N_TROPY_GHOST], offExtraHeader),
 		CALCULATE_OFFSET(PSX::LevelExtraHeader, offsets[PSX::LevelExtra::N_OXIDE_GHOST], offExtraHeader),
 	};
+
+	for (size_t i = 0; i < animPtrMapOffsets.size(); i++)
+	{
+		pointerMap.push_back(static_cast<uint32_t>(animPtrMapOffsets[i] + offAnimData));
+	}
 
 	size_t offCurrQuad = offQuadblocks;
 	for (size_t i = 0; i < serializedQuads.size(); i++)
@@ -594,6 +728,7 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	Write(file, &header, sizeof(header));
 	Write(file, &meshInfo, sizeof(meshInfo));
 	Write(file, texGroups.data(), texGroups.size() * sizeof(PSX::TextureGroup));
+	if (!animData.empty()) { Write(file, animData.data(), animData.size()); }
 	for (const std::vector<uint8_t>& serializedQuad : serializedQuads) { Write(file, serializedQuad.data(), serializedQuad.size()); }
 	for (size_t i = 0; i < visibleNodes.size(); i++)
 	{
@@ -787,6 +922,10 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 						m_propQuadFlags.SetDefaultValue(material, QuadFlags::DEFAULT);
 						m_propDoubleSided.SetDefaultValue(material, false);
 						m_propCheckpoints.SetDefaultValue(material, true);
+						m_propTerrain.RegisterMaterial(this);
+						m_propQuadFlags.RegisterMaterial(this);
+						m_propDoubleSided.RegisterMaterial(this);
+						m_propCheckpoints.RegisterMaterial(this);
 					}
 				}
 				if (isQuadblock)
@@ -857,6 +996,13 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 				}
 			}
 		}
+	}
+
+	for (const auto& [material, texture] : m_materialToTexture)
+	{
+		const std::filesystem::path& texPath = texture.GetPath();
+		const std::vector<size_t>& quadblockIndexes = m_materialToQuadblocks[material];
+		for (const size_t index : quadblockIndexes) { m_quadblocks[index].SetTexPath(texPath); }
 	}
 
 	if (quadblockCount != m_quadblocks.size())

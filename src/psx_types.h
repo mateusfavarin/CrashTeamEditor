@@ -119,6 +119,15 @@ namespace PSX
 		TextureLayout mosaic;
 	};
 
+	struct AnimTex
+	{
+		uint32_t offActiveFrame;
+		uint16_t frameCount;
+		int16_t startAtFrame;
+		int16_t frameDuration;
+		uint16_t frameIndex;
+	};
+
 	struct ColorGradient
 	{
 		int16_t posFrom;

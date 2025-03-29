@@ -19,6 +19,7 @@ public:
 	};
 	Texture() : m_width(0), m_height(0), m_imageX(0), m_imageY(0), m_clutX(0), m_clutY(0), m_blendMode(0) {};
 	Texture(const std::filesystem::path& path);
+	void UpdateTexture(const std::filesystem::path& path);
 	Texture::BPP GetBPP() const;
 	int GetWidth() const;
 	int GetVRAMWidth() const;
@@ -30,11 +31,17 @@ public:
 	const std::vector<uint16_t>& GetClut() const;
 	size_t GetImageX() const;
 	size_t GetImageY() const;
+	size_t GetCLUTX() const;
+	size_t GetCLUTY() const;
 	void SetImageCoords(size_t x, size_t y);
 	void SetCLUTCoords(size_t x, size_t y);
 	void SetBlendMode(size_t mode);
 	PSX::TextureLayout Serialize(const QuadUV& uvs, bool lowLOD);
 	bool CompareEquivalency(const Texture& tex);
+	void CopyVRAMAttributes(const Texture& tex);
+	bool operator==(const Texture& tex) const;
+	void RenderUI(const std::vector<size_t>& quadblockIndexes, std::vector<Quadblock>& quadblocks);
+	void RenderUI();
 
 private:
 	void FillShapes(const std::vector<size_t>& colorIndexes);

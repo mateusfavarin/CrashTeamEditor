@@ -19,6 +19,7 @@
 #include <chrono>
 #include <functional>
 #include <cmath>
+#include <sstream>
 
 static constexpr size_t MAX_QUADBLOCKS_LEAF = 32;
 static constexpr float MAX_LEAF_AXIS_LENGTH = 60.0f;
@@ -344,6 +345,7 @@ void Level::RenderUI()
 	static bool w_spawn = false;
 	static bool w_level = false;
 	static bool w_material = false;
+	static bool w_animtex = false;
 	static bool w_quadblocks = false;
 	static bool w_checkpoints = false;
 	static bool w_bsp = false;
@@ -355,6 +357,7 @@ void Level::RenderUI()
 		if (ImGui::MenuItem("Spawn")) { w_spawn = !w_spawn; }
 		if (ImGui::MenuItem("Level")) { w_level = !w_level; }
 		if (!m_materialToQuadblocks.empty() && ImGui::MenuItem("Material")) { w_material = !w_material; }
+		if (ImGui::MenuItem("Anim Tex")) { w_animtex = !w_animtex; }
 		if (ImGui::MenuItem("Quadblocks")) { w_quadblocks = !w_quadblocks; }
 		if (ImGui::MenuItem("Checkpoints")) { w_checkpoints = !w_checkpoints; }
 		if (ImGui::MenuItem("BSP Tree")) { w_bsp = !w_bsp; }
@@ -463,35 +466,7 @@ void Level::RenderUI()
 
           if (m_materialToTexture.contains(material))
           {
-            Texture& texture = m_materialToTexture[material];
-            if (ImGui::TreeNode("Texture"))
-            {
-              ImGui::Text("Path:"); ImGui::SameLine();
-              std::string texPath = texture.GetPath().string();
-              ImGui::BeginDisabled();
-              ImGui::InputText("##texpath", &texPath, ImGuiInputTextFlags_ReadOnly);
-              ImGui::EndDisabled();
-              ImGui::SetItemTooltip(texPath.c_str());
-              if (!texture.Empty())
-              {
-                constexpr size_t NUM_BLEND_MODES = 4;
-                const std::array<std::string, NUM_BLEND_MODES> BLEND_MODES = { "Half Transparent", "Additive", "Subtractive", "Additive Translucent" };
-                uint16_t blendMode = texture.GetBlendMode();
-                ImGui::Text("Blend Mode:"); ImGui::SameLine();
-                if (ImGui::BeginCombo("##blendmode", BLEND_MODES[blendMode].c_str()))
-                {
-                  for (size_t i = 0; i < NUM_BLEND_MODES; i++)
-                  {
-                    if (ImGui::Selectable(BLEND_MODES[i].c_str()))
-                    {
-                      texture.SetBlendMode(i);
-                    }
-                  }
-                  ImGui::EndCombo();
-                }
-              }
-              ImGui::TreePop();
-            }
+						m_materialToTexture[material].RenderUI(quadblockIndexes, m_quadblocks);
           }
 
           ImGui::TreePop();
@@ -501,7 +476,46 @@ void Level::RenderUI()
     ImGui::End();
   }
 
-  if (!w_material) { RestoreMaterials(); }
+  if (!w_material) { RestoreMaterials(this); }
+
+	if (w_animtex)
+	{
+		if (ImGui::Begin("Animated Textures", &w_animtex))
+		{
+			static std::string animTexQuerry;
+			ImGui::InputTextWithHint("Search##", "Search Query...", &animTexQuerry);
+			if (ImGui::Button("Load"))
+			{
+				auto selection = pfd::open_file("Animated Texture", ".", {"Animated Texture Files", "*.obj"}).result();
+				if (!selection.empty())
+				{
+					const std::filesystem::path& animTexPath = selection.front();
+					std::vector<std::string> animTexNames;
+					for (const AnimTexture& currAnimTex : m_animTextures)
+					{
+						animTexNames.push_back(currAnimTex.GetName());
+					}
+					AnimTexture animTex = AnimTexture(animTexPath, animTexNames);
+					if (!animTex.Empty()) { m_animTextures.push_back(animTex); }
+				}
+			}
+			size_t remIndex = 0;
+			std::vector<size_t> remAnimTexIndex;
+			for (AnimTexture& tex : m_animTextures)
+			{
+				if (!tex.RenderUI(m_quadblocks, m_materialToQuadblocks, animTexQuerry))
+				{
+					remAnimTexIndex.push_back(remIndex);
+				}
+				remIndex++;
+			}
+			for (int i = static_cast<int>(remAnimTexIndex.size()) - 1; i >= 0; i--)
+			{
+				m_animTextures.erase(m_animTextures.begin() + remAnimTexIndex[i]);
+			}
+		}
+		ImGui::End();
+	}
 
   static std::string quadblockQuery;
   if (w_quadblocks)
@@ -776,13 +790,13 @@ void Level::RenderUI()
       struct {
         int x, y;
       } pixelCoord((int)(mousePos.x - pos.x), (int)(mousePos.y - pos.y));
- 
+
       if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
       {
         if (pixelCoord.x >= 0 && pixelCoord.x < rendWidth && pixelCoord.y >= 0 && pixelCoord.y < rendHeight)
         {
           //printf("Clicked pixel coord: (%d, %d)\n", pixelCoord.x, pixelCoord.y);
- 
+
           ViewportClickHandleBlockSelection(pixelCoord.x, pixelCoord.y, rend);
         }
       }
@@ -854,7 +868,7 @@ void Level::RenderUI()
               * Filter by terrain ""
               *
               * draw bsp as wireframe or as transparent objs
-              * 
+              *
               * draw (low lod) wireframe on top of the mesh as an option
               *
               * NOTE: resetBsp does not trigger when vertex color changes.
@@ -1159,7 +1173,7 @@ bool Quadblock::RenderUI(size_t checkpointCount, bool& resetBsp)
       resetBsp = true;
       ret = true;
     }
-    ImGui::TreePop();
+		ImGui::TreePop();
   }
   return ret;
 }
@@ -1184,4 +1198,214 @@ void Vertex::RenderUI(size_t index, bool& editedPos)
     }
     ImGui::TreePop();
   }
+}
+
+void Texture::RenderUI(const std::vector<size_t>& quadblockIndexes, std::vector<Quadblock>& quadblocks)
+{
+	std::string texPath = GetPath().string();
+	if (ImGui::TreeNode(("Texture##" + texPath).c_str()))
+	{
+		ImGui::Text("Path:"); ImGui::SameLine();
+		ImGui::BeginDisabled();
+		ImGui::InputText("##texpath", &texPath, ImGuiInputTextFlags_ReadOnly);
+		ImGui::EndDisabled();
+		ImGui::SetItemTooltip(texPath.c_str());
+		ImGui::SameLine();
+		if (ImGui::Button("..."))
+		{
+			auto selection = pfd::open_file("Texture File", ".", {"Texture Files", "*.bmp, *.jpeg, *.jpg, *.png"}).result();
+			if (!selection.empty())
+			{
+				const std::filesystem::path& newTexPath = selection.front();
+				UpdateTexture(newTexPath);
+				for (const size_t index : quadblockIndexes) { quadblocks[index].SetTexPath(newTexPath); }
+			}
+		}
+		if (Empty()) { ImGui::TreePop(); return; }
+		constexpr size_t NUM_BLEND_MODES = 4;
+		const std::array<std::string, NUM_BLEND_MODES> BLEND_MODES = {"Half Transparent", "Additive", "Subtractive", "Additive Translucent"};
+		uint16_t blendMode = GetBlendMode();
+		ImGui::Text("Blend Mode:"); ImGui::SameLine();
+		if (ImGui::BeginCombo("##blendmode", BLEND_MODES[blendMode].c_str()))
+		{
+			for (size_t i = 0; i < NUM_BLEND_MODES; i++)
+			{
+				if (ImGui::Selectable(BLEND_MODES[i].c_str()))
+				{
+					SetBlendMode(i);
+				}
+			}
+			ImGui::EndCombo();
+		}
+		ImGui::TreePop();
+	}
+}
+
+void Texture::RenderUI()
+{
+	std::vector<size_t> dummyIndexes;
+	std::vector<Quadblock> dummyQuadblocks;
+	RenderUI(dummyIndexes, dummyQuadblocks);
+}
+
+bool AnimTexture::RenderUI(const std::vector<Quadblock>& quadblocks, const std::unordered_map<std::string, std::vector<size_t>>& materialMap, const std::string& query)
+{
+	bool ret = true;
+	if (ImGui::TreeNode(m_name.c_str()))
+	{
+		if (ImGui::TreeNode("Quadblocks"))
+		{
+			constexpr size_t QUADS_PER_LINE = 10;
+			for (size_t i = 0; i < m_quadblockIndexes.size(); i++)
+			{
+				ImGui::Text((quadblocks[m_quadblockIndexes[i]].GetName() + ", ").c_str());
+				if (((i + 1) % QUADS_PER_LINE) == 0 || i == m_quadblockIndexes.size() - 1) { continue; }
+				ImGui::SameLine();
+			}
+			ImGui::TreePop();
+		}
+		if (ImGui::TreeNode("Settings"))
+		{
+			size_t frames = m_frames.size();
+			ImGui::Text(("Frames: " + std::to_string(frames)).c_str());
+			ImGui::Text("Start at Frame:"); ImGui::SameLine();
+			ImGui::SliderInt("##startat", &m_startAtFrame, 0, static_cast<int>(frames));
+			float durationMS = (1.0f + static_cast<float>(m_duration)) / 30.0f;
+			ImGui::Text("Duration per Frame:"); ImGui::SameLine();
+			ImGui::InputInt("##duration", &m_duration);
+			m_duration = std::max(m_duration, 0);
+			std::stringstream ss;
+			ss << std::fixed << std::setprecision(3) << durationMS;
+			ImGui::Text(("Duration per Frame: " + ss.str() + "s").c_str());
+
+			ImGui::Text("Rotation:"); ImGui::SameLine();
+			if (ImGui::RadioButton("0 deg", m_rotation == 0))
+			{
+				RotateFrames(0 - m_rotation);
+				m_rotation = 0;
+			} ImGui::SameLine();
+			if (ImGui::RadioButton("90 deg", m_rotation == 90))
+			{
+				RotateFrames(90 - m_rotation);
+				m_rotation = 90;
+			} ImGui::SameLine();
+			if (ImGui::RadioButton("180 deg", m_rotation == 180))
+			{
+				RotateFrames(180 - m_rotation);
+				m_rotation = 180;
+			} ImGui::SameLine();
+			if (ImGui::RadioButton("270 deg", m_rotation == 270))
+			{
+				RotateFrames(270 - m_rotation);
+				m_rotation = 270;
+			}
+			ImGui::TreePop();
+		}
+		if (ImGui::TreeNode("Textures"))
+		{
+			for (Texture& tex : m_textures) { tex.RenderUI(); }
+			ImGui::TreePop();
+		}
+		if (ImGui::TreeNode("Manage"))
+		{
+			ImGui::Text("Select Quadblock:");
+			if (ImGui::BeginCombo("##quadcombo", m_previewQuadName.c_str()))
+			{
+				for (size_t i = 0; i < quadblocks.size(); i++)
+				{
+					const Quadblock& quadblock = quadblocks[i];
+					if (!quadblock.Hide() && Matches(quadblock.GetName(), query) && ImGui::Selectable(quadblock.GetName().c_str()))
+					{
+						m_previewQuadName = quadblock.GetName();
+						m_previewQuadIndex = i;
+					}
+				}
+				ImGui::EndCombo();
+			}
+			static ButtonUI applyQuadBtn;
+			bool found = m_previewQuadName.empty();
+			if (!found)
+			{
+				for (size_t index : m_quadblockIndexes) { if (index == m_previewQuadIndex) { found = true; break; } }
+			}
+			if (applyQuadBtn.Show("Add", "Animation successfully added to quadblock.", !found) && !found)
+			{
+				m_quadblockIndexes.push_back(m_previewQuadIndex);
+			}
+
+			ImGui::SameLine();
+			static ButtonUI remQuadBtn;
+			if (remQuadBtn.Show("Remove##quadblock", "Animation successfully removed from quadblock.", false))
+			{
+				auto it = m_quadblockIndexes.begin();
+				for (; it != m_quadblockIndexes.end(); it++)
+				{
+					if (*it == m_previewQuadIndex) { m_quadblockIndexes.erase(it); break; }
+				}
+			}
+
+			ImGui::Text("Apply by Material:");
+			if (ImGui::BeginCombo("##matcombo", m_previewMaterialName.c_str()))
+			{
+				for (const auto& [material, indexes] : materialMap)
+				{
+					if (Matches(material, query) && ImGui::Selectable(material.c_str()))
+					{
+						m_previewMaterialName = material;
+					}
+				}
+				ImGui::EndCombo();
+			}
+
+			static ButtonUI applyMatBtn;
+			found = m_previewMaterialName.empty();
+			if (!found) { found = m_previewMaterialName == m_lastAppliedMaterialName; }
+			if (applyMatBtn.Show("Apply", "Animation successfully applied to all material quadblocks", !found) && !found)
+			{
+				for (const auto& [material, indexes] : materialMap)
+				{
+					if (m_previewMaterialName == material)
+					{
+						for (const size_t index : indexes) { m_quadblockIndexes.push_back(index); }
+						m_lastAppliedMaterialName = m_previewMaterialName;
+						break;
+					}
+				}
+			}
+
+			ImGui::SameLine();
+			static ButtonUI remMatBtn;
+			if (remMatBtn.Show("Remove##material", "Animation successfully removed from material.", false))
+			{
+				std::vector<std::vector<size_t>::iterator> remList;
+				for (const auto& [material, indexes] : materialMap)
+				{
+					if (m_previewMaterialName == material)
+					{
+						auto it = m_quadblockIndexes.begin();
+						for (; it != m_quadblockIndexes.end(); it++)
+						{
+							for (const size_t index : indexes)
+							{
+								if (*it == index) { remList.push_back(it); }
+							}
+						}
+						break;
+					}
+				}
+				for (int i = static_cast<int>(remList.size()) - 1; i >= 0; i--)
+				{
+					m_quadblockIndexes.erase(remList[i]);
+				}
+			}
+
+			ImGui::TreePop();
+		}
+		if (ImGui::Button("Delete Animated Texture"))
+		{
+			ret = false;
+		}
+		ImGui::TreePop();
+	}
+	return ret;
 }

@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <cstdint>
 #include <array>
+#include <filesystem>
 
 static constexpr size_t NUM_VERTICES_QUADBLOCK = 9;
 static constexpr size_t NUM_FACES_QUADBLOCK = 4;
@@ -134,8 +135,6 @@ enum class QuadblockTrigger
 	NONE, TURBO_PAD, SUPER_TURBO_PAD
 };
 
-typedef std::array<Vec2, NUM_FACES_QUADBLOCK> QuadUV;
-
 class Quadblock
 {
 public:
@@ -150,6 +149,8 @@ public:
 	bool Hide() const;
 	bool& CheckpointStatus();
 	const QuadUV& GetQuadUV(size_t quad) const;
+	const std::filesystem::path& GetTexPath() const;
+	const std::array<QuadUV, NUM_FACES_QUADBLOCK + 1>& GetUVs() const;
 	void SetTerrain(uint8_t terrain);
 	void SetFlag(uint16_t flag);
 	void SetCheckpoint(int index);
@@ -159,8 +160,10 @@ public:
 	void SetTurboPadIndex(size_t index);
 	void SetHide(bool active);
 	void SetTextureID(size_t id, size_t quad);
+	void SetAnimTextureOffset(size_t relOffset, size_t levOffset, size_t quad);
 	bool IsQuadblock() const;
 	void SetTrigger(QuadblockTrigger trigger);
+	void SetTexPath(const std::filesystem::path& path);
 	void TranslateNormalVec(float ratio);
 	const BoundingBox& GetBoundingBox() const;
 	std::vector<Vertex> GetVertices() const;
@@ -183,6 +186,7 @@ private:
 		p6 -- p7 -- p8
 	*/
 	bool m_triblock;
+	bool m_animated;
 	bool m_checkpointStatus;
 	bool m_hide;
 	Vertex m_p[NUM_VERTICES_QUADBLOCK];
@@ -199,6 +203,8 @@ private:
 	size_t m_turboPadIndex;
 	std::array<QuadUV, NUM_FACES_QUADBLOCK + 1> m_uvs; /* Last id is reserved for low tex */
 	std::array<size_t, NUM_FACES_QUADBLOCK + 1> m_textureIDs = { 0, 0, 0, 0, 0 };
+	std::array<size_t, NUM_FACES_QUADBLOCK + 1> m_animTexOffset = {0, 0, 0, 0, 0};
+	std::filesystem::path m_texPath;
 };
 
 class QuadException : public std::exception

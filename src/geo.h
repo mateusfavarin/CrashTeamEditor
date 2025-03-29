@@ -47,6 +47,8 @@ struct Vec2
 	float y;
 };
 
+typedef std::array<Vec2, 4> QuadUV;
+
 struct Vec3
 {
 	Vec3() : x(0.0f), y(0.0f), z(0.0f) {};

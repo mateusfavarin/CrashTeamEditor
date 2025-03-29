@@ -9,16 +9,21 @@ template class MaterialProperty<uint16_t, MaterialType::QUAD_FLAGS>;
 template class MaterialProperty<bool, MaterialType::DRAW_FLAGS>;
 template class MaterialProperty<bool, MaterialType::CHECKPOINT>;
 
-static std::vector<MaterialBase*> g_materials;
+static std::unordered_map<Level*, std::vector<MaterialBase*>> g_materials;
 
-void ClearMaterials()
+void ClearMaterials(Level* level)
 {
-	for (MaterialBase* material : g_materials) { material->Clear(); }
+	for (MaterialBase* material : g_materials[level]) { material->Clear(); }
 }
 
-void RestoreMaterials()
+void RestoreMaterials(Level* level)
 {
-	for (MaterialBase* material : g_materials) { material->Restore(); }
+	for (MaterialBase* material : g_materials[level]) { material->Restore(); }
+}
+
+void DeleteMaterials(Level* level)
+{
+	g_materials.erase(level);
 }
 
 template<typename T, MaterialType M>
@@ -26,7 +31,13 @@ MaterialProperty<T, M>::MaterialProperty()
 {
 	m_preview = std::unordered_map<std::string, T>();
 	m_backup = std::unordered_map<std::string, T>();
-	g_materials.push_back(this);
+}
+
+template<typename T, MaterialType M>
+void MaterialProperty<T, M>::RegisterMaterial(Level* level)
+{
+	if (g_materials.contains(level)) { g_materials[level].push_back(this); }
+	else { g_materials.insert({level, { this }}); }
 }
 
 template<typename T, MaterialType M>

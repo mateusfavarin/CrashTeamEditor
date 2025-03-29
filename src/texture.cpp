@@ -22,6 +22,15 @@ Texture::Texture(const std::filesystem::path& path)
 	CreateTexture();
 }
 
+void Texture::UpdateTexture(const std::filesystem::path& path)
+{
+	uint16_t blendMode = m_blendMode;
+	ClearTexture();
+	m_path = path;
+	m_blendMode = blendMode;
+	CreateTexture();
+}
+
 Texture::BPP Texture::GetBPP() const
 {
 	size_t colorCount = m_clut.size();
@@ -82,6 +91,16 @@ size_t Texture::GetImageX() const
 size_t Texture::GetImageY() const
 {
 	return m_imageY;
+}
+
+size_t Texture::GetCLUTX() const
+{
+	return m_clutX - 512;
+}
+
+size_t Texture::GetCLUTY() const
+{
+	return m_clutY;
 }
 
 void Texture::SetImageCoords(size_t x, size_t y)
@@ -176,6 +195,17 @@ bool Texture::CompareEquivalency(const Texture& tex)
 		if (!foundShape) { return false; }
 	}
 	return true;
+}
+
+void Texture::CopyVRAMAttributes(const Texture& tex)
+{
+	SetImageCoords(tex.GetImageX(), tex.GetImageY());
+	SetCLUTCoords(tex.GetCLUTX(), tex.GetCLUTY());
+}
+
+bool Texture::operator==(const Texture& tex) const
+{
+	return (GetWidth() == tex.GetWidth()) && (GetHeight() == tex.GetHeight()) && (GetBPP() == tex.GetBPP()) && m_clut == tex.m_clut && m_image == tex.m_image;
 }
 
 void Texture::FillShapes(const std::vector<size_t>& colorIndexes)
