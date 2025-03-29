@@ -1151,11 +1151,14 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 		}
 	}
 
-	for (const auto& [material, texture] : m_materialToTexture)
+	if (ret)
 	{
-		const std::filesystem::path& texPath = texture.GetPath();
-		const std::vector<size_t>& quadblockIndexes = m_materialToQuadblocks[material];
-		for (const size_t index : quadblockIndexes) { m_quadblocks[index].SetTexPath(texPath); }
+		for (const auto& [material, texture] : m_materialToTexture)
+		{
+			const std::filesystem::path& texPath = texture.GetPath();
+			const std::vector<size_t>& quadblockIndexes = m_materialToQuadblocks[material];
+			for (const size_t index : quadblockIndexes) { m_quadblocks[index].SetTexPath(texPath); }
+		}
 	}
 
 	if (quadblockCount != m_quadblocks.size())
