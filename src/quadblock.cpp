@@ -352,6 +352,11 @@ bool Quadblock::Hide() const
 	return m_hide;
 }
 
+bool Quadblock::IsAnimated() const
+{
+	return m_animated;
+}
+
 bool& Quadblock::CheckpointStatus()
 {
 	return m_checkpointStatus;
@@ -419,7 +424,6 @@ void Quadblock::SetTextureID(size_t id, size_t quad)
 
 void Quadblock::SetAnimTextureOffset(size_t relOffset, size_t levOffset, size_t quad)
 {
-	m_animated = true;
 	m_animTexOffset[quad] = relOffset + levOffset;
 }
 
@@ -431,6 +435,11 @@ void Quadblock::SetTrigger(QuadblockTrigger trigger)
 void Quadblock::SetTexPath(const std::filesystem::path& path)
 {
 	m_texPath = path;
+}
+
+void Quadblock::SetAnimated(bool animated)
+{
+	m_animated = animated;
 }
 
 void Quadblock::TranslateNormalVec(float ratio)

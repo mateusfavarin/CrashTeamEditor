@@ -8,6 +8,7 @@ AnimTexture::AnimTexture(const std::filesystem::path& path, const std::vector<st
 	Level dummy;
 	if (!dummy.Load(path)) { return; }
 
+	m_path = path;
 	std::string origName = path.filename().replace_extension().string();
 	m_name = origName;
 	int repetitionCount = 1;
@@ -38,6 +39,7 @@ AnimTexture::AnimTexture(const std::filesystem::path& path, const std::vector<st
 	m_duration = 0;
 	m_rotation = 0;
 	m_previewQuadIndex = 0;
+	m_manualRotation = false;
 }
 
 bool AnimTexture::Empty() const
@@ -71,6 +73,16 @@ std::vector<uint8_t> AnimTexture::Serialize(size_t offsetFirstFrame, size_t offT
 const std::string& AnimTexture::GetName() const
 {
 	return m_name;
+}
+
+void AnimTexture::CopyParameters(const AnimTexture& animTex, int targetRotation)
+{
+	m_startAtFrame = animTex.m_startAtFrame;
+	m_duration = animTex.m_duration;
+	m_rotation = (animTex.m_rotation + targetRotation) % 360;
+	m_textures = animTex.m_textures;
+	m_frames = animTex.m_frames;
+	RotateFrames(targetRotation);
 }
 
 const std::vector<size_t>& AnimTexture::GetQuadblockIndexes() const

@@ -147,6 +147,7 @@ public:
 	QuadblockTrigger GetTrigger() const;
 	size_t GetTurboPadIndex() const;
 	bool Hide() const;
+	bool IsAnimated() const;
 	bool& CheckpointStatus();
 	const QuadUV& GetQuadUV(size_t quad) const;
 	const std::filesystem::path& GetTexPath() const;
@@ -164,6 +165,7 @@ public:
 	bool IsQuadblock() const;
 	void SetTrigger(QuadblockTrigger trigger);
 	void SetTexPath(const std::filesystem::path& path);
+	void SetAnimated(bool animated);
 	void TranslateNormalVec(float ratio);
 	const BoundingBox& GetBoundingBox() const;
 	std::vector<Vertex> GetVertices() const;

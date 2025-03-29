@@ -378,6 +378,7 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 			for (size_t index : quadIndexes)
 			{
 				Quadblock& currQuad = m_quadblocks[index];
+				if (currQuad.IsAnimated()) { continue; }
 				for (size_t i = 0; i < NUM_FACES_QUADBLOCK + 1; i++)
 				{
 					size_t textureID = 0;
@@ -998,11 +999,14 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 		}
 	}
 
-	for (const auto& [material, texture] : m_materialToTexture)
+	if (ret)
 	{
-		const std::filesystem::path& texPath = texture.GetPath();
-		const std::vector<size_t>& quadblockIndexes = m_materialToQuadblocks[material];
-		for (const size_t index : quadblockIndexes) { m_quadblocks[index].SetTexPath(texPath); }
+		for (const auto& [material, texture] : m_materialToTexture)
+		{
+			const std::filesystem::path& texPath = texture.GetPath();
+			const std::vector<size_t>& quadblockIndexes = m_materialToQuadblocks[material];
+			for (const size_t index : quadblockIndexes) { m_quadblocks[index].SetTexPath(texPath); }
+		}
 	}
 
 	if (quadblockCount != m_quadblocks.size())
@@ -1260,7 +1264,6 @@ void Level::GeomBoundingRect(const BSP* b, int depth, std::vector<float>& data)
 
 void Level::GenerateRenderLevData(std::vector<Quadblock>& quadblocks)
 {
-	static Mesh lowLODMesh, highLODMesh, vertexLowLODMesh, vertexHighLODMesh;
 	std::vector<float> highLODData, lowLODData, vertexHighLODData, vertexLowLODData;
 	for (Quadblock qb : quadblocks)
 	{
@@ -1333,17 +1336,17 @@ void Level::GenerateRenderLevData(std::vector<Quadblock>& quadblocks)
  			}
 		}
 	}
-	highLODMesh.UpdateMesh(highLODData, (Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
-	m_highLODLevelModel.SetMesh(&highLODMesh);
+	m_highLODMesh.UpdateMesh(highLODData, (Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
+	m_highLODLevelModel.SetMesh(&m_highLODMesh);
 
-	lowLODMesh.UpdateMesh(lowLODData, (Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
-	m_lowLODLevelModel.SetMesh(&lowLODMesh);
+	m_lowLODMesh.UpdateMesh(lowLODData, (Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
+	m_lowLODLevelModel.SetMesh(&m_lowLODMesh);
 
-	vertexHighLODMesh.UpdateMesh(vertexHighLODData, (Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
-	m_pointsHighLODLevelModel.SetMesh(&vertexHighLODMesh);
+	m_vertexHighLODMesh.UpdateMesh(vertexHighLODData, (Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
+	m_pointsHighLODLevelModel.SetMesh(&m_vertexHighLODMesh);
 
-	vertexLowLODMesh.UpdateMesh(vertexLowLODData, (Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
-	m_pointsLowLODLevelModel.SetMesh(&vertexLowLODMesh);
+	m_vertexLowLODMesh.UpdateMesh(vertexLowLODData, (Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
+	m_pointsLowLODLevelModel.SetMesh(&m_vertexLowLODMesh);
 }
 
 void Level::GenerateRenderBspData(const BSP& bsp)

@@ -483,27 +483,31 @@ void Level::RenderUI()
 		if (ImGui::Begin("Animated Textures", &w_animtex))
 		{
 			static std::string animTexQuerry;
+			std::vector<std::string> animTexNames;
+			for (const AnimTexture& currAnimTex : m_animTextures)
+			{
+				animTexNames.push_back(currAnimTex.GetName());
+			}
 			ImGui::InputTextWithHint("Search##", "Search Query...", &animTexQuerry);
+			static std::string errorLoadingAnim;
 			if (ImGui::Button("Load"))
 			{
 				auto selection = pfd::open_file("Animated Texture", ".", {"Animated Texture Files", "*.obj"}).result();
 				if (!selection.empty())
 				{
 					const std::filesystem::path& animTexPath = selection.front();
-					std::vector<std::string> animTexNames;
-					for (const AnimTexture& currAnimTex : m_animTextures)
-					{
-						animTexNames.push_back(currAnimTex.GetName());
-					}
 					AnimTexture animTex = AnimTexture(animTexPath, animTexNames);
-					if (!animTex.Empty()) { m_animTextures.push_back(animTex); }
+					if (!animTex.Empty()) { m_animTextures.push_back(animTex); errorLoadingAnim.clear(); }
+					else { errorLoadingAnim = "Error loading " + animTexPath.string(); }
 				}
 			}
+			if (!errorLoadingAnim.empty()) { ImGui::Text(errorLoadingAnim.c_str()); }
 			size_t remIndex = 0;
 			std::vector<size_t> remAnimTexIndex;
+			std::vector<AnimTexture> newTextures;
 			for (AnimTexture& tex : m_animTextures)
 			{
-				if (!tex.RenderUI(m_quadblocks, m_materialToQuadblocks, animTexQuerry))
+				if (!tex.RenderUI(animTexNames, m_quadblocks, m_materialToQuadblocks, animTexQuerry, newTextures))
 				{
 					remAnimTexIndex.push_back(remIndex);
 				}
@@ -513,6 +517,7 @@ void Level::RenderUI()
 			{
 				m_animTextures.erase(m_animTextures.begin() + remAnimTexIndex[i]);
 			}
+			for (const AnimTexture& newTex : newTextures) { m_animTextures.push_back(newTex); }
 		}
 		ImGui::End();
 	}
@@ -1248,7 +1253,7 @@ void Texture::RenderUI()
 	RenderUI(dummyIndexes, dummyQuadblocks);
 }
 
-bool AnimTexture::RenderUI(const std::vector<Quadblock>& quadblocks, const std::unordered_map<std::string, std::vector<size_t>>& materialMap, const std::string& query)
+bool AnimTexture::RenderUI(std::vector<std::string>& animTexNames, std::vector<Quadblock>& quadblocks, const std::unordered_map<std::string, std::vector<size_t>>& materialMap, const std::string& query, std::vector<AnimTexture>& newTextures)
 {
 	bool ret = true;
 	if (ImGui::TreeNode(m_name.c_str()))
@@ -1278,6 +1283,10 @@ bool AnimTexture::RenderUI(const std::vector<Quadblock>& quadblocks, const std::
 			ss << std::fixed << std::setprecision(3) << durationMS;
 			ImGui::Text(("Duration per Frame: " + ss.str() + "s").c_str());
 
+			ImGui::Text("Enable manual rotation:"); ImGui::SameLine();
+			ImGui::Checkbox("##manualrot", &m_manualRotation);
+			ImGui::SetItemTooltip("When manual rotation is disabled,\nthe editor will try to find the matching quadblock direction\nbased on the UV coordinates of the original quadblock.");
+			ImGui::BeginDisabled(!m_manualRotation);
 			ImGui::Text("Rotation:"); ImGui::SameLine();
 			if (ImGui::RadioButton("0 deg", m_rotation == 0))
 			{
@@ -1299,6 +1308,7 @@ bool AnimTexture::RenderUI(const std::vector<Quadblock>& quadblocks, const std::
 				RotateFrames(270 - m_rotation);
 				m_rotation = 270;
 			}
+			ImGui::EndDisabled();
 			ImGui::TreePop();
 		}
 		if (ImGui::TreeNode("Textures"))
@@ -1322,6 +1332,39 @@ bool AnimTexture::RenderUI(const std::vector<Quadblock>& quadblocks, const std::
 				}
 				ImGui::EndCombo();
 			}
+
+			auto FindBestRotation = [this](std::array<QuadUV, 5>& animUVs, const std::array<QuadUV, 5>& quadUVs)
+				{
+					auto MeanSquareErrorUVs = [](const std::array<QuadUV, 5>& src, const std::array<QuadUV, 5>& tgt)
+						{
+							float mse = 0.0f;
+							for (size_t i = 0; i < 4; i++)
+							{
+								const QuadUV& srcUV = src[i];
+								const QuadUV& tgtUV = tgt[i];
+								for (size_t j = 0; j < 4; j++)
+								{
+									mse += ((srcUV[j].x - tgtUV[j].x) * (srcUV[j].x - tgtUV[j].x)) + ((srcUV[j].y - tgtUV[j].y) * (srcUV[j].y - tgtUV[j].y));
+								}
+							}
+							return mse;
+						};
+
+					float bestMSE = std::numeric_limits<float>::max();
+					int bestRotation = 0;
+					for (size_t i = 0; i < 4; i++)
+					{
+						float mse = MeanSquareErrorUVs(quadUVs, animUVs);
+						if (mse < bestMSE)
+						{
+							bestMSE = mse;
+							bestRotation = static_cast<int>(i);
+						}
+						RotateQuadUV(animUVs);
+					}
+					return bestRotation;
+				};
+
 			static ButtonUI applyQuadBtn;
 			bool found = m_previewQuadName.empty();
 			if (!found)
@@ -1330,17 +1373,38 @@ bool AnimTexture::RenderUI(const std::vector<Quadblock>& quadblocks, const std::
 			}
 			if (applyQuadBtn.Show("Add", "Animation successfully added to quadblock.", !found) && !found)
 			{
-				m_quadblockIndexes.push_back(m_previewQuadIndex);
+				if (!m_manualRotation)
+				{
+					const std::array<QuadUV, 5>& quadUVs = quadblocks[m_previewQuadIndex].GetUVs();
+					std::array<QuadUV, 5>& animUVs = m_frames[0].uvs;
+					int bestRotation = FindBestRotation(animUVs, quadUVs);
+					if (bestRotation == 0) { m_quadblockIndexes.push_back(m_previewQuadIndex); }
+					else
+					{
+						AnimTexture newTex = AnimTexture(m_path, animTexNames);
+						newTex.CopyParameters(*this, bestRotation * 90);
+						newTex.m_quadblockIndexes.push_back(m_previewQuadIndex);
+						newTex.m_previewQuadName = m_previewQuadName;
+						newTex.m_previewQuadIndex = m_previewQuadIndex;
+						newTextures.push_back(newTex);
+					}
+				}
+				else { m_quadblockIndexes.push_back(m_previewQuadIndex); }
+				quadblocks[m_previewQuadIndex].SetAnimated(true);
 			}
 
-			ImGui::SameLine();
 			static ButtonUI remQuadBtn;
 			if (remQuadBtn.Show("Remove##quadblock", "Animation successfully removed from quadblock.", false))
 			{
 				auto it = m_quadblockIndexes.begin();
 				for (; it != m_quadblockIndexes.end(); it++)
 				{
-					if (*it == m_previewQuadIndex) { m_quadblockIndexes.erase(it); break; }
+					if (*it == m_previewQuadIndex)
+					{
+						quadblocks[m_previewQuadIndex].SetAnimated(false);
+						m_quadblockIndexes.erase(it);
+						break;
+					}
 				}
 			}
 
@@ -1362,18 +1426,49 @@ bool AnimTexture::RenderUI(const std::vector<Quadblock>& quadblocks, const std::
 			if (!found) { found = m_previewMaterialName == m_lastAppliedMaterialName; }
 			if (applyMatBtn.Show("Apply", "Animation successfully applied to all material quadblocks", !found) && !found)
 			{
+				std::unordered_map<int, AnimTexture> newAnims = {};
+				std::array<QuadUV, 5>& animUVs = m_frames[0].uvs;
 				for (const auto& [material, indexes] : materialMap)
 				{
 					if (m_previewMaterialName == material)
 					{
-						for (const size_t index : indexes) { m_quadblockIndexes.push_back(index); }
+						for (const size_t index : indexes)
+						{
+							if (!m_manualRotation)
+							{
+								const std::array<QuadUV, 5>& quadUVs = quadblocks[index].GetUVs();
+								int bestRotation = FindBestRotation(animUVs, quadUVs);
+								if (bestRotation == 0) { m_quadblockIndexes.push_back(index); }
+								else
+								{
+									if (newAnims.contains(bestRotation)) { newAnims[bestRotation].m_quadblockIndexes.push_back(index); }
+									else
+									{
+										AnimTexture newTex = AnimTexture(m_path, animTexNames);
+										animTexNames.push_back(newTex.GetName());
+										newTex.CopyParameters(*this, bestRotation * 90);
+										newTex.m_lastAppliedMaterialName = m_lastAppliedMaterialName;
+										newTex.m_quadblockIndexes.push_back(index);
+										newAnims[bestRotation] = newTex;
+									}
+								}
+							}
+							else { m_quadblockIndexes.push_back(index); }
+							quadblocks[index].SetAnimated(true);
+						}
+						if (!newAnims.empty())
+						{
+							for (const auto& [rot, newAnim] : newAnims)
+							{
+								newTextures.push_back(newAnim);
+							}
+						}
 						m_lastAppliedMaterialName = m_previewMaterialName;
 						break;
 					}
 				}
 			}
 
-			ImGui::SameLine();
 			static ButtonUI remMatBtn;
 			if (remMatBtn.Show("Remove##material", "Animation successfully removed from material.", false))
 			{
@@ -1387,7 +1482,11 @@ bool AnimTexture::RenderUI(const std::vector<Quadblock>& quadblocks, const std::
 						{
 							for (const size_t index : indexes)
 							{
-								if (*it == index) { remList.push_back(it); }
+								if (*it == index)
+								{
+									quadblocks[index].SetAnimated(false);
+									remList.push_back(it);
+								}
 							}
 						}
 						break;

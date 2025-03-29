@@ -80,6 +80,12 @@ private:
 	MaterialProperty<bool, MaterialType::CHECKPOINT> m_propCheckpoints;
 	std::vector<Path> m_checkpointPaths;
 	std::vector<AnimTexture> m_animTextures;
+
+	Mesh m_lowLODMesh;
+	Mesh m_highLODMesh;
+	Mesh m_vertexLowLODMesh;
+	Mesh m_vertexHighLODMesh;
+
 	Model m_highLODLevelModel;
 	Model m_lowLODLevelModel;
 	Model m_pointsHighLODLevelModel;
