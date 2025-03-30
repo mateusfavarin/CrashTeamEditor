@@ -673,7 +673,6 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	std::vector<uint32_t> pointerMap =
 	{
 		CALCULATE_OFFSET(PSX::LevHeader, offMeshInfo, offHeader),
-		CALCULATE_OFFSET(PSX::LevHeader, offAnimTex, offHeader),
 		CALCULATE_OFFSET(PSX::LevHeader, offExtra, offHeader),
 		CALCULATE_OFFSET(PSX::LevHeader, offCheckpointNodes, offHeader),
 		CALCULATE_OFFSET(PSX::LevHeader, offVisMem, offHeader),
@@ -686,6 +685,8 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 		CALCULATE_OFFSET(PSX::LevelExtraHeader, offsets[PSX::LevelExtra::N_TROPY_GHOST], offExtraHeader),
 		CALCULATE_OFFSET(PSX::LevelExtraHeader, offsets[PSX::LevelExtra::N_OXIDE_GHOST], offExtraHeader),
 	};
+
+	if (offAnimData != 0) { pointerMap.push_back(CALCULATE_OFFSET(PSX::LevHeader, offAnimTex, offHeader)); }
 
 	for (size_t i = 0; i < animPtrMapOffsets.size(); i++)
 	{

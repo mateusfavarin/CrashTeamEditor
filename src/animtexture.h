@@ -24,15 +24,17 @@ public:
 	const std::vector<size_t>& GetQuadblockIndexes() const;
 	std::vector<uint8_t> Serialize(size_t offsetFirstFrame, size_t offTextures) const;
 	const std::string& GetName() const;
-	void CopyParameters(const AnimTexture& animTex, int targetRotation);
+	void CopyParameters(const AnimTexture& animTex);
 	bool RenderUI(std::vector<std::string>& animTexNames, std::vector<Quadblock>& quadblocks, const std::unordered_map<std::string, std::vector<size_t>>& materialMap, const std::string& query, std::vector<AnimTexture>& newTextures);
 
 private:
+	void MirrorQuadUV(bool horizontal, std::array<QuadUV, 5>& uvs);
 	void RotateQuadUV(std::array<QuadUV, 5>& uvs);
+	void MirrorFrames(bool horizontal);
 	void RotateFrames(int targetRotation);
 
 private:
-	bool m_manualRotation;
+	bool m_manualOrientation;
 	std::string m_name;
 	std::filesystem::path m_path;
 	std::vector<AnimTextureFrame> m_frames;
@@ -42,6 +44,8 @@ private:
 	int m_startAtFrame;
 	int m_duration;
 	int m_rotation;
+	bool m_horMirror;
+	bool m_verMirror;
 
 	std::string m_previewQuadName;
 	size_t m_previewQuadIndex;

@@ -38,8 +38,10 @@ AnimTexture::AnimTexture(const std::filesystem::path& path, const std::vector<st
 	m_startAtFrame = 0;
 	m_duration = 0;
 	m_rotation = 0;
+	m_horMirror = false;
+	m_verMirror = false;
 	m_previewQuadIndex = 0;
-	m_manualRotation = false;
+	m_manualOrientation = false;
 }
 
 bool AnimTexture::Empty() const
@@ -75,19 +77,52 @@ const std::string& AnimTexture::GetName() const
 	return m_name;
 }
 
-void AnimTexture::CopyParameters(const AnimTexture& animTex, int targetRotation)
+void AnimTexture::CopyParameters(const AnimTexture& animTex)
 {
 	m_startAtFrame = animTex.m_startAtFrame;
 	m_duration = animTex.m_duration;
-	m_rotation = (animTex.m_rotation + targetRotation) % 360;
+	m_rotation = animTex.m_rotation;
 	m_textures = animTex.m_textures;
 	m_frames = animTex.m_frames;
-	RotateFrames(targetRotation);
 }
 
 const std::vector<size_t>& AnimTexture::GetQuadblockIndexes() const
 {
 	return m_quadblockIndexes;
+}
+
+void AnimTexture::MirrorQuadUV(bool horizontal, std::array<QuadUV, 5>& uvs)
+{
+	if (horizontal)
+	{
+		auto SwapHor = [](QuadUV& uv1, QuadUV& uv2)
+			{
+				Swap(uv1[0], uv2[1]);
+				Swap(uv1[1], uv2[0]);
+				Swap(uv1[2], uv2[3]);
+				Swap(uv1[3], uv2[2]);
+			};
+
+		SwapHor(uvs[0], uvs[1]);
+		SwapHor(uvs[2], uvs[3]);
+		Swap(uvs[4][0], uvs[4][1]);
+		Swap(uvs[4][2], uvs[4][3]);
+	}
+	else
+	{
+		auto SwapVer = [](QuadUV& uv1, QuadUV& uv2)
+			{
+				Swap(uv1[0], uv2[2]);
+				Swap(uv1[2], uv2[0]);
+				Swap(uv1[1], uv2[3]);
+				Swap(uv1[3], uv2[1]);
+			};
+
+		SwapVer(uvs[0], uvs[2]);
+		SwapVer(uvs[1], uvs[3]);
+		Swap(uvs[4][0], uvs[4][2]);
+		Swap(uvs[4][1], uvs[4][3]);
+	}
 }
 
 void AnimTexture::RotateQuadUV(std::array<QuadUV, 5>& uvs)
@@ -111,6 +146,14 @@ void AnimTexture::RotateQuadUV(std::array<QuadUV, 5>& uvs)
 	uvs[4][2] = uvs[4][3];
 	uvs[4][3] = uvs[4][1];
 	uvs[4][1] = lowTmp;
+}
+
+void AnimTexture::MirrorFrames(bool horizontal)
+{
+	for (AnimTextureFrame& frame : m_frames)
+	{
+		MirrorQuadUV(horizontal, frame.uvs);
+	}
 }
 
 void AnimTexture::RotateFrames(int targetRotation)

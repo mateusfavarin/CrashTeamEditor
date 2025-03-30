@@ -1284,9 +1284,9 @@ bool AnimTexture::RenderUI(std::vector<std::string>& animTexNames, std::vector<Q
 			ImGui::Text(("Duration per Frame: " + ss.str() + "s").c_str());
 
 			ImGui::Text("Enable manual rotation:"); ImGui::SameLine();
-			ImGui::Checkbox("##manualrot", &m_manualRotation);
+			ImGui::Checkbox("##manualrot", &m_manualOrientation);
 			ImGui::SetItemTooltip("When manual rotation is disabled,\nthe editor will try to find the matching quadblock direction\nbased on the UV coordinates of the original quadblock.");
-			ImGui::BeginDisabled(!m_manualRotation);
+			ImGui::BeginDisabled(!m_manualOrientation);
 			ImGui::Text("Rotation:"); ImGui::SameLine();
 			if (ImGui::RadioButton("0 deg", m_rotation == 0))
 			{
@@ -1308,6 +1308,9 @@ bool AnimTexture::RenderUI(std::vector<std::string>& animTexNames, std::vector<Q
 				RotateFrames(270 - m_rotation);
 				m_rotation = 270;
 			}
+			ImGui::Text("Mirror:"); ImGui::SameLine();
+			ImGui::Checkbox("Horizontal", &m_horMirror); ImGui::SameLine();
+			ImGui::Checkbox("Vertical", &m_verMirror);
 			ImGui::EndDisabled();
 			ImGui::TreePop();
 		}
@@ -1333,36 +1336,62 @@ bool AnimTexture::RenderUI(std::vector<std::string>& animTexNames, std::vector<Q
 				ImGui::EndCombo();
 			}
 
-			auto FindBestRotation = [this](std::array<QuadUV, 5>& animUVs, const std::array<QuadUV, 5>& quadUVs)
+			auto FindBestOrientation = [this](std::array<QuadUV, 5>& animUVs, const std::array<QuadUV, 5>& quadUVs) -> uint32_t
 				{
-					auto MeanSquareErrorUVs = [](const std::array<QuadUV, 5>& src, const std::array<QuadUV, 5>& tgt)
+					auto FindBestRotation = [this](std::array<QuadUV, 5>& animUVs, const std::array<QuadUV, 5>& quadUVs) -> std::tuple<uint32_t, float>
 						{
-							float mse = 0.0f;
+							auto MeanSquareErrorUVs = [](const std::array<QuadUV, 5>& src, const std::array<QuadUV, 5>& tgt) -> float
+								{
+									float mse = 0.0f;
+									for (size_t i = 0; i < 4; i++)
+									{
+										const QuadUV& srcUV = src[i];
+										const QuadUV& tgtUV = tgt[i];
+										for (size_t j = 0; j < 4; j++)
+										{
+											mse += ((srcUV[j].x - tgtUV[j].x) * (srcUV[j].x - tgtUV[j].x)) + ((srcUV[j].y - tgtUV[j].y) * (srcUV[j].y - tgtUV[j].y));
+										}
+									}
+									return mse;
+								};
+
+							float bestMSE = std::numeric_limits<float>::max();
+							uint32_t bestRotation = 0;
 							for (size_t i = 0; i < 4; i++)
 							{
-								const QuadUV& srcUV = src[i];
-								const QuadUV& tgtUV = tgt[i];
-								for (size_t j = 0; j < 4; j++)
+								float mse = MeanSquareErrorUVs(quadUVs, animUVs);
+								if (mse < bestMSE)
 								{
-									mse += ((srcUV[j].x - tgtUV[j].x) * (srcUV[j].x - tgtUV[j].x)) + ((srcUV[j].y - tgtUV[j].y) * (srcUV[j].y - tgtUV[j].y));
+									bestMSE = mse;
+									bestRotation = static_cast<uint32_t>(i);
 								}
+								RotateQuadUV(animUVs);
 							}
-							return mse;
+
+							return {bestRotation, bestMSE};
 						};
 
-					float bestMSE = std::numeric_limits<float>::max();
-					int bestRotation = 0;
-					for (size_t i = 0; i < 4; i++)
+					std::tuple<uint32_t, float> bestOrientation = FindBestRotation(animUVs, quadUVs);
+
+					MirrorQuadUV(true, animUVs);
+					std::tuple<uint32_t, float> currOrientation = FindBestRotation(animUVs, quadUVs);
+					if (std::get<float>(currOrientation) < std::get<float>(bestOrientation))
 					{
-						float mse = MeanSquareErrorUVs(quadUVs, animUVs);
-						if (mse < bestMSE)
-						{
-							bestMSE = mse;
-							bestRotation = static_cast<int>(i);
-						}
-						RotateQuadUV(animUVs);
+						std::get<float>(bestOrientation) = std::get<float>(currOrientation);
+						std::get<uint32_t>(bestOrientation) = std::get<uint32_t>(currOrientation) | 4u;
 					}
-					return bestRotation;
+					MirrorQuadUV(true, animUVs);
+
+					MirrorQuadUV(false, animUVs);
+					currOrientation = FindBestRotation(animUVs, quadUVs);
+					if (std::get<float>(currOrientation) < std::get<float>(bestOrientation))
+					{
+						std::get<float>(bestOrientation) = std::get<float>(currOrientation);
+						std::get<uint32_t>(bestOrientation) = std::get<uint32_t>(currOrientation) | 8u;
+					}
+					MirrorQuadUV(false, animUVs);
+
+					return std::get<uint32_t>(bestOrientation);
 				};
 
 			static ButtonUI applyQuadBtn;
@@ -1373,16 +1402,36 @@ bool AnimTexture::RenderUI(std::vector<std::string>& animTexNames, std::vector<Q
 			}
 			if (applyQuadBtn.Show("Add", "Animation successfully added to quadblock.", !found) && !found)
 			{
-				if (!m_manualRotation)
+				if (!m_manualOrientation)
 				{
 					const std::array<QuadUV, 5>& quadUVs = quadblocks[m_previewQuadIndex].GetUVs();
-					std::array<QuadUV, 5>& animUVs = m_frames[0].uvs;
-					int bestRotation = FindBestRotation(animUVs, quadUVs);
-					if (bestRotation == 0) { m_quadblockIndexes.push_back(m_previewQuadIndex); }
+					std::array<QuadUV, 5>& animUVs = m_frames[m_startAtFrame].uvs;
+					uint32_t bestOrientation = FindBestOrientation(animUVs, quadUVs);
+					if (bestOrientation == 0) { m_quadblockIndexes.push_back(m_previewQuadIndex); }
 					else
 					{
 						AnimTexture newTex = AnimTexture(m_path, animTexNames);
-						newTex.CopyParameters(*this, bestRotation * 90);
+						newTex.CopyParameters(*this);
+
+						bool horMirror = (bestOrientation & 4) == 4;
+						if (horMirror)
+						{
+							newTex.MirrorFrames(true);
+							newTex.m_horMirror = !m_horMirror;
+						}
+
+						bool verMirror = (bestOrientation & 8) == 8;
+						if (verMirror)
+						{
+							newTex.MirrorFrames(false);
+							newTex.m_verMirror = !m_verMirror;
+						}
+
+						uint32_t rotation = bestOrientation & 0b11;
+						int totalRotation = static_cast<int>(rotation) * 90;
+						newTex.RotateFrames(totalRotation);
+						newTex.m_rotation = (m_rotation + totalRotation) % 360;
+
 						newTex.m_quadblockIndexes.push_back(m_previewQuadIndex);
 						newTex.m_previewQuadName = m_previewQuadName;
 						newTex.m_previewQuadIndex = m_previewQuadIndex;
@@ -1426,30 +1475,48 @@ bool AnimTexture::RenderUI(std::vector<std::string>& animTexNames, std::vector<Q
 			if (!found) { found = m_previewMaterialName == m_lastAppliedMaterialName; }
 			if (applyMatBtn.Show("Apply", "Animation successfully applied to all material quadblocks", !found) && !found)
 			{
-				std::unordered_map<int, AnimTexture> newAnims = {};
-				std::array<QuadUV, 5>& animUVs = m_frames[0].uvs;
+				std::unordered_map<uint32_t, AnimTexture> newAnims = {};
+				std::array<QuadUV, 5>& animUVs = m_frames[m_startAtFrame].uvs;
 				for (const auto& [material, indexes] : materialMap)
 				{
 					if (m_previewMaterialName == material)
 					{
 						for (const size_t index : indexes)
 						{
-							if (!m_manualRotation)
+							if (!m_manualOrientation)
 							{
 								const std::array<QuadUV, 5>& quadUVs = quadblocks[index].GetUVs();
-								int bestRotation = FindBestRotation(animUVs, quadUVs);
-								if (bestRotation == 0) { m_quadblockIndexes.push_back(index); }
+								uint32_t bestOrientation = FindBestOrientation(animUVs, quadUVs);
+								if (bestOrientation == 0) { m_quadblockIndexes.push_back(index); }
 								else
 								{
-									if (newAnims.contains(bestRotation)) { newAnims[bestRotation].m_quadblockIndexes.push_back(index); }
+									if (newAnims.contains(bestOrientation)) { newAnims[bestOrientation].m_quadblockIndexes.push_back(index); }
 									else
 									{
 										AnimTexture newTex = AnimTexture(m_path, animTexNames);
 										animTexNames.push_back(newTex.GetName());
-										newTex.CopyParameters(*this, bestRotation * 90);
+										newTex.CopyParameters(*this);
+
+										if (bestOrientation & 4)
+										{
+											newTex.MirrorFrames(true);
+											newTex.m_horMirror = !m_horMirror;
+										}
+
+										if (bestOrientation & 8)
+										{
+											newTex.MirrorFrames(false);
+											newTex.m_verMirror = !m_verMirror;
+										}
+
+										uint32_t rotation = bestOrientation & 0b11;
+										int totalRotation = static_cast<int>(rotation) * 90;
+										newTex.RotateFrames(totalRotation);
+										newTex.m_rotation = (m_rotation + totalRotation) % 360;
+
 										newTex.m_lastAppliedMaterialName = m_lastAppliedMaterialName;
 										newTex.m_quadblockIndexes.push_back(index);
-										newAnims[bestRotation] = newTex;
+										newAnims[bestOrientation] = newTex;
 									}
 								}
 							}

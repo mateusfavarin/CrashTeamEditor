@@ -150,24 +150,34 @@ PSX::TextureLayout Texture::Serialize(const QuadUV& uvs, bool lowLOD)
 
 	uint8_t x = static_cast<uint8_t>((m_imageX % TEXPAGE_WIDTH) * bppMultiplier);
 	uint8_t y = static_cast<uint8_t>(m_imageY % TEXPAGE_HEIGHT);
-	float width = static_cast<float>(GetWidth() - 1);
-	float height = static_cast<float>(GetHeight() - 1);
+	float width = static_cast<float>(GetWidth());
+	float height = static_cast<float>(GetHeight());
 	layout.u0 = x + static_cast<uint8_t>(std::round(uvs[0].x * width));	layout.v0 = y + static_cast<uint8_t>(std::round(uvs[0].y * height));
 	layout.u1 = x + static_cast<uint8_t>(std::round(uvs[1].x * width));	layout.v1 = y + static_cast<uint8_t>(std::round(uvs[1].y * height));
 	layout.u2 = x + static_cast<uint8_t>(std::round(uvs[2].x * width));	layout.v2 = y + static_cast<uint8_t>(std::round(uvs[2].y * height));
 	layout.u3 = x + static_cast<uint8_t>(std::round(uvs[3].x * width));	layout.v3 = y + static_cast<uint8_t>(std::round(uvs[3].y * height));
 
-	if (!lowLOD)
-	{
-		auto FixOffByOne = [](const uint8_t& n0, uint8_t& n1, float expected)
-			{
-				n1 -= static_cast<uint8_t>(static_cast<int>(n1 - n0) - static_cast<int>(std::trunc(expected)));
-			};
+	auto FixOffByOne = [](uint8_t& n0, uint8_t& n1)
+		{
+			if (n0 == n1) { return; }
+			uint8_t max = std::max(n0, n1);
+			if (max == n0) { n0--; }
+			else { n1--; }
+		};
 
-		FixOffByOne(layout.u0, layout.u1, (uvs[1].x * width) - (uvs[0].x * width));
-		FixOffByOne(layout.u2, layout.u3, (uvs[3].x * width) - (uvs[2].x * width));
-		FixOffByOne(layout.v0, layout.v2, (uvs[2].y * height) - (uvs[0].y * height));
-		FixOffByOne(layout.v1, layout.v3, (uvs[3].y * height) - (uvs[1].y * height));
+	if (std::max(layout.u0, layout.u1) - std::min(layout.u0, layout.u1) > std::max(layout.v0, layout.v1) - std::min(layout.v0, layout.v1))
+	{
+		FixOffByOne(layout.u0, layout.u1);
+		FixOffByOne(layout.u2, layout.u3);
+		FixOffByOne(layout.v0, layout.v2);
+		FixOffByOne(layout.v1, layout.v3);
+	}
+	else
+	{
+		FixOffByOne(layout.v0, layout.v1);
+		FixOffByOne(layout.v2, layout.v3);
+		FixOffByOne(layout.u0, layout.u2);
+		FixOffByOne(layout.u1, layout.u3);
 	}
 
 	return layout;
