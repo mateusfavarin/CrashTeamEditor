@@ -81,7 +81,75 @@ std::string ShaderTemplates::vert_;
 //=====================================================================================================================
 // Fragment shaders
 //=====================================================================================================================
+std::string ShaderTemplates::frag_vcolornormaltex = R"*(
+#version 330
 
+out vec4 FragColor;
+
+in vec3 FragModelPos;
+in vec3 FragWorldPos;
+in vec3 Normal;
+in vec3 VertColor;
+
+//world
+uniform mat4 mvp;
+uniform mat4 model;
+uniform vec3 camViewDir;
+uniform vec3 camWorldPos;
+
+//draw variations
+uniform int drawType; //correlates to GuiRenderSettings::RenderType (not a flag)
+uniform int shaderSettings; //correlates to Mesh::ShaderSettings (flag)
+
+//misc
+uniform float time;
+uniform vec3 lightDir;
+uniform float wireframeWireThickness;
+
+//note: many of the ways I accomplish things here (e.g., backface culling, wireframe) could be accomplished *MUCH* more
+//efficiently with purpose-made opengl features, many function calls exist for stuff like that. This approach is simpler
+//and requires no invasive changes to how the Shader/Mesh class works, but it might not be hard to impl.
+void main()
+{
+  float diffuseLit = max(dot(-normalize(Normal), lightDir), 0.0);
+  vec4 diffCol = vec4(diffuseLit, diffuseLit, diffuseLit, 1.0);
+  if (drawType == 0) //0 == "VColor"
+    FragColor = vec4(VertColor.rgb, 1.0);
+  else if (drawType == 1) //1 == "Diffuse"
+  {
+    vec4 finalCol = (vec4(0.1, 0.0, 0.3, 1.0) + diffCol) * vec4(0.2, 1.0, 0.2, 1.0); //(ambient + diffuse) * objcolor;
+	  FragColor = finalCol;
+  }
+  else if (drawType == 2) //2 == "(.obj Normals) Face Direction"
+  { //Exterior normals=blue, interior normals=red
+    //this logic for red/blue might be backwards idk (compare to blender to make sure).
+    float normalDir = dot(-normalize(Normal), (camWorldPos - FragWorldPos));
+    vec4 chosenColor;
+    if (normalDir < 0)
+      chosenColor = vec4(0.0, 0.0, 1.0, 1.0);
+    else
+      chosenColor = vec4(1.0, 0.0, 0.0, 1.0);
+    chosenColor = (vec4(0.1, 0.1, 0.1, 1.0) + diffCol) * chosenColor;  //(ambient + diffuse) * objcolor;
+    FragColor = chosenColor;
+  }
+  else if (drawType == 3) //3 == "(calc Normals) Face Direction"
+  { //Exterior normals=blue, interior normals=red
+    //todo
+  }
+  else if (drawType == 4) //4 == "World Normals"
+  {
+    FragColor = vec4((normalize(Normal) + vec3(1.0, 1.0, 1.0)) * 0.5, 1.0);
+  }
+
+  if ((shaderSettings & 32) != 0) //32 == "Blinky"
+  {
+    if (mod(time * 1.5, 1.0) < 0.5)
+    {
+      FragColor = vec4(1.0 - FragColor.r, 1.0 - FragColor.g, 1.0 - FragColor.b, FragColor.a);
+    }
+  }
+}
+)*";
 std::string ShaderTemplates::frag_vcolornormal = R"*(
 #version 330
 

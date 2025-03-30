@@ -65,9 +65,11 @@ void Mesh::Unbind() const
 
 void Mesh::Draw() const
 {
-  GLuint currentProgram;
-  glGetIntegerv(GL_CURRENT_PROGRAM, (GLint*)&currentProgram);
-	if (m_VAO != 0) { glDrawArrays(GL_TRIANGLES, 0, m_dataBufSize / sizeof(float)); }
+	if (m_VAO != 0) 
+  {
+
+    glDrawArrays(GL_TRIANGLES, 0, m_dataBufSize / sizeof(float));
+  }
 }
 
 /// <summary>
@@ -113,9 +115,8 @@ void Mesh::UpdateMesh(const std::vector<float>& data, unsigned includedDataFlags
     case VBufDataType::Normals: //dimension = 3
       ultimateStrideSize += 3;
       break;
-    case VBufDataType::STUV_1: //undecided 2/4 idk probably 2
-      fprintf(stderr, "Unimplemented VBufDataType::STUV_1 in Mesh::UpdateMesh()");
-      throw 0;
+    case VBufDataType::STUV_1: //dimension = 2
+      ultimateStrideSize += 2;
       break;
     }
   }
@@ -168,8 +169,11 @@ void Mesh::UpdateMesh(const std::vector<float>& data, unsigned includedDataFlags
       case VBufDataType::STUV_1:
         if (includedDataFlags & VBufDataType::STUV_1)
         {
-          fprintf(stderr, "Unimplemented VBufDataType::STUV_1 in Mesh::UpdateMesh()");
-          throw 0;
+          constexpr int dim = 2;
+          glVertexAttribPointer(takenCount, dim, GL_FLOAT, GL_FALSE, ultimateStrideSize * sizeof(float), (void*)(takenSize * sizeof(float)));
+          glEnableVertexAttribArray(takenCount);
+          takenCount++;
+          takenSize += dim;
         }
         break;
       }

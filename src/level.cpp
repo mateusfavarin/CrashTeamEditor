@@ -1284,6 +1284,7 @@ bool Level::SetGhostData(const std::filesystem::path& path, bool tropy)
 
 void Level::GeomPoint(const Vertex* verts, int ind, std::vector<float>& data)
 {
+	//for present info, data needs to be pushed in the same order as it appears in VBufDataType
 	data.push_back(verts[ind].m_pos.x);
 	data.push_back(verts[ind].m_pos.y);
 	data.push_back(verts[ind].m_pos.z);
@@ -1294,17 +1295,112 @@ void Level::GeomPoint(const Vertex* verts, int ind, std::vector<float>& data)
 	data.push_back(col.Red());
 	data.push_back(col.Green());
 	data.push_back(col.Blue());
-	//2nd set of normals
-	//2nd set of normals
-	//2nd set of normals
-	//001
-	//010
-	//100
-	//stuv coords
-	//stuv coords
-	//stuv coords
-	//stuv coords
-	//quadblock id
+}
+
+void Level::GeomUVs(const std::array<QuadUV, NUM_FACES_QUADBLOCK + 1>& uvs, int quadInd, int vertInd, std::vector<float>& data)
+{
+
+	/* 062 is triblock
+	p0 -- p1 -- p2
+	|  q0 |  q1 |
+	p3 -- p4 -- p5
+	|  q2 |  q3 |
+	p6 -- p7 -- p8
+  */
+	QuadUV& quv = uvs[quadInd];
+	int vertIndInUvs;
+	switch (quadInd)
+	{
+	case 0:
+		switch (vertInd)
+		{
+		case 0:
+			vertIndInUvs = 0;
+			break;
+		case 1:
+			vertIndInUvs = 1;
+			break;
+		case 3:
+			vertIndInUvs = 2;
+			break;
+		case 4:
+			vertIndInUvs = 3;
+			break;
+		}
+		break;
+	case 1:
+		switch (vertInd)
+		{
+		case 1:
+			vertIndInUvs = 0;
+			break;
+		case 2:
+			vertIndInUvs = 1;
+			break;
+		case 4:
+			vertIndInUvs = 2;
+			break;
+		case 5:
+			vertIndInUvs = 3;
+			break;
+		}
+		break;
+	case 2:
+		switch (vertInd)
+		{
+		case 3:
+			vertIndInUvs = 0;
+			break;
+		case 4:
+			vertIndInUvs = 1;
+			break;
+		case 6:
+			vertIndInUvs = 2;
+			break;
+		case 7:
+			vertIndInUvs = 3;
+			break;
+		}
+		break;
+	case 3:
+		switch (vertInd)
+		{
+		case 4:
+			vertIndInUvs = 0;
+			break;
+		case 5:
+			vertIndInUvs = 1;
+			break;
+		case 7:
+			vertIndInUvs = 2;
+			break;
+		case 8:
+			vertIndInUvs = 3;
+			break;
+		}
+		break;
+	case 4: //low LOD
+		switch (vertInd)
+		{
+		case 0:
+			vertIndInUvs = 0;
+			break;
+		case 2:
+			vertIndInUvs = 1;
+			break;
+		case 6:
+			vertIndInUvs = 2;
+			break;
+		case 8:
+			vertIndInUvs = 3;
+			break;
+		}
+		break;
+	}
+
+	const Vec2& uv = quv[vertIndInUvs];
+	data.push_back(uv.x);
+	data.push_back(uv.y);
 }
 
 void Level::GeomOctopoint(const Vertex* verts, int ind, std::vector<float>& data)
@@ -1348,6 +1444,8 @@ void Level::GeomOctopoint(const Vertex* verts, int ind, std::vector<float>& data
 
 void Level::GeomBoundingRect(const BSP* b, int depth, std::vector<float>& data)
 {
+	constexpr float sqrtThree = 1.44224957031f;
+
 	if (GuiRenderSettings::bspTreeMaxDepth < depth)
 	{
 		GuiRenderSettings::bspTreeMaxDepth = depth;
@@ -1365,14 +1463,14 @@ void Level::GeomBoundingRect(const BSP* b, int depth, std::vector<float>& data)
 		Vertex(Point(bb.max.x, bb.max.y, bb.max.z, c.r, c.g, c.b)), //+++
 	};
 	//these normals are octohedral, should technechally be duplicated and vertex normals should probably be for faces.
-	verts[0].m_normal = Vec3(-1.f / 1.44224957031f, -1.f / 1.44224957031f, -1.f / 1.44224957031f);
-	verts[1].m_normal = Vec3(-1.f / 1.44224957031f, -1.f / 1.44224957031f, 1.f / 1.44224957031f);
-	verts[2].m_normal = Vec3(-1.f / 1.44224957031f, 1.f / 1.44224957031f, -1.f / 1.44224957031f);
-	verts[3].m_normal = Vec3(1.f / 1.44224957031f, -1.f / 1.44224957031f, -1.f / 1.44224957031f);
-	verts[4].m_normal = Vec3(1.f / 1.44224957031f, 1.f / 1.44224957031f, -1.f / 1.44224957031f);
-	verts[5].m_normal = Vec3(-1.f / 1.44224957031f, 1.f / 1.44224957031f, 1.f / 1.44224957031f);
-	verts[6].m_normal = Vec3(1.f / 1.44224957031f, -1.f / 1.44224957031f, 1.f / 1.44224957031f);
-	verts[7].m_normal = Vec3(1.f / 1.44224957031f, 1.f / 1.44224957031f, 1.f / 1.44224957031f);
+	verts[0].m_normal = Vec3(-1.f / sqrtThree, -1.f / sqrtThree, -1.f / sqrtThree);
+	verts[1].m_normal = Vec3(-1.f / sqrtThree, -1.f / sqrtThree, 1.f / sqrtThree);
+	verts[2].m_normal = Vec3(-1.f / sqrtThree, 1.f / sqrtThree, -1.f / sqrtThree);
+	verts[3].m_normal = Vec3(1.f / sqrtThree, -1.f / sqrtThree, -1.f / sqrtThree);
+	verts[4].m_normal = Vec3(1.f / sqrtThree, 1.f / sqrtThree, -1.f / sqrtThree);
+	verts[5].m_normal = Vec3(-1.f / sqrtThree, 1.f / sqrtThree, 1.f / sqrtThree);
+	verts[6].m_normal = Vec3(1.f / sqrtThree, -1.f / sqrtThree, 1.f / sqrtThree);
+	verts[7].m_normal = Vec3(1.f / sqrtThree, 1.f / sqrtThree, 1.f / sqrtThree);
 
 	if (GuiRenderSettings::bspTreeTopDepth <= depth && GuiRenderSettings::bspTreeBottomDepth >= depth) {
 		GeomPoint(verts, 2, data); //-+-
@@ -1461,16 +1559,32 @@ void Level::GenerateRenderLevData(std::vector<Quadblock>& quadblocks)
 
 			for (int triIndex = 0; triIndex < 8; triIndex++)
 			{
-				GeomPoint(verts, FaceIndexConstants::quadHLODVertArrangements[triIndex][0], highLODData);
-				GeomPoint(verts, FaceIndexConstants::quadHLODVertArrangements[triIndex][1], highLODData);
-				GeomPoint(verts, FaceIndexConstants::quadHLODVertArrangements[triIndex][2], highLODData);
+				int firstPointIndex = FaceIndexConstants::quadHLODVertArrangements[triIndex][0];
+				GeomPoint(verts, firstPointIndex, highLODData);
+				GeomUVs(qb.GetUVs(), triIndex / 2, firstPointIndex, highLODData);
+
+				int secondPointIndex = FaceIndexConstants::quadHLODVertArrangements[triIndex][1];
+				GeomPoint(verts, secondPointIndex, highLODData);
+				GeomUVs(qb.GetUVs(), triIndex / 2, secondPointIndex, highLODData);
+
+				int thirdPointIndex = FaceIndexConstants::quadHLODVertArrangements[triIndex][2];
+				GeomPoint(verts, thirdPointIndex, highLODData);
+				GeomUVs(qb.GetUVs(), triIndex / 2, thirdPointIndex, highLODData);
 			}
 
 			for (int triIndex = 0; triIndex < 2; triIndex++)
 			{
-				GeomPoint(verts, FaceIndexConstants::quadLLODVertArrangements[triIndex][0], lowLODData);
-				GeomPoint(verts, FaceIndexConstants::quadLLODVertArrangements[triIndex][1], lowLODData);
-				GeomPoint(verts, FaceIndexConstants::quadLLODVertArrangements[triIndex][2], lowLODData);
+				int firstPointIndex = FaceIndexConstants::quadLLODVertArrangements[triIndex][0];
+				GeomPoint(verts, firstPointIndex, lowLODData);
+				GeomUVs(qb.GetUVs(), 4, firstPointIndex, lowLODData);
+
+				int secondPointIndex = FaceIndexConstants::quadLLODVertArrangements[triIndex][1];
+				GeomPoint(verts, secondPointIndex, lowLODData);
+				GeomUVs(qb.GetUVs(), 4, secondPointIndex, lowLODData);
+
+				int thirdPointIndex = FaceIndexConstants::quadLLODVertArrangements[triIndex][2];
+				GeomPoint(verts, thirdPointIndex, lowLODData);
+				GeomUVs(qb.GetUVs(), 4, thirdPointIndex, lowLODData);
 			}
 		}
 		else
@@ -1490,18 +1604,49 @@ void Level::GenerateRenderLevData(std::vector<Quadblock>& quadblocks)
 			}
 
 			for (int triIndex = 0; triIndex < 4; triIndex++)
-			{
-				GeomPoint(verts, FaceIndexConstants::triHLODVertArrangements[triIndex][0], highLODData);
-				GeomPoint(verts, FaceIndexConstants::triHLODVertArrangements[triIndex][1], highLODData);
-				GeomPoint(verts, FaceIndexConstants::triHLODVertArrangements[triIndex][2], highLODData);
-			}
+ 			{
+				int quadBlockIndex;
+				switch (triIndex)
+				{
+				case 0:
+				case 1:
+					quadBlockIndex = 0;
+					break;
+				case 2:
+					quadBlockIndex = 1;
+					break;
+				case 3:
+					quadBlockIndex = 2;
+					break;
+				}
 
-			for (int triIndex = 0; triIndex < 1; triIndex++)
-			{
-				GeomPoint(verts, FaceIndexConstants::triLLODVertArrangements[triIndex][0], lowLODData);
-				GeomPoint(verts, FaceIndexConstants::triLLODVertArrangements[triIndex][1], lowLODData);
-				GeomPoint(verts, FaceIndexConstants::triLLODVertArrangements[triIndex][2], lowLODData);
-			}
+				int firstPointIndex = FaceIndexConstants::triHLODVertArrangements[triIndex][0];
+				GeomPoint(verts, firstPointIndex, highLODData);
+				GeomUVs(qb.GetUVs(), quadBlockIndex, firstPointIndex, highLODData);
+
+				int secondPointIndex = FaceIndexConstants::triHLODVertArrangements[triIndex][1];
+				GeomPoint(verts, secondPointIndex, highLODData);
+				GeomUVs(qb.GetUVs(), quadBlockIndex, secondPointIndex, highLODData);
+
+				int thirdPointIndex = FaceIndexConstants::triHLODVertArrangements[triIndex][2];
+				GeomPoint(verts, thirdPointIndex, highLODData);
+				GeomUVs(qb.GetUVs(), quadBlockIndex, thirdPointIndex, highLODData);
+ 			}
+
+ 			for (int triIndex = 0; triIndex < 1; triIndex++)
+ 			{
+				int firstPointIndex = FaceIndexConstants::triLLODVertArrangements[triIndex][0];
+				GeomPoint(verts, firstPointIndex, lowLODData);
+				GeomUVs(qb.GetUVs(), 4, firstPointIndex, lowLODData);
+
+				int secondPointIndex = FaceIndexConstants::triLLODVertArrangements[triIndex][1];
+				GeomPoint(verts, secondPointIndex, lowLODData);
+				GeomUVs(qb.GetUVs(), 4, secondPointIndex, lowLODData);
+
+				int thirdPointIndex = FaceIndexConstants::triLLODVertArrangements[triIndex][2];
+				GeomPoint(verts, thirdPointIndex, lowLODData);
+				GeomUVs(qb.GetUVs(), 4, thirdPointIndex, lowLODData);
+ 			}
 		}
 	}
 	m_highLODMesh.UpdateMesh(highLODData, (Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
