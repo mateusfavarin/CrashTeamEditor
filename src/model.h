@@ -15,6 +15,7 @@ public:
   glm::mat4 CalculateModelMatrix();
   Mesh* GetMesh();
   void SetMesh(Mesh* newMesh = nullptr);
+  void Setup();
   void Draw();
 
 private:

@@ -7,6 +7,7 @@
 #include <vector>
 #include <filesystem>
 #include <unordered_set>
+#include <functional>
 
 typedef std::unordered_set<size_t> Shape;
 

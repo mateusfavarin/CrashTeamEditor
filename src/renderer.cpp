@@ -163,6 +163,13 @@ void Renderer::Render(std::vector<Model> models)
       lastUsedShader = shad;
     }
 
+    //hacky thing, I'm not sure if this is necessary, but this ensures that texture unit is setup before using shader.
+    /*shad->Unuse();
+    m.Setup();
+    shad->Use();*/
+
+    m.Setup();
+
     if ((m.GetMesh()->GetShaderSettings() & Mesh::ShaderSettings::DontOverrideShaderSettings) == 0)
     {
       int newShadSettings = Mesh::ShaderSettings::None;
@@ -185,6 +192,11 @@ void Renderer::Render(std::vector<Model> models)
     shad->SetUniform("time", m_time);
     shad->SetUniform("lightDir", glm::normalize(glm::vec3(0.2f, -3.f, -1.f)));
     shad->SetUniform("wireframeWireThickness", .02f);
+    GLuint tex = m.GetMesh()->GetTextureStore();
+    if (tex)
+    {
+      shad->SetUniform("tex", (int)tex);
+    }
     m.Draw();
   }
 

@@ -8,6 +8,7 @@
 
 struct ShaderTemplates
 {
+  static std::string geom_vcolornormaltex;
   static std::string geom_vcolornormal;
   static std::string geom_vcolor;
   static std::string geom_normal;
