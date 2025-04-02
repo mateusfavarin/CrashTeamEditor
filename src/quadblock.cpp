@@ -513,7 +513,7 @@ std::vector<uint8_t> Quadblock::Serialize(size_t id, size_t offTextures, const s
 		quadblock.offMidTextures[1] = static_cast<uint32_t>(m_animTexOffset[1] | 1);
 		quadblock.offMidTextures[2] = static_cast<uint32_t>(m_animTexOffset[2] | 1);
 		quadblock.offMidTextures[3] = static_cast<uint32_t>(m_animTexOffset[3] | 1);
-		quadblock.offLowTexture = static_cast<uint32_t>(m_animTexOffset[4] | 1);
+		quadblock.offLowTexture = static_cast<uint32_t>(offTextures + (m_textureIDs[4] * sizeof(PSX::TextureGroup)));
 	}
 	else
 	{

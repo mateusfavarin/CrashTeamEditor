@@ -410,6 +410,7 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 				const std::vector<AnimTextureFrame>& animFrames = animTex.GetFrames();
 				const std::vector<Texture>& animTextures = animTex.GetTextures();
 				std::vector<std::vector<size_t>> texgroupIndexesPerFrame(NUM_FACES_QUADBLOCK + 1);
+				bool firstFrame = true;
 				for (const AnimTextureFrame& frame : animFrames)
 				{
 					Texture& texture = const_cast<Texture&>(animTextures[frame.textureIndex]);
@@ -432,7 +433,16 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 							texGroups.push_back(texGroup);
 						}
 						texgroupIndexesPerFrame[i].push_back(textureID);
+						if (firstFrame && i == NUM_FACES_QUADBLOCK)
+						{
+							const std::vector<size_t>& quadblockIndexes = animTex.GetQuadblockIndexes();
+							for (size_t index : quadblockIndexes)
+							{
+								m_quadblocks[index].SetTextureID(textureID, i);
+							}
+						}
 					}
+					firstFrame = false;
 				}
 				std::array<size_t, NUM_FACES_QUADBLOCK + 1> offsetPerQuadblock = {};
 				for (size_t i = 0; i < NUM_FACES_QUADBLOCK + 1; i++)
