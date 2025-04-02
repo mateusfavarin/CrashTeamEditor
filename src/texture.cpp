@@ -370,9 +370,19 @@ static bool FindAvailableSpace(std::vector<bool>& vramUsed, size_t width, size_t
 std::vector<uint8_t> PackVRM(std::vector<Texture*>& textures)
 {
 	bool empty = true;
-	std::vector<bool> vramUsed(VRAM_WIDTH * VRAM_HEIGHT, false);
-	std::vector<uint16_t> vram(VRAM_WIDTH * VRAM_HEIGHT, 0);
 	std::vector<Texture*> cachedTextures;
+	std::vector<uint16_t> vram(VRAM_WIDTH * VRAM_HEIGHT, 0);
+	std::vector<bool> vramUsed(VRAM_WIDTH * VRAM_HEIGHT, false);
+
+	for (size_t i = 0; i < TEXPAGE_HEIGHT; i++)
+	{
+		size_t reservedBufferLocation = GetVRAMLocation(6 * TEXPAGE_WIDTH, i);
+		size_t rowSize = 2 * TEXPAGE_WIDTH;
+		for (size_t j = 0; j < rowSize; j++)
+		{
+			vramUsed[reservedBufferLocation + j] = true;
+		}
+	}
 
 	for (Texture* texture : textures)
 	{
