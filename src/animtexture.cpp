@@ -148,7 +148,7 @@ bool AnimTexture::ReadAnimation(const std::filesystem::path& path)
 	return true;
 }
 
-bool AnimTexture::ClearAnimation()
+void AnimTexture::ClearAnimation()
 {
 	SetDefaultParams();
 	m_name.clear(); m_path.clear();
@@ -157,7 +157,6 @@ bool AnimTexture::ClearAnimation()
 	m_previewQuadName.clear();
 	m_previewMaterialName.clear();
 	m_lastAppliedMaterialName.clear();
-	return false;
 }
 
 void AnimTexture::SetDefaultParams()

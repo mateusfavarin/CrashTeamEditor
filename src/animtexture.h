@@ -33,7 +33,7 @@ public:
 
 private:
 	bool ReadAnimation(const std::filesystem::path& path);
-	bool ClearAnimation();
+	void ClearAnimation();
 	void SetDefaultParams();
 	void MirrorQuadUV(bool horizontal, std::array<QuadUV, 5>& uvs);
 	void RotateQuadUV(std::array<QuadUV, 5>& uvs);
