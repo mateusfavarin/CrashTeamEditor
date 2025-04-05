@@ -115,9 +115,9 @@ void Texture::SetCLUTCoords(size_t x, size_t y)
 	m_clutY = y;
 }
 
-void Texture::SetBlendMode(size_t mode)
+void Texture::SetBlendMode(uint16_t mode)
 {
-	m_blendMode = static_cast<uint16_t>(mode);
+	m_blendMode = mode;
 }
 
 PSX::TextureLayout Texture::Serialize(const QuadUV& uvs, bool lowLOD)

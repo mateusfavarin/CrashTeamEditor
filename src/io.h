@@ -3,6 +3,7 @@
 #include "lev.h"
 #include "path.h"
 #include "quadblock.h"
+#include "animtexture.h"
 
 #include <nlohmann/json.hpp>
 

@@ -76,7 +76,7 @@ const std::vector<Quadblock>& Level::GetQuadblocks() const
 
 enum class PresetHeader : unsigned
 {
-	SPAWN, LEVEL, PATH, MATERIAL, TURBO_PAD
+	SPAWN, LEVEL, PATH, MATERIAL, TURBO_PAD, ANIM_TEXTURES
 };
 
 bool Level::LoadPreset(const std::filesystem::path& filename)
@@ -117,6 +117,16 @@ bool Level::LoadPreset(const std::filesystem::path& filename)
 				m_propCheckpoints.SetPreview(material, json[material + "_checkpoint"]);
 				m_propCheckpoints.Apply(material, m_materialToQuadblocks[material], m_quadblocks);
 			}
+		}
+	}
+	else if (header == PresetHeader::ANIM_TEXTURES)
+	{
+		const size_t animCount = json["animCount"];
+		for (size_t i = 0; i < animCount; i++)
+		{
+			AnimTexture animTexture;
+			animTexture.FromJson(json["anim" + std::to_string(i)], m_quadblocks);
+			if (animTexture.IsPopulated()) { m_animTextures.push_back(animTexture); }
 		}
 	}
 	else if (header == PresetHeader::TURBO_PAD)
@@ -182,6 +192,20 @@ bool Level::SavePreset(const std::filesystem::path& path)
 		materialJson["materials"] = materials;
 		std::ofstream materialFile(dirPath / "material.json");
 		materialFile << std::setw(4) << materialJson << std::endl;
+	}
+
+	if (!m_animTextures.empty())
+	{
+		nlohmann::json animJson = {};
+		animJson["header"] = PresetHeader::ANIM_TEXTURES;
+		animJson["animCount"] = m_animTextures.size();
+		size_t i = 0;
+		for (const AnimTexture& animTexture : m_animTextures)
+		{
+			animTexture.ToJson(animJson["anim" + std::to_string(i++)], m_quadblocks);
+		}
+		std::ofstream animFile(dirPath / "animtex.json");
+		animFile << std::setw(4) << animJson << std::endl;
 	}
 
 	std::unordered_set<std::string> turboPads;

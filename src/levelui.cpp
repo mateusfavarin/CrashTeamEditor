@@ -1237,7 +1237,7 @@ void Texture::RenderUI(const std::vector<size_t>& quadblockIndexes, std::vector<
 			{
 				if (ImGui::Selectable(BLEND_MODES[i].c_str()))
 				{
-					SetBlendMode(i);
+					SetBlendMode(static_cast<uint16_t>(i));
 				}
 			}
 			ImGui::EndCombo();

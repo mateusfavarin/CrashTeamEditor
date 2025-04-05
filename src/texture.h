@@ -35,7 +35,7 @@ public:
 	size_t GetCLUTY() const;
 	void SetImageCoords(size_t x, size_t y);
 	void SetCLUTCoords(size_t x, size_t y);
-	void SetBlendMode(size_t mode);
+	void SetBlendMode(uint16_t mode);
 	PSX::TextureLayout Serialize(const QuadUV& uvs, bool lowLOD);
 	bool CompareEquivalency(const Texture& tex);
 	void CopyVRAMAttributes(const Texture& tex);

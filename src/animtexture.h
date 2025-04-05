@@ -6,6 +6,7 @@
 
 #include <string>
 #include <filesystem>
+#include <nlohmann/json.hpp>
 
 struct AnimTextureFrame
 {
@@ -24,10 +25,14 @@ public:
 	const std::vector<size_t>& GetQuadblockIndexes() const;
 	std::vector<uint8_t> Serialize(size_t offsetFirstFrame, size_t offTextures) const;
 	const std::string& GetName() const;
+	bool IsPopulated() const;
 	void CopyParameters(const AnimTexture& animTex);
+	void FromJson(const nlohmann::json& json, std::vector<Quadblock>& quadblocks);
+	void ToJson(nlohmann::json& json, const std::vector<Quadblock>& quadblocks) const;
 	bool RenderUI(std::vector<std::string>& animTexNames, std::vector<Quadblock>& quadblocks, const std::unordered_map<std::string, std::vector<size_t>>& materialMap, const std::string& query, std::vector<AnimTexture>& newTextures);
 
 private:
+	bool ReadAnimation(const std::filesystem::path& path);
 	void MirrorQuadUV(bool horizontal, std::array<QuadUV, 5>& uvs);
 	void RotateQuadUV(std::array<QuadUV, 5>& uvs);
 	void MirrorFrames(bool horizontal);
