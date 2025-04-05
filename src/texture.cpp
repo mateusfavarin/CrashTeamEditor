@@ -186,7 +186,12 @@ PSX::TextureLayout Texture::Serialize(const QuadUV& uvs, bool lowLOD)
 bool Texture::CompareEquivalency(const Texture& tex)
 {
 	Texture::BPP bpp = GetBPP();
-	if ((bpp == Texture::BPP::BPP_16) || (GetWidth() != tex.GetWidth()) || (GetHeight() != tex.GetHeight()) || (bpp != tex.GetBPP())) { return false; }
+	if ((bpp == Texture::BPP::BPP_16) || (GetWidth() != tex.GetWidth()) ||
+			(GetHeight() != tex.GetHeight()) || (bpp != tex.GetBPP()) ||
+			m_shapes.size() != tex.m_shapes.size())
+	{
+		return false;
+	}
 	for (const Shape& aShape : m_shapes)
 	{
 		bool foundShape = false;
@@ -194,12 +199,13 @@ bool Texture::CompareEquivalency(const Texture& tex)
 		for (const Shape& bShape : tex.m_shapes)
 		{
 			if (!bShape.contains(idx)) { continue; }
+			if (aShape.size() != bShape.size()) { return false; }
 
-			foundShape = true;
 			for (size_t bIdx : bShape)
 			{
 				if (!aShape.contains(bIdx)) { return false; }
 			}
+			foundShape = true;
 			break;
 		}
 		if (!foundShape) { return false; }
