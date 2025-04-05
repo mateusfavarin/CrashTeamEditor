@@ -19,7 +19,7 @@ Texture::Texture(const std::filesystem::path& path)
 {
 	m_path = path;
 	m_blendMode = PSX::BlendMode::HALF_TRANSPARENT;
-	CreateTexture();
+	if (!CreateTexture()) { ClearTexture(); }
 }
 
 void Texture::UpdateTexture(const std::filesystem::path& path)
@@ -28,7 +28,7 @@ void Texture::UpdateTexture(const std::filesystem::path& path)
 	ClearTexture();
 	m_path = path;
 	m_blendMode = blendMode;
-	CreateTexture();
+	if (!CreateTexture()) { ClearTexture(); }
 }
 
 Texture::BPP Texture::GetBPP() const
@@ -250,10 +250,11 @@ void Texture::ClearTexture()
 	m_path.clear(); m_shapes.clear();
 }
 
-void Texture::CreateTexture()
+bool Texture::CreateTexture()
 {
 	int channels;
 	stbi_uc* image = stbi_load(m_path.string().c_str(), &m_width, &m_height, &channels, 0);
+	if (image == nullptr) { return false; }
 	bool alphaImage = channels == 4;
 	std::vector<size_t> colorIndexes;
 	for (int i = 0; i < m_width * m_height; i++)
@@ -271,11 +272,17 @@ void Texture::CreateTexture()
 		colorIndexes.push_back(clutIndex);
 	}
 	Texture::BPP bpp = GetBPP();
+	if (GetVRAMWidth() > TEXPAGE_WIDTH || GetHeight() > TEXPAGE_HEIGHT)
+	{
+		stbi_image_free(image);
+		return false;
+	}
 	if (bpp == Texture::BPP::BPP_4) { ConvertPixels(colorIndexes, 4); }
 	else if (bpp == Texture::BPP::BPP_8) { ConvertPixels(colorIndexes, 2); }
 	else { m_image = m_clut; }
 	FillShapes(colorIndexes);
 	stbi_image_free(image);
+	return true;
 }
 
 uint16_t Texture::ConvertColor(unsigned char r, unsigned char g, unsigned char b, unsigned char a)
@@ -379,16 +386,6 @@ std::vector<uint8_t> PackVRM(std::vector<Texture*>& textures)
 	std::vector<Texture*> cachedTextures;
 	std::vector<uint16_t> vram(VRAM_WIDTH * VRAM_HEIGHT, 0);
 	std::vector<bool> vramUsed(VRAM_WIDTH * VRAM_HEIGHT, false);
-
-	for (size_t i = 0; i < TEXPAGE_HEIGHT; i++)
-	{
-		size_t reservedBufferLocation = GetVRAMLocation(6 * TEXPAGE_WIDTH, i);
-		size_t rowSize = 2 * TEXPAGE_WIDTH;
-		for (size_t j = 0; j < rowSize; j++)
-		{
-			vramUsed[reservedBufferLocation + j] = true;
-		}
-	}
 
 	for (Texture* texture : textures)
 	{

@@ -20,7 +20,7 @@ AnimTexture::AnimTexture(const std::filesystem::path& path, const std::vector<st
 		if (validName) { break; }
 		m_name = origName + " (" + std::to_string(repetitionCount++) + ")";
 	}
-	ReadAnimation(path);
+	if (!ReadAnimation(path)) { ClearAnimation(); }
 }
 
 bool AnimTexture::Empty() const
@@ -73,7 +73,7 @@ void AnimTexture::CopyParameters(const AnimTexture& animTex)
 void AnimTexture::FromJson(const nlohmann::json& json, std::vector<Quadblock>& quadblocks)
 {
 	std::filesystem::path path = json["path"];
-	ReadAnimation(path);
+	if (!ReadAnimation(path)) { ClearAnimation(); return; }
 	m_name = json["name"];
 	m_startAtFrame = json["startAt"];
 	m_duration = json["duration"];
@@ -144,6 +144,24 @@ bool AnimTexture::ReadAnimation(const std::filesystem::path& path)
 		m_frames.emplace_back(index, uvs);
 		m_textures.emplace_back(texPath);
 	}
+	SetDefaultParams();
+	return true;
+}
+
+bool AnimTexture::ClearAnimation()
+{
+	SetDefaultParams();
+	m_name.clear(); m_path.clear();
+	m_frames.clear(); m_textures.clear();
+	m_quadblockIndexes.clear();
+	m_previewQuadName.clear();
+	m_previewMaterialName.clear();
+	m_lastAppliedMaterialName.clear();
+	return false;
+}
+
+void AnimTexture::SetDefaultParams()
+{
 	m_startAtFrame = 0;
 	m_duration = 0;
 	m_rotation = 0;
@@ -151,7 +169,6 @@ bool AnimTexture::ReadAnimation(const std::filesystem::path& path)
 	m_verMirror = false;
 	m_previewQuadIndex = 0;
 	m_manualOrientation = false;
-	return true;
 }
 
 void AnimTexture::MirrorQuadUV(bool horizontal, std::array<QuadUV, 5>& uvs)

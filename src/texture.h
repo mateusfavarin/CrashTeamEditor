@@ -46,7 +46,7 @@ public:
 private:
 	void FillShapes(const std::vector<size_t>& colorIndexes);
 	void ClearTexture();
-	void CreateTexture();
+	bool CreateTexture();
 	uint16_t ConvertColor(unsigned char r, unsigned char g, unsigned char b, unsigned char a);
 	void ConvertPixels(const std::vector<size_t>& colorIndexes, unsigned indexesPerPixel);
 
