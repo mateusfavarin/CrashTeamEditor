@@ -136,6 +136,7 @@ bool AnimTexture::ReadAnimation(const std::filesystem::path& path)
 	{
 		const auto& uvs = quadblock.GetUVs();
 		const std::filesystem::path& texPath = quadblock.GetTexPath();
+		if (texPath.empty()) { return false; }
 		if (loadedPaths.contains(texPath)) { m_frames.emplace_back(loadedPaths.at(texPath), uvs); continue; }
 
 		size_t index = m_textures.size();
