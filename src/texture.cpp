@@ -48,8 +48,8 @@ int Texture::GetVRAMWidth() const
 {
 	int ret = m_width;
 	Texture::BPP bpp = GetBPP();
-	if (bpp == Texture::BPP::BPP_4) { ret /= 4; }
-	else if (bpp == Texture::BPP::BPP_8) { ret /= 2; }
+	if (bpp == Texture::BPP::BPP_4) { ret = static_cast<int>(std::ceil(static_cast<float>(m_width) / 4.0f)); }
+	else if (bpp == Texture::BPP::BPP_8) { ret = static_cast<int>(std::ceil(static_cast<float>(m_width) / 4.0f)); }
 	return ret;
 }
 
