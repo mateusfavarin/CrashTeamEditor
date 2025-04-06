@@ -125,7 +125,7 @@ bool Level::LoadPreset(const std::filesystem::path& filename)
 		for (size_t i = 0; i < animCount; i++)
 		{
 			AnimTexture animTexture;
-			animTexture.FromJson(json["anim" + std::to_string(i)], m_quadblocks);
+			animTexture.FromJson(json["anim" + std::to_string(i)], m_quadblocks, m_parentPath);
 			if (animTexture.IsPopulated()) { m_animTextures.push_back(animTexture); }
 		}
 	}
@@ -795,7 +795,7 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 	std::string line;
 	std::ifstream file(objFile);
 	m_name = objFile.filename().replace_extension().string();
-	std::filesystem::path parentPath = objFile.parent_path();
+	m_parentPath = objFile.parent_path();
 
 	bool ret = true;
 	std::unordered_map<std::string, std::vector<Tri>> triMap;
@@ -1007,7 +1007,7 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 
 	if (!materials.empty())
 	{
-		std::filesystem::path mtlPath = parentPath / (objFile.stem().string() + ".mtl");
+		std::filesystem::path mtlPath = m_parentPath / (objFile.stem().string() + ".mtl");
 		if (std::filesystem::exists(mtlPath))
 		{
 			std::ifstream mtl(mtlPath);
@@ -1024,7 +1024,7 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 					std::string imagePath = tokens[1];
 					for (size_t i = 2; i < tokens.size(); i++) { imagePath += " " + tokens[i]; }
 					std::filesystem::path materialPath = imagePath;
-					if (!std::filesystem::exists(materialPath)) { materialPath = parentPath / Split(imagePath, '/').back(); }
+					if (!std::filesystem::exists(materialPath)) { materialPath = m_parentPath / materialPath.filename(); }
 					if (std::filesystem::exists(materialPath))
 					{
 						m_materialToTexture[currMaterial] = Texture(materialPath);

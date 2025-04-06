@@ -70,9 +70,14 @@ void AnimTexture::CopyParameters(const AnimTexture& animTex)
 	m_frames = animTex.m_frames;
 }
 
-void AnimTexture::FromJson(const nlohmann::json& json, std::vector<Quadblock>& quadblocks)
+void AnimTexture::FromJson(const nlohmann::json& json, std::vector<Quadblock>& quadblocks, const std::filesystem::path& parentPath)
 {
 	std::filesystem::path path = json["path"];
+	if (!std::filesystem::exists(path))
+	{
+		path = parentPath / path.filename();
+		if (!std::filesystem::exists(path)) { return; }
+	}
 	if (!ReadAnimation(path)) { ClearAnimation(); return; }
 	m_name = json["name"];
 	m_startAtFrame = json["startAt"];

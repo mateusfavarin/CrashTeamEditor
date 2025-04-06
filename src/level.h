@@ -61,6 +61,7 @@ private:
 	std::vector<std::tuple<std::string, std::string>> m_invalidQuadblocks;
 	std::string m_logMessage;
 	std::string m_name;
+	std::filesystem::path m_parentPath;
 	std::filesystem::path m_savedLevPath;
 	std::filesystem::path m_savedVRMPath;
 	std::array<Spawn, NUM_DRIVERS> m_spawn;
