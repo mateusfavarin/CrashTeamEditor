@@ -407,7 +407,7 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 				{
 					size_t textureID = 0;
 					const QuadUV& uvs = currQuad.GetQuadUV(i);
-					PSX::TextureLayout layout = texture.Serialize(uvs, i == NUM_FACES_QUADBLOCK);
+					PSX::TextureLayout layout = texture.Serialize(uvs);
 					if (savedLayouts.contains(layout)) { textureID = savedLayouts[layout]; }
 					else
 					{
@@ -442,7 +442,7 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 					{
 						size_t textureID = 0;
 						const QuadUV& uvs = frame.uvs[i];
-						PSX::TextureLayout layout = texture.Serialize(uvs, i == NUM_FACES_QUADBLOCK);
+						PSX::TextureLayout layout = texture.Serialize(uvs);
 						if (savedLayouts.contains(layout)) { textureID = savedLayouts[layout]; }
 						else
 						{

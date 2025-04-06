@@ -120,7 +120,7 @@ void Texture::SetBlendMode(uint16_t mode)
 	m_blendMode = mode;
 }
 
-PSX::TextureLayout Texture::Serialize(const QuadUV& uvs, bool lowLOD)
+PSX::TextureLayout Texture::Serialize(const QuadUV& uvs)
 {
 	PSX::TextureLayout layout = {};
 	if (Empty()) { return layout; }
@@ -148,38 +148,46 @@ PSX::TextureLayout Texture::Serialize(const QuadUV& uvs, bool lowLOD)
 	layout.clut.x = static_cast<uint16_t>(m_clutX / MIN_CLUT_WIDTH);
 	layout.clut.y = static_cast<uint16_t>(m_clutY);
 
-	uint8_t x = static_cast<uint8_t>((m_imageX % TEXPAGE_WIDTH) * bppMultiplier);
-	uint8_t y = static_cast<uint8_t>(m_imageY % TEXPAGE_HEIGHT);
+	size_t x = (m_imageX % TEXPAGE_WIDTH) * bppMultiplier;
+	size_t y = m_imageY % TEXPAGE_HEIGHT;
 	float width = static_cast<float>(GetWidth());
 	float height = static_cast<float>(GetHeight());
-	layout.u0 = x + static_cast<uint8_t>(std::round(uvs[0].x * width));	layout.v0 = y + static_cast<uint8_t>(std::round(uvs[0].y * height));
-	layout.u1 = x + static_cast<uint8_t>(std::round(uvs[1].x * width));	layout.v1 = y + static_cast<uint8_t>(std::round(uvs[1].y * height));
-	layout.u2 = x + static_cast<uint8_t>(std::round(uvs[2].x * width));	layout.v2 = y + static_cast<uint8_t>(std::round(uvs[2].y * height));
-	layout.u3 = x + static_cast<uint8_t>(std::round(uvs[3].x * width));	layout.v3 = y + static_cast<uint8_t>(std::round(uvs[3].y * height));
+	size_t u0 = x + static_cast<size_t>(std::round(uvs[0].x * width));	size_t v0 = y + static_cast<size_t>(std::round(uvs[0].y * height));
+	size_t u1 = x + static_cast<size_t>(std::round(uvs[1].x * width));	size_t v1 = y + static_cast<size_t>(std::round(uvs[1].y * height));
+	size_t u2 = x + static_cast<size_t>(std::round(uvs[2].x * width));	size_t v2 = y + static_cast<size_t>(std::round(uvs[2].y * height));
+	size_t u3 = x + static_cast<size_t>(std::round(uvs[3].x * width));	size_t v3 = y + static_cast<size_t>(std::round(uvs[3].y * height));
 
-	auto FixOffByOne = [](uint8_t& n0, uint8_t& n1)
+	auto FixOffByOne = [](size_t& n0, size_t& n1)
 		{
-			if (n0 == n1) { return; }
-			uint8_t max = std::max(n0, n1);
+			if (n0 == n1)
+			{
+				if (n0 == 256) { n0--; n1--; }
+				return;
+			}
+			size_t max = std::max(n0, n1);
 			if (max == n0) { n0--; }
 			else { n1--; }
 		};
 
 	if (std::max(layout.u0, layout.u1) - std::min(layout.u0, layout.u1) > std::max(layout.v0, layout.v1) - std::min(layout.v0, layout.v1))
 	{
-		FixOffByOne(layout.u0, layout.u1);
-		FixOffByOne(layout.u2, layout.u3);
-		FixOffByOne(layout.v0, layout.v2);
-		FixOffByOne(layout.v1, layout.v3);
+		FixOffByOne(u0, u1);
+		FixOffByOne(u2, u3);
+		FixOffByOne(v0, v2);
+		FixOffByOne(v1, v3);
 	}
 	else
 	{
-		FixOffByOne(layout.v0, layout.v1);
-		FixOffByOne(layout.v2, layout.v3);
-		FixOffByOne(layout.u0, layout.u2);
-		FixOffByOne(layout.u1, layout.u3);
+		FixOffByOne(v0, v1);
+		FixOffByOne(v2, v3);
+		FixOffByOne(u0, u2);
+		FixOffByOne(u1, u3);
 	}
 
+	layout.u0 = static_cast<uint8_t>(u0); layout.v0 = static_cast<uint8_t>(v0);
+	layout.u1 = static_cast<uint8_t>(u1); layout.v1 = static_cast<uint8_t>(v1);
+	layout.u2 = static_cast<uint8_t>(u2); layout.v2 = static_cast<uint8_t>(v2);
+	layout.u3 = static_cast<uint8_t>(u3); layout.v3 = static_cast<uint8_t>(v3);
 	return layout;
 }
 

@@ -800,8 +800,6 @@ void Level::RenderUI()
       {
         if (pixelCoord.x >= 0 && pixelCoord.x < rendWidth && pixelCoord.y >= 0 && pixelCoord.y < rendHeight)
         {
-          //printf("Clicked pixel coord: (%d, %d)\n", pixelCoord.x, pixelCoord.y);
-
           ViewportClickHandleBlockSelection(pixelCoord.x, pixelCoord.y, rend);
         }
       }
