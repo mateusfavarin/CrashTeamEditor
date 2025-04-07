@@ -1308,13 +1308,13 @@ void Level::GeomPoint(const Vertex* verts, int ind, std::vector<float>& data)
 	data.push_back(verts[ind].m_pos.x);
 	data.push_back(verts[ind].m_pos.y);
 	data.push_back(verts[ind].m_pos.z);
-	data.push_back(verts[ind].m_normal.x);
-	data.push_back(verts[ind].m_normal.y);
-	data.push_back(verts[ind].m_normal.z);
 	Color col = verts[ind].GetColor(true);
 	data.push_back(col.Red());
 	data.push_back(col.Green());
 	data.push_back(col.Blue());
+	data.push_back(verts[ind].m_normal.x);
+	data.push_back(verts[ind].m_normal.y);
+	data.push_back(verts[ind].m_normal.z);
 }
 
 void Level::GeomUVs(const Quadblock& qb, int quadInd, int vertInd, std::vector<float>& data, int textureIndex)
@@ -1329,7 +1329,7 @@ void Level::GeomUVs(const Quadblock& qb, int quadInd, int vertInd, std::vector<f
   */
 	const std::array<QuadUV, NUM_FACES_QUADBLOCK + 1>& uvs = qb.GetUVs();
 	const QuadUV& quv = uvs[quadInd];
-	int vertIndInUvs;
+	int vertIndInUvs = 9999999;
 	switch (quadInd)
 	{
 	case 0:
@@ -1422,7 +1422,7 @@ void Level::GeomUVs(const Quadblock& qb, int quadInd, int vertInd, std::vector<f
 	const Vec2& uv = quv[vertIndInUvs];
 	data.push_back(uv.x);
 	data.push_back(uv.y);
-	struct texIndexPun
+	union texIndexPun
 	{
 		int i;
 		float f;

@@ -136,11 +136,12 @@ void Mesh::UpdateMesh(const std::vector<float>& data, unsigned includedDataFlags
   if (dataIsInterlaced)
   {
     //although this works, it's possible that what I'm trying to do here can be done much more simply via some opengl feature(s).
-    for (int openglPositionCounter = 0, takenSize = 0, takenCount = 0; openglPositionCounter < 5 /*# of flags in VBufDataType*/; openglPositionCounter++)
+    for (int openglPositionCounter = 0, takenSize = 0, takenCount = 0; openglPositionCounter < 6 /*# of flags in VBufDataType*/; openglPositionCounter++)
     {
       switch (1 << openglPositionCounter)
       {
 			case VBufDataType::VertexPos: //position
+        if ((includedDataFlags & VBufDataType::VertexPos) != 0)
         {
           constexpr int dim = 3;
           glVertexAttribPointer(takenCount, dim, GL_FLOAT, GL_FALSE, ultimateStrideSize * sizeof(float), (void*)(takenSize * sizeof(float)));
@@ -150,16 +151,17 @@ void Mesh::UpdateMesh(const std::vector<float>& data, unsigned includedDataFlags
         }
         break;
 			case VBufDataType::Barycentric: //barycentric
+        if ((includedDataFlags & VBufDataType::Barycentric) != 0)
         {
-        constexpr int dim = 3;
-        glVertexAttribPointer(takenCount, dim, GL_FLOAT, GL_FALSE, ultimateStrideSize * sizeof(float), (void*)(takenSize * sizeof(float)));
-        glEnableVertexAttribArray(takenCount);
-        takenCount++;
-        takenSize += dim;
+          constexpr int dim = 3;
+          glVertexAttribPointer(takenCount, dim, GL_FLOAT, GL_FALSE, ultimateStrideSize * sizeof(float), (void*)(takenSize * sizeof(float)));
+          glEnableVertexAttribArray(takenCount);
+          takenCount++;
+          takenSize += dim;
         }
         break;
       case VBufDataType::VColor:
-        if (includedDataFlags & VBufDataType::VColor)
+        if ((includedDataFlags & VBufDataType::VColor) != 0)
         {
           constexpr int dim = 3;
           glVertexAttribPointer(takenCount, dim, GL_FLOAT, GL_FALSE, ultimateStrideSize * sizeof(float), (void*)(takenSize * sizeof(float)));
@@ -169,7 +171,7 @@ void Mesh::UpdateMesh(const std::vector<float>& data, unsigned includedDataFlags
         }
         break;
       case VBufDataType::Normals:
-        if (includedDataFlags & VBufDataType::Normals)
+        if ((includedDataFlags & VBufDataType::Normals) != 0)
         {
           constexpr int dim = 3;
           glVertexAttribPointer(takenCount, dim, GL_FLOAT, GL_FALSE, ultimateStrideSize * sizeof(float), (void*)(takenSize * sizeof(float)));
@@ -179,7 +181,7 @@ void Mesh::UpdateMesh(const std::vector<float>& data, unsigned includedDataFlags
         }
         break;
       case VBufDataType::STUV:
-        if (includedDataFlags & VBufDataType::STUV)
+        if ((includedDataFlags & VBufDataType::STUV) != 0)
         {
           constexpr int dim = 2;
           glVertexAttribPointer(takenCount, dim, GL_FLOAT, GL_FALSE, ultimateStrideSize * sizeof(float), (void*)(takenSize * sizeof(float)));
@@ -189,11 +191,11 @@ void Mesh::UpdateMesh(const std::vector<float>& data, unsigned includedDataFlags
         }
         break;
       case VBufDataType::TexIndex:
-        if (includedDataFlags & VBufDataType::TexIndex)
+        if ((includedDataFlags & VBufDataType::TexIndex) != 0)
         {
           //this only works because sizeof(float) == sizeof(int)
           constexpr int dim = 1;
-          glVertexAttribPointer(takenCount, dim, GL_INT, GL_FALSE, ultimateStrideSize * sizeof(float), (void*)(takenSize * sizeof(float)));
+          glVertexAttribIPointer(takenCount, dim, GL_INT, ultimateStrideSize * sizeof(int), (void*)(takenSize * sizeof(int)));
           glEnableVertexAttribArray(takenCount);
           takenCount++;
           takenSize += dim;
@@ -239,7 +241,7 @@ void Mesh::SetTextureStore(std::vector<std::filesystem::path>& texturePaths)
   glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-  glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGB, 256, 256, texturePaths.size(), 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+  glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA8, 256, 256, texturePaths.size(), 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
 
   for (size_t texIndex = 0; texIndex < texturePaths.size(); texIndex++)
   {
@@ -247,15 +249,18 @@ void Mesh::SetTextureStore(std::vector<std::filesystem::path>& texturePaths)
     int w, h, channels;
     stbi_uc* originalData;
     originalData = stbi_load(path.generic_string().c_str(), &w, &h, &channels, 0);
-    if (!originalData)
+    if (originalData == nullptr)
     {
-      printf("Failed to load texture: \"%s\", defaulting to pure white.\n", path.generic_string().c_str());
+      printf("Failed to load texture: \"%s\", defaulting to 50%% grey.\n", path.generic_string().c_str());
 
-      static unsigned char* whiteData[256 * 256 * 3];
+      constexpr int ww = 256, hh = 256;
+      static unsigned char fiftyPercentGrey[ww * hh * 4];
 
-      memset(whiteData, 0xFF, 256 * 256 * 3);
+      memset(fiftyPercentGrey, 0x7F, ww * hh * 4);
+      for (size_t i = 0; i < ww * hh * 4; i += 4)
+        fiftyPercentGrey[i + 3] = 0xFF;
 
-      glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, texIndex, 256, 256, 1, GL_RGB, GL_UNSIGNED_BYTE, (const void*)whiteData);
+      glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, texIndex, 256, 256, 1, GL_RGBA, GL_UNSIGNED_BYTE, (const void*)fiftyPercentGrey);
     }
     else
     {
@@ -263,8 +268,7 @@ void Mesh::SetTextureStore(std::vector<std::filesystem::path>& texturePaths)
 
       //stbir_resize_uint8_srgb(originalData, w, h, 0, resizedData, 256, 256, 0, (stbir_pixel_layout)channels);
 
-
-      glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, texIndex, 256, 256, 1, GL_RGB, GL_UNSIGNED_BYTE, (const void*)originalData);
+      glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, texIndex, 256, 256, 1, GL_RGBA, GL_UNSIGNED_BYTE, (const void*)originalData);
 
       //delete[] resizedData;
 

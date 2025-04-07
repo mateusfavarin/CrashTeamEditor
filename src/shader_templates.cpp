@@ -43,8 +43,8 @@ std::string ShaderTemplates::vert_vcolornormaltex = R"*(
 #version 330
 
 layout (location = 0) in vec3 aPos;
-layout (location = 1) in vec3 aNormal;
-layout (location = 2) in vec3 aColor;
+layout (location = 1) in vec3 aColor;
+layout (location = 2) in vec3 aNormal;
 layout (location = 3) in vec2 aTexCoord;
 layout (location = 4) in int aTexIndex;
 
@@ -85,8 +85,8 @@ std::string ShaderTemplates::vert_vcolornormal = R"*(
 #version 330
 
 layout (location = 0) in vec3 aPos;
-layout (location = 1) in vec3 aNormal;
-layout (location = 2) in vec3 aColor;
+layout (location = 1) in vec3 aColor;
+layout (location = 2) in vec3 aNormal;
 
 out vec3 FragModelPos;
 out vec3 FragWorldPos;

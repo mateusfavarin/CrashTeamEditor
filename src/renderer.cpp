@@ -195,7 +195,7 @@ void Renderer::Render(std::vector<Model> models)
     GLuint tex = m.GetMesh()->GetTextureStore();
     if (tex)
     {
-      shad->SetUniform("tex", (int)tex);
+      shad->SetUniform("tex", 0); //"0" represents texture unit 0
     }
     m.Draw();
   }
