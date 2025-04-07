@@ -1309,7 +1309,7 @@ void Level::GenerateRenderLevData(std::vector<Quadblock>& quadblocks)
 	std::vector<float> highLODData, lowLODData, vertexHighLODData, vertexLowLODData;
 	for (Quadblock qb : quadblocks)
 	{
-		/* 062 is triblock
+		/* p0-p6-p2 is triblock
 			p0 -- p1 -- p2
 			|  q0 |  q1 |
 			p3 -- p4 -- p5
@@ -1321,20 +1321,19 @@ void Level::GenerateRenderLevData(std::vector<Quadblock>& quadblocks)
 		//clockwise point ordering
 		if (qb.IsQuadblock())
 		{
-			GeomOctopoint(verts, 0, vertexHighLODData);
-			GeomOctopoint(verts, 1, vertexHighLODData);
-			GeomOctopoint(verts, 2, vertexHighLODData);
-			GeomOctopoint(verts, 3, vertexHighLODData);
-			GeomOctopoint(verts, 4, vertexHighLODData);
-			GeomOctopoint(verts, 5, vertexHighLODData);
-			GeomOctopoint(verts, 6, vertexHighLODData);
-			GeomOctopoint(verts, 7, vertexHighLODData);
-			GeomOctopoint(verts, 8, vertexHighLODData);
+			constexpr size_t HIGH_LOD_VERT_COUNT = 9;
+			const std::array<int, HIGH_LOD_VERT_COUNT> highLODIndexes = {0, 1, 2, 3, 4, 5, 6, 7, 8};
+			for (int index : highLODIndexes)
+			{
+				GeomOctopoint(verts, index, vertexHighLODData);
+			}
 
-			GeomOctopoint(verts, 0, vertexLowLODData);
-			GeomOctopoint(verts, 2, vertexLowLODData);
-			GeomOctopoint(verts, 6, vertexLowLODData);
-			GeomOctopoint(verts, 8, vertexLowLODData);
+			constexpr size_t LOW_LOD_VERT_COUNT = 4;
+			const std::array<int, LOW_LOD_VERT_COUNT> lowLODIndexes = {0, 2, 6, 8};
+			for (int index : lowLODIndexes)
+			{
+				GeomOctopoint(verts, index, vertexLowLODData);
+			}
 
  			for (int triIndex = 0; triIndex < 8; triIndex++)
 			{
@@ -1352,16 +1351,19 @@ void Level::GenerateRenderLevData(std::vector<Quadblock>& quadblocks)
 		}
 		else
 		{
-			GeomOctopoint(verts, 0, vertexHighLODData);
-			GeomOctopoint(verts, 1, vertexHighLODData);
-			GeomOctopoint(verts, 2, vertexHighLODData);
-			GeomOctopoint(verts, 3, vertexHighLODData);
-			GeomOctopoint(verts, 4, vertexHighLODData);
-			GeomOctopoint(verts, 6, vertexHighLODData);
+			constexpr size_t HIGH_LOD_VERT_COUNT = 6;
+			const std::array<int, HIGH_LOD_VERT_COUNT> highLODIndexes = {0, 1, 2, 3, 4, 6};
+			for (int index : highLODIndexes)
+			{
+				GeomOctopoint(verts, index, vertexHighLODData);
+			}
 
-			GeomOctopoint(verts, 0, vertexLowLODData);
-			GeomOctopoint(verts, 2, vertexLowLODData);
-			GeomOctopoint(verts, 6, vertexLowLODData);
+			constexpr size_t LOW_LOD_VERT_COUNT = 3;
+			const std::array<int, LOW_LOD_VERT_COUNT> lowLODIndexes = {0, 2, 6};
+			for (int index : lowLODIndexes)
+			{
+				GeomOctopoint(verts, index, vertexLowLODData);
+			}
 
 			for (int triIndex = 0; triIndex < 4; triIndex++)
  			{
