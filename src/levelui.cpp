@@ -101,9 +101,9 @@ void BoundingBox::RenderUI() const
   ImGui::EndDisabled();
 }
 
-void BSP::RenderUI(size_t& index, const std::vector<Quadblock>& quadblocks)
+void BSP::RenderUI(const std::vector<Quadblock>& quadblocks)
 {
-  std::string title = GetType() + " " + std::to_string(index++);
+  std::string title = GetType() + " " + std::to_string(m_id);
   if (ImGui::TreeNode(title.c_str()))
   {
     if (IsBranch()) { ImGui::Text(("Axis:  " + GetAxis()).c_str()); }
@@ -121,8 +121,8 @@ void BSP::RenderUI(size_t& index, const std::vector<Quadblock>& quadblocks)
     }
     ImGui::Text("Bounding Box:");
     m_bbox.RenderUI();
-    if (m_left) { m_left->RenderUI(++index, quadblocks); }
-    if (m_right) { m_right->RenderUI(++index, quadblocks); }
+    if (m_left) { m_left->RenderUI(quadblocks); }
+    if (m_right) { m_right->RenderUI(quadblocks); }
     ImGui::TreePop();
   }
 }
@@ -681,11 +681,7 @@ void Level::RenderUI()
   {
     if (ImGui::Begin("BSP Tree", &w_bsp))
     {
-      if (!m_bsp.Empty())
-      {
-        size_t bspIndex = 0;
-        m_bsp.RenderUI(bspIndex, m_quadblocks);
-      }
+      if (!m_bsp.Empty()) { m_bsp.RenderUI(m_quadblocks); }
 
       static std::string buttonMessage;
       static ButtonUI generateBSPButton = ButtonUI();

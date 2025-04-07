@@ -43,9 +43,10 @@ bool BSP::Valid() const
 {
 	for (const BSP* bsp : GetTree())
 	{
-		if (bsp->m_node == BSPNode::LEAF && !bsp->Empty()) { return true; }
+		if (bsp->m_node == BSPNode::BRANCH) { if (!bsp->m_right && !bsp->m_left) { return false; } }
+		else if (bsp->Empty()) { return false; }
 	}
-	return false;
+	return true;
 }
 
 bool BSP::IsBranch() const
@@ -163,10 +164,13 @@ void BSP::Generate(const std::vector<Quadblock>& quadblocks, const size_t maxQua
 	float y_score = Split(y_left, y_right, AxisSplit::Y, quadblocks);
 	float z_score = Split(z_left, z_right, AxisSplit::Z, quadblocks);
 	float bestScore = std::min(std::min(x_score, y_score), z_score);
-	if (isLeaf && bestScore == std::numeric_limits<float>::max())
+	if (bestScore == std::numeric_limits<float>::max())
 	{
-		m_node = BSPNode::LEAF;
-		m_flags |= BSPFlags::LEAF;
+		if (isLeaf)
+		{
+			m_node = BSPNode::LEAF;
+			m_flags |= BSPFlags::LEAF;
+		}
 		return;
 	}
 	if (bestScore == x_score)
@@ -251,13 +255,13 @@ float BSP::Split(std::vector<size_t>& left, std::vector<size_t>& right, const Ax
 
 void BSP::GenerateOffspring(std::vector<size_t>& left, std::vector<size_t>& right, const std::vector<Quadblock>& quadblocks, const size_t maxQuadsPerLeaf, const float maxAxisLength)
 {
-	if (left.size() < maxQuadsPerLeaf) { m_left = new BSP(BSPNode::LEAF, left); }
+	if (left.size() < maxQuadsPerLeaf) { if (!left.empty()) { m_left = new BSP(BSPNode::LEAF, left); } }
 	else { m_left = new BSP(BSPNode::BRANCH, left); }
-	m_left->Generate(quadblocks, maxQuadsPerLeaf, maxAxisLength);
+	if (m_left) { m_left->Generate(quadblocks, maxQuadsPerLeaf, maxAxisLength); }
 
-	if (right.size() < maxQuadsPerLeaf) { m_right = new BSP(BSPNode::LEAF, right); }
+	if (right.size() < maxQuadsPerLeaf) { if (!right.empty()) { m_right = new BSP(BSPNode::LEAF, right); } }
 	else { m_right = new BSP(BSPNode::BRANCH, right); }
-	m_right->Generate(quadblocks, maxQuadsPerLeaf, maxAxisLength);
+	if (m_right) { m_right->Generate(quadblocks, maxQuadsPerLeaf, maxAxisLength); }
 }
 
 std::vector<uint8_t> BSP::SerializeBranch() const
@@ -275,10 +279,18 @@ std::vector<uint8_t> BSP::SerializeBranch() const
 	case AxisSplit::Y: branch.axis.y = 0x1000; break;
 	case AxisSplit::Z: branch.axis.z = 0x1000; break;
 	}
-	branch.leftChild = static_cast<uint16_t>(m_left->m_id);
-	if (!m_left->IsBranch()) { branch.leftChild |= 0x4000; }
-	branch.rightChild = static_cast<uint16_t>(m_right->m_id);
-	if (!m_right->IsBranch()) { branch.rightChild |= 0x4000; }
+	if (m_left)
+	{
+		branch.leftChild = static_cast<uint16_t>(m_left->m_id);
+		if (!m_left->IsBranch()) { branch.leftChild |= BSPID::LEAF; }
+	}
+	else { branch.leftChild = BSPID::EMPTY; }
+	if (m_right)
+	{
+		branch.rightChild = static_cast<uint16_t>(m_right->m_id);
+		if (!m_right->IsBranch()) { branch.rightChild |= BSPID::LEAF; }
+	}
+	else { branch.rightChild = BSPID::EMPTY; }
 	branch.unk1 = 0xFF40;
 	branch.unk2 = 0;
 	branch.unk3 = 0;

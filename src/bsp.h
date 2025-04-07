@@ -27,6 +27,12 @@ struct BSPFlags
 	static constexpr uint16_t NO_COLLISION = 1 << 7;
 };
 
+struct BSPID
+{
+	static constexpr uint16_t LEAF = 0x4000;
+	static constexpr uint16_t EMPTY = 0x8000;
+};
+
 class BSP
 {
 public:
@@ -48,7 +54,7 @@ public:
 	void Clear();
 	void Generate(const std::vector<Quadblock>& quadblocks, const size_t maxQuadsPerLeaf, const float maxAxisLength);
 	std::vector<uint8_t> Serialize(size_t offQuads) const;
-	void RenderUI(size_t& index, const std::vector<Quadblock>& quadblocks);
+	void RenderUI(const std::vector<Quadblock>& quadblocks);
 
 private:
 	float GetAxisMidpoint(const AxisSplit axis) const;
