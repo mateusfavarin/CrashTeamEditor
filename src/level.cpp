@@ -139,6 +139,13 @@ bool Level::LoadPreset(const std::filesystem::path& filename)
 			{
 				quadblock.SetTrigger(json[quadName + "_trigger"]);
 				ManageTurbopad(quadblock);
+				if (m_bsp.Valid())
+				{
+					m_bsp.Clear();
+					GenerateRenderBspData(m_bsp);
+					m_showLogWindow = true;
+					m_logMessage = "Modifying turbo pad state automatically resets the BSP tree.";
+				}
 			}
 		}
 	}
