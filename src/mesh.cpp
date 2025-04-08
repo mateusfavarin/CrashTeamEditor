@@ -1,5 +1,6 @@
 #include "mesh.h"
 #include "stb_image.h"
+#define STB_IMAGE_RESIZE_IMPLEMENTATION
 #include "stb_image_resize2.h"
 
 void Mesh::Bind() const
@@ -249,30 +250,29 @@ void Mesh::SetTextureStore(std::vector<std::filesystem::path>& texturePaths)
     int w, h, channels;
     stbi_uc* originalData;
     originalData = stbi_load(path.generic_string().c_str(), &w, &h, &channels, 0);
+
+    constexpr int ww = 256, hh = 256;
+    static unsigned char finalData[ww * hh * 4];
+
     if (originalData == nullptr)
     {
       printf("Failed to load texture: \"%s\", defaulting to 50%% grey.\n", path.generic_string().c_str());
 
-      constexpr int ww = 256, hh = 256;
-      static unsigned char fiftyPercentGrey[ww * hh * 4];
-
-      memset(fiftyPercentGrey, 0x7F, ww * hh * 4);
+      memset(finalData, 0x7F, ww * hh * 4);
       for (size_t i = 0; i < ww * hh * 4; i += 4)
-        fiftyPercentGrey[i + 3] = 0xFF;
+        finalData[i + 3] = 0xFF;
 
-      glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, texIndex, 256, 256, 1, GL_RGBA, GL_UNSIGNED_BYTE, (const void*)fiftyPercentGrey);
+      glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, texIndex, 256, 256, 1, GL_RGBA, GL_UNSIGNED_BYTE, (const void*)finalData);
     }
     else
     {
-      //unsigned char* resizedData = new unsigned char[256 * 256 * channels];
+      memset(finalData, 0xFF, ww * hh * 4);
 
-      //stbir_resize_uint8_srgb(originalData, w, h, 0, resizedData, 256, 256, 0, (stbir_pixel_layout)channels);
+      stbir_resize(originalData, w, h, channels * w, finalData, ww, hh, 4 * ww, stbir_pixel_layout::STBIR_RGBA, stbir_datatype::STBIR_TYPE_UINT8, stbir_edge::STBIR_EDGE_CLAMP, stbir_filter::STBIR_FILTER_POINT_SAMPLE);
 
-      glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, texIndex, 256, 256, 1, GL_RGBA, GL_UNSIGNED_BYTE, (const void*)originalData);
+      //stbir_resize_uint8_srgb(originalData, w, h, channels * w, finalData, ww, hh, 4 * ww, stbir_pixel_layout::STBIR_RGBA);
 
-      //delete[] resizedData;
-
-      stbi_image_free(originalData);
+      glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, texIndex, 256, 256, 1, GL_RGBA, GL_UNSIGNED_BYTE, (const void*)finalData);
     }
   }
 }
