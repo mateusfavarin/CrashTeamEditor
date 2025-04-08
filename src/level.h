@@ -79,6 +79,7 @@ private:
 	MaterialProperty<uint16_t, MaterialType::QUAD_FLAGS> m_propQuadFlags;
 	MaterialProperty<bool, MaterialType::DRAW_FLAGS> m_propDoubleSided;
 	MaterialProperty<bool, MaterialType::CHECKPOINT> m_propCheckpoints;
+	MaterialProperty<QuadblockTrigger, MaterialType::TURBO_PAD> m_propTurboPads;
 	std::vector<Path> m_checkpointPaths;
 	std::vector<AnimTexture> m_animTextures;
 

@@ -8,6 +8,7 @@ template class MaterialProperty<std::string, MaterialType::TERRAIN>;
 template class MaterialProperty<uint16_t, MaterialType::QUAD_FLAGS>;
 template class MaterialProperty<bool, MaterialType::DRAW_FLAGS>;
 template class MaterialProperty<bool, MaterialType::CHECKPOINT>;
+template class MaterialProperty<QuadblockTrigger, MaterialType::TURBO_PAD>;
 
 static std::unordered_map<Level*, std::vector<MaterialBase*>> g_materials;
 
@@ -106,6 +107,11 @@ void MaterialProperty<T, M>::Apply(const std::string& material, const std::vecto
 			else if constexpr (M == MaterialType::QUAD_FLAGS) { quadblock.SetFlag(preview); }
 			else if constexpr (M == MaterialType::DRAW_FLAGS) { quadblock.SetDrawDoubleSided(preview); }
 			else if constexpr (M == MaterialType::CHECKPOINT) { quadblock.CheckpointStatus() = preview; }
+			else if constexpr (M == MaterialType::TURBO_PAD)
+			{
+				quadblock.SetTrigger(preview);
+				if (preview == QuadblockTrigger::NONE) { quadblock.SetFlag(QuadFlags::DEFAULT); }
+			}
 		}
 	}
 	m_backup[material] = preview;

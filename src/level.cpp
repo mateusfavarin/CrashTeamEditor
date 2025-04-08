@@ -116,6 +116,7 @@ bool Level::LoadPreset(const std::filesystem::path& filename)
 				m_propDoubleSided.Apply(material, m_materialToQuadblocks[material], m_quadblocks);
 				m_propCheckpoints.SetPreview(material, json[material + "_checkpoint"]);
 				m_propCheckpoints.Apply(material, m_materialToQuadblocks[material], m_quadblocks);
+				m_propTurboPads.SetPreview(material, json[material + "_trigger"]);
 			}
 		}
 	}
@@ -195,6 +196,7 @@ bool Level::SavePreset(const std::filesystem::path& path)
 			materialJson[key + "_quadflags"] = m_propQuadFlags.GetBackup(key);
 			materialJson[key + "_drawflags"] = m_propDoubleSided.GetBackup(key);
 			materialJson[key + "_checkpoint"] = m_propCheckpoints.GetBackup(key);
+			materialJson[key + "_trigger"] = m_propTurboPads.GetBackup(key);
 		}
 		materialJson["materials"] = materials;
 		std::ofstream materialFile(dirPath / "material.json");
@@ -965,10 +967,12 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 						m_propQuadFlags.SetDefaultValue(material, QuadFlags::DEFAULT);
 						m_propDoubleSided.SetDefaultValue(material, false);
 						m_propCheckpoints.SetDefaultValue(material, true);
+						m_propTurboPads.SetDefaultValue(material, QuadblockTrigger::NONE);
 						m_propTerrain.RegisterMaterial(this);
 						m_propQuadFlags.RegisterMaterial(this);
 						m_propDoubleSided.RegisterMaterial(this);
 						m_propCheckpoints.RegisterMaterial(this);
+						m_propTurboPads.RegisterMaterial(this);
 					}
 				}
 				if (isQuadblock)

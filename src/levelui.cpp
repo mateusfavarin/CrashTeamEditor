@@ -183,7 +183,7 @@ void Checkpoint::RenderUI(size_t numCheckpoints, const std::vector<Quadblock>& q
 }
 
 template<typename T, MaterialType M>
-void MaterialProperty<T, M>::RenderUI(const std::string& material, const std::vector<size_t>& quadblockIndexes, std::vector<Quadblock>& quadblocks)
+bool MaterialProperty<T, M>::RenderUI(const std::string& material, const std::vector<size_t>& quadblockIndexes, std::vector<Quadblock>& quadblocks)
 {
   if constexpr (M == MaterialType::TERRAIN)
   {
@@ -204,6 +204,7 @@ void MaterialProperty<T, M>::RenderUI(const std::string& material, const std::ve
     if (terrainApplyButton.Show(("Apply##terrain" + material).c_str(), "Terrain type successfully updated.", UnsavedChanges(material)))
     {
       Apply(material, quadblockIndexes, quadblocks);
+			return true;
     }
   }
   else if constexpr (M == MaterialType::QUAD_FLAGS)
@@ -219,12 +220,14 @@ void MaterialProperty<T, M>::RenderUI(const std::string& material, const std::ve
       if (quadFlagsApplyButton.Show(("Apply##quadflags" + material).c_str(), "Quad flags successfully updated.", UnsavedChanges(material)))
       {
         Apply(material, quadblockIndexes, quadblocks);
+				return true;
       }
       static ButtonUI killPlaneButton = ButtonUI();
       if (killPlaneButton.Show("Kill Plane##quadflags", "Modified quad flags to kill plane.", false))
       {
         SetPreview(material, QuadFlags::INVISIBLE_TRIGGER | QuadFlags::OUT_OF_BOUNDS | QuadFlags::MASK_GRAB | QuadFlags::WALL | QuadFlags::NO_COLLISION);
         Apply(material, quadblockIndexes, quadblocks);
+				return true;
       }
       ImGui::TreePop();
     }
@@ -240,6 +243,7 @@ void MaterialProperty<T, M>::RenderUI(const std::string& material, const std::ve
       if (drawFlagsApplyButton.Show(("Apply##drawflags" + material).c_str(), "Draw flags successfully updated.", UnsavedChanges(material)))
       {
         Apply(material, quadblockIndexes, quadblocks);
+				return true;
       }
       ImGui::TreePop();
     }
@@ -254,8 +258,33 @@ void MaterialProperty<T, M>::RenderUI(const std::string& material, const std::ve
     if (checkpointApplyButton.Show(("Apply##checkpoint" + material).c_str(), "Checkpoint status successfully updated.", UnsavedChanges(material)))
     {
       Apply(material, quadblockIndexes, quadblocks);
+			return true;
     }
   }
+	else if constexpr (M == MaterialType::TURBO_PAD)
+	{
+		T& trigger = GetPreview(material);
+		ImGui::Text("Trigger:"); ImGui::SameLine();
+		if (ImGui::RadioButton("None", trigger == QuadblockTrigger::NONE))
+		{
+			trigger = QuadblockTrigger::NONE;
+		} ImGui::SameLine();
+		if (ImGui::RadioButton("Turbo Pad", trigger == QuadblockTrigger::TURBO_PAD))
+		{
+			trigger = QuadblockTrigger::TURBO_PAD;
+		} ImGui::SameLine();
+		if (ImGui::RadioButton("Super Turbo Pad", trigger == QuadblockTrigger::SUPER_TURBO_PAD))
+		{
+			trigger = QuadblockTrigger::SUPER_TURBO_PAD;
+		} ImGui::SameLine();
+		static ButtonUI padApplyButton = ButtonUI();
+		if (padApplyButton.Show(("Apply##pad" + material).c_str(), "Turbo pad status successfully updated.", UnsavedChanges(material)))
+		{
+			Apply(material, quadblockIndexes, quadblocks);
+			return true;
+		}
+	}
+	return false;
 }
 
 void Level::RenderUI()
@@ -463,6 +492,10 @@ void Level::RenderUI()
           m_propQuadFlags.RenderUI(material, quadblockIndexes, m_quadblocks);
           m_propDoubleSided.RenderUI(material, quadblockIndexes, m_quadblocks);
           m_propCheckpoints.RenderUI(material, quadblockIndexes, m_quadblocks);
+					if (m_propTurboPads.RenderUI(material, quadblockIndexes, m_quadblocks))
+					{
+						for (size_t index : quadblockIndexes) { ManageTurbopad(m_quadblocks[index]); }
+					}
 
           if (m_materialToTexture.contains(material))
           {
