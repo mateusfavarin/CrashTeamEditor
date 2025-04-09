@@ -6,6 +6,7 @@
 #include "gtc/type_ptr.hpp"
 
 #include <filesystem>
+#include <map>
 
 class Mesh
 {
@@ -37,7 +38,7 @@ public:
 	int GetDatas() const;
 	int GetShaderSettings() const;
 	void SetShaderSettings(unsigned shadSettings);
-	void SetTextureStore(std::vector<std::filesystem::path>& texturePaths);
+	void SetTextureStore(std::map<int, std::filesystem::path>& texturePaths);
 	GLuint GetTextureStore();
 
 private:

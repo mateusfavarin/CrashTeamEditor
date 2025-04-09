@@ -1,3 +1,5 @@
+#include <map>
+
 #include "mesh.h"
 #include "stb_image.h"
 #define STB_IMAGE_RESIZE_IMPLEMENTATION
@@ -230,7 +232,7 @@ void Mesh::SetShaderSettings(unsigned shadSettings)
   m_shaderSettings = shadSettings;
 }
 
-void Mesh::SetTextureStore(std::vector<std::filesystem::path>& texturePaths)
+void Mesh::SetTextureStore(std::map<int, std::filesystem::path>& texturePaths)
 {
   if (m_textures) { glDeleteTextures(1, &m_textures); m_textures = 0; }
 

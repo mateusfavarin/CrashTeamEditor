@@ -9,6 +9,7 @@
 
 #include <fstream>
 #include <unordered_set>
+#include <map>
 
 bool Level::Load(const std::filesystem::path& filename)
 {
@@ -1285,7 +1286,29 @@ bool Level::SetGhostData(const std::filesystem::path& path, bool tropy)
 void Level::RefreshTextureStores()
 {
 	//set up texture store for opengl drawing
-	std::vector<std::filesystem::path> texturePaths;
+	//std::vector<std::filesystem::path> texturePaths;
+	//for (size_t matIndex = 0; matIndex < m_materialToQuadblocks.size(); matIndex++)
+	//{
+	//	auto begin = m_materialToQuadblocks.begin();
+	//	std::advance(begin, matIndex);
+	//	const std::string& mat = begin->first;
+	//	const std::vector<size_t>& quadblockIndeces = begin->second;
+	//	for (size_t qbIndexIndex = 0; qbIndexIndex < quadblockIndeces.size(); qbIndexIndex++)
+	//	{
+	//		const auto& texPath = m_materialToTexture[mat].GetPath();
+	//		texturePaths.push_back(texPath);
+	//	}
+	//}
+	//m_highLODMesh.SetTextureStore(texturePaths);
+	//m_lowLODMesh.SetTextureStore(texturePaths);
+
+
+
+
+
+	int texturePathsIdCounter = 0;
+	std::map<int, std::filesystem::path> texturePaths;
+
 	for (size_t matIndex = 0; matIndex < m_materialToQuadblocks.size(); matIndex++)
 	{
 		auto begin = m_materialToQuadblocks.begin();
@@ -1295,9 +1318,22 @@ void Level::RefreshTextureStores()
 		for (size_t qbIndexIndex = 0; qbIndexIndex < quadblockIndeces.size(); qbIndexIndex++)
 		{
 			const auto& texPath = m_materialToTexture[mat].GetPath();
-			texturePaths.push_back(texPath);
+			int texIndex;
+
+			auto findResult = std::find_if(texturePaths.begin(), texturePaths.end(), [&texPath](const auto& pair) { return pair.second == texPath; });
+			if (findResult != texturePaths.end())
+			{ //this path already exists in the map
+				texIndex = findResult->first;
+			}
+			else
+			{
+				texIndex = texturePathsIdCounter;
+				texturePaths[texIndex] = texPath;
+				texturePathsIdCounter++;
+			}
 		}
 	}
+
 	m_highLODMesh.SetTextureStore(texturePaths);
 	m_lowLODMesh.SetTextureStore(texturePaths);
 }
@@ -1565,7 +1601,8 @@ void Level::GenerateRenderLevData()
 	*/
 	std::vector<float> highLODData, lowLODData, vertexHighLODData, vertexLowLODData;
 
-	std::vector<std::filesystem::path> texturePaths;
+	int texturePathsIdCounter = 0;
+	std::map<int, std::filesystem::path> texturePaths;
 
 	for (size_t matIndex = 0; matIndex < m_materialToQuadblocks.size(); matIndex++)
 	{
@@ -1579,7 +1616,19 @@ void Level::GenerateRenderLevData()
 			const Quadblock& qb = m_quadblocks[qbIndex];
 			const Vertex* verts = qb.GetUnswizzledVertices();
 			const auto& texPath = m_materialToTexture[mat].GetPath();
-			texturePaths.push_back(texPath);
+			int texIndex;
+
+			auto findResult = std::find_if(texturePaths.begin(), texturePaths.end(), [&texPath](const auto& pair) { return pair.second == texPath; });
+			if (findResult != texturePaths.end())
+			{ //this path already exists in the map
+				texIndex = findResult->first;
+			}
+			else
+			{
+				texIndex = texturePathsIdCounter;
+				texturePaths[texIndex] = texPath;
+				texturePathsIdCounter++;
+			}
 
 		//clockwise point ordering
 		if (qb.IsQuadblock())
@@ -1602,30 +1651,30 @@ void Level::GenerateRenderLevData()
 				{
 					int firstPointIndex = FaceIndexConstants::quadHLODVertArrangements[triIndex][0];
 					GeomPoint(verts, firstPointIndex, highLODData);
-					GeomUVs(qb, triIndex / 2, firstPointIndex, highLODData, matIndex); //triIndex / 2 (integer division) because 2 tris per quad
+					GeomUVs(qb, triIndex / 2, firstPointIndex, highLODData, texIndex); //triIndex / 2 (integer division) because 2 tris per quad
 
 					int secondPointIndex = FaceIndexConstants::quadHLODVertArrangements[triIndex][1];
 					GeomPoint(verts, secondPointIndex, highLODData);
-					GeomUVs(qb, triIndex / 2, secondPointIndex, highLODData, matIndex);
+					GeomUVs(qb, triIndex / 2, secondPointIndex, highLODData, texIndex);
 
 					int thirdPointIndex = FaceIndexConstants::quadHLODVertArrangements[triIndex][2];
 					GeomPoint(verts, thirdPointIndex, highLODData);
-					GeomUVs(qb, triIndex / 2, thirdPointIndex, highLODData, matIndex);
+					GeomUVs(qb, triIndex / 2, thirdPointIndex, highLODData, texIndex);
 				}
 
 				for (int triIndex = 0; triIndex < 2; triIndex++)
 				{
 					int firstPointIndex = FaceIndexConstants::quadLLODVertArrangements[triIndex][0];
 					GeomPoint(verts, firstPointIndex, lowLODData);
-					GeomUVs(qb, 4, firstPointIndex, lowLODData, matIndex);
+					GeomUVs(qb, 4, firstPointIndex, lowLODData, texIndex);
 
 					int secondPointIndex = FaceIndexConstants::quadLLODVertArrangements[triIndex][1];
 					GeomPoint(verts, secondPointIndex, lowLODData);
-					GeomUVs(qb, 4, secondPointIndex, lowLODData, matIndex);
+					GeomUVs(qb, 4, secondPointIndex, lowLODData, texIndex);
 
 					int thirdPointIndex = FaceIndexConstants::quadLLODVertArrangements[triIndex][2];
 					GeomPoint(verts, thirdPointIndex, lowLODData);
-					GeomUVs(qb, 4, thirdPointIndex, lowLODData, matIndex);
+					GeomUVs(qb, 4, thirdPointIndex, lowLODData, texIndex);
 				}
 			}
 			else
@@ -1663,30 +1712,30 @@ void Level::GenerateRenderLevData()
 
 					int firstPointIndex = FaceIndexConstants::triHLODVertArrangements[triIndex][0];
 					GeomPoint(verts, firstPointIndex, highLODData);
-					GeomUVs(qb, quadBlockIndex, firstPointIndex, highLODData, matIndex);
+					GeomUVs(qb, quadBlockIndex, firstPointIndex, highLODData, texIndex);
 
 					int secondPointIndex = FaceIndexConstants::triHLODVertArrangements[triIndex][1];
 					GeomPoint(verts, secondPointIndex, highLODData);
-					GeomUVs(qb, quadBlockIndex, secondPointIndex, highLODData, matIndex);
+					GeomUVs(qb, quadBlockIndex, secondPointIndex, highLODData, texIndex);
 
 					int thirdPointIndex = FaceIndexConstants::triHLODVertArrangements[triIndex][2];
 					GeomPoint(verts, thirdPointIndex, highLODData);
-					GeomUVs(qb, quadBlockIndex, thirdPointIndex, highLODData, matIndex);
+					GeomUVs(qb, quadBlockIndex, thirdPointIndex, highLODData, texIndex);
 				}
 
 				for (int triIndex = 0; triIndex < 1; triIndex++)
 				{
 					int firstPointIndex = FaceIndexConstants::triLLODVertArrangements[triIndex][0];
 					GeomPoint(verts, firstPointIndex, lowLODData);
-					GeomUVs(qb, 4, firstPointIndex, lowLODData, matIndex);
+					GeomUVs(qb, 4, firstPointIndex, lowLODData, texIndex);
 
 					int secondPointIndex = FaceIndexConstants::triLLODVertArrangements[triIndex][1];
 					GeomPoint(verts, secondPointIndex, lowLODData);
-					GeomUVs(qb, 4, secondPointIndex, lowLODData, matIndex);
+					GeomUVs(qb, 4, secondPointIndex, lowLODData, texIndex);
 
 					int thirdPointIndex = FaceIndexConstants::triLLODVertArrangements[triIndex][2];
 					GeomPoint(verts, thirdPointIndex, lowLODData);
-					GeomUVs(qb, 4, thirdPointIndex, lowLODData, matIndex);
+					GeomUVs(qb, 4, thirdPointIndex, lowLODData, texIndex);
 				}
 			}
 		}
