@@ -550,7 +550,21 @@ void Level::RenderUI()
 			{
 				m_animTextures.erase(m_animTextures.begin() + remAnimTexIndex[i]);
 			}
-			for (const AnimTexture& newTex : newTextures) { m_animTextures.push_back(newTex); }
+			for (const AnimTexture& newTex : newTextures)
+			{
+				bool foundEquivalent = false;
+				for (AnimTexture& tex : m_animTextures)
+				{
+					if (newTex.IsEquivalent(tex))
+					{
+						const std::vector<size_t>& newIndexes = newTex.GetQuadblockIndexes();
+						for (size_t index : newIndexes) { tex.AddQuadblockIndex(index); }
+						foundEquivalent = true;
+						break;
+					}
+				}
+				if (!foundEquivalent) { m_animTextures.push_back(newTex); }
+			}
 		}
 		ImGui::End();
 	}

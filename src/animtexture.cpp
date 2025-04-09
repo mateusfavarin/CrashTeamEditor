@@ -61,6 +61,12 @@ bool AnimTexture::IsPopulated() const
 	return !Empty() && !m_quadblockIndexes.empty();
 }
 
+void AnimTexture::AddQuadblockIndex(size_t index)
+{
+	for (size_t currIndex : m_quadblockIndexes) { if (index == currIndex) { return; } }
+	m_quadblockIndexes.push_back(index);
+}
+
 void AnimTexture::CopyParameters(const AnimTexture& animTex)
 {
 	m_startAtFrame = animTex.m_startAtFrame;
@@ -123,6 +129,25 @@ void AnimTexture::ToJson(nlohmann::json& json, const std::vector<Quadblock>& qua
 	std::vector<uint16_t> blendModes;
 	for (const Texture& tex : m_textures) { blendModes.push_back(tex.GetBlendMode()); }
 	json["blendModes"] = blendModes;
+}
+
+bool AnimTexture::IsEquivalent(const AnimTexture& animTex) const
+{
+	if (m_startAtFrame != animTex.m_startAtFrame) { return false; }
+	if (m_duration != animTex.m_duration) { return false; }
+	if (m_frames.size() != animTex.m_frames.size()) { return false; }
+	if (m_textures.size() != animTex.m_textures.size()) { return false; }
+	for (size_t i = 0; i < m_frames.size(); i++)
+	{
+		if (m_frames[i].textureIndex != animTex.m_frames[i].textureIndex) { return false; }
+		if (m_frames[i].uvs != animTex.m_frames[i].uvs) { return false; }
+	}
+	for (size_t i = 0; i < m_textures.size(); i++)
+	{
+		if (m_textures[i].GetBlendMode() != animTex.m_textures[i].GetBlendMode()) { return false; }
+		if (m_textures[i] != animTex.m_textures[i]) { return false; }
+	}
+	return true;
 }
 
 const std::vector<size_t>& AnimTexture::GetQuadblockIndexes() const

@@ -40,6 +40,7 @@ public:
 	bool CompareEquivalency(const Texture& tex);
 	void CopyVRAMAttributes(const Texture& tex);
 	bool operator==(const Texture& tex) const;
+	bool operator!=(const Texture& tex) const;
 	void RenderUI(const std::vector<size_t>& quadblockIndexes, std::vector<Quadblock>& quadblocks);
 	void RenderUI();
 

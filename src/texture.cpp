@@ -60,7 +60,7 @@ int Texture::GetHeight() const
 
 uint16_t Texture::GetBlendMode() const
 {
-  return m_blendMode;
+	return m_blendMode;
 }
 
 const std::filesystem::path& Texture::GetPath() const
@@ -195,8 +195,8 @@ bool Texture::CompareEquivalency(const Texture& tex)
 {
 	Texture::BPP bpp = GetBPP();
 	if ((bpp == Texture::BPP::BPP_16) || (GetWidth() != tex.GetWidth()) ||
-			(GetHeight() != tex.GetHeight()) || (bpp != tex.GetBPP()) ||
-			m_shapes.size() != tex.m_shapes.size())
+		(GetHeight() != tex.GetHeight()) || (bpp != tex.GetBPP()) ||
+		m_shapes.size() != tex.m_shapes.size())
 	{
 		return false;
 	}
@@ -230,6 +230,11 @@ void Texture::CopyVRAMAttributes(const Texture& tex)
 bool Texture::operator==(const Texture& tex) const
 {
 	return (GetWidth() == tex.GetWidth()) && (GetHeight() == tex.GetHeight()) && (GetBPP() == tex.GetBPP()) && m_clut == tex.m_clut && m_image == tex.m_image;
+}
+
+bool Texture::operator!=(const Texture& tex) const
+{
+	return !(*this == tex);
 }
 
 void Texture::FillShapes(const std::vector<size_t>& colorIndexes)
@@ -269,7 +274,7 @@ bool Texture::CreateTexture()
 	{
 		int px = i * channels;
 		uint16_t color = alphaImage ? ConvertColor(image[px + 0], image[px + 1], image[px + 2], image[px + 3]) :
-																	ConvertColor(image[px + 0], image[px + 1], image[px + 2], 255);
+			ConvertColor(image[px + 0], image[px + 1], image[px + 2], 255);
 		bool foundColor = false;
 		size_t clutIndex = m_clut.size();
 		for (size_t j = 0; j < m_clut.size(); j++)

@@ -43,6 +43,9 @@ struct Vec2
 	Vec2() : x(0.0f), y(0.0f) {};
 	Vec2(float x, float y) : x(x), y(y) {};
 
+	inline bool operator==(const Vec2& v) const { return (x == v.x) && (y == v.y); }
+	inline bool operator!=(const Vec2& v) const { return !(*this == v); }
+
 	float x;
 	float y;
 };
@@ -64,6 +67,7 @@ struct Vec3
 	inline bool operator>(float n) const { return x > n && y > n && z > n; }
 	inline bool operator<(float n) const { return x < n && y < n && z < n; }
 	inline bool operator==(const Vec3& v) const { return (x == v.x) && (y == v.y) && (z == v.z); }
+	inline bool operator!=(const Vec3& v) const { return !(*this == v); }
 	inline Vec3& operator+=(const Vec3& v) { x += v.x; y += v.y; z += v.z; return *this; }
 	inline Vec3& operator-=(const Vec3& v) { x -= v.x; y -= v.y; z -= v.z; return *this; }
 	inline Vec3& operator*=(float n) { x *= n; y *= n; z *= n; return *this; }
