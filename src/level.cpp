@@ -437,18 +437,19 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 
 		if (!m_animTextures.empty())
 		{
-			std::vector<std::array<size_t, NUM_FACES_QUADBLOCK + 1>> animOffsetPerQuadblock;
+			std::vector<std::array<size_t, NUM_FACES_QUADBLOCK>> animOffsetPerQuadblock;
 			for (AnimTexture& animTex : m_animTextures)
 			{
 				const std::vector<AnimTextureFrame>& animFrames = animTex.GetFrames();
 				const std::vector<Texture>& animTextures = animTex.GetTextures();
-				std::vector<std::vector<size_t>> texgroupIndexesPerFrame(NUM_FACES_QUADBLOCK + 1);
+				std::vector<std::vector<size_t>> texgroupIndexesPerFrame(NUM_FACES_QUADBLOCK);
 				bool firstFrame = true;
 				for (const AnimTextureFrame& frame : animFrames)
 				{
 					Texture& texture = const_cast<Texture&>(animTextures[frame.textureIndex]);
 					for (size_t i = 0; i < NUM_FACES_QUADBLOCK + 1; i++)
 					{
+						if (i == NUM_FACES_QUADBLOCK && !firstFrame) { continue; }
 						size_t textureID = 0;
 						const QuadUV& uvs = frame.uvs[i];
 						PSX::TextureLayout layout = texture.Serialize(uvs);
@@ -465,7 +466,6 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 							texGroup.mosaic = layout;
 							texGroups.push_back(texGroup);
 						}
-						texgroupIndexesPerFrame[i].push_back(textureID);
 						if (firstFrame && i == NUM_FACES_QUADBLOCK)
 						{
 							const std::vector<size_t>& quadblockIndexes = animTex.GetQuadblockIndexes();
@@ -474,11 +474,12 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 								m_quadblocks[index].SetTextureID(textureID, i);
 							}
 						}
+						else { texgroupIndexesPerFrame[i].push_back(textureID); }
 					}
 					firstFrame = false;
 				}
-				std::array<size_t, NUM_FACES_QUADBLOCK + 1> offsetPerQuadblock = {};
-				for (size_t i = 0; i < NUM_FACES_QUADBLOCK + 1; i++)
+				std::array<size_t, NUM_FACES_QUADBLOCK> offsetPerQuadblock = {};
+				for (size_t i = 0; i < NUM_FACES_QUADBLOCK; i++)
 				{
 					std::vector<uint8_t> buffer = animTex.Serialize(texgroupIndexesPerFrame[i][0], offTexture);
 					size_t animTexOffset = animData.size();
@@ -510,7 +511,7 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 				for (size_t index : quadblockIndexes)
 				{
 					Quadblock& quadblock = m_quadblocks[index];
-					for (size_t j = 0; j < NUM_FACES_QUADBLOCK + 1; j++)
+					for (size_t j = 0; j < NUM_FACES_QUADBLOCK; j++)
 					{
 						quadblock.SetAnimTextureOffset(animOffsetPerQuadblock[i][j], offAnimData, j);
 					}
