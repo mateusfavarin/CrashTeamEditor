@@ -76,61 +76,6 @@ void AnimTexture::CopyParameters(const AnimTexture& animTex)
 	m_frames = animTex.m_frames;
 }
 
-void AnimTexture::FromJson(const nlohmann::json& json, std::vector<Quadblock>& quadblocks, const std::filesystem::path& parentPath)
-{
-	std::filesystem::path path = json["path"];
-	if (!std::filesystem::exists(path))
-	{
-		path = parentPath / path.filename();
-		if (!std::filesystem::exists(path)) { return; }
-	}
-	if (!ReadAnimation(path)) { ClearAnimation(); return; }
-	m_name = json["name"];
-	m_startAtFrame = json["startAt"];
-	m_duration = json["duration"];
-	m_rotation = json["rotation"];
-	m_horMirror = json["horMirror"];
-	m_verMirror = json["verMirror"];
-
-	if (m_horMirror) { MirrorFrames(true); }
-	if (m_verMirror) { MirrorFrames(false); }
-	RotateFrames(m_rotation);
-
-	std::vector<uint16_t> blendModes = json["blendModes"];
-	if (blendModes.size() == m_textures.size())
-	{
-		for (size_t i = 0; i < m_textures.size(); i++) { m_textures[i].SetBlendMode(blendModes[i]); }
-	}
-	std::unordered_set<std::string> quadNames = json["quads"];
-	for (size_t i = 0; i < quadblocks.size(); i++)
-	{
-		if (quadNames.contains(quadblocks[i].GetName()))
-		{
-			m_quadblockIndexes.push_back(i);
-			quadblocks[i].SetAnimated(true);
-		}
-	}
-}
-
-void AnimTexture::ToJson(nlohmann::json& json, const std::vector<Quadblock>& quadblocks) const
-{
-	json["path"] = m_path;
-	json["name"] = m_name;
-	json["startAt"] = m_startAtFrame;
-	json["duration"] = m_duration;
-	json["rotation"] = m_rotation;
-	json["horMirror"] = m_horMirror;
-	json["verMirror"] = m_verMirror;
-
-	std::unordered_set<std::string> quadNames;
-	for (size_t index : m_quadblockIndexes) { quadNames.insert(quadblocks[index].GetName()); }
-	json["quads"] = quadNames;
-
-	std::vector<uint16_t> blendModes;
-	for (const Texture& tex : m_textures) { blendModes.push_back(tex.GetBlendMode()); }
-	json["blendModes"] = blendModes;
-}
-
 bool AnimTexture::IsEquivalent(const AnimTexture& animTex) const
 {
 	if (m_startAtFrame != animTex.m_startAtFrame) { return false; }
