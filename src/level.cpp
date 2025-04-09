@@ -481,6 +481,17 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 				std::array<size_t, NUM_FACES_QUADBLOCK> offsetPerQuadblock = {};
 				for (size_t i = 0; i < NUM_FACES_QUADBLOCK; i++)
 				{
+					bool foundEquivalent = false;
+					for (size_t j = 0; j < i; j++)
+					{
+						if (texgroupIndexesPerFrame[i] == texgroupIndexesPerFrame[j])
+						{
+							offsetPerQuadblock[i] = offsetPerQuadblock[j];
+							foundEquivalent = true;
+							break;
+						}
+					}
+					if (foundEquivalent) { continue; }
 					std::vector<uint8_t> buffer = animTex.Serialize(texgroupIndexesPerFrame[i][0], offTexture);
 					size_t animTexOffset = animData.size();
 					offsetPerQuadblock[i] = animTexOffset;
