@@ -165,7 +165,7 @@ void main()
   {
     vec4 vertColor = vec4(VertColor.rgb, 1.0);
     vec4 texColor = texture(tex, vec3(TexCoord, TexIndex));
-    FragColor = texColor * (vertColor * 2.0);
+    FragColor = (texColor + vertColor) * 0.5;
   }
   else if (drawType == 1) //1 == "Diffuse"
   {
