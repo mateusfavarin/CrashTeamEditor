@@ -16,4 +16,4 @@ int GuiRenderSettings::renderType = 0;
 int GuiRenderSettings::bspTreeTopDepth = 0;
 int GuiRenderSettings::bspTreeBottomDepth = 0;
 int GuiRenderSettings::bspTreeMaxDepth = 0;
-const std::vector<const char*> GuiRenderSettings::renderTypeLabels = { "VColor + Tex", "Diffuse", "(.obj Normals) Face Direction", "(calc Normals) Face Direction", "World Normals"};
+const std::vector<const char*> GuiRenderSettings::renderTypeLabels = { "VColor", "Tex", "VColor + Tex", "Diffuse", "(.obj Normals) Face Direction", "(calc Normals) Face Direction", "World Normals"};

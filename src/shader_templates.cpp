@@ -164,15 +164,25 @@ void main()
   if (drawType == 0) //0 == "VColor"
   {
     vec4 vertColor = vec4(VertColor.rgb, 1.0);
+    FragColor = vertColor;
+  }
+  else if (drawType == 1) //1 == "Tex"
+  {
+    vec4 texColor = texture(tex, vec3(TexCoord, TexIndex));
+    FragColor = texColor;
+  }
+  else if (drawType == 2) //2 == "VColor + Tex"
+  {
+    vec4 vertColor = vec4(VertColor.rgb, 1.0);
     vec4 texColor = texture(tex, vec3(TexCoord, TexIndex));
     FragColor = texColor * (vertColor * 2.0);
   }
-  else if (drawType == 1) //1 == "Diffuse"
+  else if (drawType == 3) //3 == "Diffuse"
   {
     vec4 finalCol = (vec4(0.1, 0.0, 0.3, 1.0) + diffCol) * vec4(0.2, 1.0, 0.2, 1.0); //(ambient + diffuse) * objcolor;
 	  FragColor = finalCol;
   }
-  else if (drawType == 2) //2 == "(.obj Normals) Face Direction"
+  else if (drawType == 4) //4 == "(.obj Normals) Face Direction"
   { //Exterior normals=blue, interior normals=red
     //this logic for red/blue might be backwards idk (compare to blender to make sure).
     float normalDir = dot(-normalize(Normal), (camWorldPos - FragWorldPos));
@@ -184,11 +194,12 @@ void main()
     chosenColor = (vec4(0.1, 0.1, 0.1, 1.0) + diffCol) * chosenColor;  //(ambient + diffuse) * objcolor;
     FragColor = chosenColor;
   }
-  else if (drawType == 3) //3 == "(calc Normals) Face Direction"
+  else if (drawType == 5) //5 == "(calc Normals) Face Direction"
   { //Exterior normals=blue, interior normals=red
     //todo
+    FragColor = vec4(1.0, 0.0, 0.2, 1.0);
   }
-  else if (drawType == 4) //4 == "World Normals"
+  else if (drawType == 6) //6 == "World Normals"
   {
     FragColor = vec4((normalize(Normal) + vec3(1.0, 1.0, 1.0)) * 0.5, 1.0);
   }

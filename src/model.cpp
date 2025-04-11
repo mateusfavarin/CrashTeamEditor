@@ -8,17 +8,11 @@ Model::Model(Mesh* mesh, glm::vec3 position, glm::vec3 scale, glm::quat rotation
   m_rotation = rotation;
 }
 
-void Model::Setup()
-{
-  if (m_mesh == nullptr) { return; }
-
-	m_mesh->Bind();
-}
-
 void Model::Draw()
 {
 	if (m_mesh == nullptr) { return; }
 
+  m_mesh->Bind();
 	m_mesh->Draw();
 	m_mesh->Unbind();
 }

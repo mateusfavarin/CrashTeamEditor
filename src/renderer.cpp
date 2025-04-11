@@ -163,12 +163,7 @@ void Renderer::Render(std::vector<Model> models)
       lastUsedShader = shad;
     }
 
-    //hacky thing, I'm not sure if this is necessary, but this ensures that texture unit is setup before using shader.
-    /*shad->Unuse();
-    m.Setup();
-    shad->Use();*/
-
-    m.Setup();
+    //m.Setup();
 
     if ((m.GetMesh()->GetShaderSettings() & Mesh::ShaderSettings::DontOverrideShaderSettings) == 0)
     {

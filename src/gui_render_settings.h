@@ -8,6 +8,8 @@ struct GuiRenderSettings
   enum RenderType
 	{
     VColor,
+    Tex,
+    VColorTex,
     Diffuse,
     ObjFaceDirection,
     CalcFaceDirection,
