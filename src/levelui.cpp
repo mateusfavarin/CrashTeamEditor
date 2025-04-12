@@ -665,7 +665,7 @@ void Level::RenderUI()
       }
       ImGui::BeginDisabled(!ready);
       static ButtonUI generateButton;
-      if (generateButton.Show("Generate", "Checkspoints successfully generated.", false))
+      if (generateButton.Show("Generate", "Checkpoints successfully generated.", false))
       {
         size_t checkpointIndex = 0;
         std::vector<size_t> linkNodeIndexes;
