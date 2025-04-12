@@ -32,7 +32,7 @@ public:
 	void Restore() override;
 	void Clear() override;
 	T& GetPreview(const std::string& material);
-	const T& GetBackup(const std::string& material);
+	T& GetBackup(const std::string& material);
 	void Apply(const std::string& material, const std::vector<size_t>& quadblockIndexes, std::vector<Quadblock>& quadblocks);
 	bool RenderUI(const std::string& material, const std::vector<size_t>& quadblockIndexes, std::vector<Quadblock>& quadblocks);
 

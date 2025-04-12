@@ -89,7 +89,7 @@ T& MaterialProperty<T, M>::GetPreview(const std::string& material)
 }
 
 template<typename T, MaterialType M>
-const T& MaterialProperty<T, M>::GetBackup(const std::string& material)
+T& MaterialProperty<T, M>::GetBackup(const std::string& material)
 {
 	return m_backup[material];
 }

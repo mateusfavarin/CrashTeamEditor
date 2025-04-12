@@ -169,7 +169,12 @@ bool Level::LoadPreset(const std::filesystem::path& filename)
 						m_propCheckpoints.SetPreview(material, json[material + "_checkpoint"]);
 						m_propCheckpoints.Apply(material, m_materialToQuadblocks[material], m_quadblocks);
 					}
-					if (json.contains(material + "_trigger")) { m_propTurboPads.SetPreview(material, json[material + "_trigger"]); }
+					if (json.contains(material + "_trigger"))
+					{
+						QuadblockTrigger trigger = json[material + "_trigger"];
+						m_propTurboPads.GetBackup(material) = trigger;
+						m_propTurboPads.GetPreview(material) = trigger;
+					}
 				}
 			}
 		}
