@@ -69,9 +69,19 @@ void Level::Clear(bool clearErrors)
 	DeleteMaterials(this);
 }
 
+const std::string& Level::GetName() const
+{
+	return m_name;
+}
+
 const std::vector<Quadblock>& Level::GetQuadblocks() const
 {
 	return m_quadblocks;
+}
+
+const std::filesystem::path& Level::GetParentPath() const
+{
+	return m_parentPath;
 }
 
 enum class PresetHeader : unsigned
@@ -1395,7 +1405,7 @@ void Level::GenerateRenderLevData(std::vector<Quadblock>& quadblocks)
 				GeomOctopoint(verts, index, vertexLowLODData);
 			}
 
- 			for (int triIndex = 0; triIndex < 8; triIndex++)
+			for (int triIndex = 0; triIndex < 8; triIndex++)
 			{
 				GeomPoint(verts, FaceIndexConstants::quadHLODVertArrangements[triIndex][0], highLODData);
 				GeomPoint(verts, FaceIndexConstants::quadHLODVertArrangements[triIndex][1], highLODData);
@@ -1426,18 +1436,18 @@ void Level::GenerateRenderLevData(std::vector<Quadblock>& quadblocks)
 			}
 
 			for (int triIndex = 0; triIndex < 4; triIndex++)
- 			{
- 				GeomPoint(verts, FaceIndexConstants::triHLODVertArrangements[triIndex][0], highLODData);
- 				GeomPoint(verts, FaceIndexConstants::triHLODVertArrangements[triIndex][1], highLODData);
- 				GeomPoint(verts, FaceIndexConstants::triHLODVertArrangements[triIndex][2], highLODData);
- 			}
+			{
+				GeomPoint(verts, FaceIndexConstants::triHLODVertArrangements[triIndex][0], highLODData);
+				GeomPoint(verts, FaceIndexConstants::triHLODVertArrangements[triIndex][1], highLODData);
+				GeomPoint(verts, FaceIndexConstants::triHLODVertArrangements[triIndex][2], highLODData);
+			}
 
- 			for (int triIndex = 0; triIndex < 1; triIndex++)
- 			{
- 				GeomPoint(verts, FaceIndexConstants::triLLODVertArrangements[triIndex][0], lowLODData);
- 				GeomPoint(verts, FaceIndexConstants::triLLODVertArrangements[triIndex][1], lowLODData);
- 				GeomPoint(verts, FaceIndexConstants::triLLODVertArrangements[triIndex][2], lowLODData);
- 			}
+			for (int triIndex = 0; triIndex < 1; triIndex++)
+			{
+				GeomPoint(verts, FaceIndexConstants::triLLODVertArrangements[triIndex][0], lowLODData);
+				GeomPoint(verts, FaceIndexConstants::triLLODVertArrangements[triIndex][1], lowLODData);
+				GeomPoint(verts, FaceIndexConstants::triLLODVertArrangements[triIndex][2], lowLODData);
+			}
 		}
 	}
 	m_highLODMesh.UpdateMesh(highLODData, (Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);

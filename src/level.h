@@ -29,7 +29,9 @@ public:
 	bool Ready();
 	void OpenHotReloadWindow();
 	void Clear(bool clearErrors);
+	const std::string& GetName() const;
 	const std::vector<Quadblock>& GetQuadblocks() const;
+	const std::filesystem::path& GetParentPath() const;
 	bool LoadPreset(const std::filesystem::path& filename);
 	bool SavePreset(const std::filesystem::path& path);
 	void RenderUI();

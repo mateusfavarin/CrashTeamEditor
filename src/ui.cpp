@@ -29,7 +29,7 @@ void UI::MainMenu()
 			bool ready = m_lev.Ready();
 			if (ImGui::MenuItem("Save", nullptr, nullptr, ready))
 			{
-				auto selection = pfd::select_folder("Level Folder").result();
+				auto selection = pfd::select_folder("Level Folder", m_lev.GetParentPath().string()).result();
 				if (!selection.empty())
 				{
 					const std::filesystem::path path = selection + "\\";
@@ -48,7 +48,9 @@ void UI::MainMenu()
 			{
 				if (ImGui::MenuItem("Load"))
 				{
-					auto selection = pfd::open_file("Preset File", ".", {"Preset Files", "*.json"}, pfd::opt::multiselect).result();
+					std::filesystem::path presetsFolder = m_lev.GetParentPath() / (m_lev.GetName() + "_presets");
+					if (!std::filesystem::is_directory(presetsFolder)) { presetsFolder = m_lev.GetParentPath(); }
+					auto selection = pfd::open_file("Preset File", presetsFolder.string(), {"Preset Files", "*.json"}, pfd::opt::multiselect).result();
 					for (const std::string& filename : selection)
 					{
 						m_lev.LoadPreset(filename);
@@ -56,7 +58,7 @@ void UI::MainMenu()
 				}
 				if (ImGui::MenuItem("Save"))
 				{
-					auto selection = pfd::select_folder("Level Folder").result();
+					auto selection = pfd::select_folder("Presets Root Directory", m_lev.GetParentPath().string()).result();
 					if (!selection.empty())
 					{
 						const std::filesystem::path path = selection + "\\";

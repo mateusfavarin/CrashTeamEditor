@@ -326,7 +326,7 @@ void Level::RenderUI()
 			ImGui::SetItemTooltip(levPath.c_str()); ImGui::SameLine();
 			if (ImGui::Button("...##levhotreload"))
 			{
-				auto selection = pfd::open_file("Lev File", ".", {"Lev Files", "*.lev"}).result();
+				auto selection = pfd::open_file("Lev File", m_parentPath.string(), {"Lev Files", "*.lev"}).result();
 				if (!selection.empty()) { levPath = selection.front(); }
 			}
 
@@ -335,7 +335,7 @@ void Level::RenderUI()
 			ImGui::SetItemTooltip(vrmPath.c_str()); ImGui::SameLine();
 			if (ImGui::Button("...##vrmhotreload"))
 			{
-				auto selection = pfd::open_file("Vrm File", ".", {"Vrm Files", "*.vrm"}).result();
+				auto selection = pfd::open_file("Vrm File", m_parentPath.string(), {"Vrm Files", "*.vrm"}).result();
 				if (!selection.empty()) { vrmPath = selection.front(); }
 			}
 
@@ -525,7 +525,7 @@ void Level::RenderUI()
 			static std::string errorLoadingAnim;
 			if (ImGui::Button("Load"))
 			{
-				auto selection = pfd::open_file("Animated Texture", ".", {"Animated Texture Files", "*.obj"}).result();
+				auto selection = pfd::open_file("Animated Texture", m_parentPath.string(), {"Animated Texture Files", "*.obj"}).result();
 				if (!selection.empty())
 				{
 					const std::filesystem::path& animTexPath = selection.front();
@@ -765,7 +765,7 @@ void Level::RenderUI()
         ghostName += ".ctrghost";
         saveGhostFeedback = "Failed retrieving ghost data from the emulator.\nMake sure that you have saved your ghost in-game\nbefore clicking this button.";
 
-        auto selection = pfd::select_folder("Level Folder").result();
+        auto selection = pfd::select_folder("Level Folder", m_parentPath.string()).result();
         if (!selection.empty())
         {
           const std::filesystem::path path = selection + "\\" + ghostName;
@@ -783,7 +783,7 @@ void Level::RenderUI()
       if (tropyPathButton.Show("...##tropypath", tropyImportFeedback, false))
       {
         tropyImportFeedback = "Error: invalid ghost file format.";
-        auto selection = pfd::open_file("CTR Ghost File", ".", {"CTR Ghost Files", "*.ctrghost"}).result();
+        auto selection = pfd::open_file("CTR Ghost File", m_parentPath.string(), {"CTR Ghost Files", "*.ctrghost"}).result();
         if (!selection.empty())
         {
           tropyPath = selection.front();
@@ -799,7 +799,7 @@ void Level::RenderUI()
       if (oxidePathButton.Show("...##oxidepath", oxideImportFeedback, false))
       {
         oxideImportFeedback = "Error: invalid ghost file format.";
-        auto selection = pfd::open_file("CTR Ghost File", ".", {"CTR Ghost Files", "*.ctrghost"}).result();
+        auto selection = pfd::open_file("CTR Ghost File", m_parentPath.string(), {"CTR Ghost Files", "*.ctrghost"}).result();
         if (!selection.empty())
         {
           oxidePath = selection.front();
