@@ -21,9 +21,6 @@
 #include <cmath>
 #include <sstream>
 
-static constexpr size_t MAX_QUADBLOCKS_LEAF = 32;
-static constexpr float MAX_LEAF_AXIS_LENGTH = 60.0f;
-
 class ButtonUI
 {
 public:
@@ -731,18 +728,8 @@ void Level::RenderUI()
       static ButtonUI generateBSPButton = ButtonUI();
       if (generateBSPButton.Show("Generate", buttonMessage, false))
       {
-        std::vector<size_t> quadIndexes;
-        for (size_t i = 0; i < m_quadblocks.size(); i++) { quadIndexes.push_back(i); }
-        m_bsp.Clear();
-        m_bsp.SetQuadblockIndexes(quadIndexes);
-        m_bsp.Generate(m_quadblocks, MAX_QUADBLOCKS_LEAF, MAX_LEAF_AXIS_LENGTH);
-        if (m_bsp.Valid()) { buttonMessage = "Successfully generated the BSP tree."; }
-        else
-        {
-          m_bsp.Clear();
-          buttonMessage = "Failed generating the BSP tree.";
-        }
-        GenerateRenderBspData(m_bsp);
+				if (GenerateBSP()) { buttonMessage = "Successfully generated the BSP tree."; }
+				else { buttonMessage = "Failed generating the BSP tree."; }
       }
     }
     ImGui::End();

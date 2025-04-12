@@ -84,6 +84,22 @@ const std::filesystem::path& Level::GetParentPath() const
 	return m_parentPath;
 }
 
+bool Level::GenerateBSP()
+{
+	std::vector<size_t> quadIndexes;
+	for (size_t i = 0; i < m_quadblocks.size(); i++) { quadIndexes.push_back(i); }
+	m_bsp.Clear();
+	m_bsp.SetQuadblockIndexes(quadIndexes);
+	m_bsp.Generate(m_quadblocks, MAX_QUADBLOCKS_LEAF, MAX_LEAF_AXIS_LENGTH);
+	if (m_bsp.Valid())
+	{
+		GenerateRenderBspData(m_bsp);
+		return true;
+	}
+	m_bsp.Clear();
+	return false;
+}
+
 enum class PresetHeader : unsigned
 {
 	SPAWN, LEVEL, PATH, MATERIAL, TURBO_PAD, ANIM_TEXTURES
@@ -1139,6 +1155,7 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 		}
 	}
 	GenerateRenderLevData(m_quadblocks);
+	GenerateBSP();
 	return ret;
 }
 

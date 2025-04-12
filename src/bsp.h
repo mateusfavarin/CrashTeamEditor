@@ -33,6 +33,9 @@ struct BSPID
 	static constexpr uint16_t EMPTY = 0x8000;
 };
 
+static constexpr size_t MAX_QUADBLOCKS_LEAF = 32;
+static constexpr float MAX_LEAF_AXIS_LENGTH = 60.0f;
+
 class BSP
 {
 public:
