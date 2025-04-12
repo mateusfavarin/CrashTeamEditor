@@ -1115,6 +1115,19 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 		ret = false;
 	}
 	m_loaded = ret;
+
+	if (m_loaded)
+	{
+		std::filesystem::path presetFolder = m_parentPath / (m_name + "_presets");
+		if (std::filesystem::is_directory(presetFolder))
+		{
+			for (const auto& entry : std::filesystem::directory_iterator(presetFolder))
+			{
+				const std::filesystem::path json = entry.path();
+				if (json.has_extension() && json.extension() == ".json") { LoadPreset(json); }
+			}
+		}
+	}
 	GenerateRenderLevData(m_quadblocks);
 	return ret;
 }
