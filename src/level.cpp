@@ -55,8 +55,8 @@ void Level::Clear(bool clearErrors)
 	m_configFlags = LevConfigFlags::NONE;
 	m_clearColor = Color();
 	m_name.clear();
-	m_savedLevPath.clear();
-	m_savedVRMPath.clear();
+	m_hotReloadLevPath.clear();
+	m_hotReloadVRMPath.clear();
 	m_quadblocks.clear();
 	m_checkpoints.clear();
 	m_bsp.Clear();
@@ -360,8 +360,8 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	*		- VisMem
 	*		- PointerMap
 	*/
-	m_savedLevPath = path / (m_name + ".lev");
-	std::ofstream file(m_savedLevPath, std::ios::binary);
+	m_hotReloadLevPath = path / (m_name + ".lev");
+	std::ofstream file(m_hotReloadLevPath, std::ios::binary);
 
 	std::vector<const BSP*> bspNodes = m_bsp.GetTree();
 	std::vector<const BSP*> orderedBSPNodes(bspNodes.size());
@@ -571,8 +571,8 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 			}
 		}
 
-		m_savedVRMPath = path / (m_name + ".vrm");
-		std::ofstream vrmFile(m_savedVRMPath, std::ios::binary);
+		m_hotReloadVRMPath = path / (m_name + ".vrm");
+		std::ofstream vrmFile(m_hotReloadVRMPath, std::ios::binary);
 		Write(vrmFile, vrm.data(), vrm.size());
 		vrmFile.close();
 	}

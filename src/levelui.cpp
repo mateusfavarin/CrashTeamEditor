@@ -316,27 +316,24 @@ void Level::RenderUI()
 	{
 		if (ImGui::Begin("Hot Reload", &m_showHotReloadWindow))
 		{
-			static std::string levPath;
-			static std::string vrmPath;
-			if (levPath.empty() && !m_savedLevPath.empty()) { levPath = m_savedLevPath.string(); }
-			if (vrmPath.empty() && !m_savedVRMPath.empty()) { vrmPath = m_savedVRMPath.string(); }
-
+			std::string levPath = m_hotReloadLevPath.string();
 			ImGui::Text("Lev Path"); ImGui::SameLine();
 			ImGui::InputText("##levpath", &levPath, ImGuiInputTextFlags_ReadOnly);
 			ImGui::SetItemTooltip(levPath.c_str()); ImGui::SameLine();
 			if (ImGui::Button("...##levhotreload"))
 			{
 				auto selection = pfd::open_file("Lev File", m_parentPath.string(), {"Lev Files", "*.lev"}).result();
-				if (!selection.empty()) { levPath = selection.front(); }
+				if (!selection.empty()) { m_hotReloadLevPath = selection.front(); }
 			}
 
+			std::string vrmPath = m_hotReloadVRMPath.string();
 			ImGui::Text("Vrm Path"); ImGui::SameLine();
 			ImGui::InputText("##vrmpath", &vrmPath, ImGuiInputTextFlags_ReadOnly);
 			ImGui::SetItemTooltip(vrmPath.c_str()); ImGui::SameLine();
 			if (ImGui::Button("...##vrmhotreload"))
 			{
 				auto selection = pfd::open_file("Vrm File", m_parentPath.string(), {"Vrm Files", "*.vrm"}).result();
-				if (!selection.empty()) { vrmPath = selection.front(); }
+				if (!selection.empty()) { m_hotReloadVRMPath = selection.front(); }
 			}
 
 			const std::string successMessage = "Successfully hot reloaded.";
