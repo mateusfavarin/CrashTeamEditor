@@ -130,9 +130,13 @@ bool Level::LoadPreset(const std::filesystem::path& filename)
 			for (size_t i = 0; i < pathCount; i++)
 			{
 				if (!json.contains("path" + std::to_string(i))) { continue; }
-				Path path = Path();
-				path.FromJson(json["path" + std::to_string(i)], m_quadblocks);
-				m_checkpointPaths[path.GetIndex()] = path;
+
+				nlohmann::json& pathJson = json["path" + std::to_string(i)];
+				if (!pathJson.contains("index")) { continue; }
+
+				size_t index = pathJson["index"];
+				Path& path = m_checkpointPaths[index];
+				path.FromJson(pathJson, m_quadblocks);
 			}
 		}
 	}
