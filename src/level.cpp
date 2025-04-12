@@ -193,16 +193,6 @@ bool Level::SavePreset(const std::filesystem::path& path)
 
 	auto SaveJSON = [](const std::filesystem::path& path, const nlohmann::json& json)
 		{
-			if (std::filesystem::exists(path))
-			{
-				std::filesystem::path backupPath = path;
-				while (std::filesystem::exists(backupPath))
-				{
-					backupPath.replace_filename(backupPath.stem().string() + "_bak.json");
-				}
-				std::filesystem::copy_file(path, backupPath);
-				std::filesystem::remove(path);
-			}
 			std::ofstream pathFile(path);
 			pathFile << std::setw(4) << json << std::endl;
 		};
