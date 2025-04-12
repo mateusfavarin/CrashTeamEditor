@@ -188,7 +188,7 @@ bool Level::LoadPreset(const std::filesystem::path& filename)
 
 bool Level::SavePreset(const std::filesystem::path& path)
 {
-	std::filesystem::path dirPath = path / m_name;
+	std::filesystem::path dirPath = path / (m_name + "_presets");
 	if (!std::filesystem::exists(dirPath)) { std::filesystem::create_directory(dirPath); }
 
 	auto SaveJSON = [](const std::filesystem::path& path, const nlohmann::json& json)
