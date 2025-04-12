@@ -964,6 +964,18 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 			std::vector<std::string> token0 = Split(tokens[1], '/');
 			std::vector<std::string> token1 = Split(tokens[2], '/');
 			std::vector<std::string> token2 = Split(tokens[3], '/');
+
+			const size_t EXPECTED_INFORMATION_PER_TOKEN = 3; /* pos, opt uvs, normals */
+			if (token0.size() < EXPECTED_INFORMATION_PER_TOKEN ||
+				token1.size() < EXPECTED_INFORMATION_PER_TOKEN ||
+				token2.size() < EXPECTED_INFORMATION_PER_TOKEN)
+			{
+				ret = false;
+				m_showLogWindow = true;
+				m_invalidQuadblocks.emplace_back(currQuadblockName, "Missing vertex normals.");
+				continue;
+			}
+
 			int i0 = std::stoi(token0[0]) - 1;
 			int i1 = std::stoi(token1[0]) - 1;
 			int i2 = std::stoi(token2[0]) - 1;
