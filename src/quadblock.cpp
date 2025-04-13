@@ -541,14 +541,7 @@ std::vector<uint8_t> Quadblock::Serialize(size_t id, size_t offTextures, const s
 	quadblock.speedImpact = 0;
 	quadblock.id = static_cast<uint16_t>((id & 0xffe0) + 0x1f - (id & 0x1f));
 	quadblock.checkpointIndex = static_cast<uint8_t>(m_checkpointIndex);
-	if (m_triblock)
-	{
-		quadblock.triNormalVecBitshift = static_cast<uint8_t>(std::round(std::log2(ComputeNormalVector(0, 2, 6).Length()) * 512.0f));
-	}
-	else
-	{
-		quadblock.triNormalVecBitshift = static_cast<uint8_t>(std::round(std::log2(std::max(ComputeNormalVector(0, 2, 6).Length(), ComputeNormalVector(2, 8, 6).Length()) * 512.0f)));
-	}
+	quadblock.triNormalVecBitshift = static_cast<uint8_t>(std::round(std::log2(std::max(ComputeNormalVector(0, 2, 6).Length(), ComputeNormalVector(2, 8, 6).Length()) * 512.0f)));
 
 	auto CalculateNormalDividend = [this](size_t id0, size_t id1, size_t id2, float scaler) -> uint16_t
 		{
@@ -560,14 +553,11 @@ std::vector<uint8_t> Quadblock::Serialize(size_t id, size_t offTextures, const s
 	quadblock.triNormalVecDividend[1] = CalculateNormalDividend(1, 4, 3, scaler);
 	quadblock.triNormalVecDividend[2] = CalculateNormalDividend(4, 1, 2, scaler);
 	quadblock.triNormalVecDividend[3] = CalculateNormalDividend(3, 4, 6, scaler);
-	if (!m_triblock)
-	{
-		quadblock.triNormalVecDividend[4] = CalculateNormalDividend(7, 4, 5, scaler);
-		quadblock.triNormalVecDividend[5] = CalculateNormalDividend(5, 8, 7, scaler);
-		quadblock.triNormalVecDividend[6] = CalculateNormalDividend(2, 5, 4, scaler);
-		quadblock.triNormalVecDividend[7] = CalculateNormalDividend(6, 4, 7, scaler);
-		quadblock.triNormalVecDividend[9] = CalculateNormalDividend(2, 8, 6, scaler); /* low LoD */
-	}
+	quadblock.triNormalVecDividend[4] = CalculateNormalDividend(7, 4, 5, scaler);
+	quadblock.triNormalVecDividend[5] = CalculateNormalDividend(5, 8, 7, scaler);
+	quadblock.triNormalVecDividend[6] = CalculateNormalDividend(2, 5, 4, scaler);
+	quadblock.triNormalVecDividend[7] = CalculateNormalDividend(6, 4, 7, scaler);
+	quadblock.triNormalVecDividend[9] = CalculateNormalDividend(2, 8, 6, scaler); /* low LoD */
 	quadblock.triNormalVecDividend[8] = CalculateNormalDividend(0, 2, 6, scaler); /* low LoD */
 	std::memcpy(buffer.data(), &quadblock, sizeof(quadblock));
 	return buffer;
