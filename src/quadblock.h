@@ -176,6 +176,7 @@ public:
 	bool RenderUI(size_t checkpointCount, bool& resetBsp);
 
 private:
+	void SetDefaultValues();
 	Vec3 ComputeNormalVector(size_t id0, size_t id1, size_t id2) const;
 	void ComputeBoundingBox();
 

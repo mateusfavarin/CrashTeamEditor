@@ -1056,7 +1056,7 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 						m_propTerrain.SetDefaultValue(material, TerrainType::DEFAULT);
 						m_propQuadFlags.SetDefaultValue(material, QuadFlags::DEFAULT);
 						m_propDoubleSided.SetDefaultValue(material, false);
-						m_propCheckpoints.SetDefaultValue(material, true);
+						m_propCheckpoints.SetDefaultValue(material, false);
 						m_propTurboPads.SetDefaultValue(material, QuadblockTrigger::NONE);
 						m_propTerrain.RegisterMaterial(this);
 						m_propQuadFlags.RegisterMaterial(this);

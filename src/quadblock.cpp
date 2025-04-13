@@ -141,25 +141,10 @@ Quadblock::Quadblock(const std::string& name, Tri& t0, Tri& t1, Tri& t2, Tri& t3
 		m_uvs[4] = { Vec2(0.0f, 0.0f), Vec2(1.0f, 0.0f), Vec2(0.0f, 1.0f), Vec2(1.0f, 1.0f) };
 	}
 
-	ComputeBoundingBox();
 	m_name = name;
 	m_material = material;
-	m_triblock = false;
-	m_checkpointIndex = -1;
-	m_flags = QuadFlags::DEFAULT;
-	m_terrain = TerrainType::LABELS.at(TerrainType::DEFAULT);
-
-	for (size_t i = 0; i < NUM_FACES_QUADBLOCK; i++)
-	{
-		m_faceDrawMode[i] = FaceDrawMode::DRAW_BOTH;
-		m_faceRotateFlip[i] = FaceRotateFlip::NONE;
-	}
-	m_doubleSided = false;
-	m_checkpointStatus = true;
-	m_trigger = QuadblockTrigger::NONE;
-	m_turboPadIndex = TURBO_PAD_INDEX_NONE;
-	m_hide = false;
-	m_animated = false;
+	m_triblock = true;
+	SetDefaultValues();
 }
 
 Quadblock::Quadblock(const std::string& name, Quad& q0, Quad& q1, Quad& q2, Quad& q3, const Vec3& normal, const std::string& material, bool hasUV)
@@ -331,24 +316,10 @@ Quadblock::Quadblock(const std::string& name, Quad& q0, Quad& q1, Quad& q2, Quad
 		m_uvs[4] = { Vec2(0.0f, 0.0f), Vec2(1.0f, 0.0f), Vec2(0.0f, 1.0f), Vec2(1.0f, 1.0f) };
 	}
 
-	ComputeBoundingBox();
 	m_name = name;
 	m_material = material;
 	m_triblock = false;
-	m_checkpointIndex = -1;
-	m_flags = QuadFlags::DEFAULT;
-	m_terrain = TerrainType::LABELS.at(TerrainType::DEFAULT);
-	for (size_t i = 0; i < NUM_FACES_QUADBLOCK; i++)
-	{
-		m_faceDrawMode[i] = FaceDrawMode::DRAW_BOTH;
-		m_faceRotateFlip[i] = FaceRotateFlip::NONE;
-	}
-	m_doubleSided = false;
-	m_checkpointStatus = true;
-	m_trigger = QuadblockTrigger::NONE;
-	m_turboPadIndex = TURBO_PAD_INDEX_NONE;
-	m_hide = false;
-	m_animated = false;
+	SetDefaultValues();
 }
 
 const std::string& Quadblock::GetName() const
@@ -600,6 +571,26 @@ std::vector<uint8_t> Quadblock::Serialize(size_t id, size_t offTextures, const s
 	quadblock.triNormalVecDividend[8] = CalculateNormalDividend(0, 2, 6, scaler); /* low LoD */
 	std::memcpy(buffer.data(), &quadblock, sizeof(quadblock));
 	return buffer;
+}
+
+void Quadblock::SetDefaultValues()
+{
+	ComputeBoundingBox();
+	m_checkpointIndex = -1;
+	m_flags = QuadFlags::DEFAULT;
+	m_terrain = TerrainType::LABELS.at(TerrainType::DEFAULT);
+
+	for (size_t i = 0; i < NUM_FACES_QUADBLOCK; i++)
+	{
+		m_faceDrawMode[i] = FaceDrawMode::DRAW_BOTH;
+		m_faceRotateFlip[i] = FaceRotateFlip::NONE;
+	}
+	m_doubleSided = false;
+	m_checkpointStatus = false;
+	m_trigger = QuadblockTrigger::NONE;
+	m_turboPadIndex = TURBO_PAD_INDEX_NONE;
+	m_hide = false;
+	m_animated = false;
 }
 
 Vec3 Quadblock::ComputeNormalVector(size_t id0, size_t id1, size_t id2) const
