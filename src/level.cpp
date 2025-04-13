@@ -107,8 +107,13 @@ enum class PresetHeader : unsigned
 
 bool Level::LoadPreset(const std::filesystem::path& filename)
 {
+	m_showLogWindow = true;
 	nlohmann::json json = nlohmann::json::parse(std::ifstream(filename));
-	if (!json.contains("header")) { return false; }
+	if (!json.contains("header"))
+	{
+		m_logMessage += "\nFailed loaded preset: " + filename.string();
+		return false;
+	}
 
 	const PresetHeader header = json["header"];
 	if (header == PresetHeader::SPAWN)
@@ -210,14 +215,17 @@ bool Level::LoadPreset(const std::filesystem::path& filename)
 					{
 						m_bsp.Clear();
 						GenerateRenderBspData(m_bsp);
-						m_showLogWindow = true;
-						m_logMessage = "Modifying turbo pad state automatically resets the BSP tree.";
 					}
 				}
 			}
 		}
 	}
-	else { return false; }
+	else
+	{
+		m_logMessage += "\nFailed loaded preset: " + filename.string();
+		return false;
+	}
+	m_logMessage += "\nSuccessfully loaded preset: " + filename.string();
 	return true;
 }
 
@@ -387,6 +395,8 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	*/
 	m_hotReloadLevPath = path / (m_name + ".lev");
 	std::ofstream file(m_hotReloadLevPath, std::ios::binary);
+
+	if (m_bsp.Empty()) { GenerateBSP(); }
 
 	std::vector<const BSP*> bspNodes = m_bsp.GetTree();
 	std::vector<const BSP*> orderedBSPNodes(bspNodes.size());
@@ -640,11 +650,11 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 		}
 	}
 
+	constexpr size_t BITS_PER_SLOT = sizeof(uint32_t) * 8;
 	std::vector<std::tuple<std::vector<uint32_t>, size_t>> visibleNodes;
 	std::vector<std::tuple<std::vector<uint32_t>, size_t>> visibleQuads;
-	size_t visNodeSize = static_cast<size_t>(std::ceil(static_cast<float>(bspNodes.size()) / 32.0f));
-	size_t visQuadSize = static_cast<size_t>(std::ceil(static_cast<float>(m_quadblocks.size()) / 32.0f));
-
+	size_t visNodeSize = static_cast<size_t>(std::ceil(static_cast<float>(bspNodes.size()) / static_cast<float>(BITS_PER_SLOT)));
+	size_t visQuadSize = static_cast<size_t>(std::ceil(static_cast<float>(m_quadblocks.size()) / static_cast<float>(BITS_PER_SLOT)));
 	/*
 		TODO: run some sort of visibility algorithm,
 		generate visible nodes/quads depending on the needs of every quadblock.
@@ -652,7 +662,7 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	std::vector<uint32_t> visibleNodeAll(visNodeSize, 0xFFFFFFFF);
 	for (const BSP* bsp : orderedBSPNodes)
 	{
-		if (bsp->GetFlags() & BSPFlags::INVISIBLE) { visibleNodeAll[bsp->Id()] &= ~(1 << bsp->Id()); }
+		if (bsp->GetFlags() & BSPFlags::INVISIBLE) { visibleNodeAll[bsp->Id() / BITS_PER_SLOT] &= ~(1 << (bsp->Id() % BITS_PER_SLOT)); }
 	}
 	visibleNodes.push_back({visibleNodeAll, currOffset});
 	currOffset += visibleNodeAll.size() * sizeof(uint32_t);
@@ -663,7 +673,7 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	{
 		if (quad->GetFlags() & (QuadFlags::INVISIBLE | QuadFlags::INVISIBLE_TRIGGER))
 		{
-			visibleQuadsAll[quadIndex / 32] &= ~(1 << quadIndex);
+			visibleQuadsAll[quadIndex / BITS_PER_SLOT] &= ~(1 << (quadIndex % BITS_PER_SLOT));
 		}
 		quadIndex++;
 	}

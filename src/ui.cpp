@@ -26,22 +26,17 @@ void UI::MainMenu()
 					if (!m_lev.Load(levPath)) { m_lev.Clear(false); }
 				}
 			}
-			bool ready = m_lev.Ready();
-			if (ImGui::MenuItem("Save", nullptr, nullptr, ready))
+			if (ImGui::MenuItem("Save"))
 			{
-				auto selection = pfd::select_folder("Level Folder", m_lev.GetParentPath().string()).result();
+				auto selection = pfd::select_folder("Level Folder", m_lev.GetParentPath().string(), pfd::opt::force_path).result();
 				if (!selection.empty())
 				{
 					const std::filesystem::path path = selection + "\\";
 					m_lev.Save(path);
 				}
 			}
-			if (!ready) { ImGui::SetItemTooltip("BSP Tree must be generated before saving the level. "); }
 
-			if (ImGui::MenuItem("Hot Reload"))
-			{
-				m_lev.OpenHotReloadWindow();
-			}
+			if (ImGui::MenuItem("Hot Reload")) { m_lev.OpenHotReloadWindow(); }
 
 			ImGui::BeginDisabled(!m_lev.Loaded());
 			if (ImGui::BeginMenu("Preset"))
@@ -50,7 +45,7 @@ void UI::MainMenu()
 				{
 					std::filesystem::path presetsFolder = m_lev.GetParentPath() / (m_lev.GetName() + "_presets");
 					if (!std::filesystem::is_directory(presetsFolder)) { presetsFolder = m_lev.GetParentPath(); }
-					auto selection = pfd::open_file("Preset File", presetsFolder.string(), {"Preset Files", "*.json"}, pfd::opt::multiselect).result();
+					auto selection = pfd::open_file("Preset File", presetsFolder.string(), {"Preset Files", "*.json"}, pfd::opt::multiselect | pfd::opt::force_path).result();
 					for (const std::string& filename : selection)
 					{
 						m_lev.LoadPreset(filename);
@@ -58,7 +53,7 @@ void UI::MainMenu()
 				}
 				if (ImGui::MenuItem("Save"))
 				{
-					auto selection = pfd::select_folder("Presets Root Directory", m_lev.GetParentPath().string()).result();
+					auto selection = pfd::select_folder("Presets Root Directory", m_lev.GetParentPath().string(), pfd::opt::force_path).result();
 					if (!selection.empty())
 					{
 						const std::filesystem::path path = selection + "\\";
