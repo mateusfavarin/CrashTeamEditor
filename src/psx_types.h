@@ -286,13 +286,13 @@ namespace PSX
 
 	struct BSPLeaf
 	{
-		uint16_t flag;
-		uint16_t id;
-		PSX::BoundingBox bbox;
-		uint32_t unk1;
-		uint32_t offHitbox;
-		uint32_t numQuads;
-		uint32_t offQuads;
+		uint16_t flag; // 0x0
+		uint16_t id; // 0x2
+		PSX::BoundingBox bbox; // 0x4
+		uint32_t unk1; // 0x10
+		uint32_t offHitbox; // 0x14
+		uint32_t numQuads; // 0x18
+		uint32_t offQuads; // 0x1C
 	};
 
 	struct VisibleSet
