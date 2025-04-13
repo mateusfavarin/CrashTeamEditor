@@ -25,14 +25,9 @@ bool Level::Save(const std::filesystem::path& path)
 	return SaveLEV(path);
 }
 
-bool Level::Loaded()
+bool Level::Loaded() const
 {
 	return m_loaded;
-}
-
-bool Level::Ready()
-{
-	return m_bsp.Valid();
 }
 
 void Level::OpenHotReloadWindow()

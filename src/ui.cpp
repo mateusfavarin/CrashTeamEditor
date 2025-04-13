@@ -26,7 +26,7 @@ void UI::MainMenu()
 					if (!m_lev.Load(levPath)) { m_lev.Clear(false); }
 				}
 			}
-			if (ImGui::MenuItem("Save"))
+			if (ImGui::MenuItem("Save", nullptr, nullptr, m_lev.Loaded()))
 			{
 				auto selection = pfd::select_folder("Level Folder", m_lev.GetParentPath().string(), pfd::opt::force_path).result();
 				if (!selection.empty())
