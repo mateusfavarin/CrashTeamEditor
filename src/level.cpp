@@ -370,518 +370,531 @@ bool Level::LoadLEV(const std::filesystem::path& levFile)
 
 bool Level::SaveLEV(const std::filesystem::path& path)
 {
-  /*
-  *	Serialization order:
-  *		- offMap
-  *		- LevHeader
-  *		- MeshInfo
-  *		- Textures
-  *		- Animated Textures
-  *		- Array of quadblocks
-  *		- Array of VisibleSets
-  *		- Array of PVS
-  *		- Array of vertices
-  *		- Array of BSP
-  *		- Array of checkpoints
-  *		- N. Tropy Ghost
-  *		- N. Oxide Ghost
-  *		- LevelExtraHeader
-  *		- VisMem
-  *		- PointerMap
-  */
-  m_hotReloadLevPath = path / (m_name + ".lev");
-  std::ofstream file(m_hotReloadLevPath, std::ios::binary);
+	/*
+	*	Serialization order:
+	*		- offMap
+	*		- LevHeader
+	*		- MeshInfo
+	*		- Textures
+	*		- Animated Textures
+	*		- Array of quadblocks
+	*		- Array of VisibleSets
+	*		- Array of PVS
+	*		- Array of vertices
+	*		- Array of BSP
+	*		- Array of checkpoints
+	*		- N. Tropy Ghost
+	*		- N. Oxide Ghost
+	*		- LevelExtraHeader
+	*		- VisMem
+	*		- PointerMap
+	*/
+	m_hotReloadLevPath = path / (m_name + ".lev");
+	std::ofstream file(m_hotReloadLevPath, std::ios::binary);
 
-  if (m_bsp.Empty()) { GenerateBSP(); }
+	if (m_bsp.Empty()) { GenerateBSP(); }
 
-  std::vector<const BSP*> bspNodes = m_bsp.GetTree();
-  std::vector<const BSP*> orderedBSPNodes(bspNodes.size());
-  for (const BSP* bsp : bspNodes) { orderedBSPNodes[bsp->Id()] = bsp; }
+	std::vector<const BSP*> bspNodes = m_bsp.GetTree();
+	std::vector<const BSP*> orderedBSPNodes(bspNodes.size());
+	for (const BSP* bsp : bspNodes) { orderedBSPNodes[bsp->Id()] = bsp; }
 
-  PSX::LevHeader header = {};
-  const size_t offHeader = 0;
-  size_t currOffset = sizeof(header);
+	PSX::LevHeader header = {};
+	const size_t offHeader = 0;
+	size_t currOffset = sizeof(header);
 
-  PSX::MeshInfo meshInfo = {};
-  const size_t offMeshInfo = currOffset;
-  currOffset += sizeof(meshInfo);
+	PSX::MeshInfo meshInfo = {};
+	const size_t offMeshInfo = currOffset;
+	currOffset += sizeof(meshInfo);
 
-  const size_t offTexture = currOffset;
-  size_t offAnimData = 0;
+	const size_t offTexture = currOffset;
+	size_t offAnimData = 0;
 
-  PSX::TextureLayout defaultTex = {};
-  defaultTex.clut.self = 32 | (20 << 6);
-  defaultTex.texPage.self = (512 >> 6) | ((0 >> 8) << 4) | (0 << 5) | (0 << 7);
-  defaultTex.u0 = 0;		defaultTex.v0 = 0;
-  defaultTex.u1 = 15;		defaultTex.v1 = 0;
-  defaultTex.u2 = 0;		defaultTex.v2 = 15;
-  defaultTex.u3 = 15;		defaultTex.v3 = 15;
+	PSX::TextureLayout defaultTex = {};
+	defaultTex.clut.self = 32 | (20 << 6);
+	defaultTex.texPage.self = (512 >> 6) | ((0 >> 8) << 4) | (0 << 5) | (0 << 7);
+	defaultTex.u0 = 0;		defaultTex.v0 = 0;
+	defaultTex.u1 = 15;		defaultTex.v1 = 0;
+	defaultTex.u2 = 0;		defaultTex.v2 = 15;
+	defaultTex.u3 = 15;		defaultTex.v3 = 15;
 
-  PSX::TextureGroup defaultTexGroup = {};
-  defaultTexGroup.far = defaultTex;
-  defaultTexGroup.middle = defaultTex;
-  defaultTexGroup.near = defaultTex;
-  defaultTexGroup.mosaic = defaultTex;
+	PSX::TextureGroup defaultTexGroup = {};
+	defaultTexGroup.far = defaultTex;
+	defaultTexGroup.middle = defaultTex;
+	defaultTexGroup.near = defaultTex;
+	defaultTexGroup.mosaic = defaultTex;
 
-  std::vector<Texture*> textures;
-  std::vector<std::tuple<Texture*, Texture*>> copyTextureAttributes;
-  for (auto& [material, texture] : m_materialToTexture)
-  {
-    bool foundEqual = false;
-    for (Texture* addedTexture : textures)
-    {
-      if (texture == *addedTexture)
-      {
-        copyTextureAttributes.push_back({ addedTexture, &texture });
-        foundEqual = true;
-        break;
-      }
-    }
-    if (foundEqual) { continue; }
-    textures.push_back(&texture);
-  }
+	std::vector<Texture*> textures;
+	std::vector<std::tuple<Texture*, Texture*>> copyTextureAttributes;
+	for (auto& [material, texture] : m_materialToTexture)
+	{
+		bool foundEqual = false;
+		for (Texture* addedTexture : textures)
+		{
+			if (texture == *addedTexture)
+			{
+				copyTextureAttributes.push_back({addedTexture, &texture});
+				foundEqual = true;
+				break;
+			}
+		}
+		if (foundEqual) { continue; }
+		textures.push_back(&texture);
+	}
 
-  for (const AnimTexture& animTex : m_animTextures)
-  {
-    const std::vector<AnimTextureFrame>& animFrames = animTex.GetFrames();
-    const std::vector<Texture>& animTextures = animTex.GetTextures();
-    for (const AnimTextureFrame& frame : animFrames)
-    {
-      bool foundEqual = false;
-      Texture* texture = const_cast<Texture*>(&animTextures[frame.textureIndex]);
-      for (Texture* addedTexture : textures)
-      {
-        if (*texture == *addedTexture)
-        {
-          copyTextureAttributes.push_back({ addedTexture, texture });
-          foundEqual = true;
-          break;
-        }
-      }
-      if (foundEqual) { continue; }
-      textures.push_back(texture);
-    }
-  }
+	for (const AnimTexture& animTex : m_animTextures)
+	{
+		const std::vector<AnimTextureFrame>& animFrames = animTex.GetFrames();
+		const std::vector<Texture>& animTextures = animTex.GetTextures();
+		for (const AnimTextureFrame& frame : animFrames)
+		{
+			bool foundEqual = false;
+			Texture* texture = const_cast<Texture*>(&animTextures[frame.textureIndex]);
+			for (Texture* addedTexture : textures)
+			{
+				if (*texture == *addedTexture)
+				{
+					copyTextureAttributes.push_back({addedTexture, texture});
+					foundEqual = true;
+					break;
+				}
+			}
+			if (foundEqual) { continue; }
+			textures.push_back(texture);
+		}
+	}
 
-  std::vector<uint8_t> vrm = PackVRM(textures);
-  const bool hasVRM = !vrm.empty();
+	std::vector<uint8_t> vrm = PackVRM(textures);
+	const bool hasVRM = !vrm.empty();
 
-  std::vector<uint8_t> animData;
-  std::vector<size_t> animPtrMapOffsets;
-  std::vector<PSX::TextureGroup> texGroups;
-  std::unordered_map<PSX::TextureLayout, size_t> savedLayouts;
-  if (hasVRM)
-  {
-    for (auto& [from, to] : copyTextureAttributes)
-    {
-      to->CopyVRAMAttributes(*from);
-    }
+	std::vector<uint8_t> animData;
+	std::vector<size_t> animPtrMapOffsets;
+	std::vector<PSX::TextureGroup> texGroups;
+	std::unordered_map<PSX::TextureLayout, size_t> savedLayouts;
+	if (hasVRM)
+	{
+		for (auto& [from, to] : copyTextureAttributes)
+		{
+			to->CopyVRAMAttributes(*from);
+		}
 
-    for (auto& [material, texture] : m_materialToTexture)
-    {
-      std::vector<size_t>& quadIndexes = m_materialToQuadblocks[material];
-      for (size_t index : quadIndexes)
-      {
-        Quadblock& currQuad = m_quadblocks[index];
-        if (currQuad.IsAnimated()) { continue; }
-        for (size_t i = 0; i < NUM_FACES_QUADBLOCK + 1; i++)
-        {
-          size_t textureID = 0;
-          const QuadUV& uvs = currQuad.GetQuadUV(i);
-          PSX::TextureLayout layout = texture.Serialize(uvs);
-          if (savedLayouts.contains(layout)) { textureID = savedLayouts[layout]; }
-          else
-          {
-            textureID = texGroups.size();
-            savedLayouts[layout] = textureID;
+		for (auto& [material, texture] : m_materialToTexture)
+		{
+			std::vector<size_t>& quadIndexes = m_materialToQuadblocks[material];
+			for (size_t index : quadIndexes)
+			{
+				Quadblock& currQuad = m_quadblocks[index];
+				if (currQuad.IsAnimated()) { continue; }
+				for (size_t i = 0; i < NUM_FACES_QUADBLOCK + 1; i++)
+				{
+					size_t textureID = 0;
+					const QuadUV& uvs = currQuad.GetQuadUV(i);
+					PSX::TextureLayout layout = texture.Serialize(uvs);
+					if (savedLayouts.contains(layout)) { textureID = savedLayouts[layout]; }
+					else
+					{
+						textureID = texGroups.size();
+						savedLayouts[layout] = textureID;
 
-            PSX::TextureGroup texGroup = {};
-            texGroup.far = layout;
-            texGroup.middle = layout;
-            texGroup.near = layout;
-            texGroup.mosaic = layout;
-            texGroups.push_back(texGroup);
-          }
-          currQuad.SetTextureID(textureID, i);
-        }
-      }
-    }
+						PSX::TextureGroup texGroup = {};
+						texGroup.far = layout;
+						texGroup.middle = layout;
+						texGroup.near = layout;
+						texGroup.mosaic = layout;
+						texGroups.push_back(texGroup);
+					}
+					currQuad.SetTextureID(textureID, i);
+				}
+			}
+		}
 
-    if (!m_animTextures.empty())
-    {
-      std::vector<std::array<size_t, NUM_FACES_QUADBLOCK>> animOffsetPerQuadblock;
-      for (AnimTexture& animTex : m_animTextures)
-      {
-        const std::vector<AnimTextureFrame>& animFrames = animTex.GetFrames();
-        const std::vector<Texture>& animTextures = animTex.GetTextures();
-        std::vector<std::vector<size_t>> texgroupIndexesPerFrame(NUM_FACES_QUADBLOCK);
-        bool firstFrame = true;
-        for (const AnimTextureFrame& frame : animFrames)
-        {
-          Texture& texture = const_cast<Texture&>(animTextures[frame.textureIndex]);
-          for (size_t i = 0; i < NUM_FACES_QUADBLOCK + 1; i++)
-          {
-            if (i == NUM_FACES_QUADBLOCK && !firstFrame) { continue; }
-            size_t textureID = 0;
-            const QuadUV& uvs = frame.uvs[i];
-            PSX::TextureLayout layout = texture.Serialize(uvs);
-            if (savedLayouts.contains(layout)) { textureID = savedLayouts[layout]; }
-            else
-            {
-              textureID = texGroups.size();
-              savedLayouts[layout] = textureID;
+		if (!m_animTextures.empty())
+		{
+			std::vector<std::array<size_t, NUM_FACES_QUADBLOCK>> animOffsetPerQuadblock;
+			for (AnimTexture& animTex : m_animTextures)
+			{
+				const std::vector<AnimTextureFrame>& animFrames = animTex.GetFrames();
+				const std::vector<Texture>& animTextures = animTex.GetTextures();
+				std::vector<std::vector<size_t>> texgroupIndexesPerFrame(NUM_FACES_QUADBLOCK);
+				bool firstFrame = true;
+				for (const AnimTextureFrame& frame : animFrames)
+				{
+					Texture& texture = const_cast<Texture&>(animTextures[frame.textureIndex]);
+					for (size_t i = 0; i < NUM_FACES_QUADBLOCK + 1; i++)
+					{
+						if (i == NUM_FACES_QUADBLOCK && !firstFrame) { continue; }
+						size_t textureID = 0;
+						const QuadUV& uvs = frame.uvs[i];
+						PSX::TextureLayout layout = texture.Serialize(uvs);
+						if (savedLayouts.contains(layout)) { textureID = savedLayouts[layout]; }
+						else
+						{
+							textureID = texGroups.size();
+							savedLayouts[layout] = textureID;
 
-              PSX::TextureGroup texGroup = {};
-              texGroup.far = layout;
-              texGroup.middle = layout;
-              texGroup.near = layout;
-              texGroup.mosaic = layout;
-              texGroups.push_back(texGroup);
-            }
-            if (firstFrame && i == NUM_FACES_QUADBLOCK)
-            {
-              const std::vector<size_t>& quadblockIndexes = animTex.GetQuadblockIndexes();
-              for (size_t index : quadblockIndexes)
-              {
-                m_quadblocks[index].SetTextureID(textureID, i);
-              }
-            }
-            else { texgroupIndexesPerFrame[i].push_back(textureID); }
-          }
-          firstFrame = false;
-        }
-        std::array<size_t, NUM_FACES_QUADBLOCK> offsetPerQuadblock = {};
-        for (size_t i = 0; i < NUM_FACES_QUADBLOCK; i++)
-        {
-          bool foundEquivalent = false;
-          for (size_t j = 0; j < i; j++)
-          {
-            if (texgroupIndexesPerFrame[i] == texgroupIndexesPerFrame[j])
-            {
-              offsetPerQuadblock[i] = offsetPerQuadblock[j];
-              foundEquivalent = true;
-              break;
-            }
-          }
-          if (foundEquivalent) { continue; }
-          std::vector<uint8_t> buffer = animTex.Serialize(texgroupIndexesPerFrame[i][0], offTexture);
-          size_t animTexOffset = animData.size();
-          offsetPerQuadblock[i] = animTexOffset;
-          animPtrMapOffsets.push_back(animTexOffset);
-          for (uint8_t byte : buffer) { animData.push_back(byte); }
-          for (size_t j = 0; j < animFrames.size(); j++)
-          {
-            uint32_t offset = static_cast<uint32_t>((texgroupIndexesPerFrame[i][j] * sizeof(PSX::TextureGroup)) + offTexture);
-            size_t offAnimTexArr = animData.size();
-            animPtrMapOffsets.push_back(offAnimTexArr);
-            for (size_t k = 0; k < sizeof(uint32_t); k++) { animData.push_back(0); }
-            memcpy(&animData[offAnimTexArr], &offset, sizeof(uint32_t));
-          }
-        }
-        animOffsetPerQuadblock.push_back(offsetPerQuadblock);
-      }
+							PSX::TextureGroup texGroup = {};
+							texGroup.far = layout;
+							texGroup.middle = layout;
+							texGroup.near = layout;
+							texGroup.mosaic = layout;
+							texGroups.push_back(texGroup);
+						}
+						if (firstFrame && i == NUM_FACES_QUADBLOCK)
+						{
+							const std::vector<size_t>& quadblockIndexes = animTex.GetQuadblockIndexes();
+							for (size_t index : quadblockIndexes)
+							{
+								m_quadblocks[index].SetTextureID(textureID, i);
+							}
+						}
+						else { texgroupIndexesPerFrame[i].push_back(textureID); }
+					}
+					firstFrame = false;
+				}
+				std::array<size_t, NUM_FACES_QUADBLOCK> offsetPerQuadblock = {};
+				for (size_t i = 0; i < NUM_FACES_QUADBLOCK; i++)
+				{
+					bool foundEquivalent = false;
+					for (size_t j = 0; j < i; j++)
+					{
+						if (texgroupIndexesPerFrame[i] == texgroupIndexesPerFrame[j])
+						{
+							offsetPerQuadblock[i] = offsetPerQuadblock[j];
+							foundEquivalent = true;
+							break;
+						}
+					}
+					if (foundEquivalent) { continue; }
+					std::vector<uint8_t> buffer = animTex.Serialize(texgroupIndexesPerFrame[i][0], offTexture);
+					size_t animTexOffset = animData.size();
+					offsetPerQuadblock[i] = animTexOffset;
+					animPtrMapOffsets.push_back(animTexOffset);
+					for (uint8_t byte : buffer) { animData.push_back(byte); }
+					for (size_t j = 0; j < animFrames.size(); j++)
+					{
+						uint32_t offset = static_cast<uint32_t>((texgroupIndexesPerFrame[i][j] * sizeof(PSX::TextureGroup)) + offTexture);
+						size_t offAnimTexArr = animData.size();
+						animPtrMapOffsets.push_back(offAnimTexArr);
+						for (size_t k = 0; k < sizeof(uint32_t); k++) { animData.push_back(0); }
+						memcpy(&animData[offAnimTexArr], &offset, sizeof(uint32_t));
+					}
+				}
+				animOffsetPerQuadblock.push_back(offsetPerQuadblock);
+			}
 
-      offAnimData = currOffset + (sizeof(PSX::TextureGroup) * texGroups.size());
+			offAnimData = currOffset + (sizeof(PSX::TextureGroup) * texGroups.size());
 
-      animPtrMapOffsets.push_back(animData.size());
-      size_t offEndAnimData = animData.size();
-      for (size_t i = 0; i < sizeof(uint32_t); i++) { animData.push_back(0); }
-      memcpy(&animData[offEndAnimData], &offAnimData, sizeof(uint32_t));
+			animPtrMapOffsets.push_back(animData.size());
+			size_t offEndAnimData = animData.size();
+			for (size_t i = 0; i < sizeof(uint32_t); i++) { animData.push_back(0); }
+			memcpy(&animData[offEndAnimData], &offAnimData, sizeof(uint32_t));
 
-      for (size_t i = 0; i < m_animTextures.size(); i++)
-      {
-        const std::vector<size_t>& quadblockIndexes = m_animTextures[i].GetQuadblockIndexes();
-        for (size_t index : quadblockIndexes)
-        {
-          Quadblock& quadblock = m_quadblocks[index];
-          for (size_t j = 0; j < NUM_FACES_QUADBLOCK; j++)
-          {
-            quadblock.SetAnimTextureOffset(animOffsetPerQuadblock[i][j], offAnimData, j);
-          }
-        }
-      }
-    }
+			for (size_t i = 0; i < m_animTextures.size(); i++)
+			{
+				const std::vector<size_t>& quadblockIndexes = m_animTextures[i].GetQuadblockIndexes();
+				for (size_t index : quadblockIndexes)
+				{
+					Quadblock& quadblock = m_quadblocks[index];
+					for (size_t j = 0; j < NUM_FACES_QUADBLOCK; j++)
+					{
+						quadblock.SetAnimTextureOffset(animOffsetPerQuadblock[i][j], offAnimData, j);
+					}
+				}
+			}
+		}
+		else
+		{
+			offAnimData = currOffset + (sizeof(PSX::TextureGroup) * texGroups.size());
+			for (size_t i = 0; i < sizeof(uint32_t); i++) { animData.push_back(0); }
+			memcpy(&animData[0], &offAnimData, sizeof(uint32_t));
+			animPtrMapOffsets.push_back(0);
+		}
 
-    m_hotReloadVRMPath = path / (m_name + ".vrm");
-    std::ofstream vrmFile(m_hotReloadVRMPath, std::ios::binary);
-    Write(vrmFile, vrm.data(), vrm.size());
-    vrmFile.close();
-  }
-  else { texGroups.push_back(defaultTexGroup); }
+		m_hotReloadVRMPath = path / (m_name + ".vrm");
+		std::ofstream vrmFile(m_hotReloadVRMPath, std::ios::binary);
+		Write(vrmFile, vrm.data(), vrm.size());
+		vrmFile.close();
+	}
+	else
+	{
+		texGroups.push_back(defaultTexGroup);
+		offAnimData = currOffset + (sizeof(PSX::TextureGroup) * texGroups.size());
+		for (size_t i = 0; i < sizeof(uint32_t); i++) { animData.push_back(0); }
+		memcpy(&animData[0], &offAnimData, sizeof(uint32_t));
+		animPtrMapOffsets.push_back(0);
+	}
 
-  currOffset += (sizeof(PSX::TextureGroup) * texGroups.size()) + animData.size();
+	currOffset += (sizeof(PSX::TextureGroup) * texGroups.size()) + animData.size();
 
-  const size_t offQuadblocks = currOffset;
-  std::vector<std::vector<uint8_t>> serializedBSPs;
-  std::vector<std::vector<uint8_t>> serializedQuads;
-  std::vector<const Quadblock*> orderedQuads;
-  std::unordered_map<Vertex, size_t> vertexMap;
-  std::vector<Vertex> orderedVertices;
-  size_t bspSize = 0;
-  for (const BSP* bsp : orderedBSPNodes)
-  {
-    serializedBSPs.push_back(bsp->Serialize(currOffset));
-    bspSize += serializedBSPs.back().size();
-    if (bsp->IsBranch()) { continue; }
-    const std::vector<size_t>& quadIndexes = bsp->GetQuadblockIndexes();
-    for (const size_t index : quadIndexes)
-    {
-      const Quadblock& quadblock = m_quadblocks[index];
-      std::vector<Vertex> quadVertices = quadblock.GetVertices();
-      std::vector<size_t> verticesIndexes;
-      for (const Vertex& vertex : quadVertices)
-      {
-        if (!vertexMap.contains(vertex))
-        {
-          size_t vertexIndex = orderedVertices.size();
-          orderedVertices.push_back(vertex);
-          vertexMap[vertex] = vertexIndex;
-        }
-        verticesIndexes.push_back(vertexMap[vertex]);
-      }
-      size_t quadIndex = serializedQuads.size();
-      serializedQuads.push_back(quadblock.Serialize(quadIndex, offTexture, verticesIndexes));
-      orderedQuads.push_back(&quadblock);
-      currOffset += serializedQuads.back().size();
-    }
-  }
+	const size_t offQuadblocks = currOffset;
+	std::vector<std::vector<uint8_t>> serializedBSPs;
+	std::vector<std::vector<uint8_t>> serializedQuads;
+	std::vector<const Quadblock*> orderedQuads;
+	std::unordered_map<Vertex, size_t> vertexMap;
+	std::vector<Vertex> orderedVertices;
+	size_t bspSize = 0;
+	for (const BSP* bsp : orderedBSPNodes)
+	{
+		serializedBSPs.push_back(bsp->Serialize(currOffset));
+		bspSize += serializedBSPs.back().size();
+		if (bsp->IsBranch()) { continue; }
+		const std::vector<size_t>& quadIndexes = bsp->GetQuadblockIndexes();
+		for (const size_t index : quadIndexes)
+		{
+			const Quadblock& quadblock = m_quadblocks[index];
+			std::vector<Vertex> quadVertices = quadblock.GetVertices();
+			std::vector<size_t> verticesIndexes;
+			for (const Vertex& vertex : quadVertices)
+			{
+				if (!vertexMap.contains(vertex))
+				{
+					size_t vertexIndex = orderedVertices.size();
+					orderedVertices.push_back(vertex);
+					vertexMap[vertex] = vertexIndex;
+				}
+				verticesIndexes.push_back(vertexMap[vertex]);
+			}
+			size_t quadIndex = serializedQuads.size();
+			serializedQuads.push_back(quadblock.Serialize(quadIndex, offTexture, verticesIndexes));
+			orderedQuads.push_back(&quadblock);
+			currOffset += serializedQuads.back().size();
+		}
+	}
 
-  constexpr size_t BITS_PER_SLOT = sizeof(uint32_t) * 8;
-  std::vector<std::tuple<std::vector<uint32_t>, size_t>> visibleNodes;
-  std::vector<std::tuple<std::vector<uint32_t>, size_t>> visibleQuads;
-  size_t visNodeSize = static_cast<size_t>(std::ceil(static_cast<float>(bspNodes.size()) / static_cast<float>(BITS_PER_SLOT)));
-  size_t visQuadSize = static_cast<size_t>(std::ceil(static_cast<float>(m_quadblocks.size()) / static_cast<float>(BITS_PER_SLOT)));
-  /*
-    TODO: run some sort of visibility algorithm,
-    generate visible nodes/quads depending on the needs of every quadblock.
-  */
-  std::vector<uint32_t> visibleNodeAll(visNodeSize, 0xFFFFFFFF);
-  for (const BSP* bsp : orderedBSPNodes)
-  {
-    if (bsp->GetFlags() & BSPFlags::INVISIBLE) { visibleNodeAll[bsp->Id() / BITS_PER_SLOT] &= ~(1 << (bsp->Id() % BITS_PER_SLOT)); }
-  }
-  visibleNodes.push_back({ visibleNodeAll, currOffset });
-  currOffset += visibleNodeAll.size() * sizeof(uint32_t);
+	constexpr size_t BITS_PER_SLOT = sizeof(uint32_t) * 8;
+	std::vector<std::tuple<std::vector<uint32_t>, size_t>> visibleNodes;
+	std::vector<std::tuple<std::vector<uint32_t>, size_t>> visibleQuads;
+	size_t visNodeSize = static_cast<size_t>(std::ceil(static_cast<float>(bspNodes.size()) / static_cast<float>(BITS_PER_SLOT)));
+	size_t visQuadSize = static_cast<size_t>(std::ceil(static_cast<float>(m_quadblocks.size()) / static_cast<float>(BITS_PER_SLOT)));
+	/*
+		TODO: run some sort of visibility algorithm,
+		generate visible nodes/quads depending on the needs of every quadblock.
+	*/
+	std::vector<uint32_t> visibleNodeAll(visNodeSize, 0xFFFFFFFF);
+	for (const BSP* bsp : orderedBSPNodes)
+	{
+		if (bsp->GetFlags() & BSPFlags::INVISIBLE) { visibleNodeAll[bsp->Id() / BITS_PER_SLOT] &= ~(1 << (bsp->Id() % BITS_PER_SLOT)); }
+	}
+	visibleNodes.push_back({visibleNodeAll, currOffset});
+	currOffset += visibleNodeAll.size() * sizeof(uint32_t);
 
-  std::vector<uint32_t> visibleQuadsAll(visQuadSize, 0xFFFFFFFF);
-  size_t quadIndex = 0;
-  for (const Quadblock* quad : orderedQuads)
-  {
-    if (quad->GetFlags() & (QuadFlags::INVISIBLE | QuadFlags::INVISIBLE_TRIGGER))
-    {
-      visibleQuadsAll[quadIndex / BITS_PER_SLOT] &= ~(1 << (quadIndex % BITS_PER_SLOT));
-    }
-    quadIndex++;
-  }
+	std::vector<uint32_t> visibleQuadsAll(visQuadSize, 0xFFFFFFFF);
+	size_t quadIndex = 0;
+	for (const Quadblock* quad : orderedQuads)
+	{
+		if (quad->GetFlags() & (QuadFlags::INVISIBLE | QuadFlags::INVISIBLE_TRIGGER))
+		{
+			visibleQuadsAll[quadIndex / BITS_PER_SLOT] &= ~(1 << (quadIndex % BITS_PER_SLOT));
+		}
+		quadIndex++;
+	}
 
-  visibleQuads.push_back({ visibleQuadsAll, currOffset });
-  currOffset += visibleQuadsAll.size() * sizeof(uint32_t);
+	visibleQuads.push_back({visibleQuadsAll, currOffset});
+	currOffset += visibleQuadsAll.size() * sizeof(uint32_t);
 
 
-  std::unordered_map<PSX::VisibleSet, size_t> visibleSetMap;
-  std::vector<PSX::VisibleSet> visibleSets;
-  const size_t offVisibleSet = currOffset;
+	std::unordered_map<PSX::VisibleSet, size_t> visibleSetMap;
+	std::vector<PSX::VisibleSet> visibleSets;
+	const size_t offVisibleSet = currOffset;
 
-  size_t quadCount = 0;
-  for (const Quadblock* quad : orderedQuads)
-  {
-    /* TODO: read quadblock data */
-    PSX::VisibleSet set = {};
-    set.offVisibleBSPNodes = static_cast<uint32_t>(std::get<size_t>(visibleNodes[0]));
-    set.offVisibleQuadblocks = static_cast<uint32_t>(std::get<size_t>(visibleQuads[0]));
-    set.offVisibleInstances = 0;
-    set.offVisibleExtra = 0;
+	size_t quadCount = 0;
+	for (const Quadblock* quad : orderedQuads)
+	{
+		/* TODO: read quadblock data */
+		PSX::VisibleSet set = {};
+		set.offVisibleBSPNodes = static_cast<uint32_t>(std::get<size_t>(visibleNodes[0]));
+		set.offVisibleQuadblocks = static_cast<uint32_t>(std::get<size_t>(visibleQuads[0]));
+		set.offVisibleInstances = 0;
+		set.offVisibleExtra = 0;
 
-    size_t visibleSetIndex = 0;
-    if (visibleSetMap.contains(set)) { visibleSetIndex = visibleSetMap.at(set); }
-    else
-    {
-      visibleSetIndex = visibleSets.size();
-      visibleSets.push_back(set);
-      visibleSetMap[set] = visibleSetIndex;
-    }
+		size_t visibleSetIndex = 0;
+		if (visibleSetMap.contains(set)) { visibleSetIndex = visibleSetMap.at(set); }
+		else
+		{
+			visibleSetIndex = visibleSets.size();
+			visibleSets.push_back(set);
+			visibleSetMap[set] = visibleSetIndex;
+		}
 
-    PSX::Quadblock* serializedQuad = reinterpret_cast<PSX::Quadblock*>(serializedQuads[quadCount++].data());
-    serializedQuad->offVisibleSet = static_cast<uint32_t>(offVisibleSet + sizeof(PSX::VisibleSet) * visibleSetIndex);
-  }
+		PSX::Quadblock* serializedQuad = reinterpret_cast<PSX::Quadblock*>(serializedQuads[quadCount++].data());
+		serializedQuad->offVisibleSet = static_cast<uint32_t>(offVisibleSet + sizeof(PSX::VisibleSet) * visibleSetIndex);
+	}
 
-  currOffset += visibleSets.size() * sizeof(PSX::VisibleSet);
+	currOffset += visibleSets.size() * sizeof(PSX::VisibleSet);
 
-  const size_t offVertices = currOffset;
-  std::vector<std::vector<uint8_t>> serializedVertices;
-  for (const Vertex& vertex : orderedVertices)
-  {
-    serializedVertices.push_back(vertex.Serialize());
-    currOffset += serializedVertices.back().size();
-  }
+	const size_t offVertices = currOffset;
+	std::vector<std::vector<uint8_t>> serializedVertices;
+	for (const Vertex& vertex : orderedVertices)
+	{
+		serializedVertices.push_back(vertex.Serialize());
+		currOffset += serializedVertices.back().size();
+	}
 
-  const size_t offBSP = currOffset;
-  currOffset += bspSize;
+	const size_t offBSP = currOffset;
+	currOffset += bspSize;
 
-  meshInfo.numQuadblocks = static_cast<uint32_t>(serializedQuads.size());
-  meshInfo.numVertices = static_cast<uint32_t>(serializedVertices.size());
-  meshInfo.offQuadblocks = static_cast<uint32_t>(offQuadblocks);
-  meshInfo.offVertices = static_cast<uint32_t>(offVertices);
-  meshInfo.unk2 = 0;
-  meshInfo.offBSPNodes = static_cast<uint32_t>(offBSP);
-  meshInfo.numBSPNodes = static_cast<uint32_t>(serializedBSPs.size());
+	meshInfo.numQuadblocks = static_cast<uint32_t>(serializedQuads.size());
+	meshInfo.numVertices = static_cast<uint32_t>(serializedVertices.size());
+	meshInfo.offQuadblocks = static_cast<uint32_t>(offQuadblocks);
+	meshInfo.offVertices = static_cast<uint32_t>(offVertices);
+	meshInfo.unk2 = 0;
+	meshInfo.offBSPNodes = static_cast<uint32_t>(offBSP);
+	meshInfo.numBSPNodes = static_cast<uint32_t>(serializedBSPs.size());
 
-  const size_t offCheckpoints = currOffset;
-  std::vector<std::vector<uint8_t>> serializedCheckpoints;
-  for (const Checkpoint& checkpoint : m_checkpoints)
-  {
-    serializedCheckpoints.push_back(checkpoint.Serialize());
-    currOffset += serializedCheckpoints.back().size();
-  }
+	const size_t offCheckpoints = currOffset;
+	std::vector<std::vector<uint8_t>> serializedCheckpoints;
+	for (const Checkpoint& checkpoint : m_checkpoints)
+	{
+		serializedCheckpoints.push_back(checkpoint.Serialize());
+		currOffset += serializedCheckpoints.back().size();
+	}
 
-  const size_t offTropyGhost = m_tropyGhost.empty() ? 0 : currOffset;
-  currOffset += m_tropyGhost.size();
+	const size_t offTropyGhost = m_tropyGhost.empty() ? 0 : currOffset;
+	currOffset += m_tropyGhost.size();
 
-  const size_t offOxideGhost = m_oxideGhost.empty() ? 0 : currOffset;
-  currOffset += m_oxideGhost.size();
+	const size_t offOxideGhost = m_oxideGhost.empty() ? 0 : currOffset;
+	currOffset += m_oxideGhost.size();
 
-  PSX::LevelExtraHeader extraHeader = {};
-  extraHeader.count = 0; /* TODO: Fix Ghosts */
-  //extraHeader.count = PSX::LevelExtra::COUNT;
-  extraHeader.offsets[PSX::LevelExtra::MINIMAP] = 0;
-  extraHeader.offsets[PSX::LevelExtra::SPAWN] = 0;
-  extraHeader.offsets[PSX::LevelExtra::CAMERA_END_OF_RACE] = 0;
-  extraHeader.offsets[PSX::LevelExtra::CAMERA_DEMO] = 0;
-  extraHeader.offsets[PSX::LevelExtra::N_TROPY_GHOST] = static_cast<uint32_t>(offTropyGhost);
-  extraHeader.offsets[PSX::LevelExtra::N_OXIDE_GHOST] = static_cast<uint32_t>(offOxideGhost);
-  extraHeader.offsets[PSX::LevelExtra::CREDITS] = 0;
+	PSX::LevelExtraHeader extraHeader = {};
+	extraHeader.count = 0; /* TODO: Fix Ghosts */
+	//extraHeader.count = PSX::LevelExtra::COUNT;
+	extraHeader.offsets[PSX::LevelExtra::MINIMAP] = 0;
+	extraHeader.offsets[PSX::LevelExtra::SPAWN] = 0;
+	extraHeader.offsets[PSX::LevelExtra::CAMERA_END_OF_RACE] = 0;
+	extraHeader.offsets[PSX::LevelExtra::CAMERA_DEMO] = 0;
+	extraHeader.offsets[PSX::LevelExtra::N_TROPY_GHOST] = static_cast<uint32_t>(offTropyGhost);
+	extraHeader.offsets[PSX::LevelExtra::N_OXIDE_GHOST] = static_cast<uint32_t>(offOxideGhost);
+	extraHeader.offsets[PSX::LevelExtra::CREDITS] = 0;
 
-  const size_t offExtraHeader = currOffset;
-  currOffset += sizeof(extraHeader);
+	const size_t offExtraHeader = currOffset;
+	currOffset += sizeof(extraHeader);
 
-  std::vector<uint32_t> visMemNodesP1(visNodeSize);
-  const size_t offVisMemNodesP1 = currOffset;
-  currOffset += visMemNodesP1.size() * sizeof(uint32_t);
+	std::vector<uint32_t> visMemNodesP1(visNodeSize);
+	const size_t offVisMemNodesP1 = currOffset;
+	currOffset += visMemNodesP1.size() * sizeof(uint32_t);
 
-  std::vector<uint32_t> visMemQuadsP1(visQuadSize);
-  const size_t offVisMemQuadsP1 = currOffset;
-  currOffset += visMemQuadsP1.size() * sizeof(uint32_t);
+	std::vector<uint32_t> visMemQuadsP1(visQuadSize);
+	const size_t offVisMemQuadsP1 = currOffset;
+	currOffset += visMemQuadsP1.size() * sizeof(uint32_t);
 
-  std::vector<uint32_t> visMemBSPP1(bspNodes.size() * 2);
-  const size_t offVisMemBSPP1 = currOffset;
-  currOffset += visMemBSPP1.size() * sizeof(uint32_t);
+	std::vector<uint32_t> visMemBSPP1(bspNodes.size() * 2);
+	const size_t offVisMemBSPP1 = currOffset;
+	currOffset += visMemBSPP1.size() * sizeof(uint32_t);
 
-  PSX::VisualMem visMem = {};
-  visMem.offNodes[0] = static_cast<uint32_t>(offVisMemNodesP1);
-  visMem.offQuads[0] = static_cast<uint32_t>(offVisMemQuadsP1);
-  visMem.offBSP[0] = static_cast<uint32_t>(offVisMemBSPP1);
-  const size_t offVisMem = currOffset;
-  currOffset += sizeof(visMem);
+	PSX::VisualMem visMem = {};
+	visMem.offNodes[0] = static_cast<uint32_t>(offVisMemNodesP1);
+	visMem.offQuads[0] = static_cast<uint32_t>(offVisMemQuadsP1);
+	visMem.offBSP[0] = static_cast<uint32_t>(offVisMemBSPP1);
+	const size_t offVisMem = currOffset;
+	currOffset += sizeof(visMem);
 
-  const size_t offPointerMap = currOffset;
+	const size_t offPointerMap = currOffset;
 
-  header.offMeshInfo = static_cast<uint32_t>(offMeshInfo);
-  header.offAnimTex = static_cast<uint32_t>(offAnimData);
-  for (size_t i = 0; i < NUM_DRIVERS; i++)
-  {
-    header.driverSpawn[i].pos = ConvertVec3(m_spawn[i].pos, FP_ONE_GEO);
-    header.driverSpawn[i].rot = ConvertVec3(m_spawn[i].rot);
-  }
-  header.config = m_configFlags;
-  for (size_t i = 0; i < NUM_GRADIENT; i++)
-  {
-    header.skyGradient[i].posFrom = ConvertFloat(m_skyGradient[i].posFrom, 1u);
-    header.skyGradient[i].posTo = ConvertFloat(m_skyGradient[i].posTo, 1u);
-    header.skyGradient[i].colorFrom = ConvertColor(m_skyGradient[i].colorFrom);
-    header.skyGradient[i].colorTo = ConvertColor(m_skyGradient[i].colorTo);
-  }
-  header.offExtra = static_cast<uint32_t>(offExtraHeader);
-  header.numCheckpointNodes = static_cast<uint32_t>(m_checkpoints.size());
-  header.offCheckpointNodes = static_cast<uint32_t>(offCheckpoints);
-  header.offVisMem = static_cast<uint32_t>(offVisMem);
+	header.offMeshInfo = static_cast<uint32_t>(offMeshInfo);
+	header.offAnimTex = static_cast<uint32_t>(offAnimData);
+	for (size_t i = 0; i < NUM_DRIVERS; i++)
+	{
+		header.driverSpawn[i].pos = ConvertVec3(m_spawn[i].pos, FP_ONE_GEO);
+		header.driverSpawn[i].rot = ConvertVec3(m_spawn[i].rot);
+	}
+	header.config = m_configFlags;
+	for (size_t i = 0; i < NUM_GRADIENT; i++)
+	{
+		header.skyGradient[i].posFrom = ConvertFloat(m_skyGradient[i].posFrom, 1u);
+		header.skyGradient[i].posTo = ConvertFloat(m_skyGradient[i].posTo, 1u);
+		header.skyGradient[i].colorFrom = ConvertColor(m_skyGradient[i].colorFrom);
+		header.skyGradient[i].colorTo = ConvertColor(m_skyGradient[i].colorTo);
+	}
+	header.offExtra = static_cast<uint32_t>(offExtraHeader);
+	header.numCheckpointNodes = static_cast<uint32_t>(m_checkpoints.size());
+	header.offCheckpointNodes = static_cast<uint32_t>(offCheckpoints);
+	header.offVisMem = static_cast<uint32_t>(offVisMem);
 
 #define CALCULATE_OFFSET(s, m, b) static_cast<uint32_t>(offsetof(s, m) + b)
 
-  std::vector<uint32_t> pointerMap =
-  {
-    CALCULATE_OFFSET(PSX::LevHeader, offMeshInfo, offHeader),
-    CALCULATE_OFFSET(PSX::LevHeader, offAnimTex, offHeader),
-    CALCULATE_OFFSET(PSX::LevHeader, offExtra, offHeader),
-    CALCULATE_OFFSET(PSX::LevHeader, offCheckpointNodes, offHeader),
-    CALCULATE_OFFSET(PSX::LevHeader, offVisMem, offHeader),
-    CALCULATE_OFFSET(PSX::MeshInfo, offQuadblocks, offMeshInfo),
-    CALCULATE_OFFSET(PSX::MeshInfo, offVertices, offMeshInfo),
-    CALCULATE_OFFSET(PSX::MeshInfo, offBSPNodes, offMeshInfo),
-    CALCULATE_OFFSET(PSX::VisualMem, offNodes[0], offVisMem),
-    CALCULATE_OFFSET(PSX::VisualMem, offQuads[0], offVisMem),
-    CALCULATE_OFFSET(PSX::VisualMem, offBSP[0], offVisMem),
-    CALCULATE_OFFSET(PSX::LevelExtraHeader, offsets[PSX::LevelExtra::N_TROPY_GHOST], offExtraHeader),
-    CALCULATE_OFFSET(PSX::LevelExtraHeader, offsets[PSX::LevelExtra::N_OXIDE_GHOST], offExtraHeader),
-  };
+	std::vector<uint32_t> pointerMap =
+	{
+		CALCULATE_OFFSET(PSX::LevHeader, offMeshInfo, offHeader),
+		CALCULATE_OFFSET(PSX::LevHeader, offExtra, offHeader),
+		CALCULATE_OFFSET(PSX::LevHeader, offCheckpointNodes, offHeader),
+		CALCULATE_OFFSET(PSX::LevHeader, offVisMem, offHeader),
+		CALCULATE_OFFSET(PSX::MeshInfo, offQuadblocks, offMeshInfo),
+		CALCULATE_OFFSET(PSX::MeshInfo, offVertices, offMeshInfo),
+		CALCULATE_OFFSET(PSX::MeshInfo, offBSPNodes, offMeshInfo),
+		CALCULATE_OFFSET(PSX::VisualMem, offNodes[0], offVisMem),
+		CALCULATE_OFFSET(PSX::VisualMem, offQuads[0], offVisMem),
+		CALCULATE_OFFSET(PSX::VisualMem, offBSP[0], offVisMem),
+		CALCULATE_OFFSET(PSX::LevHeader, offAnimTex, offHeader),
+	};
 
-  if (offAnimData != 0) { pointerMap.push_back(CALCULATE_OFFSET(PSX::LevHeader, offAnimTex, offHeader)); }
+	if (offTropyGhost != 0) { pointerMap.push_back(CALCULATE_OFFSET(PSX::LevelExtraHeader, offsets[PSX::LevelExtra::N_TROPY_GHOST], offExtraHeader)); }
+	if (offOxideGhost != 0) { pointerMap.push_back(CALCULATE_OFFSET(PSX::LevelExtraHeader, offsets[PSX::LevelExtra::N_OXIDE_GHOST], offExtraHeader)); }
 
-  for (size_t i = 0; i < animPtrMapOffsets.size(); i++)
-  {
-    pointerMap.push_back(static_cast<uint32_t>(animPtrMapOffsets[i] + offAnimData));
-  }
+	for (size_t i = 0; i < animPtrMapOffsets.size(); i++)
+	{
+		pointerMap.push_back(static_cast<uint32_t>(animPtrMapOffsets[i] + offAnimData));
+	}
 
-  size_t offCurrQuad = offQuadblocks;
-  for (size_t i = 0; i < serializedQuads.size(); i++)
-  {
-    pointerMap.push_back(CALCULATE_OFFSET(PSX::Quadblock, offMidTextures[0], offCurrQuad));
-    pointerMap.push_back(CALCULATE_OFFSET(PSX::Quadblock, offMidTextures[1], offCurrQuad));
-    pointerMap.push_back(CALCULATE_OFFSET(PSX::Quadblock, offMidTextures[2], offCurrQuad));
-    pointerMap.push_back(CALCULATE_OFFSET(PSX::Quadblock, offMidTextures[3], offCurrQuad));
-    pointerMap.push_back(CALCULATE_OFFSET(PSX::Quadblock, offLowTexture, offCurrQuad));
-    pointerMap.push_back(CALCULATE_OFFSET(PSX::Quadblock, offVisibleSet, offCurrQuad));
-    offCurrQuad += serializedQuads[i].size();
-  }
+	size_t offCurrQuad = offQuadblocks;
+	for (size_t i = 0; i < serializedQuads.size(); i++)
+	{
+		pointerMap.push_back(CALCULATE_OFFSET(PSX::Quadblock, offMidTextures[0], offCurrQuad));
+		pointerMap.push_back(CALCULATE_OFFSET(PSX::Quadblock, offMidTextures[1], offCurrQuad));
+		pointerMap.push_back(CALCULATE_OFFSET(PSX::Quadblock, offMidTextures[2], offCurrQuad));
+		pointerMap.push_back(CALCULATE_OFFSET(PSX::Quadblock, offMidTextures[3], offCurrQuad));
+		pointerMap.push_back(CALCULATE_OFFSET(PSX::Quadblock, offLowTexture, offCurrQuad));
+		pointerMap.push_back(CALCULATE_OFFSET(PSX::Quadblock, offVisibleSet, offCurrQuad));
+		offCurrQuad += serializedQuads[i].size();
+	}
 
-  size_t offCurrNode = offBSP;
-  for (size_t i = 0; i < serializedBSPs.size(); i++)
-  {
-    if (orderedBSPNodes[i]->IsBranch()) { offCurrNode += serializedBSPs[i].size(); continue; }
-    size_t visMemListIndex = 2 * i + 1;
-    visMemBSPP1[visMemListIndex] = static_cast<uint32_t>(offCurrNode);
-    pointerMap.push_back(static_cast<uint32_t>(offVisMemBSPP1 + visMemListIndex * sizeof(uint32_t)));
-    pointerMap.push_back(CALCULATE_OFFSET(PSX::BSPLeaf, offQuads, offCurrNode));
-    offCurrNode += serializedBSPs[i].size();
-  }
+	size_t offCurrNode = offBSP;
+	for (size_t i = 0; i < serializedBSPs.size(); i++)
+	{
+		if (orderedBSPNodes[i]->IsBranch()) { offCurrNode += serializedBSPs[i].size(); continue; }
+		size_t visMemListIndex = 2 * i + 1;
+		visMemBSPP1[visMemListIndex] = static_cast<uint32_t>(offCurrNode);
+		pointerMap.push_back(static_cast<uint32_t>(offVisMemBSPP1 + visMemListIndex * sizeof(uint32_t)));
+		pointerMap.push_back(CALCULATE_OFFSET(PSX::BSPLeaf, offQuads, offCurrNode));
+		offCurrNode += serializedBSPs[i].size();
+	}
 
-  size_t offCurrVisibleSet = offVisibleSet;
-  for (const PSX::VisibleSet& visibleSet : visibleSets)
-  {
-    pointerMap.push_back(CALCULATE_OFFSET(PSX::VisibleSet, offVisibleBSPNodes, offCurrVisibleSet));
-    pointerMap.push_back(CALCULATE_OFFSET(PSX::VisibleSet, offVisibleQuadblocks, offCurrVisibleSet));
-    offCurrVisibleSet += sizeof(PSX::VisibleSet);
-  }
+	size_t offCurrVisibleSet = offVisibleSet;
+	for (const PSX::VisibleSet& visibleSet : visibleSets)
+	{
+		pointerMap.push_back(CALCULATE_OFFSET(PSX::VisibleSet, offVisibleBSPNodes, offCurrVisibleSet));
+		pointerMap.push_back(CALCULATE_OFFSET(PSX::VisibleSet, offVisibleQuadblocks, offCurrVisibleSet));
+		offCurrVisibleSet += sizeof(PSX::VisibleSet);
+	}
 
-  const size_t pointerMapBytes = pointerMap.size() * sizeof(uint32_t);
+	const size_t pointerMapBytes = pointerMap.size() * sizeof(uint32_t);
 
-  Write(file, &offPointerMap, sizeof(uint32_t));
-  Write(file, &header, sizeof(header));
-  Write(file, &meshInfo, sizeof(meshInfo));
-  Write(file, texGroups.data(), texGroups.size() * sizeof(PSX::TextureGroup));
-  if (!animData.empty()) { Write(file, animData.data(), animData.size()); }
-  for (const std::vector<uint8_t>& serializedQuad : serializedQuads) { Write(file, serializedQuad.data(), serializedQuad.size()); }
-  for (size_t i = 0; i < visibleNodes.size(); i++)
-  {
-    const std::vector<uint32_t>& currVisibleNode = std::get<0>(visibleNodes[i]);
-    const std::vector<uint32_t>& currVisibleQuad = std::get<0>(visibleQuads[i]);
-    Write(file, currVisibleNode.data(), currVisibleNode.size() * sizeof(uint32_t));
-    Write(file, currVisibleQuad.data(), currVisibleQuad.size() * sizeof(uint32_t));
-  }
-  Write(file, visibleSets.data(), visibleSets.size() * sizeof(PSX::VisibleSet));
-  for (const std::vector<uint8_t>& serializedVertex : serializedVertices) { Write(file, serializedVertex.data(), serializedVertex.size()); }
-  for (const std::vector<uint8_t>& serializedBSP : serializedBSPs) { Write(file, serializedBSP.data(), serializedBSP.size()); }
-  for (const std::vector<uint8_t>& serializedCheckpoint : serializedCheckpoints) { Write(file, serializedCheckpoint.data(), serializedCheckpoint.size()); }
-  if (!m_tropyGhost.empty()) { Write(file, m_tropyGhost.data(), m_tropyGhost.size()); }
-  if (!m_oxideGhost.empty()) { Write(file, m_oxideGhost.data(), m_oxideGhost.size()); }
-  Write(file, &extraHeader, sizeof(extraHeader));
-  Write(file, visMemNodesP1.data(), visMemNodesP1.size() * sizeof(uint32_t));
-  Write(file, visMemQuadsP1.data(), visMemQuadsP1.size() * sizeof(uint32_t));
-  Write(file, visMemBSPP1.data(), visMemBSPP1.size() * sizeof(uint32_t));
-  Write(file, &visMem, sizeof(visMem));
-  Write(file, &pointerMapBytes, sizeof(uint32_t));
-  Write(file, pointerMap.data(), pointerMapBytes);
-  file.close();
-  return true;
+	Write(file, &offPointerMap, sizeof(uint32_t));
+	Write(file, &header, sizeof(header));
+	Write(file, &meshInfo, sizeof(meshInfo));
+	Write(file, texGroups.data(), texGroups.size() * sizeof(PSX::TextureGroup));
+	if (!animData.empty()) { Write(file, animData.data(), animData.size()); }
+	for (const std::vector<uint8_t>& serializedQuad : serializedQuads) { Write(file, serializedQuad.data(), serializedQuad.size()); }
+	for (size_t i = 0; i < visibleNodes.size(); i++)
+	{
+		const std::vector<uint32_t>& currVisibleNode = std::get<0>(visibleNodes[i]);
+		const std::vector<uint32_t>& currVisibleQuad = std::get<0>(visibleQuads[i]);
+		Write(file, currVisibleNode.data(), currVisibleNode.size() * sizeof(uint32_t));
+		Write(file, currVisibleQuad.data(), currVisibleQuad.size() * sizeof(uint32_t));
+	}
+	Write(file, visibleSets.data(), visibleSets.size() * sizeof(PSX::VisibleSet));
+	for (const std::vector<uint8_t>& serializedVertex : serializedVertices) { Write(file, serializedVertex.data(), serializedVertex.size()); }
+	for (const std::vector<uint8_t>& serializedBSP : serializedBSPs) { Write(file, serializedBSP.data(), serializedBSP.size()); }
+	for (const std::vector<uint8_t>& serializedCheckpoint : serializedCheckpoints) { Write(file, serializedCheckpoint.data(), serializedCheckpoint.size()); }
+	if (!m_tropyGhost.empty()) { Write(file, m_tropyGhost.data(), m_tropyGhost.size()); }
+	if (!m_oxideGhost.empty()) { Write(file, m_oxideGhost.data(), m_oxideGhost.size()); }
+	Write(file, &extraHeader, sizeof(extraHeader));
+	Write(file, visMemNodesP1.data(), visMemNodesP1.size() * sizeof(uint32_t));
+	Write(file, visMemQuadsP1.data(), visMemQuadsP1.size() * sizeof(uint32_t));
+	Write(file, visMemBSPP1.data(), visMemBSPP1.size() * sizeof(uint32_t));
+	Write(file, &visMem, sizeof(visMem));
+	Write(file, &pointerMapBytes, sizeof(uint32_t));
+	Write(file, pointerMap.data(), pointerMapBytes);
+	file.close();
+	return true;
 }
 
 bool Level::LoadOBJ(const std::filesystem::path& objFile)
