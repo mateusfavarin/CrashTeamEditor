@@ -600,13 +600,27 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 				}
 			}
 		}
+		else
+		{
+			offAnimData = currOffset + (sizeof(PSX::TextureGroup) * texGroups.size());
+			for (size_t i = 0; i < sizeof(uint32_t); i++) { animData.push_back(0); }
+			memcpy(&animData[0], &offAnimData, sizeof(uint32_t));
+			animPtrMapOffsets.push_back(0);
+		}
 
 		m_hotReloadVRMPath = path / (m_name + ".vrm");
 		std::ofstream vrmFile(m_hotReloadVRMPath, std::ios::binary);
 		Write(vrmFile, vrm.data(), vrm.size());
 		vrmFile.close();
 	}
-	else { texGroups.push_back(defaultTexGroup); }
+	else
+	{
+		texGroups.push_back(defaultTexGroup);
+		offAnimData = currOffset + (sizeof(PSX::TextureGroup) * texGroups.size());
+		for (size_t i = 0; i < sizeof(uint32_t); i++) { animData.push_back(0); }
+		memcpy(&animData[0], &offAnimData, sizeof(uint32_t));
+		animPtrMapOffsets.push_back(0);
+	}
 
 	currOffset += (sizeof(PSX::TextureGroup) * texGroups.size()) + animData.size();
 
@@ -808,11 +822,11 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 		CALCULATE_OFFSET(PSX::VisualMem, offNodes[0], offVisMem),
 		CALCULATE_OFFSET(PSX::VisualMem, offQuads[0], offVisMem),
 		CALCULATE_OFFSET(PSX::VisualMem, offBSP[0], offVisMem),
-		CALCULATE_OFFSET(PSX::LevelExtraHeader, offsets[PSX::LevelExtra::N_TROPY_GHOST], offExtraHeader),
-		CALCULATE_OFFSET(PSX::LevelExtraHeader, offsets[PSX::LevelExtra::N_OXIDE_GHOST], offExtraHeader),
+		CALCULATE_OFFSET(PSX::LevHeader, offAnimTex, offHeader),
 	};
 
-	if (offAnimData != 0) { pointerMap.push_back(CALCULATE_OFFSET(PSX::LevHeader, offAnimTex, offHeader)); }
+	if (offTropyGhost != 0) { pointerMap.push_back(CALCULATE_OFFSET(PSX::LevelExtraHeader, offsets[PSX::LevelExtra::N_TROPY_GHOST], offExtraHeader)); }
+	if (offOxideGhost != 0) { pointerMap.push_back(CALCULATE_OFFSET(PSX::LevelExtraHeader, offsets[PSX::LevelExtra::N_OXIDE_GHOST], offExtraHeader)); }
 
 	for (size_t i = 0; i < animPtrMapOffsets.size(); i++)
 	{
