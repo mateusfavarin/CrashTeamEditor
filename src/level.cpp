@@ -663,6 +663,7 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	constexpr size_t BITS_PER_SLOT = sizeof(uint32_t) * 8;
 	std::vector<std::tuple<std::vector<uint32_t>, size_t>> visibleNodes;
 	std::vector<std::tuple<std::vector<uint32_t>, size_t>> visibleQuads;
+	std::vector<std::tuple<std::vector<uint32_t>, size_t>> visibleInstances;
 	size_t visNodeSize = static_cast<size_t>(std::ceil(static_cast<float>(bspNodes.size()) / static_cast<float>(BITS_PER_SLOT)));
 	size_t visQuadSize = static_cast<size_t>(std::ceil(static_cast<float>(m_quadblocks.size()) / static_cast<float>(BITS_PER_SLOT)));
 	/*
@@ -691,6 +692,10 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	visibleQuads.push_back({visibleQuadsAll, currOffset});
 	currOffset += visibleQuadsAll.size() * sizeof(uint32_t);
 
+	std::vector<uint32_t> visibleInstancesDummy;
+	visibleInstancesDummy.push_back(0);
+	visibleInstances.push_back({visibleInstancesDummy, currOffset});
+	currOffset += visibleInstancesDummy.size() * sizeof(uint32_t);
 
 	std::unordered_map<PSX::VisibleSet, size_t> visibleSetMap;
 	std::vector<PSX::VisibleSet> visibleSets;
@@ -703,7 +708,7 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 		PSX::VisibleSet set = {};
 		set.offVisibleBSPNodes = static_cast<uint32_t>(std::get<size_t>(visibleNodes[0]));
 		set.offVisibleQuadblocks = static_cast<uint32_t>(std::get<size_t>(visibleQuads[0]));
-		set.offVisibleInstances = 0;
+		set.offVisibleInstances = static_cast<uint32_t>(std::get<size_t>(visibleInstances[0]));
 		set.offVisibleExtra = 0;
 
 		size_t visibleSetIndex = 0;
@@ -862,6 +867,7 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	{
 		pointerMap.push_back(CALCULATE_OFFSET(PSX::VisibleSet, offVisibleBSPNodes, offCurrVisibleSet));
 		pointerMap.push_back(CALCULATE_OFFSET(PSX::VisibleSet, offVisibleQuadblocks, offCurrVisibleSet));
+		pointerMap.push_back(CALCULATE_OFFSET(PSX::VisibleSet, offVisibleInstances, offCurrVisibleSet));
 		offCurrVisibleSet += sizeof(PSX::VisibleSet);
 	}
 
@@ -882,6 +888,11 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	{
 		const std::vector<uint32_t>& visibleQuad = std::get<0>(tuple);
 		Write(file, visibleQuad.data(), visibleQuad.size() * sizeof(uint32_t));
+	}
+	for (const auto& tuple : visibleInstances)
+	{
+		const std::vector<uint32_t>& visibleInst = std::get<0>(tuple);
+		Write(file, visibleInst.data(), visibleInst.size() * sizeof(uint32_t));
 	}
 	Write(file, visibleSets.data(), visibleSets.size() * sizeof(PSX::VisibleSet));
 	for (const std::vector<uint8_t>& serializedVertex : serializedVertices) { Write(file, serializedVertex.data(), serializedVertex.size()); }
