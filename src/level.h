@@ -92,11 +92,7 @@ private:
 	Mesh m_vertexLowLODMesh;
 	Mesh m_vertexHighLODMesh;
 
-	//Model m_highLODLevelModel;
-	//Model m_lowLODLevelModel;
 	Model m_levelModel;
-	//Model m_pointsHighLODLevelModel;
-	//Model m_pointsLowLODLevelModel;
 	Model m_bspModel;
 	Model m_spawnsModel;
 	Model m_checkModel;

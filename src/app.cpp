@@ -120,7 +120,7 @@ bool App::InitImGui()
 	success &= ImGui_ImplGlfw_InstallEmscriptenCallbacks(window, "#canvas");
 #endif
 	success &= ImGui_ImplOpenGL3_Init(m_glslVer.c_str());
-	ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+	//ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 	return success;
 }
 
