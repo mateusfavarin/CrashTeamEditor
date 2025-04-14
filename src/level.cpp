@@ -835,7 +835,7 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 		CALCULATE_OFFSET(PSX::LevHeader, offCheckpointNodes, offHeader),
 		CALCULATE_OFFSET(PSX::LevHeader, offVisMem, offHeader),
 		CALCULATE_OFFSET(PSX::LevHeader, offAnimTex, offHeader),
-		CALCULATE_OFFSET(PSX::LevHeader, offLevNavTable, offNavHeaders),
+		CALCULATE_OFFSET(PSX::LevHeader, offLevNavTable, offHeader),
 		CALCULATE_OFFSET(PSX::MeshInfo, offQuadblocks, offMeshInfo),
 		CALCULATE_OFFSET(PSX::MeshInfo, offVertices, offMeshInfo),
 		CALCULATE_OFFSET(PSX::MeshInfo, offBSPNodes, offMeshInfo),
