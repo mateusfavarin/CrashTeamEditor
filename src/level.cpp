@@ -824,6 +824,7 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	header.numCheckpointNodes = static_cast<uint32_t>(m_checkpoints.size());
 	header.offCheckpointNodes = static_cast<uint32_t>(offCheckpoints);
 	header.offVisMem = static_cast<uint32_t>(offVisMem);
+	header.offLevNavTable = static_cast<uint32_t>(offNavHeaders);
 
 #define CALCULATE_OFFSET(s, m, b) static_cast<uint32_t>(offsetof(s, m) + b)
 
@@ -833,13 +834,14 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 		CALCULATE_OFFSET(PSX::LevHeader, offExtra, offHeader),
 		CALCULATE_OFFSET(PSX::LevHeader, offCheckpointNodes, offHeader),
 		CALCULATE_OFFSET(PSX::LevHeader, offVisMem, offHeader),
+		CALCULATE_OFFSET(PSX::LevHeader, offAnimTex, offHeader),
+		CALCULATE_OFFSET(PSX::LevHeader, offLevNavTable, offNavHeaders),
 		CALCULATE_OFFSET(PSX::MeshInfo, offQuadblocks, offMeshInfo),
 		CALCULATE_OFFSET(PSX::MeshInfo, offVertices, offMeshInfo),
 		CALCULATE_OFFSET(PSX::MeshInfo, offBSPNodes, offMeshInfo),
 		CALCULATE_OFFSET(PSX::VisualMem, offNodes[0], offVisMem),
 		CALCULATE_OFFSET(PSX::VisualMem, offQuads[0], offVisMem),
 		CALCULATE_OFFSET(PSX::VisualMem, offBSP[0], offVisMem),
-		CALCULATE_OFFSET(PSX::LevHeader, offAnimTex, offHeader),
 	};
 
 	if (offTropyGhost != 0) { pointerMap.push_back(CALCULATE_OFFSET(PSX::LevelExtraHeader, offsets[PSX::LevelExtra::N_TROPY_GHOST], offExtraHeader)); }
