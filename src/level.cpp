@@ -386,6 +386,7 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	*		- N. Tropy Ghost
 	*		- N. Oxide Ghost
 	*		- LevelExtraHeader
+	*		- NavHeaders
 	*		- VisMem
 	*		- PointerMap
 	*/
@@ -760,8 +761,12 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	currOffset += m_oxideGhost.size();
 
 	PSX::LevelExtraHeader extraHeader = {};
-	extraHeader.count = 0; /* TODO: Fix Ghosts */
-	//extraHeader.count = PSX::LevelExtra::COUNT;
+	if (offTropyGhost > 0)
+	{
+		if (offOxideGhost > 0) { extraHeader.count = PSX::LevelExtra::COUNT; }
+		else { extraHeader.count = PSX::LevelExtra::N_OXIDE_GHOST; }
+	}
+	else { extraHeader.count = 0; }
 	extraHeader.offsets[PSX::LevelExtra::MINIMAP] = 0;
 	extraHeader.offsets[PSX::LevelExtra::SPAWN] = 0;
 	extraHeader.offsets[PSX::LevelExtra::CAMERA_END_OF_RACE] = 0;
@@ -772,6 +777,12 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 
 	const size_t offExtraHeader = currOffset;
 	currOffset += sizeof(extraHeader);
+
+	constexpr size_t BOT_PATH_COUNT = 3;
+	std::vector<PSX::NavHeader> navHeaders(BOT_PATH_COUNT);
+
+	const size_t offNavHeaders = currOffset;
+	currOffset += navHeaders.size() * sizeof(PSX::NavHeader);
 
 	std::vector<uint32_t> visMemNodesP1(visNodeSize);
 	const size_t offVisMemNodesP1 = currOffset;
@@ -901,6 +912,7 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	if (!m_tropyGhost.empty()) { Write(file, m_tropyGhost.data(), m_tropyGhost.size()); }
 	if (!m_oxideGhost.empty()) { Write(file, m_oxideGhost.data(), m_oxideGhost.size()); }
 	Write(file, &extraHeader, sizeof(extraHeader));
+	Write(file, navHeaders.data(), navHeaders.size() * sizeof(PSX::NavHeader));
 	Write(file, visMemNodesP1.data(), visMemNodesP1.size() * sizeof(uint32_t));
 	Write(file, visMemQuadsP1.data(), visMemQuadsP1.size() * sizeof(uint32_t));
 	Write(file, visMemBSPP1.data(), visMemBSPP1.size() * sizeof(uint32_t));

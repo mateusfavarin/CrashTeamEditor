@@ -323,6 +323,15 @@ namespace PSX
 		uint32_t offScenerySrc[MAX_NUM_PLAYERS];
 		uint32_t offBSP[MAX_NUM_PLAYERS];
 	};
+
+	struct NavHeader
+	{
+		uint16_t magic;
+		uint16_t numPoints;
+		uint32_t posY;
+		uint32_t offLastPoint;
+		uint16_t physUnk[0x20];
+	};
 }
 
 template<>
