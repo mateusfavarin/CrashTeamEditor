@@ -13,13 +13,6 @@
   <ItemGroup>
     <CustomBuild Include="$(SolutionDir)third_party\glfw">
       <Message>Building GLFW binaries...</Message>
-      <Command>
-	  call "$(VSInstallDir)Common7\Tools\VsDevCmd.bat"
-      mkdir $(ProjectDir)glfw-build-win
-      cd $(ProjectDir)glfw-build-win
-      cmake -G "Visual Studio 17 2022" -A x64 $(SolutionDir)third_party\glfw
-      cmake --build . --config $(Configuration)
-    </Command>
       <Outputs>$(ProjectDir)\glfw-build-win\src\$(Configuration)\glfw3.lib</Outputs>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
 	  call "$(VSInstallDir)Common7\Tools\VsDevCmd.bat"
