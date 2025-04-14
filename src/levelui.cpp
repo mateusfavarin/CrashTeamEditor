@@ -665,48 +665,7 @@ void Level::RenderUI()
       static ButtonUI generateButton;
       if (generateButton.Show("Generate", "Checkpoints successfully generated.", false))
       {
-        size_t checkpointIndex = 0;
-        std::vector<size_t> linkNodeIndexes;
-        std::vector<std::vector<Checkpoint>> pathCheckpoints;
-        for (Path& path : m_checkpointPaths)
-        {
-          pathCheckpoints.push_back(path.GeneratePath(checkpointIndex, m_quadblocks));
-          checkpointIndex += pathCheckpoints.back().size();
-          linkNodeIndexes.push_back(path.GetStart());
-          linkNodeIndexes.push_back(path.GetEnd());
-        }
-        m_checkpoints.clear();
-        for (const std::vector<Checkpoint>& checkpoints : pathCheckpoints)
-        {
-          for (const Checkpoint& checkpoint : checkpoints)
-          {
-            m_checkpoints.push_back(checkpoint);
-          }
-        }
-
-        int lastPathIndex = static_cast<int>(m_checkpointPaths.size()) - 1;
-        const Checkpoint* currStartCheckpoint = &m_checkpoints[m_checkpointPaths[lastPathIndex].GetStart()];
-        for (int i = lastPathIndex - 1; i >= 0; i--)
-        {
-          m_checkpointPaths[i].UpdateDist(currStartCheckpoint->GetDistFinish(), currStartCheckpoint->GetPos(), m_checkpoints);
-          currStartCheckpoint = &m_checkpoints[m_checkpointPaths[i].GetStart()];
-        }
-
-        for (size_t i = 0; i < linkNodeIndexes.size(); i++)
-        {
-          Checkpoint& node = m_checkpoints[linkNodeIndexes[i]];
-          if (i % 2 == 0)
-          {
-            size_t linkDown = (i == 0) ? linkNodeIndexes.size() - 1 : i - 1;
-            node.UpdateDown(static_cast<int>(linkNodeIndexes[linkDown]));
-          }
-          else
-          {
-            size_t linkUp = (i + 1) % linkNodeIndexes.size();
-            node.UpdateUp(static_cast<int>(linkNodeIndexes[linkUp]));
-          }
-        }
-        GenerateRenderCheckpointData(m_checkpoints);
+				GenerateCheckpoints();
       }
       ImGui::EndDisabled();
       ImGui::TreePop();
