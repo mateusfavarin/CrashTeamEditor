@@ -78,7 +78,7 @@ void Mesh::Unbind() const
 
 void Mesh::Draw() const
 {
-	if (m_VAO != 0) 
+	if (m_VAO != 0)
   {
     glDrawArrays(GL_TRIANGLES, 0, m_dataBufSize / sizeof(float));
   }
@@ -244,9 +244,9 @@ void Mesh::SetTextureStore(std::map<int, std::filesystem::path>& texturePaths)
   glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-  glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA8, 256, 256, texturePaths.size(), 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+  glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA8, 256, 256, static_cast<GLsizei>(texturePaths.size()), 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
 
-  for (size_t texIndex = 0; texIndex < texturePaths.size(); texIndex++)
+  for (int texIndex = 0; texIndex < static_cast<int>(texturePaths.size()); texIndex++)
   {
     const std::filesystem::path& path = texturePaths[texIndex];
     int w, h, channels;
@@ -264,7 +264,7 @@ void Mesh::SetTextureStore(std::map<int, std::filesystem::path>& texturePaths)
       for (size_t i = 0; i < ww * hh * 4; i += 4)
         finalData[i + 3] = 0xFF;
 
-      glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, texIndex, 256, 256, 1, GL_RGBA, GL_UNSIGNED_BYTE, (const void*)finalData);
+      glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, static_cast<GLint>(texIndex), 256, 256, 1, GL_RGBA, GL_UNSIGNED_BYTE, (const void*)finalData);
     }
     else
     {
@@ -274,7 +274,7 @@ void Mesh::SetTextureStore(std::map<int, std::filesystem::path>& texturePaths)
 
       //stbir_resize_uint8_srgb(originalData, w, h, channels * w, finalData, ww, hh, 4 * ww, stbir_pixel_layout::STBIR_RGBA);
 
-      glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, texIndex, 256, 256, 1, GL_RGBA, GL_UNSIGNED_BYTE, (const void*)finalData);
+      glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, static_cast<GLint>(texIndex), 256, 256, 1, GL_RGBA, GL_UNSIGNED_BYTE, (const void*)finalData);
     }
   }
 }
