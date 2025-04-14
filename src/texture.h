@@ -7,6 +7,7 @@
 #include <vector>
 #include <filesystem>
 #include <unordered_set>
+#include <functional>
 
 typedef std::unordered_set<size_t> Shape;
 
@@ -41,7 +42,7 @@ public:
 	void CopyVRAMAttributes(const Texture& tex);
 	bool operator==(const Texture& tex) const;
 	bool operator!=(const Texture& tex) const;
-	void RenderUI(const std::vector<size_t>& quadblockIndexes, std::vector<Quadblock>& quadblocks);
+	void RenderUI(const std::vector<size_t>& quadblockIndexes, std::vector<Quadblock>& quadblocks, std::function<void(void)> refreshTextureStores);
 	void RenderUI();
 
 private:

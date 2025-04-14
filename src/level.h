@@ -36,14 +36,16 @@ public:
 	bool SavePreset(const std::filesystem::path& path);
 	void RenderUI();
 
-	void GenerateRenderLevData(std::vector<Quadblock>& quadblocks);
+	void GenerateRenderLevData();
 	void GenerateRenderBspData(const BSP& bsp);
 	void GenerateRenderCheckpointData(std::vector<Checkpoint>&);
 	void GenerateRenderStartpointData(std::array<Spawn, NUM_DRIVERS>&);
 	void GenerateRenderSelectedBlockData(const Quadblock& quadblock, const Vec3& queryPoint);
+	void RefreshTextureStores();
 	void GeomPoint(const Vertex* verts, int ind, std::vector<float>& data);
 	void GeomOctopoint(const Vertex* verts, int ind, std::vector<float>& data);
 	void GeomBoundingRect(const BSP* b, int depth, std::vector<float>& data);
+	void GeomUVs(const Quadblock& qb, int quadInd, int vertInd, std::vector<float>& data, int textureIndex);
 	void ViewportClickHandleBlockSelection(int pixelX, int pixelY, const Renderer& rend);
 
 private:
@@ -90,10 +92,7 @@ private:
 	Mesh m_vertexLowLODMesh;
 	Mesh m_vertexHighLODMesh;
 
-	Model m_highLODLevelModel;
-	Model m_lowLODLevelModel;
-	Model m_pointsHighLODLevelModel;
-	Model m_pointsLowLODLevelModel;
+	Model m_levelModel;
 	Model m_bspModel;
 	Model m_spawnsModel;
 	Model m_checkModel;

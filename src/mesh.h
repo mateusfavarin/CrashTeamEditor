@@ -5,6 +5,9 @@
 #include "gtc/matrix_transform.hpp"
 #include "gtc/type_ptr.hpp"
 
+#include <filesystem>
+#include <map>
+
 class Mesh
 {
 public:
@@ -25,7 +28,8 @@ public:
 		static constexpr unsigned Barycentric = 2;
 		static constexpr unsigned VColor = 4;
 		static constexpr unsigned Normals = 8;
-		static constexpr unsigned STUV_1 = 16; //tex coords
+		static constexpr unsigned STUV = 16; //tex coords
+		static constexpr unsigned TexIndex = 32;
 	};
 
 public:
@@ -34,6 +38,8 @@ public:
 	int GetDatas() const;
 	int GetShaderSettings() const;
 	void SetShaderSettings(unsigned shadSettings);
+	void SetTextureStore(std::map<int, std::filesystem::path>& texturePaths);
+	GLuint GetTextureStore();
 
 private:
 	void Bind() const;
@@ -44,6 +50,7 @@ private:
 private:
 	GLuint m_VAO = 0;
 	GLuint m_VBO = 0;
+	GLuint m_textures = 0;
 	int m_dataBufSize = 0;
 	unsigned m_includedData = 0;
 	unsigned m_shaderSettings = 0;

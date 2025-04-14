@@ -118,10 +118,10 @@ struct FaceIndexConstants
 
 	static constexpr int triHLODVertArrangements[][3] =
 	{
-		{ 6, 3, 4 },
-		{ 4, 1, 2 },
-		{ 1, 4, 3 },
 		{ 3, 0, 1 },
+		{ 1, 4, 3 },
+		{ 4, 1, 2 },
+		{ 6, 3, 4 },
 	};
 
 	static constexpr int triLLODVertArrangements[][3] =

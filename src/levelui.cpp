@@ -493,7 +493,7 @@ void Level::RenderUI()
 
           if (m_materialToTexture.contains(material))
           {
-						m_materialToTexture[material].RenderUI(quadblockIndexes, m_quadblocks);
+            m_materialToTexture[material].RenderUI(quadblockIndexes, m_quadblocks, [&]() { this->RefreshTextureStores(); });
           }
 
           ImGui::TreePop();
@@ -833,26 +833,21 @@ void Level::RenderUI()
 
       if (GuiRenderSettings::showLevel)
       {
+        modelsToRender.push_back(m_levelModel);
         if (GuiRenderSettings::showLowLOD)
         {
+          m_levelModel.SetMesh(&m_lowLODMesh);
           if (GuiRenderSettings::showLevVerts)
           {
-            modelsToRender.push_back(m_pointsLowLODLevelModel);
-          }
-          else
-          {
-            modelsToRender.push_back(m_lowLODLevelModel);
+            m_levelModel.SetMesh(&m_vertexLowLODMesh);
           }
         }
         else
         {
+          m_levelModel.SetMesh(&m_highLODMesh);
           if (GuiRenderSettings::showLevVerts)
           {
-            modelsToRender.push_back(m_pointsHighLODLevelModel);
-          }
-          else
-          {
-            modelsToRender.push_back(m_highLODLevelModel);
+            m_levelModel.SetMesh(&m_vertexHighLODMesh);
           }
         }
       }
@@ -1250,7 +1245,7 @@ void Vertex::RenderUI(size_t index, bool& editedPos)
   }
 }
 
-void Texture::RenderUI(const std::vector<size_t>& quadblockIndexes, std::vector<Quadblock>& quadblocks)
+void Texture::RenderUI(const std::vector<size_t>& quadblockIndexes, std::vector<Quadblock>& quadblocks, std::function<void(void)> refreshTextureStores)
 {
 	std::string texPath = GetPath().string();
 	if (ImGui::TreeNode(("Texture##" + texPath).c_str()))
@@ -1268,6 +1263,7 @@ void Texture::RenderUI(const std::vector<size_t>& quadblockIndexes, std::vector<
 			{
 				const std::filesystem::path& newTexPath = selection.front();
 				UpdateTexture(newTexPath);
+        refreshTextureStores();
 				for (const size_t index : quadblockIndexes) { quadblocks[index].SetTexPath(newTexPath); }
 			}
 		}
@@ -1295,7 +1291,7 @@ void Texture::RenderUI()
 {
 	std::vector<size_t> dummyIndexes;
 	std::vector<Quadblock> dummyQuadblocks;
-	RenderUI(dummyIndexes, dummyQuadblocks);
+  RenderUI(dummyIndexes, dummyQuadblocks, [](){});
 }
 
 bool AnimTexture::RenderUI(std::vector<std::string>& animTexNames, std::vector<Quadblock>& quadblocks, const std::unordered_map<std::string, std::vector<size_t>>& materialMap, const std::string& query, std::vector<AnimTexture>& newTextures)

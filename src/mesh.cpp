@@ -1,4 +1,9 @@
+#include <map>
+
 #include "mesh.h"
+#include "stb_image.h"
+#define STB_IMAGE_RESIZE_IMPLEMENTATION
+#include "stb_image_resize2.h"
 
 void Mesh::Bind() const
 {
@@ -8,7 +13,13 @@ void Mesh::Bind() const
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
     glEnableVertexAttribArray(2);
-    glEnableVertexAttribArray(3);
+    if (m_textures)
+    {
+      glEnableVertexAttribArray(3);
+      glEnableVertexAttribArray(4);
+      glActiveTexture(GL_TEXTURE0);
+      glBindTexture(GL_TEXTURE_2D_ARRAY, m_textures);
+    }
     {
       GLenum err = glGetError();
 			if (err != GL_NO_ERROR) { fprintf(stderr, "Error a! %d\n", err); }
@@ -57,6 +68,8 @@ void Mesh::Unbind() const
   glDisableVertexAttribArray(1);
   glDisableVertexAttribArray(2);
   glDisableVertexAttribArray(3);
+  glDisableVertexAttribArray(4);
+  glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
   {
     GLenum err = glGetError();
 		if (err != GL_NO_ERROR) { fprintf(stderr, "Error b! %d\n", err); }
@@ -65,9 +78,10 @@ void Mesh::Unbind() const
 
 void Mesh::Draw() const
 {
-  GLuint currentProgram;
-  glGetIntegerv(GL_CURRENT_PROGRAM, (GLint*)&currentProgram);
-	if (m_VAO != 0) { glDrawArrays(GL_TRIANGLES, 0, m_dataBufSize / sizeof(float)); }
+	if (m_VAO != 0) 
+  {
+    glDrawArrays(GL_TRIANGLES, 0, m_dataBufSize / sizeof(float));
+  }
 }
 
 /// <summary>
@@ -113,9 +127,11 @@ void Mesh::UpdateMesh(const std::vector<float>& data, unsigned includedDataFlags
     case VBufDataType::Normals: //dimension = 3
       ultimateStrideSize += 3;
       break;
-    case VBufDataType::STUV_1: //undecided 2/4 idk probably 2
-      fprintf(stderr, "Unimplemented VBufDataType::STUV_1 in Mesh::UpdateMesh()");
-      throw 0;
+    case VBufDataType::STUV: //dimension = 2
+      ultimateStrideSize += 2;
+      break;
+    case VBufDataType::TexIndex: //dimension = 1
+      ultimateStrideSize += 1;
       break;
     }
   }
@@ -123,11 +139,12 @@ void Mesh::UpdateMesh(const std::vector<float>& data, unsigned includedDataFlags
   if (dataIsInterlaced)
   {
     //although this works, it's possible that what I'm trying to do here can be done much more simply via some opengl feature(s).
-    for (int openglPositionCounter = 0, takenSize = 0, takenCount = 0; openglPositionCounter < 5 /*# of flags in VBufDataType*/; openglPositionCounter++)
+    for (int openglPositionCounter = 0, takenSize = 0, takenCount = 0; openglPositionCounter < 6 /*# of flags in VBufDataType*/; openglPositionCounter++)
     {
       switch (1 << openglPositionCounter)
       {
 			case VBufDataType::VertexPos: //position
+        if ((includedDataFlags & VBufDataType::VertexPos) != 0)
         {
           constexpr int dim = 3;
           glVertexAttribPointer(takenCount, dim, GL_FLOAT, GL_FALSE, ultimateStrideSize * sizeof(float), (void*)(takenSize * sizeof(float)));
@@ -137,16 +154,17 @@ void Mesh::UpdateMesh(const std::vector<float>& data, unsigned includedDataFlags
         }
         break;
 			case VBufDataType::Barycentric: //barycentric
+        if ((includedDataFlags & VBufDataType::Barycentric) != 0)
         {
-        constexpr int dim = 3;
-        glVertexAttribPointer(takenCount, dim, GL_FLOAT, GL_FALSE, ultimateStrideSize * sizeof(float), (void*)(takenSize * sizeof(float)));
-        glEnableVertexAttribArray(takenCount);
-        takenCount++;
-        takenSize += dim;
+          constexpr int dim = 3;
+          glVertexAttribPointer(takenCount, dim, GL_FLOAT, GL_FALSE, ultimateStrideSize * sizeof(float), (void*)(takenSize * sizeof(float)));
+          glEnableVertexAttribArray(takenCount);
+          takenCount++;
+          takenSize += dim;
         }
         break;
       case VBufDataType::VColor:
-        if (includedDataFlags & VBufDataType::VColor)
+        if ((includedDataFlags & VBufDataType::VColor) != 0)
         {
           constexpr int dim = 3;
           glVertexAttribPointer(takenCount, dim, GL_FLOAT, GL_FALSE, ultimateStrideSize * sizeof(float), (void*)(takenSize * sizeof(float)));
@@ -156,7 +174,7 @@ void Mesh::UpdateMesh(const std::vector<float>& data, unsigned includedDataFlags
         }
         break;
       case VBufDataType::Normals:
-        if (includedDataFlags & VBufDataType::Normals)
+        if ((includedDataFlags & VBufDataType::Normals) != 0)
         {
           constexpr int dim = 3;
           glVertexAttribPointer(takenCount, dim, GL_FLOAT, GL_FALSE, ultimateStrideSize * sizeof(float), (void*)(takenSize * sizeof(float)));
@@ -165,11 +183,25 @@ void Mesh::UpdateMesh(const std::vector<float>& data, unsigned includedDataFlags
           takenSize += dim;
         }
         break;
-      case VBufDataType::STUV_1:
-        if (includedDataFlags & VBufDataType::STUV_1)
+      case VBufDataType::STUV:
+        if ((includedDataFlags & VBufDataType::STUV) != 0)
         {
-          fprintf(stderr, "Unimplemented VBufDataType::STUV_1 in Mesh::UpdateMesh()");
-          throw 0;
+          constexpr int dim = 2;
+          glVertexAttribPointer(takenCount, dim, GL_FLOAT, GL_FALSE, ultimateStrideSize * sizeof(float), (void*)(takenSize * sizeof(float)));
+          glEnableVertexAttribArray(takenCount);
+          takenCount++;
+          takenSize += dim;
+        }
+        break;
+      case VBufDataType::TexIndex:
+        if ((includedDataFlags & VBufDataType::TexIndex) != 0)
+        {
+          //this only works because sizeof(float) == sizeof(int)
+          constexpr int dim = 1;
+          glVertexAttribIPointer(takenCount, dim, GL_INT, ultimateStrideSize * sizeof(int), (void*)(takenSize * sizeof(int)));
+          glEnableVertexAttribArray(takenCount);
+          takenCount++;
+          takenSize += dim;
         }
         break;
       }
@@ -198,6 +230,58 @@ int Mesh::GetShaderSettings() const
 void Mesh::SetShaderSettings(unsigned shadSettings)
 {
   m_shaderSettings = shadSettings;
+}
+
+void Mesh::SetTextureStore(std::map<int, std::filesystem::path>& texturePaths)
+{
+  if (m_textures) { glDeleteTextures(1, &m_textures); m_textures = 0; }
+
+  glGenTextures(1, &m_textures);
+  glBindTexture(GL_TEXTURE_2D_ARRAY, m_textures);
+
+  glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+  glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA8, 256, 256, texturePaths.size(), 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+
+  for (size_t texIndex = 0; texIndex < texturePaths.size(); texIndex++)
+  {
+    const std::filesystem::path& path = texturePaths[texIndex];
+    int w, h, channels;
+    stbi_uc* originalData;
+    originalData = stbi_load(path.generic_string().c_str(), &w, &h, &channels, 0);
+
+    constexpr int ww = 256, hh = 256;
+    static unsigned char finalData[ww * hh * 4];
+
+    if (originalData == nullptr)
+    {
+      printf("Failed to load texture: \"%s\", defaulting to 50%% grey.\n", path.generic_string().c_str());
+
+      memset(finalData, 0x7F, ww * hh * 4);
+      for (size_t i = 0; i < ww * hh * 4; i += 4)
+        finalData[i + 3] = 0xFF;
+
+      glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, texIndex, 256, 256, 1, GL_RGBA, GL_UNSIGNED_BYTE, (const void*)finalData);
+    }
+    else
+    {
+      memset(finalData, 0xFF, ww * hh * 4);
+
+      stbir_resize(originalData, w, h, channels * w, finalData, ww, hh, 4 * ww, stbir_pixel_layout::STBIR_RGBA, stbir_datatype::STBIR_TYPE_UINT8, stbir_edge::STBIR_EDGE_CLAMP, stbir_filter::STBIR_FILTER_POINT_SAMPLE);
+
+      //stbir_resize_uint8_srgb(originalData, w, h, channels * w, finalData, ww, hh, 4 * ww, stbir_pixel_layout::STBIR_RGBA);
+
+      glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, texIndex, 256, 256, 1, GL_RGBA, GL_UNSIGNED_BYTE, (const void*)finalData);
+    }
+  }
+}
+
+GLuint Mesh::GetTextureStore()
+{
+  return m_textures;
 }
 
 void Mesh::Dispose()

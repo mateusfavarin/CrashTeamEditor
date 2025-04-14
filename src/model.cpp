@@ -12,7 +12,7 @@ void Model::Draw()
 {
 	if (m_mesh == nullptr) { return; }
 
-	m_mesh->Bind();
+  m_mesh->Bind();
 	m_mesh->Draw();
 	m_mesh->Unbind();
 }
