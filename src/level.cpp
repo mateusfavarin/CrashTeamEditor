@@ -1437,106 +1437,25 @@ void Level::GeomUVs(const Quadblock& qb, int quadInd, int vertInd, std::vector<f
 	*/
 	const std::array<QuadUV, NUM_FACES_QUADBLOCK + 1>& uvs = qb.GetUVs();
 	const QuadUV& quv = uvs[quadInd];
-	int vertIndInUvs = 9999999;
-	switch (quadInd)
+	constexpr int NUM_VERTICES_QUAD = 4;
+	constexpr int uvVertInd[NUM_FACES_QUADBLOCK + 1][NUM_VERTICES_QUAD] =
 	{
-	case 0:
-		switch (vertInd)
-		{
-		case 0:
-			vertIndInUvs = 0;
-			break;
-		case 1:
-			vertIndInUvs = 1;
-			break;
-		case 3:
-			vertIndInUvs = 2;
-			break;
-		case 4:
-			vertIndInUvs = 3;
-			break;
-		}
-		break;
-	case 1:
-		switch (vertInd)
-		{
-		case 1:
-			vertIndInUvs = 0;
-			break;
-		case 2:
-			vertIndInUvs = 1;
-			break;
-		case 4:
-			vertIndInUvs = 2;
-			break;
-		case 5:
-			vertIndInUvs = 3;
-			break;
-		}
-		break;
-	case 2:
-		switch (vertInd)
-		{
-		case 3:
-			vertIndInUvs = 0;
-			break;
-		case 4:
-			vertIndInUvs = 1;
-			break;
-		case 6:
-			vertIndInUvs = 2;
-			break;
-		case 7:
-			vertIndInUvs = 3;
-			break;
-		}
-		break;
-	case 3:
-		switch (vertInd)
-		{
-		case 4:
-			vertIndInUvs = 0;
-			break;
-		case 5:
-			vertIndInUvs = 1;
-			break;
-		case 7:
-			vertIndInUvs = 2;
-			break;
-		case 8:
-			vertIndInUvs = 3;
-			break;
-		}
-		break;
-	case 4: //low LOD
-		switch (vertInd)
-		{
-		case 0:
-			vertIndInUvs = 0;
-			break;
-		case 2:
-			vertIndInUvs = 1;
-			break;
-		case 6:
-			vertIndInUvs = 2;
-			break;
-		case 8:
-			vertIndInUvs = 3;
-			break;
-		}
-		break;
-	}
+		{0, 1, 3, 4},
+		{1, 2, 4, 5},
+		{3, 4, 6, 7},
+		{4, 5, 7, 8},
+		{0, 2, 6, 8},
+	};
 
+	int vertIndInUvs = 0;
+	for (int i = 0; i < NUM_VERTICES_QUAD; i++)
+	{
+		if (vertInd == uvVertInd[quadInd][i]) { vertIndInUvs = i; break; }
+	}
 	const Vec2& uv = quv[vertIndInUvs];
 	data.push_back(uv.x);
 	data.push_back(uv.y);
-	union texIndexPun
-	{
-		int i;
-		float f;
-	} texIndexP;
-	texIndexP.i = textureIndex;
-	data.push_back(texIndexP.f); //todo, do this in geometry shader since ID is the same for all 3 verts for this tri
+	data.push_back(std::bit_cast<float>(textureIndex)); //todo, do this in geometry shader since ID is the same for all 3 verts for this tri
 }
 
 void Level::GeomOctopoint(const Vertex* verts, int ind, std::vector<float>& data)
@@ -1608,48 +1527,27 @@ void Level::GeomBoundingRect(const BSP* b, int depth, std::vector<float>& data)
 	verts[6].m_normal = Vec3(1.f / sqrtThree, -1.f / sqrtThree, 1.f / sqrtThree);
 	verts[7].m_normal = Vec3(1.f / sqrtThree, 1.f / sqrtThree, 1.f / sqrtThree);
 
-	if (GuiRenderSettings::bspTreeTopDepth <= depth && GuiRenderSettings::bspTreeBottomDepth >= depth) {
-		GeomPoint(verts, 2, data); //-+-
-		GeomPoint(verts, 1, data); //--+
-		GeomPoint(verts, 0, data); //---
-		GeomPoint(verts, 5, data); //-++
-		GeomPoint(verts, 1, data); //--+
-		GeomPoint(verts, 2, data); //-+-
+	if (GuiRenderSettings::bspTreeTopDepth <= depth && GuiRenderSettings::bspTreeBottomDepth >= depth)
+	{
+		constexpr int NUM_PRISM_SIDES = 6;
+		constexpr int NUM_VERTEXES_PER_SIDE = 6;
+		int prismFaceIndexes[NUM_PRISM_SIDES][NUM_VERTEXES_PER_SIDE] =
+		{
+			{2, 1, 0, 5, 1, 2},
+			{6, 3, 0, 0, 1, 6},
+			{4, 2, 0, 0, 3, 4},
+			{7, 4, 3, 3, 6, 7},
+			{7, 6, 5, 5, 6, 1},
+			{5, 4, 7, 2, 4, 5}
+		};
 
-		GeomPoint(verts, 6, data); //+-+
-		GeomPoint(verts, 3, data); //+--
-		GeomPoint(verts, 0, data); //---
-		GeomPoint(verts, 0, data); //---
-		GeomPoint(verts, 1, data); //--+
-		GeomPoint(verts, 6, data); //+-+
-
-		GeomPoint(verts, 4, data); //++-
-		GeomPoint(verts, 2, data); //-+-
-		GeomPoint(verts, 0, data); //---
-		GeomPoint(verts, 0, data); //---
-		GeomPoint(verts, 3, data); //+--
-		GeomPoint(verts, 4, data); //++-
-
-		GeomPoint(verts, 7, data); //+++
-		GeomPoint(verts, 4, data); //++-
-		GeomPoint(verts, 3, data); //+--
-		GeomPoint(verts, 3, data); //+--
-		GeomPoint(verts, 6, data); //+-+
-		GeomPoint(verts, 7, data); //+++
-
-		GeomPoint(verts, 7, data); //+++
-		GeomPoint(verts, 6, data); //+-+
-		GeomPoint(verts, 5, data); //-++
-		GeomPoint(verts, 5, data); //-++
-		GeomPoint(verts, 6, data); //+-+
-		GeomPoint(verts, 1, data); //--+
-
-		GeomPoint(verts, 5, data); //-++
-		GeomPoint(verts, 4, data); //++-
-		GeomPoint(verts, 7, data); //+++
-		GeomPoint(verts, 2, data); //-+-
-		GeomPoint(verts, 4, data); //++-
-		GeomPoint(verts, 5, data); //-++
+		for (int i = 0; i < NUM_PRISM_SIDES; i++)
+		{
+			for (int j = 0; j < NUM_VERTEXES_PER_SIDE; j++)
+			{
+				GeomPoint(verts, prismFaceIndexes[i][j], data);
+			}
+		}
 	}
 
 	if (b->GetLeftChildren() != nullptr)
