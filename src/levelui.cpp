@@ -696,57 +696,103 @@ void Level::RenderUI()
   {
     if (ImGui::Begin("Ghost", &w_ghost))
     {
-      static std::string ghostName;
       static ButtonUI saveGhostButton(20);
       static std::string saveGhostFeedback;
-      ImGui::InputText("##saveghost", &ghostName); ImGui::SameLine();
-      ImGui::BeginDisabled(ghostName.empty());
       if (saveGhostButton.Show("Save Ghost", saveGhostFeedback, false))
       {
-        ghostName += ".ctrghost";
         saveGhostFeedback = "Failed retrieving ghost data from the emulator.\nMake sure that you have saved your ghost in-game\nbefore clicking this button.";
 
-        auto selection = pfd::select_folder("Level Folder", m_parentPath.string(), pfd::opt::force_path).result();
+				std::string filename = "ghost";
+        auto selection = pfd::save_file::save_file("CTR Ghost File", filename.c_str(), {"Ghost File (*.ctrghost)", "*.ctrghost"}).result();
         if (!selection.empty())
         {
-          const std::filesystem::path path = selection + "\\" + ghostName;
+          const std::filesystem::path path = selection + ".ctrghost";
           if (SaveGhostData("duckstation", path)) { saveGhostFeedback = "Ghost file successfully saved."; }
         }
       }
-      ImGui::EndDisabled();
-      if (ghostName.empty()) { ImGui::SetItemTooltip("You must choose a filename before saving the ghost file."); }
+
+			auto ConvertTime = [](uint32_t time)
+				{
+					constexpr uint32_t ms = 32;
+					constexpr uint32_t fps = 30;
+					constexpr uint32_t second = ms * fps;
+					constexpr uint32_t minute = 60 * second;
+
+					uint32_t minutes = time / minute;
+					time -= minutes * minute;
+
+					uint32_t seconds = time / second;
+					time -= seconds * second;
+
+					uint32_t milis = (time * 1000) / second;
+					return std::to_string(minutes) + ":" + std::to_string(seconds) + "." + std::to_string(milis);
+				};
 
       static std::string tropyPath;
-      static ButtonUI tropyPathButton(20);
+      static ButtonUI tropyPathButton(10);
       static std::string tropyImportFeedback;
-      ImGui::Text("Tropy Ghost:"); ImGui::SameLine();
-      ImGui::InputText("##tropyghost", &tropyPath, ImGuiInputTextFlags_ReadOnly); ImGui::SameLine();
-      if (tropyPathButton.Show("...##tropypath", tropyImportFeedback, false))
-      {
-        tropyImportFeedback = "Error: invalid ghost file format.";
-        auto selection = pfd::open_file("CTR Ghost File", m_parentPath.string(), {"CTR Ghost Files", "*.ctrghost"}, pfd::opt::force_path).result();
-        if (!selection.empty())
-        {
-          tropyPath = selection.front();
-          if (SetGhostData(tropyPath, true)) { tropyImportFeedback = "Tropy ghost successfully set."; }
-        }
-      }
+			if (ImGui::TreeNode("Slot 1"))
+			{
+				ImGui::Text("Filename:"); ImGui::SameLine();
+				ImGui::InputText("##tropyghost", &tropyPath, ImGuiInputTextFlags_ReadOnly); ImGui::SameLine();
+				if (tropyPathButton.Show("...##tropypath", tropyImportFeedback, false))
+				{
+					tropyImportFeedback = "Error: invalid ghost file format.";
+					auto selection = pfd::open_file("CTR Ghost File", m_parentPath.string(), {"CTR Ghost Files (*.ctrghost)", "*.ctrghost"}, pfd::opt::force_path).result();
+					if (!selection.empty())
+					{
+						tropyPath = selection.front();
+						if (SetGhostData(tropyPath, true)) { tropyImportFeedback = "Slot 1 ghost successfully set."; }
+					}
+				}
+
+				if (!m_tropyGhost.empty())
+				{
+					uint16_t character = 0;
+					uint32_t time = 0;
+					memcpy(&character, &m_tropyGhost[6], sizeof(uint16_t));
+					memcpy(&time, &m_tropyGhost[16], sizeof(uint32_t));
+
+					std::string characterText = "Character: " + CTR_CHARACTERS[character];
+					std::string timeText = "Time: " + ConvertTime(time);
+					ImGui::Text(characterText.c_str());
+					ImGui::Text(timeText.c_str());
+				}
+				ImGui::TreePop();
+			}
 
       static std::string oxidePath;
-      static ButtonUI oxidePathButton(20);
+      static ButtonUI oxidePathButton(10);
       static std::string oxideImportFeedback;
-      ImGui::Text("Oxide Ghost:"); ImGui::SameLine();
-      ImGui::InputText("##oxideghost", &oxidePath, ImGuiInputTextFlags_ReadOnly); ImGui::SameLine();
-      if (oxidePathButton.Show("...##oxidepath", oxideImportFeedback, false))
-      {
-        oxideImportFeedback = "Error: invalid ghost file format.";
-        auto selection = pfd::open_file("CTR Ghost File", m_parentPath.string(), {"CTR Ghost Files", "*.ctrghost"}, pfd::opt::force_path).result();
-        if (!selection.empty())
-        {
-          oxidePath = selection.front();
-          if (SetGhostData(oxidePath, false)) { oxideImportFeedback = "Oxide ghost successfully set"; }
-        }
-      }
+			if (ImGui::TreeNode("Slot 2"))
+			{
+				ImGui::Text("Filename:"); ImGui::SameLine();
+				ImGui::InputText("##oxideghost", &oxidePath, ImGuiInputTextFlags_ReadOnly); ImGui::SameLine();
+				if (oxidePathButton.Show("...##oxidepath", oxideImportFeedback, false))
+				{
+					oxideImportFeedback = "Error: invalid ghost file format.";
+					auto selection = pfd::open_file("CTR Ghost File", m_parentPath.string(), {"CTR Ghost Files", "*.ctrghost"}, pfd::opt::force_path).result();
+					if (!selection.empty())
+					{
+						oxidePath = selection.front();
+						if (SetGhostData(oxidePath, false)) { oxideImportFeedback = "Slot 2 ghost successfully set"; }
+					}
+				}
+
+				if (!m_oxideGhost.empty())
+				{
+					uint16_t character = 0;
+					uint32_t time = 0;
+					memcpy(&character, &m_oxideGhost[6], sizeof(uint16_t));
+					memcpy(&time, &m_oxideGhost[16], sizeof(uint32_t));
+
+					std::string characterText = "Character: " + CTR_CHARACTERS[character];
+					std::string timeText = "Time: " + ConvertTime(time);
+					ImGui::Text(characterText.c_str());
+					ImGui::Text(timeText.c_str());
+				}
+				ImGui::TreePop();
+			}
     }
     ImGui::End();
   }
@@ -874,7 +920,14 @@ void Level::RenderUI()
             ImGui::TableSetColumnIndex(0);
             ImGui::Text("FPS: %d", FPS);
 
-            if (ImGui::Combo("Render", &GuiRenderSettings::renderType, GuiRenderSettings::renderTypeLabels.data(), static_cast<int>(GuiRenderSettings::renderTypeLabels.size()))) {}
+						ImGui::Text(""
+							"Camera Controls:\n"
+							"\t* WASD to move in/out & pan\n"
+							"\t* Arrow keys to rotate cam\n"
+							"\t* Spacebar to move up, Shift to move down\n"
+							"\t* Ctrl to \"Sprint\"");
+
+						ImGui::Combo("Render", &GuiRenderSettings::renderType, GuiRenderSettings::renderTypeLabels.data(), static_cast<int>(GuiRenderSettings::renderTypeLabels.size()));
 
             ImGui::Checkbox("Show Low LOD", &GuiRenderSettings::showLowLOD);
             ImGui::Checkbox("Show Wireframe", &GuiRenderSettings::showWireframe);
@@ -883,7 +936,8 @@ void Level::RenderUI()
             ImGui::Checkbox("Show Checkpoints", &GuiRenderSettings::showCheckpoints);
             ImGui::Checkbox("Show Starting Positions", &GuiRenderSettings::showStartpoints);
             ImGui::Checkbox("Show BSP Rect Tree", &GuiRenderSettings::showBspRectTree);
-            ImGui::PushItemWidth(textFieldWidth);
+
+						ImGui::PushItemWidth(textFieldWidth);
             if (ImGui::SliderInt("BSP Rect Tree top depth", &GuiRenderSettings::bspTreeTopDepth, 0, GuiRenderSettings::bspTreeMaxDepth)) //top changed
             {
               GuiRenderSettings::bspTreeBottomDepth = std::max(GuiRenderSettings::bspTreeBottomDepth, GuiRenderSettings::bspTreeTopDepth);
@@ -894,6 +948,8 @@ void Level::RenderUI()
               GuiRenderSettings::bspTreeTopDepth = std::min(GuiRenderSettings::bspTreeTopDepth, GuiRenderSettings::bspTreeBottomDepth);
               GenerateRenderBspData(m_bsp);
             }
+
+						/* TODO
             if (ImGui::BeginCombo("(NOT IMPL) Mask by Materials", "..."))
             {
               ImGui::Selectable("(NOT IMPL)");
@@ -914,34 +970,41 @@ void Level::RenderUI()
               ImGui::Selectable("(NOT IMPL)");
               ImGui::EndCombo();
             }
-            ImGui::PopItemWidth();
-            ImGui::TableSetColumnIndex(1);
-            ImGui::Text(""
-              "Camera Controls:\n"
-              "\t* WASD to move in/out & pan\n"
-              "\t* Arrow keys to rotate cam\n"
-              "\t* Spacebar to move up, Shift to move down\n"
-              "\t* Ctrl to \"Sprint\"");
+						*/
 
-            ImGui::PushItemWidth(textFieldWidth);
-            {
-              auto textUI = [](const std::string& label, std::string& uiValue, float& renderSetting, float minThres = -std::numeric_limits<float>::max(), float maxThres = std::numeric_limits<float>::max())
+            auto textUI = [](const std::string& label, std::string& uiValue, float& renderSetting, float minThres = -std::numeric_limits<float>::max(), float maxThres = std::numeric_limits<float>::max())
+              {
+                float val;
+                if (ImGui::InputText(label.c_str(), &uiValue) && ParseFloat(uiValue, val))
                 {
-                  float val;
-                  if (ImGui::InputText(label.c_str(), &uiValue) && ParseFloat(uiValue, val))
-                  {
-                    val = Clamp(val, minThres, maxThres);
-                    uiValue = std::to_string(val);
-                    renderSetting = val;
-                  }
-                };
+                  val = Clamp(val, minThres, maxThres);
+                  uiValue = std::to_string(val);
+                  renderSetting = val;
+                }
+              };
 
-              textUI("Camera Move Multiplier", camMoveMult, GuiRenderSettings::camMoveMult, 0.01f);
-              textUI("Camera Rotate Multiplier", camRotateMult, GuiRenderSettings::camRotateMult, 0.01f);
-              textUI("Camera Sprint Multiplier", camSprintMult, GuiRenderSettings::camSprintMult, 1.0f);
-              textUI("Camera FOV", camFOV, GuiRenderSettings::camFovDeg, 5.0f, 150.0f);
-            }
+            textUI("Camera Move Multiplier", camMoveMult, GuiRenderSettings::camMoveMult, 0.01f);
+            textUI("Camera Rotate Multiplier", camRotateMult, GuiRenderSettings::camRotateMult, 0.01f);
+            textUI("Camera Sprint Multiplier", camSprintMult, GuiRenderSettings::camSprintMult, 1.0f);
+            textUI("Camera FOV", camFOV, GuiRenderSettings::camFovDeg, 5.0f, 150.0f);
             ImGui::PopItemWidth();
+
+						ImGui::TableSetColumnIndex(1);
+
+						if (m_rendererSelectedQuadblockIndex != REND_NO_SELECTED_QUADBLOCK)
+						{
+							Quadblock& quadblock = m_quadblocks[m_rendererSelectedQuadblockIndex];
+							bool resetBsp = false;
+							if (quadblock.RenderUI(m_checkpoints.size() - 1, resetBsp))
+							{
+								ManageTurbopad(quadblock);
+							}
+							if (resetBsp && m_bsp.Valid())
+							{
+								m_bsp.Clear();
+								GenerateRenderBspData(m_bsp);
+							}
+						}
 
             ImGui::EndTable();
           }

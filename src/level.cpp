@@ -62,6 +62,7 @@ void Level::Clear(bool clearErrors)
 	m_tropyGhost.clear();
 	m_oxideGhost.clear();
 	m_animTextures.clear();
+	m_rendererSelectedQuadblockIndex = REND_NO_SELECTED_QUADBLOCK;
 	DeleteMaterials(this);
 }
 
@@ -370,7 +371,7 @@ void Level::ManageTurbopad(Quadblock& quadblock)
 	case QuadblockTrigger::SUPER_TURBO_PAD:
 	{
 		Quadblock turboPad = quadblock;
-		turboPad.TranslateNormalVec(0.25f);
+		turboPad.TranslateNormalVec(TURBO_PAD_QUADBLOCK_TRANSLATION);
 		turboPad.SetCheckpoint(-1);
 		turboPad.SetCheckpointStatus(false);
 		turboPad.SetName(quadblock.GetName() + (stp ? "_stp" : "_tp"));
@@ -411,10 +412,38 @@ void Level::ManageTurbopad(Quadblock& quadblock)
 bool Level::LoadLEV(const std::filesystem::path& levFile)
 {
 	std::ifstream file(levFile, std::ios::binary);
+
 	uint32_t offPointerMap;
 	Read(file, offPointerMap);
-	PSX::LevHeader header;
+
+	std::streampos offLev = file.tellg();
+	PSX::LevHeader header = {};
 	Read(file, header);
+
+	PSX::MeshInfo meshInfo = {};
+	file.seekg(offLev + std::streampos(header.offMeshInfo));
+	Read(file, meshInfo);
+
+	std::vector<PSX::Vertex> vertices;
+	vertices.reserve(meshInfo.numVertices);
+	file.seekg(offLev + std::streampos(meshInfo.offVertices));
+	for (uint32_t i = 0; i < meshInfo.numVertices; i++)
+	{
+		PSX::Vertex vertex = {};
+		Read(file, vertex);
+		vertices.push_back(vertex);
+	}
+
+	file.seekg(offLev + std::streampos(meshInfo.offQuadblocks));
+	for (uint32_t i = 0; i < meshInfo.numQuadblocks; i++)
+	{
+		PSX::Quadblock quadblock = {};
+		Read(file, quadblock);
+		m_quadblocks.emplace_back(quadblock, vertices);
+		m_materialToQuadblocks["default"].push_back(i);
+	}
+
+	m_loaded = true;
 	file.close();
 	GenerateRenderLevData();
 	return true;
@@ -1352,9 +1381,13 @@ bool Level::SaveGhostData(const std::string& emulator, const std::filesystem::pa
 	if (!StartEmuIPC(emulator) || Process::At<int32_t>(SIGNAL_ADDR) == 0) { return false; }
 
 	std::vector<uint8_t> data;
-	constexpr size_t GHOST_SIZE_ADDR = 0x80280000;
-	constexpr size_t GHOST_DATA_ADDR = 0x80280004;
-	data.resize(Process::At<uint32_t>(GHOST_SIZE_ADDR));
+	constexpr size_t GHOST_SIZE_ADDR = 0x80270038;
+	constexpr size_t GHOST_DATA_ADDR = 0x8027003C;
+
+	size_t fileSize = static_cast<size_t>(Process::At<uint32_t>(GHOST_SIZE_ADDR));
+	if (fileSize != GHOST_DATA_FILESIZE) { return false; }
+
+	data.resize(fileSize);
 	for (size_t i = 0; i < data.size(); i++) { data[i] = Process::At<uint8_t>(GHOST_DATA_ADDR + i); }
 	Process::At<int32_t>(SIGNAL_ADDR) = 0;
 
@@ -1770,6 +1803,12 @@ void Level::GenerateRenderStartpointData(std::array<Spawn, NUM_DRIVERS>& spawns)
 
 void Level::GenerateRenderSelectedBlockData(const Quadblock& quadblock, const Vec3& queryPoint)
 {
+	/* TODO: Set index directly in the previous function */
+	for (size_t i = 0; i < m_quadblocks.size(); i++)
+	{
+		if (quadblock.GetName() == m_quadblocks[i].GetName()) { m_rendererSelectedQuadblockIndex = i; break; }
+	}
+
 	static Mesh quadblockMesh;
 	std::vector<float> data;
 	const Vertex* verts = quadblock.GetUnswizzledVertices();

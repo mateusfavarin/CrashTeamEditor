@@ -1,5 +1,4 @@
 #include "vertex.h"
-#include "psx_types.h"
 
 #include <string>
 #include <cstring>
@@ -20,6 +19,15 @@ Vertex::Vertex(const Point& point)
 	m_flags = VertexFlags::NONE;
 	m_colorHigh = point.color;
 	m_colorLow = point.color;
+}
+
+Vertex::Vertex(const PSX::Vertex& vertex)
+{
+	m_pos = ConvertPSXVec3(vertex.pos, FP_ONE_GEO);
+	m_flags = vertex.flags;
+	m_colorHigh = ConvertColor(vertex.colorHi);
+	m_colorLow = ConvertColor(vertex.colorLo);
+	m_normal = { 0.0f, 1.0f, 0.0f };
 }
 
 std::vector<uint8_t> Vertex::Serialize() const

@@ -20,6 +20,8 @@
 #include <filesystem>
 #include <cstdint>
 
+static constexpr size_t REND_NO_SELECTED_QUADBLOCK = std::numeric_limits<size_t>::max();
+
 class Level
 {
 public:
@@ -98,4 +100,6 @@ private:
 	Model m_spawnsModel;
 	Model m_checkModel;
 	Model m_selectedBlockModel;
+
+	size_t m_rendererSelectedQuadblockIndex;
 };

@@ -1,5 +1,4 @@
 #include "quadblock.h"
-#include "psx_types.h"
 #include "utils.h"
 
 #include <unordered_map>
@@ -322,6 +321,26 @@ Quadblock::Quadblock(const std::string& name, Quad& q0, Quad& q1, Quad& q2, Quad
 	SetDefaultValues();
 }
 
+Quadblock::Quadblock(const PSX::Quadblock& quadblock, const std::vector<PSX::Vertex>& vertices)
+{
+	uint16_t reverseIndexMapping[NUM_VERTICES_QUADBLOCK] = { 0, 2, 6, 8, 1, 3, 4, 5, 7 };
+	for (size_t i = 0; i < NUM_VERTICES_QUADBLOCK; i++)
+	{
+		uint16_t index = quadblock.index[i];
+		const PSX::Vertex& vertex = vertices[index];
+		m_p[reverseIndexMapping[i]] = Vertex(vertex);
+	}
+	SetDefaultValues();
+
+	m_name = "Quadblock " + std::to_string(quadblock.id);
+	m_flags = quadblock.flags;
+	m_doubleSided = quadblock.drawOrderLow & (1 << 31);
+	m_terrain = quadblock.terrain;
+	m_checkpointIndex = quadblock.checkpointIndex;
+	m_material = "default";
+	m_triblock = false;
+}
+
 const std::string& Quadblock::GetName() const
 {
 	return m_name;
@@ -454,7 +473,9 @@ void Quadblock::SetAnimated(bool animated)
 
 void Quadblock::TranslateNormalVec(float ratio)
 {
-	for (size_t i = 0; i < NUM_VERTICES_QUADBLOCK; i++) { m_p[i].m_pos += m_p[i].m_normal * ratio; }
+	Vec3 quadNormal = ComputeNormalVector(0, 2, 6);
+	quadNormal = quadNormal / quadNormal.Length();
+	for (size_t i = 0; i < NUM_VERTICES_QUADBLOCK; i++) { m_p[i].m_pos += quadNormal * ratio; }
 }
 
 const BoundingBox& Quadblock::GetBoundingBox() const

@@ -19,10 +19,12 @@ void UI::MainMenu()
 		{
 			if (ImGui::MenuItem("Open"))
 			{
-				auto selection = pfd::open_file("Level File", ".", {"Level Files", "*.obj"}).result();
+				static std::string lastOpenedFolder = ".";
+				auto selection = pfd::open_file("Level File", lastOpenedFolder, {"Level Files", "*.obj *.lev"}, pfd::opt::force_path).result();
 				if (!selection.empty())
 				{
 					const std::filesystem::path levPath = selection.front();
+					lastOpenedFolder = levPath.string();
 					if (!m_lev.Load(levPath)) { m_lev.Clear(false); }
 				}
 			}

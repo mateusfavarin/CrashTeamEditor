@@ -2,6 +2,7 @@
 
 #include "geo.h"
 #include "vertex.h"
+#include "psx_types.h"
 
 #include <string>
 #include <unordered_map>
@@ -9,9 +10,9 @@
 #include <array>
 #include <filesystem>
 
-static constexpr size_t NUM_VERTICES_QUADBLOCK = 9;
 static constexpr size_t NUM_FACES_QUADBLOCK = 4;
 static constexpr size_t TURBO_PAD_INDEX_NONE = 0;
+static constexpr float TURBO_PAD_QUADBLOCK_TRANSLATION = 0.5f;
 
 struct QuadFlags
 {
@@ -140,6 +141,7 @@ class Quadblock
 public:
 	Quadblock(const std::string& name, Tri& t0, Tri& t1, Tri& t2, Tri& t3, const Vec3& normal, const std::string& material, bool hasUV);
 	Quadblock(const std::string& name, Quad& q0, Quad& q1, Quad& q2, Quad& q3, const Vec3& normal, const std::string& material, bool hasUV);
+	Quadblock(const PSX::Quadblock& quadblock, const std::vector<PSX::Vertex>& vertices);
 	const std::string& GetName() const;
 	const Vec3& GetCenter() const;
 	uint8_t GetTerrain() const;

@@ -2,12 +2,15 @@
 
 #include "geo.h"
 
+#include <vector>
+#include <string>
 #include <cstdint>
 
 static constexpr size_t NUM_GRADIENT = 3;
 static constexpr size_t NUM_DRIVERS = 8;
 static constexpr size_t NUM_LEV_CONFIG_FLAGS = 3;
 static constexpr size_t GHOST_DATA_FILESIZE = 0x3E00;
+static constexpr size_t NUM_VERTICES_QUADBLOCK = 9;
 
 struct LevConfigFlags
 {
@@ -29,4 +32,11 @@ struct ColorGradient
 	float posTo;
 	Color colorFrom;
 	Color colorTo;
+};
+
+static const std::vector<std::string> CTR_CHARACTERS = {
+	"Crash Bandicoot", "Dr. Neo Cortex", "Coco Bandicoot", "Tiny Tiger",
+	"N. Gin", "Dingodile", "Polar", "Pura", "Pinstripe", "Papu Papu",
+	"Ripper Roo", "Komodo Joe", "N. Tropy", "Penta Penguin",
+	"Fake Crash", "Nitrous Oxide"
 };

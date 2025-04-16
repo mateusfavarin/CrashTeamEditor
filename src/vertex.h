@@ -1,6 +1,7 @@
 #pragma once
 
 #include "geo.h"
+#include "psx_types.h"
 
 #include <cstdint>
 
@@ -14,6 +15,7 @@ class Vertex
 public:
 	Vertex();
 	Vertex(const Point& point);
+	Vertex(const PSX::Vertex& vertex);
 	void RenderUI(size_t index, bool& editedPos);
 	std::vector<uint8_t> Serialize() const;
 	Color GetColor(bool high) const;

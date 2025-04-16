@@ -1,10 +1,6 @@
 #pragma once
 
-#include "geo.h"
 #include "lev.h"
-#include "vertex.h"
-#include "quadblock.h"
-#include "bsp.h"
 
 #include <cstdint>
 #include <cmath>
@@ -358,8 +354,11 @@ struct std::hash<PSX::VisibleSet>
 static constexpr int16_t FP_ONE = 0x1000;
 static constexpr int16_t FP_ONE_GEO = 64;
 static constexpr int16_t FP_ONE_CP = 8;
+
 static inline int16_t ConvertFloat(float x, int16_t one = FP_ONE) { return static_cast<int16_t>(x * static_cast<float>(one)); };
-static inline PSX::Vec3 ConvertVec3(Vec3 v, int16_t one = FP_ONE)
+static inline float ConvertFP(int16_t fp, int16_t one = FP_ONE) { return static_cast<float>(fp) / static_cast<float>(one); }
+
+static inline PSX::Vec3 ConvertVec3(const Vec3& v, int16_t one = FP_ONE)
 {
 	PSX::Vec3 out = {};
 	out.x = ConvertFloat(v.x, one);
@@ -367,7 +366,27 @@ static inline PSX::Vec3 ConvertVec3(Vec3 v, int16_t one = FP_ONE)
 	out.z = ConvertFloat(v.z, one);
 	return out;
 }
-static inline PSX::Color ConvertColor(Color c)
+
+static inline Vec3 ConvertPSXVec3(const PSX::Vec3& v, int16_t one = FP_ONE)
+{
+	Vec3 out = {};
+	out.x = ConvertFP(v.x, one);
+	out.y = ConvertFP(v.y, one);
+	out.z = ConvertFP(v.z, one);
+	return out;
+}
+
+static inline Color ConvertColor(const PSX::Color& c)
+{
+	Color out = {};
+	out.r = c.r;
+	out.g = c.g;
+	out.b = c.b;
+	out.a = c.a == 1;
+	return out;
+}
+
+static inline PSX::Color ConvertColor(const Color& c)
 {
 	PSX::Color out = {};
 	out.r = c.r;
