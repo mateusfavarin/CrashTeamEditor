@@ -1,8 +1,8 @@
-#include "quadblock.h"
+#include "viztree.h"
 #define _USE_MATH_DEFINES
 #include "math.h"
+
 #include <random>
-#include <vector>
 
 class BitMatrix
 {
@@ -15,8 +15,54 @@ public:
 
   char& get(size_t x, size_t y)
   {
-    char& val = data[(y * width) + x];
-    return val;
+    return data[(y * width) + x];
+  }
+
+  bool read(size_t x, size_t y) const
+  {
+    return static_cast<bool>(data[(y * width) + x]);
+  }
+
+  BitMatrix transposed() const 
+  {
+    BitMatrix result = BitMatrix(this->height, this->width);
+
+    for (int x = 0; x < this->width; x++)
+    {
+      for (int y = 0; y < this->height; y++)
+      {
+        result.get(y, x) = this->read(x, y);
+      }
+    }
+
+    return result;
+  }
+
+  BitMatrix operator|(const BitMatrix& other) const 
+  {
+    if (other.width != this->width || other.height != this->height)
+      throw;
+
+    BitMatrix result = BitMatrix(this->width, this->height);
+    for (int x = 0; x < this->width; x++)
+    {
+      for (int y = 0; y < this->height; y++)
+      {
+        result.get(x, y) = this->read(x, y) | other.read(x, y);
+      }
+    }
+
+    return result;
+  }
+
+  size_t getWidth() const
+  {
+    return width;
+  }
+
+  size_t getHeight() const
+  {
+    return height;
   }
 private:
 
@@ -80,20 +126,21 @@ struct Vector3
   }
 };
 
-double randomInRange(double low, double high)
+static double randomInRange(double low, double high)
 {
-  static std::uniform_real_distribution<double> unif(low, high);
+  /*static */ 
+  std::uniform_real_distribution<double> unif(low, high); //this initializes it to the distribution when it is first called, this doesn't work
   static std::default_random_engine re;
 
   return unif(re);
 }
 
-Vector3 sampleInRectangularPrism(Vector3 p1, Vector3 p2)
+static Vector3 sampleInRectangularPrism(Vector3 p1, Vector3 p2)
 {
   return Vector3(randomInRange(p1.x, p2.x), randomInRange(p1.y, p2.y), randomInRange(p1.z, p2.z));
 }
 
-Vector3 sampleOnUnitSphere()
+static Vector3 sampleOnUnitSphere()
 {
   double u = randomInRange(0.0, 1.0);
   double v = randomInRange(0.0, 1.0);
@@ -108,7 +155,7 @@ Vector3 sampleOnUnitSphere()
   return Vector3(x, y, z);
 }
 
-Vector3 sampleOnUnitHemisphere()
+static Vector3 sampleOnUnitHemisphere()
 {
   double u = randomInRange(0.0, 1.0);
   double v = randomInRange(0.0, 1.0);
@@ -123,7 +170,7 @@ Vector3 sampleOnUnitHemisphere()
   return Vector3(std::abs(x), y, z);
 }
 
-std::tuple<Vector3, double> worldspaceRayTriIntersection(Vector3 worldSpaceRayOrigin, Vector3 worldSpaceRayDir, const Vector3 tri[3])
+static std::tuple<Vector3, double> worldspaceRayTriIntersection(Vector3 worldSpaceRayOrigin, Vector3 worldSpaceRayDir, const Vector3 tri[3])
 {
   constexpr double epsilon = 0.00001;
 
@@ -165,7 +212,7 @@ std::tuple<Vector3, double> worldspaceRayTriIntersection(Vector3 worldSpaceRayOr
   }
 }
 
-std::tuple<Vector3, double> rayIntersectQuadblockTest(Vector3 worldSpaceRayOrigin, Vector3 worldSpaceRayDir, const Quadblock& qb)
+static std::tuple<Vector3, double> rayIntersectQuadblockTest(Vector3 worldSpaceRayOrigin, Vector3 worldSpaceRayDir, const Quadblock& qb)
 {
   bool isQuadblock = qb.IsQuadblock();
   const Vertex* verts = qb.GetUnswizzledVertices();
@@ -219,7 +266,7 @@ std::tuple<Vector3, double> rayIntersectQuadblockTest(Vector3 worldSpaceRayOrigi
   return std::make_tuple(Vector3::zero(), 0.0);
 }
 
-BitMatrix viztree_1(const std::vector<const Quadblock>& quadblocks) {
+BitMatrix viztree_method_1(const std::vector<const Quadblock>& quadblocks) {
   /* tldr: for each of the 9 points of a quadblock, randomly sample a ray and test collision against all other quadblocks
 
   results: 2dMatrix
@@ -288,10 +335,41 @@ BitMatrix viztree_1(const std::vector<const Quadblock>& quadblocks) {
   }
 
   // These two lines mean: if quadblock A is visible from B, then quadblock B is also visible from A.
-  //BitMatrix transposedVizMatrix = vizMatrix.transpose();
-  //vizMatrix = vizMatrix | transposedVizMatrix;
+  BitMatrix transposedVizMatrix = vizMatrix.transposed();
+  vizMatrix = vizMatrix | transposedVizMatrix;
 
   return vizMatrix;
+}
+
+BitMatrix quadVizToBspViz(const BitMatrix& quadViz, const std::vector<const BSP&>& leaves)
+{
+  BitMatrix bspViz = BitMatrix(leaves.size(), leaves.size());
+
+  for (size_t a = 0; a < leaves.size(); a++)
+  {
+    const BSP leaf_a = leaves[a];
+    const std::vector<size_t>& qbIndeces_a = leaf_a.GetQuadblockIndexes();
+    for (size_t b = 0; b < leaves.size(); b++)
+    {
+      const BSP leaf_b = leaves[b];
+      const std::vector<size_t>& qbIndeces_b = leaf_b.GetQuadblockIndexes();
+      for (size_t aqb = 0; aqb < qbIndeces_a.size(); aqb++)
+      {
+        size_t aqbIndex = qbIndeces_a[aqb];
+        for (size_t bqb = 0; bqb < qbIndeces_b.size(); aqb++)
+        {
+          size_t bqbIndex = qbIndeces_a[bqb];
+
+          if (quadViz.read(aqbIndex, bqbIndex))
+          {
+            bspViz.get(a, b) = bspViz.get(b, a) = 1;
+          }
+        }
+      }
+    }
+  }
+
+  return bspViz;
 }
 
 
@@ -336,7 +414,3 @@ if a bsp leaf has predominantly quadblocks that face the sky (i.e., that bsp lea
 is probably a waste of time. Instead, get the average direction + strength of all normal vectors and bias your search moreso in that direction.
   
 */
-
-void viztree(std::vector<Quadblock> quadblocks) {
-
-}
