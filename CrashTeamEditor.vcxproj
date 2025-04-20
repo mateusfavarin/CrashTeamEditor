@@ -54,6 +54,7 @@
     <ClCompile Include="src\ui.cpp" />
     <ClCompile Include="src\utils.cpp" />
     <ClCompile Include="src\vertex.cpp" />
+	<ClCompile Include="src\viztree.cpp" />
     <!--IMGUI stuff-->
     <ClCompile Include="third_party\imgui\backends\imgui_impl_glfw.cpp" />
     <ClCompile Include="third_party\imgui\backends\imgui_impl_opengl3.cpp" />
@@ -90,6 +91,7 @@
     <ClInclude Include="src\ui.h" />
     <ClInclude Include="src\utils.h" />
     <ClInclude Include="src\vertex.h" />
+	<ClCompile Include="src\viztree.h" />
     <ClCompile Include="src\manual_third_party\khrplatform.h" />
     <ClCompile Include="src\manual_third_party\glad.h" />
   </ItemGroup>
