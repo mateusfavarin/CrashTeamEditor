@@ -59,6 +59,7 @@ struct Vec3
 	float* Data() { return &x; }
 	inline float Length() const { return static_cast<float>(std::sqrt((x * x) + (y * y) + (z * z))); }
 	inline Vec3 Cross(const Vec3& v) const { return { y * v.z - z * v.y, z * v.x - x * v.z, x * v.y - v.x * y }; }
+	inline float Dot(const Vec3& v) const { return x * v.x + y * v.y + z * v.z; }
 
 	inline Vec3 operator+(const Vec3& v) const { return { x + v.x, y + v.y, z + v.z }; }
 	inline Vec3 operator-(const Vec3& v) const { return { x - v.x, y - v.y, z - v.z }; }
@@ -72,6 +73,9 @@ struct Vec3
 	inline Vec3& operator-=(const Vec3& v) { x -= v.x; y -= v.y; z -= v.z; return *this; }
 	inline Vec3& operator*=(float n) { x *= n; y *= n; z *= n; return *this; }
 	inline Vec3& operator/=(float n) { x /= n; y /= n; z /= n; return *this; }
+
+	static Vec3 Zero() { return Vec3(); }
+	static Vec3 One() { return Vec3(1.0f, 1.0f, 1.0f); }
 
 	float x;
 	float y;
