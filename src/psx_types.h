@@ -134,10 +134,10 @@ namespace PSX
 
 	struct Stars
 	{
-		int16_t numStars;
-		int16_t spread;
-		int16_t seed;
-		int16_t distance;
+		uint16_t numStars;
+		uint16_t spread;
+		uint16_t seed;
+		uint16_t distance;
 	};
 
 	struct Weather

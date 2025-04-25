@@ -35,10 +35,10 @@ struct ColorGradient
 };
 
 struct Stars {
-    short numStars;
-    short spread;
-    short seed;
-    short distance;
+    uint16_t numStars;
+    uint16_t spread;
+    uint16_t seed;
+    uint16_t distance;
 };
 
 static const std::vector<std::string> CTR_CHARACTERS = {
