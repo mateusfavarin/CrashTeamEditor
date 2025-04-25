@@ -724,23 +724,29 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 		bspSize += serializedBSPs.back().size();
 		if (bsp->IsBranch()) { continue; }
 		const std::vector<size_t>& quadIndexes = bsp->GetQuadblockIndexes();
+
 		for (const size_t index : quadIndexes)
 		{
 			const Quadblock& quadblock = m_quadblocks[index];
 			std::vector<Vertex> quadVertices = quadblock.GetVertices();
 			std::vector<size_t> verticesIndexes;
-			for (const Vertex& vertex : quadVertices)
-			{
-				if (!vertexMap.contains(vertex))
-				{
+			
+			for (const Vertex& vertex : quadVertices) {
+				if (!vertexMap.contains(vertex)) {
 					size_t vertexIndex = orderedVertices.size();
 					orderedVertices.push_back(vertex);
 					vertexMap[vertex] = vertexIndex;
 				}
 				verticesIndexes.push_back(vertexMap[vertex]);
 			}
+
 			size_t quadIndex = serializedQuads.size();
-			serializedQuads.push_back(quadblock.Serialize(quadIndex, offTexture, verticesIndexes));
+
+			int textureIndex = quadblock.TextureIndex();
+			textureIndex = textureIndex % textureCount;
+			size_t textureOffset = offTextureStart + textureIndex * sizeof(PSX::TextureGroup);
+			
+			serializedQuads.push_back(quadblock.Serialize(quadIndex, textureOffset, verticesIndexes));
 			orderedQuads.push_back(&quadblock);
 			currOffset += serializedQuads.back().size();
 		}

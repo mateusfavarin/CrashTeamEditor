@@ -176,6 +176,9 @@ public:
 	bool Neighbours(const Quadblock& quadblock, float threshold = 0.1f) const;
 	std::vector<uint8_t> Serialize(size_t id, size_t offTextures, const std::vector<size_t>& vertexIndexes) const;
 	bool RenderUI(size_t checkpointCount, bool& resetBsp);
+	const std::string& GetMaterial() const;
+	void SetTextureIndex(uint8_t index);
+    uint8_t TextureIndex() const;
 
 private:
 	void SetDefaultValues();
