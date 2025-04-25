@@ -34,6 +34,13 @@ struct ColorGradient
 	Color colorTo;
 };
 
+struct Stars {
+    short numStars;
+    short spread;
+    short seed;
+    short distance;
+};
+
 static const std::vector<std::string> CTR_CHARACTERS = {
 	"Crash Bandicoot", "Dr. Neo Cortex", "Coco Bandicoot", "Tiny Tiger",
 	"N. Gin", "Dingodile", "Polar", "Pura", "Pinstripe", "Papu Papu",

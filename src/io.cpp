@@ -59,6 +59,24 @@ void from_json(const nlohmann::json& json, ColorGradient& spawn)
 	if (json.contains("colorTo")) { json.at("colorTo").get_to(spawn.colorTo); }
 }
 
+void to_json(nlohmann::json& json, const Stars& stars)
+{
+    json = {
+        {"numStars", stars.numStars},
+        {"spread", stars.spread},
+        {"seed", stars.seed},
+        {"distance", stars.distance}
+    };
+}
+
+void from_json(const nlohmann::json& json, Stars& stars)
+{
+    if (json.contains("numStars")) { stars.numStars = json["numStars"]; }
+    if (json.contains("spread")) { stars.spread = json["spread"]; }
+    if (json.contains("seed")) { stars.seed = json["seed"]; }
+    if (json.contains("distance")) { stars.distance = json["distance"]; }
+}
+
 void ReadBinaryFile(std::vector<uint8_t>& v, const std::filesystem::path& path)
 {
 	std::ifstream file(path, std::ios::binary);

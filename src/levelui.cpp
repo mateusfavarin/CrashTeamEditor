@@ -458,6 +458,33 @@ void Level::RenderUI()
         }
         ImGui::TreePop();
       }
+
+      if (ImGui::TreeNode("Stars"))
+      {
+          ImGui::InputScalar("Number of Stars", ImGuiDataType_S16, &m_stars.numStars);
+          ImGui::SetItemTooltip("Controls the number of stars visible in the sky");
+
+          ImGui::InputScalar("Seed", ImGuiDataType_S16, &m_stars.seed);
+          ImGui::SetItemTooltip("Controls the random spread distance from the horizon.\n");
+
+          // Set distance default to 1022 (0x3FE) skybox distance
+          if (m_stars.distance == 0)
+              m_stars.distance = 1022;
+              
+          ImGui::InputScalar("Distance", ImGuiDataType_S16, &m_stars.distance);
+          ImGui::SetItemTooltip("Distance from screen (OT). Default is 1022.\n"
+                              "Skybox is drawn at 1023.");
+
+          bool starsSpreadEnabled = m_stars.spread > 0;
+          if (ImGui::Checkbox("Spread Stars Below Horizon", &starsSpreadEnabled))
+          {
+              m_stars.spread = starsSpreadEnabled ? 1 : 0;
+          }
+          ImGui::SetItemTooltip("When disabled, stars appear only above the horizon.\n"
+                              "When enabled, stars will also appear below the horizon.");
+
+          ImGui::TreePop();
+      }
     }
     ImGui::End();
   }

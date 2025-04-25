@@ -33,6 +33,8 @@ public:
 	const std::string& GetName() const;
 	const std::vector<Quadblock>& GetQuadblocks() const;
 	const std::filesystem::path& GetParentPath() const;
+	const PSX::Stars GetStars() const { return ConvertStars(m_stars); }
+	void SetStars(const PSX::Stars& stars) { m_stars = ConvertStars(stars); }
 	bool GenerateBSP();
 	bool GenerateCheckpoints();
 	bool LoadPreset(const std::filesystem::path& filename);
@@ -75,6 +77,7 @@ private:
 	uint32_t m_configFlags;
 	std::array<ColorGradient, NUM_GRADIENT> m_skyGradient;
 	Color m_clearColor;
+	Stars m_stars;
 	std::vector<uint8_t> m_tropyGhost;
 	std::vector<uint8_t> m_oxideGhost;
 	std::vector<Quadblock> m_quadblocks;

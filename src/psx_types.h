@@ -132,6 +132,14 @@ namespace PSX
 		PSX::Color colorTo;
 	};
 
+	struct Stars
+	{
+		int16_t numStars;
+		int16_t spread;
+		int16_t seed;
+		int16_t distance;
+	};
+
 	struct Weather
 	{
 		uint32_t numParticles; // 0x0
@@ -190,7 +198,7 @@ namespace PSX
 		uint32_t unk_0x170; // 0x170
 		uint32_t numSCVertices; // 0x174
 		uint32_t offSCVertices; // 0x178
-		uint8_t unk_0x17C[8]; // 0x17C
+		Stars stars; // 0x17C
 		uint8_t splitLines[4]; // 0x184
 		uint32_t offLevNavTable; // 0x188
 		uint32_t unk_0x18C; // 0x18C
@@ -394,4 +402,24 @@ static inline PSX::Color ConvertColor(const Color& c)
 	out.b = c.b;
 	out.a = c.a ? 1 : 0;
 	return out;
+}
+
+static inline PSX::Stars ConvertStars(const Stars& stars)
+{
+    PSX::Stars out = {};
+    out.numStars = stars.numStars;
+    out.spread = stars.spread;
+    out.seed = stars.seed;
+    out.distance = stars.distance;
+    return out;
+}
+
+static inline Stars ConvertStars(const PSX::Stars& stars)
+{
+    Stars out = {};
+    out.numStars = stars.numStars;
+    out.spread = stars.spread;
+    out.seed = stars.seed;
+    out.distance = stars.distance;
+    return out;
 }
