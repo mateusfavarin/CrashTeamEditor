@@ -50,6 +50,7 @@ void Level::Clear(bool clearErrors)
 	}
 	m_configFlags = LevConfigFlags::NONE;
 	m_clearColor = Color();
+	m_stars = {0, 0, 0, 0};
 	m_name.clear();
 	m_hotReloadLevPath.clear();
 	m_hotReloadVRMPath.clear();
@@ -173,6 +174,7 @@ bool Level::LoadPreset(const std::filesystem::path& filename)
 		if (json.contains("configFlags")) { m_configFlags = json["configFlags"]; }
 		if (json.contains("skyGradient")) { m_skyGradient = json["skyGradient"]; }
 		if (json.contains("clearColor")) { m_clearColor = json["clearColor"]; }
+		if (json.contains("stars")) { json["stars"].get_to(m_stars); }
 	}
 	else if (header == PresetHeader::PATH)
 	{
@@ -299,6 +301,7 @@ bool Level::SavePreset(const std::filesystem::path& path)
 	levelJson["configFlags"] = m_configFlags;
 	levelJson["skyGradient"] = m_skyGradient;
 	levelJson["clearColor"] = m_clearColor;
+	levelJson["stars"] = m_stars;
 	SaveJSON(dirPath / "level.json", levelJson);
 
 	nlohmann::json pathJson = {};
@@ -420,6 +423,7 @@ bool Level::LoadLEV(const std::filesystem::path& levFile)
 	PSX::LevHeader header = {};
 	Read(file, header);
 
+	m_stars = ConvertStars(header.stars);
 	PSX::MeshInfo meshInfo = {};
 	file.seekg(offLev + std::streampos(header.offMeshInfo));
 	Read(file, meshInfo);
@@ -901,6 +905,7 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 		header.skyGradient[i].colorFrom = ConvertColor(m_skyGradient[i].colorFrom);
 		header.skyGradient[i].colorTo = ConvertColor(m_skyGradient[i].colorTo);
 	}
+	header.stars = ConvertStars(m_stars); 
 	header.offExtra = static_cast<uint32_t>(offExtraHeader);
 	header.numCheckpointNodes = static_cast<uint32_t>(m_checkpoints.size());
 	header.offCheckpointNodes = static_cast<uint32_t>(offCheckpoints);
