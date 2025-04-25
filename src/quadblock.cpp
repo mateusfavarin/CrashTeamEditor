@@ -625,16 +625,3 @@ void Quadblock::ComputeBoundingBox()
 	m_bbox.min = min;
 	m_bbox.max = max;
 }
-
-const std::string& Quadblock::GetMaterial() const
-{
-	return m_material;
-}
-
-void Quadblock::SetTextureIndex(uint8_t index) {
-    m_textureIndex = index;
-}
-
-uint8_t Quadblock::TextureIndex() const {
-    return m_textureIndex;
-}

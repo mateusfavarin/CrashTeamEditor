@@ -731,7 +731,8 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 			std::vector<Vertex> quadVertices = quadblock.GetVertices();
 			std::vector<size_t> verticesIndexes;
 			
-			for (const Vertex& vertex : quadVertices) {
+			for (const Vertex& vertex : quadVertices)
+			{
 				if (!vertexMap.contains(vertex)) {
 					size_t vertexIndex = orderedVertices.size();
 					orderedVertices.push_back(vertex);
@@ -741,12 +742,7 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 			}
 
 			size_t quadIndex = serializedQuads.size();
-
-			int textureIndex = quadblock.TextureIndex();
-			textureIndex = textureIndex % textureCount;
-			size_t textureOffset = offTextureStart + textureIndex * sizeof(PSX::TextureGroup);
-			
-			serializedQuads.push_back(quadblock.Serialize(quadIndex, textureOffset, verticesIndexes));
+			serializedQuads.push_back(quadblock.Serialize(quadIndex, offTexture, verticesIndexes));
 			orderedQuads.push_back(&quadblock);
 			currOffset += serializedQuads.back().size();
 		}
