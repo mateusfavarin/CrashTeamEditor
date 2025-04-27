@@ -12,9 +12,9 @@ void to_json(nlohmann::json& json, const Vec3& v)
 
 void from_json(const nlohmann::json& json, Vec3& v)
 {
-	if (json.contains("x")) { json.at("x").get_to(v.x); }
-	if (json.contains("y")) { json.at("y").get_to(v.y); }
-	if (json.contains("z")) { json.at("z").get_to(v.z); }
+	if (json.contains("x")) { v.x = json["x"]; }
+	if (json.contains("y")) { v.y = json["y"]; }
+	if (json.contains("z")) { v.z = json["z"]; }
 }
 
 void to_json(nlohmann::json& json, const Color& c)
@@ -65,7 +65,7 @@ void to_json(nlohmann::json& json, const Stars& stars)
         {"numStars", stars.numStars},
         {"spread", stars.spread},
         {"seed", stars.seed},
-        {"distance", stars.distance}
+        {"depth", stars.zDepth}
     };
 }
 
@@ -74,7 +74,7 @@ void from_json(const nlohmann::json& json, Stars& stars)
     if (json.contains("numStars")) { stars.numStars = json["numStars"]; }
     if (json.contains("spread")) { stars.spread = json["spread"]; }
     if (json.contains("seed")) { stars.seed = json["seed"]; }
-    if (json.contains("distance")) { stars.distance = json["distance"]; }
+    if (json.contains("depth")) { stars.zDepth = json["depth"]; }
 }
 
 void ReadBinaryFile(std::vector<uint8_t>& v, const std::filesystem::path& path)

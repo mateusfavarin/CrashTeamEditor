@@ -137,7 +137,7 @@ namespace PSX
 		uint16_t numStars;
 		uint16_t spread;
 		uint16_t seed;
-		uint16_t distance;
+		uint16_t zDepth;
 	};
 
 	struct Weather
@@ -408,9 +408,9 @@ static inline PSX::Stars ConvertStars(const Stars& stars)
 {
     PSX::Stars out = {};
     out.numStars = stars.numStars;
-    out.spread = stars.spread;
+    out.spread = stars.spread ? 1u : 0u;
     out.seed = stars.seed;
-    out.distance = stars.distance;
+    out.zDepth = stars.zDepth;
     return out;
 }
 
@@ -418,8 +418,8 @@ static inline Stars ConvertStars(const PSX::Stars& stars)
 {
     Stars out = {};
     out.numStars = stars.numStars;
-    out.spread = stars.spread;
+    out.spread = stars.spread == 1;
     out.seed = stars.seed;
-    out.distance = stars.distance;
+    out.zDepth = stars.zDepth;
     return out;
 }

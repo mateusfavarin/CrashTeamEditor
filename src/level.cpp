@@ -50,7 +50,8 @@ void Level::Clear(bool clearErrors)
 	}
 	m_configFlags = LevConfigFlags::NONE;
 	m_clearColor = Color();
-	m_stars = {0, 0, 0, 0};
+	m_stars = {};
+	m_stars.zDepth = static_cast<uint16_t>(OT_SIZE) - 2;
 	m_name.clear();
 	m_hotReloadLevPath.clear();
 	m_hotReloadVRMPath.clear();
@@ -905,7 +906,7 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 		header.skyGradient[i].colorFrom = ConvertColor(m_skyGradient[i].colorFrom);
 		header.skyGradient[i].colorTo = ConvertColor(m_skyGradient[i].colorTo);
 	}
-	header.stars = ConvertStars(m_stars); 
+	header.stars = ConvertStars(m_stars);
 	header.offExtra = static_cast<uint32_t>(offExtraHeader);
 	header.numCheckpointNodes = static_cast<uint32_t>(m_checkpoints.size());
 	header.offCheckpointNodes = static_cast<uint32_t>(offCheckpoints);

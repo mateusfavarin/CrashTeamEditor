@@ -11,6 +11,7 @@ static constexpr size_t NUM_DRIVERS = 8;
 static constexpr size_t NUM_LEV_CONFIG_FLAGS = 3;
 static constexpr size_t GHOST_DATA_FILESIZE = 0x3E00;
 static constexpr size_t NUM_VERTICES_QUADBLOCK = 9;
+static constexpr size_t OT_SIZE = 1024;
 
 struct LevConfigFlags
 {
@@ -34,11 +35,12 @@ struct ColorGradient
 	Color colorTo;
 };
 
-struct Stars {
+struct Stars
+{
     uint16_t numStars;
-    uint16_t spread;
+    bool spread;
     uint16_t seed;
-    uint16_t distance;
+    uint16_t zDepth;
 };
 
 static const std::vector<std::string> CTR_CHARACTERS = {
