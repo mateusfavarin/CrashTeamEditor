@@ -208,88 +208,92 @@ BitMatrix viztree_method_1(const std::vector<Quadblock>& quadblocks) {
 					if (p + r intersects with high or low LOD of q2)
 						results.add(q2, q1) //q2 can be seen by q1
 	*/
-	constexpr int perStepSampleCount = 1000;
 
 	BitMatrix vizMatrix = BitMatrix(quadblocks.size(), quadblocks.size());
 
 	for (size_t sourceQuadIndex = 0; sourceQuadIndex < quadblocks.size(); sourceQuadIndex++)
 	{
+		if (sourceQuadIndex == 1)
+		{
+			printf("Collision from: %s\n", quadblocks[0].GetName().c_str());
+			for (size_t k = 0; k < quadblocks.size(); k++)
+			{
+				if (vizMatrix.get(0, k))
+				{
+					printf("%s\n", quadblocks[k].GetName().c_str());
+				}
+			}
+		}
+		// printf("%d/%d\n", sourceQuadIndex, quadblocks.size());
 		vizMatrix.get(sourceQuadIndex, sourceQuadIndex) = true;
-		const Quadblock& sourceQuad = quadblocks[sourceQuadIndex];
+		Quadblock sourceQuad = quadblocks[sourceQuadIndex];
+		sourceQuad.TranslateNormalVec(0.5f);
 		const Vertex& center = sourceQuad.GetUnswizzledVertices()[4];
+
+		std::vector<size_t> hitIndexes;
+		for (size_t hitQuadblockIndex = 0; hitQuadblockIndex < quadblocks.size(); hitQuadblockIndex++)
+		{
+			if (vizMatrix.get(sourceQuadIndex, hitQuadblockIndex))
+			{
+				hitIndexes.push_back(hitQuadblockIndex);
+			}
+		}
+
 		for (size_t directionQuadblockIndex = 0; directionQuadblockIndex < quadblocks.size(); directionQuadblockIndex++)
 		{
 			if (vizMatrix.get(sourceQuadIndex, directionQuadblockIndex)) { continue; }
 
 			const Quadblock& directionQuad = quadblocks[directionQuadblockIndex];
 			const Vertex* vertexArr = directionQuad.GetUnswizzledVertices();
-			for (size_t vertexIndex = 0; vertexIndex < NUM_VERTICES_QUADBLOCK; vertexIndex++)
+
+			const Vec3& testPos = vertexArr[4].m_pos;
+			Vec3 directionVector = testPos - center.m_pos;
+			float testDist = directionVector.Length();
+			directionVector /= testDist;
+
+			size_t posQuadIndex = sourceQuadIndex;
+			float bestDistPos = std::numeric_limits<float>::max();
+			for (size_t testQuadIndex = 0; testQuadIndex < quadblocks.size(); testQuadIndex++)
 			{
-				const Vec3& testPos = vertexArr[vertexIndex].m_pos;
-				Vec3 directionVector = center.m_pos - testPos;
-				directionVector /= directionVector.Length();
+				const Quadblock& testQuad = quadblocks[testQuadIndex];
+				const Vertex* testVertices = testQuad.GetUnswizzledVertices();
+				if ((testVertices[4].m_pos - center.m_pos).Length() > testDist) { continue; }
 
-				float testDist = (center.m_pos - testPos).Length();
-				std::vector<std::tuple<size_t, float>> negativeSuccesses, positiveSuccesses;
-				for (size_t testQuadIndex = 0; testQuadIndex < quadblocks.size(); testQuadIndex++)
+				bool skipTest = false;
+				for (size_t hitQuadIndex : hitIndexes)
 				{
-					if (vizMatrix.get(sourceQuadIndex, testQuadIndex)) { continue; }
+					if (hitQuadIndex == sourceQuadIndex) { continue; }
 
-					const Quadblock& testQuad = quadblocks[testQuadIndex];
-					const Vertex* testVertices = testQuad.GetUnswizzledVertices();
-					bool test = false;
-					for (size_t testVertexIndex = 0; testVertexIndex < NUM_VERTICES_QUADBLOCK; testVertexIndex++)
-					{
-						const Vec3& pos = testVertices[testVertexIndex].m_pos;
-						if ((center.m_pos - pos).Length() < testDist)
-						{
-							test = true;
-							break;
-						}
-					}
-
-					if (!test) { continue; }
-
-					std::tuple<Vec3, float> queryResult = rayIntersectQuadblockTest(center.m_pos, directionVector, quadblocks[testQuadIndex]);
+					const Vertex* hitVertices = quadblocks[hitQuadIndex].GetUnswizzledVertices();
+					if ((hitVertices[4].m_pos - center.m_pos).Length() > testDist) { continue; }
+					std::tuple<Vec3, float> queryResult = rayIntersectQuadblockTest(center.m_pos, directionVector, quadblocks[hitQuadIndex]);
 					float t = std::get<1>(queryResult);
-					if (t != 0.0f)
+					if (t != 0)
 					{
-						if (t > 0.0f)
-						{
-							positiveSuccesses.push_back(std::make_tuple(testQuadIndex, t));
-						}
-						else
-						{
-							negativeSuccesses.push_back(std::make_tuple(testQuadIndex, t));
-						}
+						skipTest = true;
+						break;
 					}
 				}
-				std::sort(negativeSuccesses.begin(), negativeSuccesses.end(),
-					[](const std::tuple<size_t, float>& a, const std::tuple<size_t, float>& b) {
-						return std::get<1>(a) > std::get<1>(b);
-					});
+				if (skipTest) { continue; }
 
-				std::sort(positiveSuccesses.begin(), positiveSuccesses.end(),
-					[](const std::tuple<size_t, float>& a, const std::tuple<size_t, float>& b) {
-						return std::get<1>(a) < std::get<1>(b);
-					});
+				std::tuple<Vec3, float> queryResult = rayIntersectQuadblockTest(center.m_pos, directionVector, testQuad);
+				float t = std::get<1>(queryResult);
+				float dist = std::abs(t);
+				if (t > 0.0f && dist < bestDistPos)
+				{
+					bestDistPos = dist;
+					posQuadIndex = testQuadIndex;
+				}
+			}
 
-				if (negativeSuccesses.size() > 0)
-				{
-					vizMatrix.get(sourceQuadIndex, std::get<0>(negativeSuccesses[0])) = true;
-				}
-				if (positiveSuccesses.size() > 0)
-				{
-					vizMatrix.get(sourceQuadIndex, std::get<0>(positiveSuccesses[0])) = true;
-				}
+			if (!vizMatrix.get(sourceQuadIndex, posQuadIndex))
+			{
+				vizMatrix.get(sourceQuadIndex, posQuadIndex) = true;
+				vizMatrix.get(posQuadIndex, sourceQuadIndex) = true;
+				hitIndexes.push_back(posQuadIndex);
 			}
 		}
 	}
-
-	// These two lines mean: if quadblock A is visible from B, then quadblock B is also visible from A.
-	BitMatrix transposedVizMatrix = vizMatrix.transposed();
-	vizMatrix = vizMatrix | transposedVizMatrix;
-
 	return vizMatrix;
 }
 
