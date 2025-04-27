@@ -116,6 +116,18 @@ const std::vector<const BSP*> BSP::GetTree() const
 	return bspNodes;
 }
 
+std::vector<const BSP*> BSP::GetLeaves() const
+{
+	std::vector<const BSP*> ret;
+	const std::vector<const BSP*> tree = GetTree();
+	for (const BSP* bsp : tree)
+	{
+		if (bsp->IsBranch()) { continue; }
+		for (size_t index : bsp->m_quadblockIndexes) { ret.push_back(bsp); }
+	}
+	return ret;
+}
+
 void BSP::SetQuadblockIndexes(const std::vector<size_t>& quadblockIndexes)
 {
 	m_quadblockIndexes = quadblockIndexes;

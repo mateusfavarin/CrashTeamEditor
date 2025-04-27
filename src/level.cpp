@@ -6,6 +6,7 @@
 #include "process.h"
 #include "gui_render_settings.h"
 #include "renderer.h"
+#include "viztree.h"
 
 #include <fstream>
 #include <unordered_set>
@@ -93,6 +94,9 @@ bool Level::GenerateBSP()
 	if (m_bsp.Valid())
 	{
 		GenerateRenderBspData(m_bsp);
+		BitMatrix quadViz = viztree_method_1(m_quadblocks);
+		std::vector<const BSP*> bspLeaves = m_bsp.GetLeaves();
+		BitMatrix vizTree = quadVizToBspViz(quadViz, bspLeaves);
 		return true;
 	}
 	m_bsp.Clear();

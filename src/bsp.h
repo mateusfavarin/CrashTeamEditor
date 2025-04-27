@@ -53,6 +53,7 @@ public:
 	const BSP* GetLeftChildren() const;
 	const BSP* GetRightChildren() const;
 	const std::vector<const BSP*> GetTree() const;
+	std::vector<const BSP*> GetLeaves() const;
 	void SetQuadblockIndexes(const std::vector<size_t>& quadblockIndexes);
 	void Clear();
 	void Generate(const std::vector<Quadblock>& quadblocks, const size_t maxQuadsPerLeaf, const float maxAxisLength);

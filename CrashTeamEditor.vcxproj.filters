@@ -132,7 +132,7 @@
     <ClCompile Include="src\animtexture.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="viztree.cpp">
+    <ClCompile Include="src\viztree.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -207,6 +207,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\animtexture.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\viztree.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
