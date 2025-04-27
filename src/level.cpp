@@ -1874,6 +1874,69 @@ void Level::GenerateRenderSelectedBlockData(const Quadblock& quadblock, const Ve
 	m_selectedBlockModel.SetMesh(&quadblockMesh);
 }
 
+void Level::GenerateRenderMultipleQuadsData(const std::vector<Quadblock>& quads)
+{
+	if (quads.size() == 0)
+	{
+		m_multipleSelectedQuads.SetMesh(nullptr);
+		return;
+	}
+
+	static Mesh quadblockMesh;
+	std::vector<float> data;
+	for (const Quadblock& quadblock : quads)
+	{
+		const Vertex* verts = quadblock.GetUnswizzledVertices();
+		bool isQuadblock = quadblock.IsQuadblock();
+		Vertex recoloredVerts[9];
+		for (int i = 0; i < (isQuadblock ? 9 : 6); i++)
+		{
+			Color negated = verts[i].GetColor(true).Negated();
+			recoloredVerts[i] = Point(0, 0, 0, negated.r, negated.g, negated.b); //pos reassigned in next line
+			recoloredVerts[i].m_pos = verts[i].m_pos;
+			recoloredVerts[i].m_normal = verts[i].m_normal;
+		}
+
+		if (quadblock.IsQuadblock())
+		{
+			//LLOD
+			/*for (int triIndex = 0; triIndex < 2; triIndex++)
+			{
+				GeomPoint(recoloredVerts, FaceIndexConstants::quadLLODVertArrangements[triIndex][0], data);
+				GeomPoint(recoloredVerts, FaceIndexConstants::quadLLODVertArrangements[triIndex][1], data);
+				GeomPoint(recoloredVerts, FaceIndexConstants::quadLLODVertArrangements[triIndex][2], data);
+			}*/
+			//HLOD
+			for (int triIndex = 0; triIndex < 8; triIndex++)
+			{
+				GeomPoint(recoloredVerts, FaceIndexConstants::quadHLODVertArrangements[triIndex][0], data);
+				GeomPoint(recoloredVerts, FaceIndexConstants::quadHLODVertArrangements[triIndex][1], data);
+				GeomPoint(recoloredVerts, FaceIndexConstants::quadHLODVertArrangements[triIndex][2], data);
+			}
+		}
+		else
+		{
+			//LLOD
+			/*for (int triIndex = 0; triIndex < 1; triIndex++)
+			{
+				GeomPoint(recoloredVerts, FaceIndexConstants::triLLODVertArrangements[triIndex][0], data);
+				GeomPoint(recoloredVerts, FaceIndexConstants::triLLODVertArrangements[triIndex][1], data);
+				GeomPoint(recoloredVerts, FaceIndexConstants::triLLODVertArrangements[triIndex][2], data);
+			}*/
+			//HLOD
+			for (int triIndex = 0; triIndex < 4; triIndex++)
+			{
+				GeomPoint(recoloredVerts, FaceIndexConstants::triHLODVertArrangements[triIndex][0], data);
+				GeomPoint(recoloredVerts, FaceIndexConstants::triHLODVertArrangements[triIndex][1], data);
+				GeomPoint(recoloredVerts, FaceIndexConstants::triHLODVertArrangements[triIndex][2], data);
+			}
+		}
+	}
+
+	quadblockMesh.UpdateMesh(data, (Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals), (Mesh::ShaderSettings::DrawWireframe | Mesh::ShaderSettings::DrawBackfaces | Mesh::ShaderSettings::ForceDrawOnTop | Mesh::ShaderSettings::DrawLinesAA | Mesh::ShaderSettings::DontOverrideShaderSettings | Mesh::ShaderSettings::Blinky));
+	m_multipleSelectedQuads.SetMesh(&quadblockMesh);
+}
+
 void Level::ViewportClickHandleBlockSelection(int pixelX, int pixelY, const Renderer& rend)
 {
 	std::function<std::optional<std::tuple<const Quadblock, const glm::vec3>>(int, int, std::vector<Quadblock>&, unsigned)> check = [&rend](int pixelCoordX, int pixelCoordY, std::vector<Quadblock>& qbs, unsigned index)
