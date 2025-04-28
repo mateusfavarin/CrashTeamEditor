@@ -11,6 +11,7 @@
 #include <fstream>
 #include <unordered_set>
 #include <map>
+#include <algorithm>
 
 bool Level::Load(const std::filesystem::path& filename)
 {
@@ -95,7 +96,12 @@ bool Level::GenerateBSP()
 	{
 		GenerateRenderBspData(m_bsp);
 		std::vector<const BSP*> bspLeaves = m_bsp.GetLeaves();
-		BitMatrix quadViz = viztree_method_1(m_quadblocks, bspLeaves);
+		BitMatrix* bm = new BitMatrix(viztree_method_1(m_quadblocks, bspLeaves));
+		if (m_bspViz != nullptr)
+		{
+			delete m_bspViz;
+		}
+		m_bspViz = bm;
 		return true;
 	}
 	m_bsp.Clear();
@@ -1823,12 +1829,16 @@ void Level::GenerateRenderSelectedBlockData(const Quadblock& quadblock, const Ve
 	const Vertex* verts = quadblock.GetUnswizzledVertices();
 	bool isQuadblock = quadblock.IsQuadblock();
 	Vertex recoloredVerts[9];
-	for (int i = 0; i < (isQuadblock ? 9 : 6); i++)
+	for (int i = 0; i < (isQuadblock ? 9 : 7); i++) //7 not 6 bc index correction
 	{
 		Color negated = verts[i].GetColor(true).Negated();
 		recoloredVerts[i] = Point(0, 0, 0, negated.r, negated.g, negated.b); //pos reassigned in next line
 		recoloredVerts[i].m_pos = verts[i].m_pos;
 		recoloredVerts[i].m_normal = verts[i].m_normal;
+		if (!isQuadblock && i == 4)
+		{ //index correction for tris, since tris use 01234-6
+			i++;
+		}
 	}
 
 	if (quadblock.IsQuadblock())
@@ -1871,13 +1881,121 @@ void Level::GenerateRenderSelectedBlockData(const Quadblock& quadblock, const Ve
 
 	quadblockMesh.UpdateMesh(data, (Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals), (Mesh::ShaderSettings::DrawWireframe | Mesh::ShaderSettings::DrawBackfaces | Mesh::ShaderSettings::ForceDrawOnTop | Mesh::ShaderSettings::DrawLinesAA | Mesh::ShaderSettings::DontOverrideShaderSettings | Mesh::ShaderSettings::Blinky));
 	m_selectedBlockModel.SetMesh(&quadblockMesh);
+
+	int myQBIndex;
+	for (size_t qb_index = 0; qb_index < m_quadblocks.size(); qb_index++)
+	{
+		if (&m_quadblocks[qb_index] == &quadblock)
+		{
+			myQBIndex = qb_index;
+			break;
+		}
+	}
+
+	std::vector<const BSP*> bspLeaves = m_bsp.GetLeaves();
+	int myBSPIndex;
+	for (size_t bsp_index = 0; bsp_index < bspLeaves.size(); bsp_index++)
+	{
+		const BSP& bsp = *bspLeaves[bsp_index];
+		const std::vector<size_t> qbIndeces = bsp.GetQuadblockIndexes();
+		if (std::find(qbIndeces.begin(), qbIndeces.end(), myQBIndex) != qbIndeces.end())
+		{
+			myBSPIndex = bsp_index;
+			break;
+		}
+	}
+
+	std::vector<Quadblock*> quadsToSelect;
+
+	for (size_t bsp_index = 0; bsp_index < bspLeaves.size(); bsp_index++)
+	{
+		const BSP& bsp = *bspLeaves[bsp_index];
+		if (m_bspViz->read(bsp_index, myBSPIndex))
+		{
+			const std::vector<size_t> qbIndeces = bsp.GetQuadblockIndexes();
+			for (size_t qbInd : qbIndeces)
+			{
+				quadsToSelect.push_back(&m_quadblocks[qbInd]);
+			}
+		}
+	}
+
+	GenerateRenderMultipleQuadsData(quadsToSelect);
+}
+
+void Level::GenerateRenderMultipleQuadsData(const std::vector<Quadblock*>& quads)
+{
+	if (quads.size() == 0)
+	{
+		m_multipleSelectedQuads.SetMesh(nullptr);
+		return;
+	}
+
+	static Mesh quadblockMesh;
+	std::vector<float> data;
+	for (const Quadblock* quadblock_ptr : quads)
+	{
+		const Quadblock& quadblock = *quadblock_ptr;
+		const Vertex* verts = quadblock.GetUnswizzledVertices();
+		bool isQuadblock = quadblock.IsQuadblock();
+		Vertex recoloredVerts[9];
+		for (int i = 0; i < (isQuadblock ? 9 : 7); i++) //7 not 6 bc index correction
+		{
+			Color negated = verts[i].GetColor(true).Negated();
+			recoloredVerts[i] = Point(0, 0, 0, negated.r, negated.g, negated.b); //pos reassigned in next line
+			recoloredVerts[i].m_pos = verts[i].m_pos;
+			recoloredVerts[i].m_normal = verts[i].m_normal;
+			if (!isQuadblock && i == 4)
+			{ //index correction for tris, since tris use 01234-6
+				i++;
+			}
+		}
+
+		if (quadblock.IsQuadblock())
+		{
+			//LLOD
+			/*for (int triIndex = 0; triIndex < 2; triIndex++)
+			{
+				GeomPoint(recoloredVerts, FaceIndexConstants::quadLLODVertArrangements[triIndex][0], data);
+				GeomPoint(recoloredVerts, FaceIndexConstants::quadLLODVertArrangements[triIndex][1], data);
+				GeomPoint(recoloredVerts, FaceIndexConstants::quadLLODVertArrangements[triIndex][2], data);
+			}*/
+			//HLOD
+			for (int triIndex = 0; triIndex < 8; triIndex++)
+			{
+				GeomPoint(recoloredVerts, FaceIndexConstants::quadHLODVertArrangements[triIndex][0], data);
+				GeomPoint(recoloredVerts, FaceIndexConstants::quadHLODVertArrangements[triIndex][1], data);
+				GeomPoint(recoloredVerts, FaceIndexConstants::quadHLODVertArrangements[triIndex][2], data);
+			}
+		}
+		else
+		{
+			//LLOD
+			/*for (int triIndex = 0; triIndex < 1; triIndex++)
+			{
+				GeomPoint(recoloredVerts, FaceIndexConstants::triLLODVertArrangements[triIndex][0], data);
+				GeomPoint(recoloredVerts, FaceIndexConstants::triLLODVertArrangements[triIndex][1], data);
+				GeomPoint(recoloredVerts, FaceIndexConstants::triLLODVertArrangements[triIndex][2], data);
+			}*/
+			//HLOD
+			for (int triIndex = 0; triIndex < 4; triIndex++)
+			{
+				GeomPoint(recoloredVerts, FaceIndexConstants::triHLODVertArrangements[triIndex][0], data);
+				GeomPoint(recoloredVerts, FaceIndexConstants::triHLODVertArrangements[triIndex][1], data);
+				GeomPoint(recoloredVerts, FaceIndexConstants::triHLODVertArrangements[triIndex][2], data);
+			}
+		}
+	}
+
+	quadblockMesh.UpdateMesh(data, (Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals), (Mesh::ShaderSettings::DrawWireframe | Mesh::ShaderSettings::DrawBackfaces | Mesh::ShaderSettings::ForceDrawOnTop | Mesh::ShaderSettings::DrawLinesAA | Mesh::ShaderSettings::DontOverrideShaderSettings | Mesh::ShaderSettings::Blinky));
+	m_multipleSelectedQuads.SetMesh(&quadblockMesh);
 }
 
 void Level::ViewportClickHandleBlockSelection(int pixelX, int pixelY, const Renderer& rend)
 {
-	std::function<std::optional<std::tuple<const Quadblock, const glm::vec3>>(int, int, std::vector<Quadblock>&, unsigned)> check = [&rend](int pixelCoordX, int pixelCoordY, std::vector<Quadblock>& qbs, unsigned index)
+	std::function<std::optional<std::tuple<const Quadblock&, const glm::vec3>>(int, int, std::vector<Quadblock>&, unsigned)> check = [&rend](int pixelCoordX, int pixelCoordY, std::vector<Quadblock>& qbs, unsigned index)
 		{
-			std::vector<std::tuple<Quadblock, glm::vec3, float>> passed;
+			std::vector<std::tuple<Quadblock&, glm::vec3, float>> passed;
 
 			//we're currently checking ALL quadblocks on a click (bad), so we should
 			//use an acceleration structure (good thing we can have a BSP :) )
@@ -1938,21 +2056,22 @@ void Level::ViewportClickHandleBlockSelection(int pixelX, int pixelY, const Rend
 				//}
 
 
-				if (collided) { passed.push_back(std::make_tuple(qb, std::get<0>(queryResult), std::get<1>(queryResult))); continue; }
+				if (collided) { passed.push_back(std::tuple<Quadblock&, glm::vec3, float>(qb, std::get<0>(queryResult), std::get<1>(queryResult))); continue; }
 			}
 
 			//sort collided blocks by time value (distance from camera).
 			std::sort(passed.begin(), passed.end(),
-				[](const std::tuple<Quadblock, glm::vec3, float>& a, const std::tuple<Quadblock, glm::vec3, float>& b) {
+				[](const std::tuple<Quadblock&, glm::vec3, float>& a, const std::tuple<Quadblock&, glm::vec3, float>& b) {
 					return std::get<2>(a) < std::get<2>(b);
 				});
 
-			std::optional<std::tuple<Quadblock, glm::vec3>> result;
+			std::optional<std::tuple<Quadblock&, glm::vec3>> result;
 			//at the very end
 			if (passed.size() > 0)
 			{
 				auto tuple = passed[index % passed.size()];
-				result = std::make_optional(std::make_tuple(std::get<0>(tuple), std::get<1>(tuple)));
+				Quadblock& qb = std::get<0>(tuple);
+				result = std::make_optional(std::tuple<Quadblock&, glm::vec3>(qb, std::get<1>(tuple)));
 			}
 			else
 			{
@@ -1976,7 +2095,7 @@ void Level::ViewportClickHandleBlockSelection(int pixelX, int pixelY, const Rend
 		indenticalClickTimes = 0;
 	}
 
-	std::optional<std::tuple<const Quadblock, const glm::vec3>> collidedQB = check(pixelX, pixelY, m_quadblocks, indenticalClickTimes);
+	std::optional<std::tuple<const Quadblock&, const glm::vec3>> collidedQB = check(pixelX, pixelY, m_quadblocks, indenticalClickTimes);
 
 	if (collidedQB.has_value())
 	{

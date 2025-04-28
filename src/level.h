@@ -12,6 +12,7 @@
 #include "animtexture.h"
 #include "model.h"
 #include "mesh.h"
+#include "viztree.h"
 
 #include <nlohmann/json.hpp>
 #include <vector>
@@ -46,6 +47,7 @@ public:
 	void GenerateRenderCheckpointData(std::vector<Checkpoint>&);
 	void GenerateRenderStartpointData(std::array<Spawn, NUM_DRIVERS>&);
 	void GenerateRenderSelectedBlockData(const Quadblock& quadblock, const Vec3& queryPoint);
+	void GenerateRenderMultipleQuadsData(const std::vector<Quadblock*>& quads);
 	void RefreshTextureStores();
 	void GeomPoint(const Vertex* verts, int ind, std::vector<float>& data);
 	void GeomOctopoint(const Vertex* verts, int ind, std::vector<float>& data);
@@ -103,6 +105,9 @@ private:
 	Model m_spawnsModel;
 	Model m_checkModel;
 	Model m_selectedBlockModel;
+	Model m_multipleSelectedQuads;
 
 	size_t m_rendererSelectedQuadblockIndex;
+
+	BitMatrix* m_bspViz = nullptr;
 };

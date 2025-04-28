@@ -885,6 +885,7 @@ void Level::RenderUI()
         modelsToRender.push_back(m_spawnsModel);
       }
       modelsToRender.push_back(m_selectedBlockModel);
+      modelsToRender.push_back(m_multipleSelectedQuads);
 
       rend.Render(modelsToRender);
 
