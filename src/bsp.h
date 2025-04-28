@@ -35,7 +35,7 @@ struct BSPID
 
 static constexpr size_t MAX_QUADBLOCKS_LEAF = 32;
 static constexpr float MAX_LEAF_AXIS_LENGTH = std::numeric_limits<float>::max();
-static constexpr float MAX_DRAW_DISTANCE = 250.0f;
+static constexpr float MAX_DRAW_DISTANCE = 200.0f;
 
 class BSP
 {
