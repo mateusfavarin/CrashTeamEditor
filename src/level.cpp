@@ -11,6 +11,7 @@
 #include <fstream>
 #include <unordered_set>
 #include <map>
+#include <algorithm>
 
 bool Level::Load(const std::filesystem::path& filename)
 {
@@ -95,7 +96,12 @@ bool Level::GenerateBSP()
 	{
 		GenerateRenderBspData(m_bsp);
 		std::vector<const BSP*> bspLeaves = m_bsp.GetLeaves();
-		BitMatrix quadViz = viztree_method_1(m_quadblocks, bspLeaves);
+		BitMatrix* bm = new BitMatrix(viztree_method_1(m_quadblocks, bspLeaves));
+		if (m_bspViz != nullptr)
+		{
+			delete m_bspViz;
+		}
+		m_bspViz = bm;
 		return true;
 	}
 	m_bsp.Clear();
@@ -1871,9 +1877,49 @@ void Level::GenerateRenderSelectedBlockData(const Quadblock& quadblock, const Ve
 
 	quadblockMesh.UpdateMesh(data, (Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals), (Mesh::ShaderSettings::DrawWireframe | Mesh::ShaderSettings::DrawBackfaces | Mesh::ShaderSettings::ForceDrawOnTop | Mesh::ShaderSettings::DrawLinesAA | Mesh::ShaderSettings::DontOverrideShaderSettings | Mesh::ShaderSettings::Blinky));
 	m_selectedBlockModel.SetMesh(&quadblockMesh);
+
+	int myQBIndex;
+	for (size_t qb_index = 0; qb_index < m_quadblocks.size(); qb_index++)
+	{
+		if (&m_quadblocks[qb_index] == &quadblock)
+		{
+			myQBIndex = qb_index;
+			break;
+		}
+	}
+
+	std::vector<const BSP*> bspLeaves = m_bsp.GetLeaves();
+	int myBSPIndex;
+	for (size_t bsp_index = 0; bsp_index < bspLeaves.size(); bsp_index++)
+	{
+		const BSP& bsp = *bspLeaves[bsp_index];
+		const std::vector<size_t> qbIndeces = bsp.GetQuadblockIndexes();
+		if (std::find(qbIndeces.begin(), qbIndeces.end(), myQBIndex) != qbIndeces.end())
+		{
+			myBSPIndex = bsp_index;
+			break;
+		}
+	}
+
+	std::vector<Quadblock*> quadsToSelect;
+
+	for (size_t bsp_index = 0; bsp_index < bspLeaves.size(); bsp_index++)
+	{
+		const BSP& bsp = *bspLeaves[bsp_index];
+		if (m_bspViz->read(bsp_index, myBSPIndex))
+		{
+			const std::vector<size_t> qbIndeces = bsp.GetQuadblockIndexes();
+			for (size_t qbInd : qbIndeces)
+			{
+				quadsToSelect.push_back(&m_quadblocks[qbInd]);
+			}
+		}
+	}
+
+	GenerateRenderMultipleQuadsData(quadsToSelect);
 }
 
-void Level::GenerateRenderMultipleQuadsData(const std::vector<Quadblock>& quads)
+void Level::GenerateRenderMultipleQuadsData(const std::vector<Quadblock*>& quads)
 {
 	if (quads.size() == 0)
 	{
@@ -1883,8 +1929,9 @@ void Level::GenerateRenderMultipleQuadsData(const std::vector<Quadblock>& quads)
 
 	static Mesh quadblockMesh;
 	std::vector<float> data;
-	for (const Quadblock& quadblock : quads)
+	for (const Quadblock* quadblock_ptr : quads)
 	{
+		const Quadblock& quadblock = *quadblock_ptr;
 		const Vertex* verts = quadblock.GetUnswizzledVertices();
 		bool isQuadblock = quadblock.IsQuadblock();
 		Vertex recoloredVerts[9];

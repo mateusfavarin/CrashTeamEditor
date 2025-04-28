@@ -219,6 +219,7 @@ BitMatrix viztree_method_1(const std::vector<Quadblock>& quadblocks, const std::
 
 	for (size_t leafA = 0; leafA < leaves.size(); leafA++)
 	{
+		printf("Leaf: %d/%d", leafA, leaves.size());
 		vizMatrix.get(leafA, leafA) = true;
 		for (size_t leafB = 0; leafB < leaves.size(); leafB++)
 		{
