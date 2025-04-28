@@ -58,6 +58,7 @@ struct Vec3
 	Vec3(float x, float y, float z) : x(x), y(y), z(z) {};
 	float* Data() { return &x; }
 	inline float Length() const { return static_cast<float>(std::sqrt((x * x) + (y * y) + (z * z))); }
+	inline float LengthSquared() const { return (x * x) + (y * y) + (z * z); }
 	inline Vec3 Cross(const Vec3& v) const { return { y * v.z - z * v.y, z * v.x - x * v.z, x * v.y - v.x * y }; }
 	inline float Dot(const Vec3& v) const { return x * v.x + y * v.y + z * v.z; }
 

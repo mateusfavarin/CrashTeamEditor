@@ -241,8 +241,8 @@ BitMatrix viztree_method_1(const std::vector<Quadblock>& quadblocks, const std::
 					points[7] = {bbox.max.x, bbox.max.y, bbox.min.z};
 				};
 
-			std::array<Vec3, 8> ptsA;
-			std::array<Vec3, 8> ptsB;
+			std::array<Vec3, POINTS_BBOX> ptsA;
+			std::array<Vec3, POINTS_BBOX> ptsB;
 			GenTestPoints(bboxA, ptsA);
 			GenTestPoints(bboxB, ptsB);
 			bool worthTesting = false;
@@ -250,7 +250,7 @@ BitMatrix viztree_method_1(const std::vector<Quadblock>& quadblocks, const std::
 			{
 				for (size_t j = 0; j < POINTS_BBOX; j++)
 				{
-					if ((ptsA[i] - ptsB[j]).Length() < MAX_DRAW_DISTANCE)
+					if ((ptsA[i] - ptsB[j]).LengthSquared() < MAX_DRAW_DISTANCE * MAX_DRAW_DISTANCE)
 					{
 						worthTesting = true;
 						break;
@@ -279,8 +279,8 @@ BitMatrix viztree_method_1(const std::vector<Quadblock>& quadblocks, const std::
 					const Quadblock& directionQuad = quadblocks[quadB];
 					const Vec3& directionPos = directionQuad.GetUnswizzledVertices()[4].m_pos;
 					Vec3 directionVector = directionPos - center;
-					float testDist = directionVector.Length();
-					if (testDist > MAX_DRAW_DISTANCE) { continue; }
+					float testDist = directionVector.LengthSquared();
+					if (testDist > MAX_DRAW_DISTANCE * MAX_DRAW_DISTANCE) { continue; }
 
 					directionVector /= testDist;
 
@@ -290,7 +290,7 @@ BitMatrix viztree_method_1(const std::vector<Quadblock>& quadblocks, const std::
 					{
 						const Quadblock& testQuad = quadblocks[testQuadIndex];
 						Vec3 testCenter = testQuad.GetUnswizzledVertices()[4].m_pos;
-						if ((testCenter - center).Length() > testDist) { continue; }
+						if ((testCenter - center).LengthSquared() > testDist) { continue; }
 
 						std::tuple<Vec3, float> queryResult = rayIntersectQuadblockTest(center, directionVector, testQuad);
 						float t = std::get<1>(queryResult);
