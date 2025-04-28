@@ -219,6 +219,7 @@ BitMatrix viztree_method_1(const std::vector<Quadblock>& quadblocks, const std::
 
 	for (size_t leafA = 0; leafA < leaves.size(); leafA++)
 	{
+		//printf("Leaf: %d/%d", leafA, leaves.size());
 		vizMatrix.get(leafA, leafA) = true;
 		for (size_t leafB = 0; leafB < leaves.size(); leafB++)
 		{
@@ -243,7 +244,7 @@ BitMatrix viztree_method_1(const std::vector<Quadblock>& quadblocks, const std::
 					const Vec3& directionPos = directionQuad.GetUnswizzledVertices()[4].m_pos;
 					Vec3 directionVector = directionPos - center;
 					float testDist = directionVector.Length();
-					if (testDist > 1000.0f) { continue; } /* TODO: READ VALUE IN-GAME */
+					if (testDist > MAX_DRAW_DISTANCE) { continue; }
 
 					directionVector /= testDist;
 
