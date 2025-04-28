@@ -1829,12 +1829,16 @@ void Level::GenerateRenderSelectedBlockData(const Quadblock& quadblock, const Ve
 	const Vertex* verts = quadblock.GetUnswizzledVertices();
 	bool isQuadblock = quadblock.IsQuadblock();
 	Vertex recoloredVerts[9];
-	for (int i = 0; i < (isQuadblock ? 9 : 6); i++)
+	for (int i = 0; i < (isQuadblock ? 9 : 7); i++) //7 not 6 bc index correction
 	{
 		Color negated = verts[i].GetColor(true).Negated();
 		recoloredVerts[i] = Point(0, 0, 0, negated.r, negated.g, negated.b); //pos reassigned in next line
 		recoloredVerts[i].m_pos = verts[i].m_pos;
 		recoloredVerts[i].m_normal = verts[i].m_normal;
+		if (!isQuadblock && i == 4)
+		{ //index correction for tris, since tris use 01234-6
+			i++;
+		}
 	}
 
 	if (quadblock.IsQuadblock())
