@@ -4,56 +4,24 @@
 
 #include <random>
 
-char& BitMatrix::get(size_t x, size_t y)
+bool BitMatrix::Get(size_t x, size_t y) const
 {
-	return data[(y * width) + x];
+	return m_data[(y * m_width) + x];
 }
 
-bool BitMatrix::read(size_t x, size_t y) const
+size_t BitMatrix::GetWidth() const
 {
-	return static_cast<bool>(data[(y * width) + x]);
+	return m_width;
 }
 
-BitMatrix BitMatrix::transposed() const
+size_t BitMatrix::GetHeight() const
 {
-	BitMatrix result = BitMatrix(this->height, this->width);
-
-	for (int x = 0; x < this->width; x++)
-	{
-		for (int y = 0; y < this->height; y++)
-		{
-			result.get(y, x) = this->read(x, y);
-		}
-	}
-
-	return result;
+	return m_height;
 }
 
-BitMatrix BitMatrix::operator|(const BitMatrix& other) const
+void BitMatrix::Set(bool value, size_t x, size_t y)
 {
-	if (other.width != this->width || other.height != this->height)
-		throw;
-
-	BitMatrix result = BitMatrix(this->width, this->height);
-	for (int x = 0; x < this->width; x++)
-	{
-		for (int y = 0; y < this->height; y++)
-		{
-			result.get(x, y) = this->read(x, y) | other.read(x, y);
-		}
-	}
-
-	return result;
-}
-
-size_t BitMatrix::getWidth() const
-{
-	return width;
-}
-
-size_t BitMatrix::getHeight() const
-{
-	return height;
+	m_data[(y * m_width) + x] = value;
 }
 
 static float randomInRange(float low, float high)
@@ -220,10 +188,10 @@ BitMatrix viztree_method_1(const std::vector<Quadblock>& quadblocks, const std::
 	for (size_t leafA = 0; leafA < leaves.size(); leafA++)
 	{
 		printf("Leaf: %d/%d", leafA, leaves.size());
-		vizMatrix.get(leafA, leafA) = true;
+		vizMatrix.Set(true, leafA, leafA);
 		for (size_t leafB = 0; leafB < leaves.size(); leafB++)
 		{
-			if (vizMatrix.get(leafA, leafB)) { continue; }
+			if (vizMatrix.Get(leafA, leafB)) { continue; }
 
 			constexpr size_t POINTS_BBOX = 8;
 			BoundingBox bboxA = leaves[leafA]->GetBoundingBox();
@@ -302,10 +270,10 @@ BitMatrix viztree_method_1(const std::vector<Quadblock>& quadblocks, const std::
 						}
 					}
 
-					if (!vizMatrix.get(leafA, leafHit))
+					if (!vizMatrix.Get(leafA, leafHit))
 					{
-						vizMatrix.get(leafA, leafHit) = true;
-						vizMatrix.get(leafHit, leafA) = true;
+						vizMatrix.Set(true, leafA, leafHit);
+						vizMatrix.Set(true, leafHit, leafA);
 						if (leafHit == leafB) { foundLeafABHit = true; }
 					}
 				}

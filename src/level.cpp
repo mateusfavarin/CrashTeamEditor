@@ -96,12 +96,7 @@ bool Level::GenerateBSP()
 	{
 		GenerateRenderBspData(m_bsp);
 		std::vector<const BSP*> bspLeaves = m_bsp.GetLeaves();
-		BitMatrix* bm = new BitMatrix(viztree_method_1(m_quadblocks, bspLeaves));
-		if (m_bspViz != nullptr)
-		{
-			delete m_bspViz;
-		}
-		m_bspViz = bm;
+		m_bspViz = viztree_method_1(m_quadblocks, bspLeaves);
 		return true;
 	}
 	m_bsp.Clear();
@@ -1893,7 +1888,7 @@ void Level::GenerateRenderSelectedBlockData(const Quadblock& quadblock, const Ve
 	}
 
 	std::vector<const BSP*> bspLeaves = m_bsp.GetLeaves();
-	int myBSPIndex;
+	size_t myBSPIndex = 0;
 	for (size_t bsp_index = 0; bsp_index < bspLeaves.size(); bsp_index++)
 	{
 		const BSP& bsp = *bspLeaves[bsp_index];
@@ -1910,7 +1905,7 @@ void Level::GenerateRenderSelectedBlockData(const Quadblock& quadblock, const Ve
 	for (size_t bsp_index = 0; bsp_index < bspLeaves.size(); bsp_index++)
 	{
 		const BSP& bsp = *bspLeaves[bsp_index];
-		if (m_bspViz->read(bsp_index, myBSPIndex))
+		if (m_bspViz.Get(bsp_index, myBSPIndex))
 		{
 			const std::vector<size_t> qbIndeces = bsp.GetQuadblockIndexes();
 			for (size_t qbInd : qbIndeces)

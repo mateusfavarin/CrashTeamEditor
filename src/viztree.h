@@ -9,20 +9,18 @@
 class BitMatrix
 {
 public:
-	BitMatrix(size_t width, size_t height) : width(width), height(height), data(width* height) {}
+	BitMatrix() {};
+	BitMatrix(size_t width, size_t height) : m_width(width), m_height(height), m_data(width * height) {}
 
-	char& get(size_t x, size_t y);
-	bool read(size_t x, size_t y) const;
-	BitMatrix transposed() const;
-	BitMatrix operator|(const BitMatrix& other) const;
-	size_t getWidth() const;
-	size_t getHeight() const;
+	bool Get(size_t x, size_t y) const;
+	size_t GetWidth() const;
+	size_t GetHeight() const;
+	void Set(bool value, size_t x, size_t y);
 
 private:
-	size_t width, height;
-	//std::vector<bool> has a special optimized implementation that packs the bits, however,
-	//the "get" function (that returns a ref) wouldn't work as-is. Fix me later probably.
-	std::vector<char> data;
+	size_t m_width;
+	size_t m_height;
+	std::vector<bool> m_data;
 };
 
 BitMatrix viztree_method_1(const std::vector<Quadblock>& quadblocks, const std::vector<const BSP*>& leaves);
