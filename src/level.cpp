@@ -1985,9 +1985,9 @@ void Level::GenerateRenderMultipleQuadsData(const std::vector<Quadblock*>& quads
 
 void Level::ViewportClickHandleBlockSelection(int pixelX, int pixelY, const Renderer& rend)
 {
-	std::function<std::optional<std::tuple<const Quadblock, const glm::vec3>>(int, int, std::vector<Quadblock>&, unsigned)> check = [&rend](int pixelCoordX, int pixelCoordY, std::vector<Quadblock>& qbs, unsigned index)
+	std::function<std::optional<std::tuple<const Quadblock&, const glm::vec3>>(int, int, std::vector<Quadblock>&, unsigned)> check = [&rend](int pixelCoordX, int pixelCoordY, std::vector<Quadblock>& qbs, unsigned index)
 		{
-			std::vector<std::tuple<Quadblock, glm::vec3, float>> passed;
+			std::vector<std::tuple<Quadblock&, glm::vec3, float>> passed;
 
 			//we're currently checking ALL quadblocks on a click (bad), so we should
 			//use an acceleration structure (good thing we can have a BSP :) )
@@ -2048,21 +2048,22 @@ void Level::ViewportClickHandleBlockSelection(int pixelX, int pixelY, const Rend
 				//}
 
 
-				if (collided) { passed.push_back(std::make_tuple(qb, std::get<0>(queryResult), std::get<1>(queryResult))); continue; }
+				if (collided) { passed.push_back(std::tuple<Quadblock&, glm::vec3, float>(qb, std::get<0>(queryResult), std::get<1>(queryResult))); continue; }
 			}
 
 			//sort collided blocks by time value (distance from camera).
 			std::sort(passed.begin(), passed.end(),
-				[](const std::tuple<Quadblock, glm::vec3, float>& a, const std::tuple<Quadblock, glm::vec3, float>& b) {
+				[](const std::tuple<Quadblock&, glm::vec3, float>& a, const std::tuple<Quadblock&, glm::vec3, float>& b) {
 					return std::get<2>(a) < std::get<2>(b);
 				});
 
-			std::optional<std::tuple<Quadblock, glm::vec3>> result;
+			std::optional<std::tuple<Quadblock&, glm::vec3>> result;
 			//at the very end
 			if (passed.size() > 0)
 			{
 				auto tuple = passed[index % passed.size()];
-				result = std::make_optional(std::make_tuple(std::get<0>(tuple), std::get<1>(tuple)));
+				Quadblock& qb = std::get<0>(tuple);
+				result = std::make_optional(std::tuple<Quadblock&, glm::vec3>(qb, std::get<1>(tuple)));
 			}
 			else
 			{
@@ -2086,7 +2087,7 @@ void Level::ViewportClickHandleBlockSelection(int pixelX, int pixelY, const Rend
 		indenticalClickTimes = 0;
 	}
 
-	std::optional<std::tuple<const Quadblock, const glm::vec3>> collidedQB = check(pixelX, pixelY, m_quadblocks, indenticalClickTimes);
+	std::optional<std::tuple<const Quadblock&, const glm::vec3>> collidedQB = check(pixelX, pixelY, m_quadblocks, indenticalClickTimes);
 
 	if (collidedQB.has_value())
 	{
