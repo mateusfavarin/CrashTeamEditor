@@ -225,6 +225,42 @@ BitMatrix viztree_method_1(const std::vector<Quadblock>& quadblocks, const std::
 		{
 			if (vizMatrix.get(leafA, leafB)) { continue; }
 
+			constexpr size_t POINTS_BBOX = 8;
+			BoundingBox bboxA = leaves[leafA]->GetBoundingBox();
+			BoundingBox bboxB = leaves[leafB]->GetBoundingBox();
+
+			auto GenTestPoints = [](const BoundingBox& bbox, std::array<Vec3, POINTS_BBOX>& points)
+				{
+					points[0] = bbox.min;
+					points[1] = bbox.max;
+					points[2] = {bbox.min.x, bbox.min.y, bbox.max.z};
+					points[3] = {bbox.min.x, bbox.max.y, bbox.min.z};
+					points[4] = {bbox.max.x, bbox.min.y, bbox.min.z};
+					points[5] = {bbox.min.x, bbox.max.y, bbox.max.z};
+					points[6] = {bbox.max.x, bbox.min.y, bbox.max.z};
+					points[7] = {bbox.max.x, bbox.max.y, bbox.min.z};
+				};
+
+			std::array<Vec3, 8> ptsA;
+			std::array<Vec3, 8> ptsB;
+			GenTestPoints(bboxA, ptsA);
+			GenTestPoints(bboxB, ptsB);
+			bool worthTesting = false;
+			for (size_t i = 0; i < POINTS_BBOX; i++)
+			{
+				for (size_t j = 0; j < POINTS_BBOX; j++)
+				{
+					if ((ptsA[i] - ptsB[j]).Length() < MAX_DRAW_DISTANCE)
+					{
+						worthTesting = true;
+						break;
+					}
+				}
+				if (worthTesting) { break; }
+			}
+
+			if (!worthTesting) { continue; }
+
 			bool foundLeafABHit = false;
 			std::vector<size_t> quadIndexesA = leaves[leafA]->GetQuadblockIndexes();
 			std::vector<size_t> quadIndexesB = leaves[leafB]->GetQuadblockIndexes();
