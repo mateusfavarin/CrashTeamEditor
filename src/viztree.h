@@ -25,5 +25,4 @@ private:
 	std::vector<char> data;
 };
 
-BitMatrix viztree_method_1(const std::vector<Quadblock>& quadblocks);
-BitMatrix quadVizToBspViz(const BitMatrix& quadViz, const std::vector<const BSP*>& leaves);
+BitMatrix viztree_method_1(const std::vector<Quadblock>& quadblocks, const std::vector<const BSP*>& leaves);

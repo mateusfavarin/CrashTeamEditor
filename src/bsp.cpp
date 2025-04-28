@@ -123,7 +123,7 @@ std::vector<const BSP*> BSP::GetLeaves() const
 	for (const BSP* bsp : tree)
 	{
 		if (bsp->IsBranch()) { continue; }
-		for (size_t index : bsp->m_quadblockIndexes) { ret.push_back(bsp); }
+		ret.push_back(bsp);
 	}
 	return ret;
 }
