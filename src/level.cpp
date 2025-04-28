@@ -94,9 +94,8 @@ bool Level::GenerateBSP()
 	if (m_bsp.Valid())
 	{
 		GenerateRenderBspData(m_bsp);
-		BitMatrix quadViz = viztree_method_1(m_quadblocks);
 		std::vector<const BSP*> bspLeaves = m_bsp.GetLeaves();
-		BitMatrix vizTree = quadVizToBspViz(quadViz, bspLeaves);
+		BitMatrix quadViz = viztree_method_1(m_quadblocks, bspLeaves);
 		return true;
 	}
 	m_bsp.Clear();

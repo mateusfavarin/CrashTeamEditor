@@ -196,7 +196,7 @@ static std::tuple<Vec3, float> rayIntersectQuadblockTest(Vec3 worldSpaceRayOrigi
 	return std::make_tuple(Vec3::Zero(), 0.0);
 }
 
-BitMatrix viztree_method_1(const std::vector<Quadblock>& quadblocks) {
+BitMatrix viztree_method_1(const std::vector<Quadblock>& quadblocks, const std::vector<const BSP*>& leaves) {
 	/* tldr: for each of the 9 points of a quadblock, randomly sample a ray and test collision against all other quadblocks
 
 	results: 2dMatrix
@@ -209,132 +209,74 @@ BitMatrix viztree_method_1(const std::vector<Quadblock>& quadblocks) {
 						results.add(q2, q1) //q2 can be seen by q1
 	*/
 
-	BitMatrix vizMatrix = BitMatrix(quadblocks.size(), quadblocks.size());
-
-	for (size_t sourceQuadIndex = 0; sourceQuadIndex < quadblocks.size(); sourceQuadIndex++)
+	BitMatrix vizMatrix = BitMatrix(leaves.size(), leaves.size());
+	std::unordered_map<size_t, size_t> quadIndexesToLeaves;
+	for (size_t i = 0; i < leaves.size(); i++)
 	{
-		if (sourceQuadIndex == 1)
+		std::vector<size_t> quadIndexes = leaves[i]->GetQuadblockIndexes();
+		for (size_t index : quadIndexes) { quadIndexesToLeaves[index] = i; }
+	}
+
+	for (size_t leafA = 0; leafA < leaves.size(); leafA++)
+	{
+		vizMatrix.get(leafA, leafA) = true;
+		for (size_t leafB = 0; leafB < leaves.size(); leafB++)
 		{
-			printf("Collision from: %s\n", quadblocks[0].GetName().c_str());
-			for (size_t k = 0; k < quadblocks.size(); k++)
+			if (vizMatrix.get(leafA, leafB)) { continue; }
+
+			bool foundLeafABHit = false;
+			std::vector<size_t> quadIndexesA = leaves[leafA]->GetQuadblockIndexes();
+			std::vector<size_t> quadIndexesB = leaves[leafB]->GetQuadblockIndexes();
+
+			for (size_t quadA : quadIndexesA)
 			{
-				if (vizMatrix.get(0, k))
+				if (foundLeafABHit) { break; }
+
+				Quadblock sourceQuad = quadblocks[quadA];
+				sourceQuad.TranslateNormalVec(0.5f);
+				const Vec3& center = sourceQuad.GetUnswizzledVertices()[4].m_pos;
+				for (size_t quadB : quadIndexesB)
 				{
-					printf("%s\n", quadblocks[k].GetName().c_str());
-				}
-			}
-		}
-		// printf("%d/%d\n", sourceQuadIndex, quadblocks.size());
-		vizMatrix.get(sourceQuadIndex, sourceQuadIndex) = true;
-		Quadblock sourceQuad = quadblocks[sourceQuadIndex];
-		sourceQuad.TranslateNormalVec(0.5f);
-		const Vertex& center = sourceQuad.GetUnswizzledVertices()[4];
+					if (foundLeafABHit) { break; }
 
-		std::vector<size_t> hitIndexes;
-		for (size_t hitQuadblockIndex = 0; hitQuadblockIndex < quadblocks.size(); hitQuadblockIndex++)
-		{
-			if (vizMatrix.get(sourceQuadIndex, hitQuadblockIndex))
-			{
-				hitIndexes.push_back(hitQuadblockIndex);
-			}
-		}
+					const Quadblock& directionQuad = quadblocks[quadB];
+					const Vec3& directionPos = directionQuad.GetUnswizzledVertices()[4].m_pos;
+					Vec3 directionVector = directionPos - center;
+					float testDist = directionVector.Length();
+					if (testDist > 1000.0f) { continue; } /* TODO: READ VALUE IN-GAME */
 
-		for (size_t directionQuadblockIndex = 0; directionQuadblockIndex < quadblocks.size(); directionQuadblockIndex++)
-		{
-			if (vizMatrix.get(sourceQuadIndex, directionQuadblockIndex)) { continue; }
+					directionVector /= testDist;
 
-			const Quadblock& directionQuad = quadblocks[directionQuadblockIndex];
-			const Vertex* vertexArr = directionQuad.GetUnswizzledVertices();
-
-			const Vec3& testPos = vertexArr[4].m_pos;
-			Vec3 directionVector = testPos - center.m_pos;
-			float testDist = directionVector.Length();
-			directionVector /= testDist;
-
-			size_t posQuadIndex = sourceQuadIndex;
-			float bestDistPos = std::numeric_limits<float>::max();
-			for (size_t testQuadIndex = 0; testQuadIndex < quadblocks.size(); testQuadIndex++)
-			{
-				const Quadblock& testQuad = quadblocks[testQuadIndex];
-				const Vertex* testVertices = testQuad.GetUnswizzledVertices();
-				if ((testVertices[4].m_pos - center.m_pos).Length() > testDist) { continue; }
-
-				bool skipTest = false;
-				for (size_t hitQuadIndex : hitIndexes)
-				{
-					if (hitQuadIndex == sourceQuadIndex) { continue; }
-
-					const Vertex* hitVertices = quadblocks[hitQuadIndex].GetUnswizzledVertices();
-					if ((hitVertices[4].m_pos - center.m_pos).Length() > testDist) { continue; }
-					std::tuple<Vec3, float> queryResult = rayIntersectQuadblockTest(center.m_pos, directionVector, quadblocks[hitQuadIndex]);
-					float t = std::get<1>(queryResult);
-					if (t != 0)
+					size_t leafHit = leafA;
+					float bestDistPos = std::numeric_limits<float>::max();
+					for (size_t testQuadIndex = 0; testQuadIndex < quadblocks.size(); testQuadIndex++)
 					{
-						skipTest = true;
-						break;
+						const Quadblock& testQuad = quadblocks[testQuadIndex];
+						Vec3 testCenter = testQuad.GetUnswizzledVertices()[4].m_pos;
+						if ((testCenter - center).Length() > testDist) { continue; }
+
+						std::tuple<Vec3, float> queryResult = rayIntersectQuadblockTest(center, directionVector, testQuad);
+						float t = std::get<1>(queryResult);
+						float dist = std::abs(t);
+						if (t > 0.0f && dist < bestDistPos)
+						{
+							bestDistPos = dist;
+							leafHit = quadIndexesToLeaves[testQuadIndex];
+						}
+					}
+
+					if (!vizMatrix.get(leafA, leafHit))
+					{
+						vizMatrix.get(leafA, leafHit) = true;
+						vizMatrix.get(leafHit, leafA) = true;
+						if (leafHit == leafB) { foundLeafABHit = true; }
 					}
 				}
-				if (skipTest) { continue; }
-
-				std::tuple<Vec3, float> queryResult = rayIntersectQuadblockTest(center.m_pos, directionVector, testQuad);
-				float t = std::get<1>(queryResult);
-				float dist = std::abs(t);
-				if (t > 0.0f && dist < bestDistPos)
-				{
-					bestDistPos = dist;
-					posQuadIndex = testQuadIndex;
-				}
-			}
-
-			if (!vizMatrix.get(sourceQuadIndex, posQuadIndex))
-			{
-				vizMatrix.get(sourceQuadIndex, posQuadIndex) = true;
-				vizMatrix.get(posQuadIndex, sourceQuadIndex) = true;
-				hitIndexes.push_back(posQuadIndex);
 			}
 		}
 	}
 	return vizMatrix;
 }
-
-BitMatrix quadVizToBspViz(const BitMatrix& quadViz, const std::vector<const BSP*>& leaves)
-{
-	BitMatrix bspViz = BitMatrix(leaves.size(), leaves.size());
-
-	for (size_t a = 0; a < leaves.size(); a++)
-	{
-		const BSP* leaf_a = leaves[a];
-		const std::vector<size_t>& qbIndeces_a = leaf_a->GetQuadblockIndexes();
-		for (size_t b = 0; b < leaves.size(); b++)
-		{
-			if (bspViz.get(a, b)) { continue; }
-
-			const BSP* leaf_b = leaves[b];
-			const std::vector<size_t>& qbIndeces_b = leaf_b->GetQuadblockIndexes();
-			for (size_t aqb = 0; aqb < qbIndeces_a.size(); aqb++)
-			{
-				size_t aqbIndex = qbIndeces_a[aqb];
-				bool found = false;
-				for (size_t bqb = 0; bqb < qbIndeces_b.size(); aqb++)
-				{
-					size_t bqbIndex = qbIndeces_a[bqb];
-
-					if (quadViz.read(aqbIndex, bqbIndex))
-					{
-						bspViz.get(a, b) = bspViz.get(b, a) = 1;
-						found = true;
-						break;
-					}
-				}
-				if (found) { break; }
-			}
-		}
-	}
-
-	return bspViz;
-}
-
-
 
 /*
 
