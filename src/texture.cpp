@@ -300,19 +300,16 @@ bool Texture::CreateTexture()
 
 uint16_t Texture::ConvertColor(unsigned char r, unsigned char g, unsigned char b, unsigned char a)
 {
-	if (a == 255)
-	{
-		a = 0;
-		if (r == 0 && g == 0 && b == 0) { b = 8; }
-	}
-	else if (a == 0) { r = g = b = 0; }
-	else { a = 1; }
+	if (a == 0) { return 0; }
+
+	a = a == 255 ? 0 : 1;
 	uint16_t color = a << 5;
 	color |= (((b * 249) + 1014) >> 11) & 0x1F;
 	color <<= 5;
 	color |= (((g * 249) + 1014) >> 11) & 0x1F;
 	color <<= 5;
 	color |= (((r * 249) + 1014) >> 11) & 0x1F;
+	if (color == 0) { color = 1 << 10; }
 	return color;
 }
 
