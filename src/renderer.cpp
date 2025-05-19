@@ -50,7 +50,7 @@ Renderer::Renderer(float width, float height)
   glBindRenderbuffer(GL_RENDERBUFFER, 0);
 }
 
-void Renderer::Render(std::vector<Model> models)
+void Renderer::Render(const std::vector<Model>& models)
 {
   glBindFramebuffer(GL_FRAMEBUFFER, m_framebuffer);
 
@@ -276,7 +276,7 @@ std::tuple<glm::vec3, float> Renderer::WorldspaceRayTriIntersection(glm::vec3 wo
     return std::make_tuple(glm::zero<glm::vec3>(), -1.0f); //fails a barycentric test
 
   float t = inv_det * glm::dot(edge_2, s_cross_e1); //time value (interpolant)
-  
+
   if (t > epsilon)
   {
     glm::vec3 collisionPoint = glm::vec3(m_camWorldPos + (worldSpaceRay * t)); //this is the point *on* the triangle that was collided with.

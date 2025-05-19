@@ -20,7 +20,7 @@ class Renderer
 public:
   Renderer(float width, float height);
   void RescaleFramebuffer(float width, float height);
-  void Render(std::vector<Model> models);
+  void Render(const std::vector<Model>& models);
   float GetLastDeltaTime() const;
   float GetLastTime() const;
 	float GetWidth() const;

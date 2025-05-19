@@ -239,10 +239,10 @@ namespace PSX
 
 	struct Vertex
 	{
-		PSX::Vec3 pos;
-		uint16_t flags;
-		PSX::Color colorHi;
-		PSX::Color colorLo;
+		PSX::Vec3 pos; // 0x0
+		uint16_t flags; // 0x6
+		PSX::Color colorHi; // 0x8
+		PSX::Color colorLo; // 0xC
 	};
 
 	struct Quadblock

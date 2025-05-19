@@ -16,8 +16,8 @@ public:
   void SetUniform(const char* name, bool value) const;
   void SetUniform(const char* name, int value) const;
   void SetUniform(const char* name, float value) const;
-  void SetUniform(const char* name, glm::mat4 mat) const;
-  void SetUniform(const char* name, glm::vec3 vec3) const;
+  void SetUniform(const char* name, const glm::mat4& mat) const;
+  void SetUniform(const char* name, const glm::vec3& vec3) const;
   void Dispose() const;
 
 private:

@@ -121,7 +121,7 @@ void Shader::SetUniform(const char* name, float value) const
   glUniform1f(glGetUniformLocation(m_programId, name), value);
 }
 
-void Shader::SetUniform(const char* name, glm::mat4 mat) const
+void Shader::SetUniform(const char* name, const glm::mat4& mat) const
 {
   if (m_programId == -1)
   {
@@ -131,7 +131,7 @@ void Shader::SetUniform(const char* name, glm::mat4 mat) const
   glUniformMatrix4fv(glGetUniformLocation(m_programId, name), 1, GL_FALSE, glm::value_ptr(mat));
 }
 
-void Shader::SetUniform(const char* name, glm::vec3 vec3) const
+void Shader::SetUniform(const char* name, const glm::vec3& vec3) const
 {
   if (m_programId == -1)
   {

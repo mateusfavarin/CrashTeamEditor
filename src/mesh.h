@@ -38,7 +38,7 @@ public:
 	int GetDatas() const;
 	int GetShaderSettings() const;
 	void SetShaderSettings(unsigned shadSettings);
-	void SetTextureStore(std::map<int, std::filesystem::path>& texturePaths);
+	void SetTextureStore(const std::map<int, std::filesystem::path>& texturePaths);
 	GLuint GetTextureStore();
 
 private:

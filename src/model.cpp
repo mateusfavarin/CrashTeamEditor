@@ -1,6 +1,6 @@
 #include "model.h"
 
-Model::Model(Mesh* mesh, glm::vec3 position, glm::vec3 scale, glm::quat rotation)
+Model::Model(Mesh* mesh, const glm::vec3& position, const glm::vec3& scale, const glm::quat& rotation)
 {
   m_mesh = mesh;
   m_position = position;

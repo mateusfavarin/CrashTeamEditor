@@ -232,7 +232,7 @@ void Mesh::SetShaderSettings(unsigned shadSettings)
   m_shaderSettings = shadSettings;
 }
 
-void Mesh::SetTextureStore(std::map<int, std::filesystem::path>& texturePaths)
+void Mesh::SetTextureStore(const std::map<int, std::filesystem::path>& texturePaths)
 {
   if (m_textures) { glDeleteTextures(1, &m_textures); m_textures = 0; }
 
@@ -248,7 +248,7 @@ void Mesh::SetTextureStore(std::map<int, std::filesystem::path>& texturePaths)
 
   for (int texIndex = 0; texIndex < static_cast<int>(texturePaths.size()); texIndex++)
   {
-    const std::filesystem::path& path = texturePaths[texIndex];
+    const std::filesystem::path& path = texturePaths.at(texIndex);
     int w, h, channels;
     stbi_uc* originalData;
     originalData = stbi_load(path.generic_string().c_str(), &w, &h, &channels, 0);
