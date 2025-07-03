@@ -104,6 +104,11 @@
     <ClCompile Include="src\manual_third_party\khrplatform.h" />
     <ClCompile Include="src\manual_third_party\glad.h" />
   </ItemGroup>
+  <ItemGroup>
+    <CopyFileToFolders Include="level_instances_assets\**">
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
+    </CopyFileToFolders>
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
