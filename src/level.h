@@ -136,6 +136,7 @@ private:
 	MaterialProperty<bool, MaterialType::CHECKPOINT_PATHABLE> m_propCheckpointPathable;
 
 	std::array<Model*, LevelModels::COUNT> m_models;
+	std::vector<Model> m_levelInstancesModels;
 
 	Vec3 m_rendererQueryPoint;
 	std::vector<size_t> m_rendererSelectedQuadblockIndexes;
