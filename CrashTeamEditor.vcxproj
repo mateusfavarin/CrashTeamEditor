@@ -31,6 +31,7 @@
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\simple_level_instances.cpp" />
     <ClCompile Include="src\animtexture.cpp" />
     <ClCompile Include="src\shader_templates.cpp" />
     <ClCompile Include="src\gui_render_settings.cpp" />
@@ -72,6 +73,7 @@
     <ClCompile Include="src\manual_third_party\glad.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\simple_level_instances.h" />
     <ClInclude Include="src\animtexture.h" />
     <ClInclude Include="src\script.h" />
     <ClInclude Include="src\shader_templates.h" />
