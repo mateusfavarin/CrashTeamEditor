@@ -34,13 +34,13 @@ struct BSPID
 };
 
 static constexpr size_t MAX_QUADBLOCKS_LEAF = 32;
-static constexpr float MAX_LEAF_AXIS_LENGTH = 60.0f;
+static constexpr float MAX_LEAF_AXIS_LENGTH = 36.0f;
 
 class BSP
 {
 public:
 	BSP();
-	BSP(BSPNode type, const std::vector<size_t>& quadblockIndexes);
+	BSP(BSPNode type, const std::vector<size_t>& quadblockIndexes, BSP* parent);
 	size_t Id() const;
 	bool Empty() const;
 	bool Valid() const;
@@ -52,6 +52,7 @@ public:
 	const std::vector<size_t>& GetQuadblockIndexes() const;
 	const BSP* GetLeftChildren() const;
 	const BSP* GetRightChildren() const;
+	const BSP* GetParent() const;
 	const std::vector<const BSP*> GetTree() const;
 	std::vector<const BSP*> GetLeaves() const;
 	void SetQuadblockIndexes(const std::vector<size_t>& quadblockIndexes);
@@ -75,6 +76,7 @@ private:
 	uint16_t m_flags;
 	BSP* m_left;
 	BSP* m_right;
+	BSP* m_parent;
 	BoundingBox m_bbox;
 	std::vector<size_t> m_quadblockIndexes;
 };

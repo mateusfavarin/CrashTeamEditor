@@ -144,6 +144,7 @@ public:
 	Quadblock(const PSX::Quadblock& quadblock, const std::vector<PSX::Vertex>& vertices);
 	const std::string& GetName() const;
 	const Vec3& GetCenter() const;
+	Vec3 GetNormal() const;
 	uint8_t GetTerrain() const;
 	uint16_t GetFlags() const;
 	QuadblockTrigger GetTrigger() const;

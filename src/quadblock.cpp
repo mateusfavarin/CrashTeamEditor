@@ -356,6 +356,13 @@ const Vec3& Quadblock::GetCenter() const
 	return m_p[4].m_pos;
 }
 
+Vec3 Quadblock::GetNormal() const
+{
+	Vec3 normal = ComputeNormalVector(0, 2, 6);
+	normal.Normalize();
+	return normal;
+}
+
 uint8_t Quadblock::GetTerrain() const
 {
 	return m_terrain;
@@ -473,8 +480,7 @@ void Quadblock::SetAnimated(bool animated)
 
 void Quadblock::TranslateNormalVec(float ratio)
 {
-	Vec3 quadNormal = ComputeNormalVector(0, 2, 6);
-	quadNormal = quadNormal / quadNormal.Length();
+	Vec3 quadNormal = GetNormal();
 	for (size_t i = 0; i < NUM_VERTICES_QUADBLOCK; i++) { m_p[i].m_pos += quadNormal * ratio; }
 }
 

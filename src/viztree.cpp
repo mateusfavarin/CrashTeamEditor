@@ -1,8 +1,6 @@
 #include "viztree.h"
-#define _USE_MATH_DEFINES
-#include "math.h"
-
-#include <random>
+#include <omp.h>
+#include <cmath>
 
 bool BitMatrix::Get(size_t x, size_t y) const
 {
@@ -86,23 +84,27 @@ static bool RayIntersectQuadblockTest(const Vec3& worldSpaceRayOrigin, const Vec
 BitMatrix GenerateVisTree(const std::vector<Quadblock>& quadblocks, const std::vector<const BSP*>& leaves)
 {
 	BitMatrix vizMatrix = BitMatrix(leaves.size(), leaves.size());
-	std::unordered_map<size_t, size_t> quadIndexesToLeaves;
+
+	const int quadCount = static_cast<int>(quadblocks.size());
+	std::vector<float> dists(quadCount, std::numeric_limits<float>::max());
+	std::vector<size_t> quadIndexesToLeaves(quadCount);
 	for (size_t i = 0; i < leaves.size(); i++)
 	{
-		std::vector<size_t> quadIndexes = leaves[i]->GetQuadblockIndexes();
+		const std::vector<size_t>& quadIndexes = leaves[i]->GetQuadblockIndexes();
 		for (size_t index : quadIndexes) { quadIndexesToLeaves[index] = i; }
 	}
 
 	for (size_t leafA = 0; leafA < leaves.size(); leafA++)
 	{
+		printf("Prog: %d/%d\n", leafA + 1, leaves.size());
 		vizMatrix.Set(true, leafA, leafA);
 		for (size_t leafB = 0; leafB < leaves.size(); leafB++)
 		{
 			if (vizMatrix.Get(leafA, leafB)) { continue; }
 
 			bool foundLeafABHit = false;
-			std::vector<size_t> quadIndexesA = leaves[leafA]->GetQuadblockIndexes();
-			std::vector<size_t> quadIndexesB = leaves[leafB]->GetQuadblockIndexes();
+			const std::vector<size_t>& quadIndexesA = leaves[leafA]->GetQuadblockIndexes();
+			const std::vector<size_t>& quadIndexesB = leaves[leafB]->GetQuadblockIndexes();
 
 			for (size_t quadA : quadIndexesA)
 			{
@@ -111,28 +113,44 @@ BitMatrix GenerateVisTree(const std::vector<Quadblock>& quadblocks, const std::v
 				Quadblock sourceQuad = quadblocks[quadA];
 				sourceQuad.TranslateNormalVec(0.5f);
 				const Vec3& center = sourceQuad.GetUnswizzledVertices()[4].m_pos;
+				const Vec3 sourceNormal = sourceQuad.GetNormal();
 				for (size_t quadB : quadIndexesB)
 				{
 					if (foundLeafABHit) { break; }
 
 					const Quadblock& directionQuad = quadblocks[quadB];
-					const Vertex* directionVertices = directionQuad.GetUnswizzledVertices();
-					const Vec3& directionPos = directionVertices[4].m_pos;
+					const Vec3& directionPos = directionQuad.GetUnswizzledVertices()[4].m_pos;
 					Vec3 directionVector = directionPos - center;
 					directionVector.Normalize();
 
+					constexpr float MAX_ANGLE_THRESHOLD = (M_PI * 90.0f) / 180.0f ;
+					if (std::acos(sourceNormal.Dot(directionVector)) > MAX_ANGLE_THRESHOLD) { continue; }
+
 					size_t leafHit = leafA;
 					float bestDistPos = std::numeric_limits<float>::max();
-					for (size_t testQuadIndex = 0; testQuadIndex < quadblocks.size(); testQuadIndex++)
+#pragma omp parallel for
+					for (int testQuadIndex = 0; testQuadIndex < quadCount; testQuadIndex++)
 					{
 						const Quadblock& testQuad = quadblocks[testQuadIndex];
 						const Vertex* testVertices = directionQuad.GetUnswizzledVertices();
+						Vec3 testDirection = testVertices[4].m_pos - center;
+						testDirection.Normalize();
+						bool skip = std::acos(sourceNormal.Dot(testDirection)) > MAX_ANGLE_THRESHOLD;
 						float dist = 0.0f;
-						if (!RayIntersectQuadblockTest(center, directionVector, testQuad, dist)) { continue; }
-						if (dist < bestDistPos)
+						if (skip || !RayIntersectQuadblockTest(center, directionVector, testQuad, dist))
 						{
-							bestDistPos = dist;
-							leafHit = quadIndexesToLeaves[testQuadIndex];
+							dists[testQuadIndex] = std::numeric_limits<float>::max();
+							continue;
+						}
+						dists[testQuadIndex] = dist;
+					}
+
+					for (int i = 0; i < quadCount; i++)
+					{
+						if (dists[i] < bestDistPos)
+						{
+							bestDistPos = dists[i];
+							leafHit = quadIndexesToLeaves[i];
 						}
 					}
 
