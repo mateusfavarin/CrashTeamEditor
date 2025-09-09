@@ -96,7 +96,7 @@ bool Level::GenerateBSP()
 	{
 		GenerateRenderBspData(m_bsp);
 		std::vector<const BSP*> bspLeaves = m_bsp.GetLeaves();
-		m_bspViz = viztree_method_1(m_quadblocks, bspLeaves);
+		if (m_genVisTree) { m_bspViz = GenerateVisTree(m_quadblocks, bspLeaves); }
 		return true;
 	}
 	m_bsp.Clear();

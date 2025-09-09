@@ -317,15 +317,15 @@ namespace PSX
 
 	struct VisualMem
 	{
-		uint32_t offNodes[MAX_NUM_PLAYERS];
-		uint32_t offQuads[MAX_NUM_PLAYERS];
-		uint32_t offOcean[MAX_NUM_PLAYERS];
-		uint32_t offScenery[MAX_NUM_PLAYERS];
-		uint32_t offNodesSrc[MAX_NUM_PLAYERS];
-		uint32_t offQuadsSrc[MAX_NUM_PLAYERS];
-		uint32_t offOceanSrc[MAX_NUM_PLAYERS];
-		uint32_t offScenerySrc[MAX_NUM_PLAYERS];
-		uint32_t offBSP[MAX_NUM_PLAYERS];
+		uint32_t offNodes[MAX_NUM_PLAYERS]; // 0x0
+		uint32_t offQuads[MAX_NUM_PLAYERS]; // 0x4
+		uint32_t offOcean[MAX_NUM_PLAYERS]; // 0x8
+		uint32_t offScenery[MAX_NUM_PLAYERS]; // 0xC
+		uint32_t offNodesSrc[MAX_NUM_PLAYERS]; // 0x10
+		uint32_t offQuadsSrc[MAX_NUM_PLAYERS]; // 0x14
+		uint32_t offOceanSrc[MAX_NUM_PLAYERS]; // 0x18
+		uint32_t offScenerySrc[MAX_NUM_PLAYERS]; // 0x1C
+		uint32_t offBSP[MAX_NUM_PLAYERS]; // 0x20
 	};
 
 	struct NavHeader

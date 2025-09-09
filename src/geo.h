@@ -61,6 +61,7 @@ struct Vec3
 	inline float LengthSquared() const { return (x * x) + (y * y) + (z * z); }
 	inline Vec3 Cross(const Vec3& v) const { return { y * v.z - z * v.y, z * v.x - x * v.z, x * v.y - v.x * y }; }
 	inline float Dot(const Vec3& v) const { return x * v.x + y * v.y + z * v.z; }
+	inline void Normalize() { const float len = Length(); x /= len; y /= len; z /= len; }
 
 	inline Vec3 operator+(const Vec3& v) const { return { x + v.x, y + v.y, z + v.z }; }
 	inline Vec3 operator-(const Vec3& v) const { return { x - v.x, y - v.y, z - v.z }; }

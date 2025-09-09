@@ -699,6 +699,8 @@ void Level::RenderUI()
 
       static std::string buttonMessage;
       static ButtonUI generateBSPButton = ButtonUI();
+			ImGui::Checkbox("Generate Vis Tree", &m_genVisTree);
+			ImGui::SetItemTooltip("Generating the vis tree may take several minutes, but the gameplay will be less laggy.");
       if (generateBSPButton.Show("Generate", buttonMessage, false))
       {
 				if (GenerateBSP()) { buttonMessage = "Successfully generated the BSP tree."; }
