@@ -86,7 +86,7 @@ static bool RayIntersectQuadblockTest(const Vec3& worldSpaceRayOrigin, const Vec
 	return false;
 }
 
-BitMatrix GenerateVisTree(const std::vector<Quadblock>& quadblocks, const std::vector<const BSP*>& leaves)
+BitMatrix GenerateVisTree(const std::vector<Quadblock>& quadblocks, const std::vector<const BSP*>& leaves, float maxDistance)
 {
 	BitMatrix vizMatrix = BitMatrix(leaves.size(), leaves.size());
 
@@ -116,7 +116,7 @@ BitMatrix GenerateVisTree(const std::vector<Quadblock>& quadblocks, const std::v
 				if (foundLeafABHit) { break; }
 
 				Quadblock sourceQuad = quadblocks[quadA];
-				sourceQuad.TranslateNormalVec(0.5f);
+				sourceQuad.TranslateNormalVec(5.0f);
 				const Vec3& center = sourceQuad.GetUnswizzledVertices()[4].m_pos;
 				const Vec3 sourceNormal = sourceQuad.GetNormal();
 				for (size_t quadB : quadIndexesB)
@@ -126,22 +126,17 @@ BitMatrix GenerateVisTree(const std::vector<Quadblock>& quadblocks, const std::v
 					const Quadblock& directionQuad = quadblocks[quadB];
 					const Vec3& directionPos = directionQuad.GetUnswizzledVertices()[4].m_pos;
 					Vec3 directionVector = directionPos - center;
+					if (directionVector.LengthSquared() > maxDistance) { continue; }
 					directionVector.Normalize();
-
-					constexpr float MAX_ANGLE_THRESHOLD = (static_cast<float>(M_PI) * 90.0f) / 180.0f;
-					if (std::acos(sourceNormal.Dot(directionVector)) > MAX_ANGLE_THRESHOLD) { continue; }
 
 					size_t leafHit = leafA;
 					float bestDistPos = std::numeric_limits<float>::max();
 #pragma omp parallel for
 					for (int testQuadIndex = 0; testQuadIndex < quadCount; testQuadIndex++)
 					{
-						const Quadblock& testQuad = quadblocks[testQuadIndex];
-						const Vertex* testVertices = directionQuad.GetUnswizzledVertices();
-						Vec3 testDirection = testVertices[4].m_pos - center;
-						testDirection.Normalize();
-						bool skip = std::acos(sourceNormal.Dot(testDirection)) > MAX_ANGLE_THRESHOLD;
 						float dist = 0.0f;
+						const Quadblock& testQuad = quadblocks[testQuadIndex];
+						const bool skip = (directionQuad.GetUnswizzledVertices()[4].m_pos - center).LengthSquared() > maxDistance;
 						if (skip || !RayIntersectQuadblockTest(center, directionVector, testQuad, dist))
 						{
 							dists[testQuadIndex] = std::numeric_limits<float>::max();

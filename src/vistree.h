@@ -24,4 +24,4 @@ private:
 	std::vector<bool> m_data;
 };
 
-BitMatrix GenerateVisTree(const std::vector<Quadblock>& quadblocks, const std::vector<const BSP*>& leaves);
+BitMatrix GenerateVisTree(const std::vector<Quadblock>& quadblocks, const std::vector<const BSP*>& leaves, float maxDistance);

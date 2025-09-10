@@ -699,10 +699,16 @@ void Level::RenderUI()
 
       static std::string buttonMessage;
       static ButtonUI generateBSPButton = ButtonUI();
-			if (ImGui::InputFloat("Max Leaf Axis Length", &m_maxLeafAxisLength)) { m_maxLeafAxisLength = std::max(m_maxLeafAxisLength, 0.0f); }
-			ImGui::SetItemTooltip("Improves accuracy and performance of BSP tree, but increases file size and slows down vis tree generation.");
-			ImGui::Checkbox("Generate Vis Tree", &m_genVisTree);
-			ImGui::SetItemTooltip("Generating the vis tree may take several minutes, but the gameplay will be less laggy.");
+			if (ImGui::TreeNode("Advanced"))
+			{
+				if (ImGui::InputFloat("Max Leaf Axis Length", &m_maxLeafAxisLength)) { m_maxLeafAxisLength = std::max(m_maxLeafAxisLength, 0.0f); }
+				ImGui::SetItemTooltip("Lower values improve rendering performance, but increases file size and slows down vis tree generation.");
+				if (ImGui::InputFloat("Far Clip Distance", &m_distanceFarClip)) { m_distanceFarClip = std::max(m_distanceFarClip, 0.0f); }
+				ImGui::SetItemTooltip("Maximum drawing distance. Lower values improve performance and speed up the vis tree generation.");
+				ImGui::Checkbox("Generate Vis Tree", &m_genVisTree);
+				ImGui::SetItemTooltip("Generating the vis tree may take several minutes, but the gameplay will be more performant.");
+				ImGui::TreePop();
+			}
       if (generateBSPButton.Show("Generate", buttonMessage, false))
       {
 				if (GenerateBSP()) { buttonMessage = "Successfully generated the BSP tree."; }

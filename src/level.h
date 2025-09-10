@@ -70,7 +70,8 @@ private:
 	bool m_showHotReloadWindow;
 	bool m_loaded;
 	bool m_genVisTree;
-	float m_maxLeafAxisLength = 36.0f;
+	float m_maxLeafAxisLength = 64.0f;
+	float m_distanceFarClip = 300.0f;
 	std::vector<std::tuple<std::string, std::string>> m_invalidQuadblocks;
 	std::string m_logMessage;
 	std::string m_name;
