@@ -20,7 +20,7 @@ BSP::BSP()
 
 BSP::BSP(BSPNode type, const std::vector<size_t>& quadblockIndexes, BSP* parent, const std::vector<Quadblock>& quadblocks)
 {
-	bool isLeaf = m_node == BSPNode::LEAF;
+	bool isLeaf = type == BSPNode::LEAF;
 	m_parent = parent;
 	m_id = g_id++;
 	m_node = type;
@@ -30,7 +30,10 @@ BSP::BSP(BSPNode type, const std::vector<size_t>& quadblockIndexes, BSP* parent,
 	m_right = nullptr;
 	m_bbox = BoundingBox();
 	m_quadblockIndexes = quadblockIndexes;
-	if (isLeaf) { for (size_t index : m_quadblockIndexes) { quadblocks[index].SetBSPID(m_id); } }
+	if (isLeaf)
+	{
+		for (size_t index : m_quadblockIndexes) { quadblocks[index].SetBSPID(m_id); }
+	}
 }
 
 size_t BSP::Id() const

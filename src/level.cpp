@@ -757,28 +757,53 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	std::vector<std::tuple<std::vector<uint32_t>, size_t>> visibleInstances;
 	size_t visNodeSize = static_cast<size_t>(std::ceil(static_cast<float>(bspNodes.size()) / static_cast<float>(BITS_PER_SLOT)));
 	size_t visQuadSize = static_cast<size_t>(std::ceil(static_cast<float>(m_quadblocks.size()) / static_cast<float>(BITS_PER_SLOT)));
-	/*
-		TODO: run some sort of visibility algorithm,
-		generate visible nodes/quads depending on the needs of every quadblock.
-	*/
 	std::vector<uint32_t> visibleNodeAll(visNodeSize, 0xFFFFFFFF);
 	for (const BSP* bsp : orderedBSPNodes)
 	{
 		if (bsp->GetFlags() & BSPFlags::INVISIBLE) { visibleNodeAll[bsp->Id() / BITS_PER_SLOT] &= ~(1 << (bsp->Id() % BITS_PER_SLOT)); }
 	}
-	visibleNodes.push_back({visibleNodeAll, currOffset});
-	currOffset += visibleNodeAll.size() * sizeof(uint32_t);
 
 	std::vector<uint32_t> visibleQuadsAll(visQuadSize, 0xFFFFFFFF);
 	size_t quadIndex = 0;
 	const bool validVisTree = !m_bspVis.Empty();
+	const std::vector<const BSP*> bspLeaves = m_bsp.GetLeaves();
+	std::unordered_map<size_t, const BSP*> idToLeaf;
+	std::unordered_map<const BSP*, size_t> leafToMatrix;
+	for (const BSP* leaf : bspLeaves) { idToLeaf[leaf->Id()] = leaf; }
+	for (size_t i = 0; i < bspLeaves.size(); i++) { leafToMatrix[bspLeaves[i]] = i; }
 	for (const Quadblock* quad : orderedQuads)
 	{
 		if (quad->GetFlags() & (QuadFlags::INVISIBLE | QuadFlags::INVISIBLE_TRIGGER))
 		{
 			visibleQuadsAll[quadIndex / BITS_PER_SLOT] &= ~(1 << (quadIndex % BITS_PER_SLOT));
 		}
+		if (validVisTree)
+		{
+			std::vector<uint32_t> visNodes(visNodeSize, 0x0);
+			const BSP* bspLeaf = idToLeaf[quad->GetBSPID()];
+			const size_t matrixId = leafToMatrix[bspLeaf];
+			for (size_t i = 0; i < bspLeaves.size(); i++)
+			{
+				if (m_bspVis.Get(matrixId, i))
+				{
+					const BSP* curr = bspLeaves[i];
+					while (curr != nullptr)
+					{
+						visNodes[curr->Id() / BITS_PER_SLOT] |= (1 << (31 - (curr->Id() % BITS_PER_SLOT)));
+						curr = curr->GetParent();
+					}
+				}
+			}
+			visibleNodes.push_back({visNodes, currOffset});
+			currOffset += visNodes.size() * sizeof(uint32_t);
+		}
 		quadIndex++;
+	}
+
+	if (!validVisTree)
+	{
+		visibleNodes.push_back({visibleNodeAll, currOffset});
+		currOffset += visibleNodeAll.size() * sizeof(uint32_t);
 	}
 
 	visibleQuads.push_back({visibleQuadsAll, currOffset});
@@ -796,9 +821,9 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	size_t quadCount = 0;
 	for (const Quadblock* quad : orderedQuads)
 	{
-		/* TODO: read quadblock data */
 		PSX::VisibleSet set = {};
-		set.offVisibleBSPNodes = static_cast<uint32_t>(std::get<size_t>(visibleNodes[0]));
+		if (validVisTree) { set.offVisibleBSPNodes = static_cast<uint32_t>(std::get<size_t>(visibleNodes[quadCount])); }
+		else { set.offVisibleBSPNodes = static_cast<uint32_t>(std::get<size_t>(visibleNodes[0])); }
 		set.offVisibleQuadblocks = static_cast<uint32_t>(std::get<size_t>(visibleQuads[0]));
 		set.offVisibleInstances = static_cast<uint32_t>(std::get<size_t>(visibleInstances[0]));
 		set.offVisibleExtra = 0;
