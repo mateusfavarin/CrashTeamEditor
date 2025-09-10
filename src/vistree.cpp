@@ -1,4 +1,4 @@
-#include "viztree.h"
+#include "vistree.h"
 #include <omp.h>
 #include <cmath>
 

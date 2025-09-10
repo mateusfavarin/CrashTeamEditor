@@ -6,7 +6,7 @@
 #include "process.h"
 #include "gui_render_settings.h"
 #include "renderer.h"
-#include "viztree.h"
+#include "vistree.h"
 
 #include <fstream>
 #include <unordered_set>

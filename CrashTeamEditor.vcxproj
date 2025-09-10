@@ -91,7 +91,7 @@
     <ClInclude Include="src\ui.h" />
     <ClInclude Include="src\utils.h" />
     <ClInclude Include="src\vertex.h" />
-    <ClInclude Include="src\viztree.h" />
+    <ClInclude Include="src\vistree.h" />
     <ClCompile Include="src\manual_third_party\khrplatform.h" />
     <ClCompile Include="src\manual_third_party\glad.h" />
   </ItemGroup>

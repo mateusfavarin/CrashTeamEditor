@@ -12,7 +12,7 @@
 #include "animtexture.h"
 #include "model.h"
 #include "mesh.h"
-#include "viztree.h"
+#include "vistree.h"
 
 #include <nlohmann/json.hpp>
 #include <vector>

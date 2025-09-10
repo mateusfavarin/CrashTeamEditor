@@ -209,7 +209,7 @@
     <ClInclude Include="src\animtexture.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\viztree.h">
+    <ClInclude Include="src\vistree.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
