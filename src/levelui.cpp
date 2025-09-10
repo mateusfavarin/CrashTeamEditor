@@ -699,6 +699,8 @@ void Level::RenderUI()
 
       static std::string buttonMessage;
       static ButtonUI generateBSPButton = ButtonUI();
+			if (ImGui::InputFloat("Max Leaf Axis Length", &m_maxLeafAxisLength)) { m_maxLeafAxisLength = std::max(m_maxLeafAxisLength, 0.0f); }
+			ImGui::SetItemTooltip("Improves accuracy and performance of BSP tree, but increases file size and slows down vis tree generation.");
 			ImGui::Checkbox("Generate Vis Tree", &m_genVisTree);
 			ImGui::SetItemTooltip("Generating the vis tree may take several minutes, but the gameplay will be less laggy.");
       if (generateBSPButton.Show("Generate", buttonMessage, false))

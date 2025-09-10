@@ -24,7 +24,7 @@ void BitMatrix::Set(bool value, size_t x, size_t y)
 
 static bool WorldspaceRayTriIntersection(const Vec3& worldSpaceRayOrigin, const Vec3& worldSpaceRayDir, const Vec3* tri, float& dist)
 {
-	constexpr float epsilon = 0.00001;
+	constexpr float epsilon = 0.00001f;
 
 	//moller-trumbore intersection test
 	//https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
