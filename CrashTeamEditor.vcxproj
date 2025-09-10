@@ -54,7 +54,7 @@
     <ClCompile Include="src\ui.cpp" />
     <ClCompile Include="src\utils.cpp" />
     <ClCompile Include="src\vertex.cpp" />
-    <ClCompile Include="src\viztree.cpp" />
+    <ClCompile Include="src\vistree.cpp" />
     <!--IMGUI stuff-->
     <ClCompile Include="third_party\imgui\backends\imgui_impl_glfw.cpp" />
     <ClCompile Include="third_party\imgui\backends\imgui_impl_opengl3.cpp" />

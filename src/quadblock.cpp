@@ -383,6 +383,16 @@ size_t Quadblock::GetTurboPadIndex() const
 	return m_turboPadIndex;
 }
 
+size_t Quadblock::GetBSPID() const
+{
+	return m_bspID;
+}
+
+void Quadblock::SetBSPID(size_t id) const
+{
+	m_bspID = id;
+}
+
 bool Quadblock::Hide() const
 {
 	return m_hide;

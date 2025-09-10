@@ -149,6 +149,8 @@ public:
 	uint16_t GetFlags() const;
 	QuadblockTrigger GetTrigger() const;
 	size_t GetTurboPadIndex() const;
+	size_t GetBSPID() const;
+	void SetBSPID(size_t id) const;
 	bool Hide() const;
 	bool IsAnimated() const;
 	bool& CheckpointStatus();
@@ -207,6 +209,7 @@ private:
 	uint8_t m_terrain;
 	QuadblockTrigger m_trigger;
 	size_t m_turboPadIndex;
+	mutable size_t m_bspID;
 	std::array<QuadUV, NUM_FACES_QUADBLOCK + 1> m_uvs; /* Last id is reserved for low tex */
 	std::array<size_t, NUM_FACES_QUADBLOCK + 1> m_textureIDs = { 0, 0, 0, 0, 0 };
 	std::array<size_t, NUM_FACES_QUADBLOCK + 1> m_animTexOffset = {0, 0, 0, 0, 0};

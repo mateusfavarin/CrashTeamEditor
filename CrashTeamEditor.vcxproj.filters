@@ -132,7 +132,7 @@
     <ClCompile Include="src\animtexture.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\viztree.cpp">
+    <ClCompile Include="src\vistree.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

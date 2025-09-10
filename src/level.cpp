@@ -96,7 +96,7 @@ bool Level::GenerateBSP()
 	{
 		GenerateRenderBspData(m_bsp);
 		std::vector<const BSP*> bspLeaves = m_bsp.GetLeaves();
-		if (m_genVisTree) { m_bspViz = GenerateVisTree(m_quadblocks, bspLeaves); }
+		if (m_genVisTree) { m_bspVis = GenerateVisTree(m_quadblocks, bspLeaves); }
 		return true;
 	}
 	m_bsp.Clear();
@@ -771,6 +771,7 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 
 	std::vector<uint32_t> visibleQuadsAll(visQuadSize, 0xFFFFFFFF);
 	size_t quadIndex = 0;
+	const bool validVisTree = !m_bspVis.Empty();
 	for (const Quadblock* quad : orderedQuads)
 	{
 		if (quad->GetFlags() & (QuadFlags::INVISIBLE | QuadFlags::INVISIBLE_TRIGGER))
@@ -1877,6 +1878,7 @@ void Level::GenerateRenderSelectedBlockData(const Quadblock& quadblock, const Ve
 	quadblockMesh.UpdateMesh(data, (Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals), (Mesh::ShaderSettings::DrawWireframe | Mesh::ShaderSettings::DrawBackfaces | Mesh::ShaderSettings::ForceDrawOnTop | Mesh::ShaderSettings::DrawLinesAA | Mesh::ShaderSettings::DontOverrideShaderSettings | Mesh::ShaderSettings::Blinky));
 	m_selectedBlockModel.SetMesh(&quadblockMesh);
 
+	/*
 	size_t myQBIndex;
 	for (size_t qb_index = 0; qb_index < m_quadblocks.size(); qb_index++)
 	{
@@ -1905,7 +1907,7 @@ void Level::GenerateRenderSelectedBlockData(const Quadblock& quadblock, const Ve
 	for (size_t bsp_index = 0; bsp_index < bspLeaves.size(); bsp_index++)
 	{
 		const BSP& bsp = *bspLeaves[bsp_index];
-		if (m_bspViz.Get(bsp_index, myBSPIndex))
+		if (m_bspVis.Get(bsp_index, myBSPIndex))
 		{
 			const std::vector<size_t> qbIndeces = bsp.GetQuadblockIndexes();
 			for (size_t qbInd : qbIndeces)
@@ -1916,6 +1918,7 @@ void Level::GenerateRenderSelectedBlockData(const Quadblock& quadblock, const Ve
 	}
 
 	GenerateRenderMultipleQuadsData(quadsToSelect);
+	*/
 }
 
 void Level::GenerateRenderMultipleQuadsData(const std::vector<Quadblock*>& quads)

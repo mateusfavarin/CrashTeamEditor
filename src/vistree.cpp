@@ -22,6 +22,11 @@ void BitMatrix::Set(bool value, size_t x, size_t y)
 	m_data[(y * m_width) + x] = value;
 }
 
+bool BitMatrix::Empty()
+{
+	return m_data.empty();
+}
+
 static bool WorldspaceRayTriIntersection(const Vec3& worldSpaceRayOrigin, const Vec3& worldSpaceRayDir, const Vec3* tri, float& dist)
 {
 	constexpr float epsilon = 0.00001f;
@@ -96,7 +101,7 @@ BitMatrix GenerateVisTree(const std::vector<Quadblock>& quadblocks, const std::v
 
 	for (size_t leafA = 0; leafA < leaves.size(); leafA++)
 	{
-		printf("Prog: %d/%d\n", leafA + 1, leaves.size());
+		printf("Prog: %d/%d\n", static_cast<int>(leafA + 1), static_cast<int>(leaves.size()));
 		vizMatrix.Set(true, leafA, leafA);
 		for (size_t leafB = 0; leafB < leaves.size(); leafB++)
 		{
@@ -123,7 +128,7 @@ BitMatrix GenerateVisTree(const std::vector<Quadblock>& quadblocks, const std::v
 					Vec3 directionVector = directionPos - center;
 					directionVector.Normalize();
 
-					constexpr float MAX_ANGLE_THRESHOLD = (M_PI * 90.0f) / 180.0f ;
+					constexpr float MAX_ANGLE_THRESHOLD = (static_cast<float>(M_PI) * 90.0f) / 180.0f;
 					if (std::acos(sourceNormal.Dot(directionVector)) > MAX_ANGLE_THRESHOLD) { continue; }
 
 					size_t leafHit = leafA;

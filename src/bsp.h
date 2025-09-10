@@ -39,7 +39,7 @@ class BSP
 {
 public:
 	BSP();
-	BSP(BSPNode type, const std::vector<size_t>& quadblockIndexes, BSP* parent);
+	BSP(BSPNode type, const std::vector<size_t>& quadblockIndexes, BSP* parent, const std::vector<Quadblock>& quadblocks);
 	size_t Id() const;
 	bool Empty() const;
 	bool Valid() const;

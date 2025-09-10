@@ -110,5 +110,5 @@ private:
 	Model m_multipleSelectedQuads;
 
 	size_t m_rendererSelectedQuadblockIndex;
-	BitMatrix m_bspViz;
+	BitMatrix m_bspVis;
 };
