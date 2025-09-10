@@ -963,6 +963,7 @@ void Level::RenderUI()
             ImGui::Checkbox("Show Checkpoints", &GuiRenderSettings::showCheckpoints);
             ImGui::Checkbox("Show Starting Positions", &GuiRenderSettings::showStartpoints);
             ImGui::Checkbox("Show BSP Rect Tree", &GuiRenderSettings::showBspRectTree);
+						ImGui::Checkbox("Show Vis Tree", &GuiRenderSettings::showVisTree);
 
 						ImGui::PushItemWidth(textFieldWidth);
             if (ImGui::SliderInt("BSP Rect Tree top depth", &GuiRenderSettings::bspTreeTopDepth, 0, GuiRenderSettings::bspTreeMaxDepth)) //top changed

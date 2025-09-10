@@ -1903,47 +1903,33 @@ void Level::GenerateRenderSelectedBlockData(const Quadblock& quadblock, const Ve
 	quadblockMesh.UpdateMesh(data, (Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals), (Mesh::ShaderSettings::DrawWireframe | Mesh::ShaderSettings::DrawBackfaces | Mesh::ShaderSettings::ForceDrawOnTop | Mesh::ShaderSettings::DrawLinesAA | Mesh::ShaderSettings::DontOverrideShaderSettings | Mesh::ShaderSettings::Blinky));
 	m_selectedBlockModel.SetMesh(&quadblockMesh);
 
-	/*
-	size_t myQBIndex;
-	for (size_t qb_index = 0; qb_index < m_quadblocks.size(); qb_index++)
+	if (GuiRenderSettings::showVisTree)
 	{
-		if (&m_quadblocks[qb_index] == &quadblock)
+		std::vector<const BSP*> bspLeaves = m_bsp.GetLeaves();
+		size_t myBSPIndex = 0;
+		for (size_t bsp_index = 0; bsp_index < bspLeaves.size(); bsp_index++)
 		{
-			myQBIndex = qb_index;
-			break;
+			const BSP& bsp = *bspLeaves[bsp_index];
+			if (bsp.Id() == quadblock.GetBSPID()) { myBSPIndex = bsp_index; }
 		}
-	}
 
-	std::vector<const BSP*> bspLeaves = m_bsp.GetLeaves();
-	size_t myBSPIndex = 0;
-	for (size_t bsp_index = 0; bsp_index < bspLeaves.size(); bsp_index++)
-	{
-		const BSP& bsp = *bspLeaves[bsp_index];
-		const std::vector<size_t> qbIndeces = bsp.GetQuadblockIndexes();
-		if (std::find(qbIndeces.begin(), qbIndeces.end(), myQBIndex) != qbIndeces.end())
+		std::vector<Quadblock*> quadsToSelect;
+
+		for (size_t bsp_index = 0; bsp_index < bspLeaves.size(); bsp_index++)
 		{
-			myBSPIndex = bsp_index;
-			break;
-		}
-	}
-
-	std::vector<Quadblock*> quadsToSelect;
-
-	for (size_t bsp_index = 0; bsp_index < bspLeaves.size(); bsp_index++)
-	{
-		const BSP& bsp = *bspLeaves[bsp_index];
-		if (m_bspVis.Get(bsp_index, myBSPIndex))
-		{
-			const std::vector<size_t> qbIndeces = bsp.GetQuadblockIndexes();
-			for (size_t qbInd : qbIndeces)
+			const BSP& bsp = *bspLeaves[bsp_index];
+			if (m_bspVis.Get(bsp_index, myBSPIndex))
 			{
-				quadsToSelect.push_back(&m_quadblocks[qbInd]);
+				const std::vector<size_t> qbIndeces = bsp.GetQuadblockIndexes();
+				for (size_t qbInd : qbIndeces)
+				{
+					quadsToSelect.push_back(&m_quadblocks[qbInd]);
+				}
 			}
 		}
-	}
 
-	GenerateRenderMultipleQuadsData(quadsToSelect);
-	*/
+		GenerateRenderMultipleQuadsData(quadsToSelect);
+	}
 }
 
 void Level::GenerateRenderMultipleQuadsData(const std::vector<Quadblock*>& quads)

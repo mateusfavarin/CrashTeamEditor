@@ -18,6 +18,6 @@ struct GuiRenderSettings
 
   static int renderType, bspTreeTopDepth, bspTreeBottomDepth, bspTreeMaxDepth;
   static float camFovDeg, camSprintMult, camRotateMult, camMoveMult;
-  static bool showLowLOD, showWireframe, showLevVerts, showBackfaces, showBspRectTree, showLevel, showCheckpoints, showStartpoints;
+  static bool showLowLOD, showWireframe, showLevVerts, showBackfaces, showBspRectTree, showLevel, showCheckpoints, showStartpoints, showVisTree;
   static const std::vector<const char*> renderTypeLabels;
 };

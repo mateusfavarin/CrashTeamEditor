@@ -116,7 +116,7 @@ BitMatrix GenerateVisTree(const std::vector<Quadblock>& quadblocks, const std::v
 				if (foundLeafABHit) { break; }
 
 				Quadblock sourceQuad = quadblocks[quadA];
-				sourceQuad.TranslateNormalVec(5.0f);
+				sourceQuad.TranslateNormalVec(20.0f);
 				const Vec3& center = sourceQuad.GetUnswizzledVertices()[4].m_pos;
 				const Vec3 sourceNormal = sourceQuad.GetNormal();
 				for (size_t quadB : quadIndexesB)

@@ -12,6 +12,7 @@ bool GuiRenderSettings::showBspRectTree = false;
 bool GuiRenderSettings::showLevel = true;
 bool GuiRenderSettings::showCheckpoints = false;
 bool GuiRenderSettings::showStartpoints = false;
+bool GuiRenderSettings::showVisTree = false;
 int GuiRenderSettings::renderType = 0;
 int GuiRenderSettings::bspTreeTopDepth = 0;
 int GuiRenderSettings::bspTreeBottomDepth = 0;
