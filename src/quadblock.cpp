@@ -488,6 +488,11 @@ void Quadblock::SetAnimated(bool animated)
 	m_animated = animated;
 }
 
+void Quadblock::SetSpeedImpact(int speed)
+{
+	m_speedImpact = speed;
+}
+
 void Quadblock::TranslateNormalVec(float ratio)
 {
 	Vec3 quadNormal = GetNormal();
@@ -575,7 +580,7 @@ std::vector<uint8_t> Quadblock::Serialize(size_t id, size_t offTextures, const s
 	quadblock.terrain = m_terrain;
 	quadblock.weatherIntensity = 0;
 	quadblock.weatherVanishRate = 0;
-	quadblock.speedImpact = 0;
+	quadblock.speedImpact = static_cast<int8_t>(m_speedImpact);
 	const size_t idVis = id / 32;
 	quadblock.id = static_cast<uint16_t>((32 * idVis) + (31 - (id % 32)));
 	quadblock.checkpointIndex = static_cast<uint8_t>(m_checkpointIndex);
@@ -619,6 +624,7 @@ void Quadblock::SetDefaultValues()
 	m_turboPadIndex = TURBO_PAD_INDEX_NONE;
 	m_hide = false;
 	m_animated = false;
+	m_speedImpact = 0;
 }
 
 Vec3 Quadblock::ComputeNormalVector(size_t id0, size_t id1, size_t id2) const

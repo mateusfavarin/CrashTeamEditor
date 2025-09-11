@@ -236,6 +236,11 @@ bool Level::LoadPreset(const std::filesystem::path& filename)
 						m_propTurboPads.GetBackup(material) = trigger;
 						m_propTurboPads.GetPreview(material) = trigger;
 					}
+					if (json.contains(material + "_speedImpact"))
+					{
+						m_propSpeedImpact.SetPreview(material, json[material + "_speedImpact"]);
+						m_propSpeedImpact.Apply(material, m_materialToQuadblocks[material], m_quadblocks);
+					}
 				}
 			}
 		}
@@ -332,6 +337,7 @@ bool Level::SavePreset(const std::filesystem::path& path)
 			materialJson[key + "_drawflags"] = m_propDoubleSided.GetBackup(key);
 			materialJson[key + "_checkpoint"] = m_propCheckpoints.GetBackup(key);
 			materialJson[key + "_trigger"] = m_propTurboPads.GetBackup(key);
+			materialJson[key + "_speedImpact"] = m_propSpeedImpact.GetBackup(key);
 		}
 		materialJson["materials"] = materials;
 		SaveJSON(dirPath / "material.json", materialJson);
@@ -1228,6 +1234,7 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 						m_propDoubleSided.RegisterMaterial(this);
 						m_propCheckpoints.RegisterMaterial(this);
 						m_propTurboPads.RegisterMaterial(this);
+						m_propSpeedImpact.RegisterMaterial(this);
 					}
 				}
 				if (isQuadblock)

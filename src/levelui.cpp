@@ -281,6 +281,19 @@ bool MaterialProperty<T, M>::RenderUI(const std::string& material, const std::ve
 			return true;
 		}
 	}
+	else if constexpr (M == MaterialType::SPEED_IMPACT)
+	{
+		T& preview = GetPreview(material);
+		ImGui::Text("Speed Impact:"); ImGui::SameLine();
+		if (ImGui::InputInt("##speed", &preview)) { preview = Clamp(preview, static_cast<T>(INT8_MIN), static_cast<T>(INT8_MAX)); }
+		ImGui::SameLine();
+		static ButtonUI speedApplyButton = ButtonUI();
+		if (speedApplyButton.Show(("Apply##speed" + material).c_str(), "Speed impact status successfully updated.", UnsavedChanges(material)))
+		{
+			Apply(material, quadblockIndexes, quadblocks);
+			return true;
+		}
+	}
 	return false;
 }
 
@@ -506,6 +519,7 @@ void Level::RenderUI()
 					{
 						for (size_t index : quadblockIndexes) { ManageTurbopad(m_quadblocks[index]); }
 					}
+					m_propSpeedImpact.RenderUI(material, quadblockIndexes, m_quadblocks);
 
           if (m_materialToTexture.contains(material))
           {
@@ -1244,6 +1258,9 @@ bool Quadblock::RenderUI(size_t checkpointCount, bool& resetBsp)
       ImGui::Checkbox("Double Sided", &m_doubleSided);
       ImGui::TreePop();
     }
+		ImGui::Text("Speed Impact:");
+		ImGui::SameLine();
+		if (ImGui::InputInt("##speedImpact", &m_speedImpact)) { m_speedImpact = Clamp(m_speedImpact, static_cast<int>(INT8_MIN), static_cast<int>(INT8_MAX)); }
     ImGui::Checkbox("Checkpoint", &m_checkpointStatus);
     ImGui::Text("Checkpoint Index: ");
     ImGui::SameLine();
