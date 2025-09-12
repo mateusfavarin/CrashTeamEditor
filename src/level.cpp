@@ -67,6 +67,10 @@ void Level::Clear(bool clearErrors)
 	m_oxideGhost.clear();
 	m_animTextures.clear();
 	m_rendererSelectedQuadblockIndex = REND_NO_SELECTED_QUADBLOCK;
+	m_genVisTree = false;
+	m_bspVis.Clear();
+	m_maxLeafAxisLength = 64.0f;
+	m_distanceFarClip = 1000.0f;
 	DeleteMaterials(this);
 }
 

@@ -17,6 +17,7 @@ public:
 	size_t GetHeight() const;
 	void Set(bool value, size_t x, size_t y);
 	bool Empty();
+	void Clear();
 
 private:
 	size_t m_width;

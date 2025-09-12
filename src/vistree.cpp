@@ -27,6 +27,13 @@ bool BitMatrix::Empty()
 	return m_data.empty();
 }
 
+void BitMatrix::Clear()
+{
+	m_width = 0;
+	m_height = 0;
+	m_data.clear();
+}
+
 static bool WorldspaceRayTriIntersection(const Vec3& worldSpaceRayOrigin, const Vec3& worldSpaceRayDir, const Vec3* tri, float& dist)
 {
 	constexpr float epsilon = 0.00001f;
