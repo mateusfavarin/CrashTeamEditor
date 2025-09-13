@@ -10,6 +10,7 @@
 #include "gui_render_settings.h"
 #include "mesh.h"
 #include "texture.h"
+#include "ui.h"
 
 #include <imgui.h>
 #include <misc/cpp/imgui_stdlib.h>
@@ -378,33 +379,23 @@ void Level::RenderUI()
 
 	if (!m_loaded) { return; }
 
-	static bool w_spawn = false;
-	static bool w_level = false;
-	static bool w_material = false;
-	static bool w_animtex = false;
-	static bool w_quadblocks = false;
-	static bool w_checkpoints = false;
-	static bool w_bsp = false;
-	static bool w_renderer = false;
-	static bool w_ghost = false;
-
 	if (ImGui::BeginMainMenuBar())
 	{
-		if (ImGui::MenuItem("Spawn")) { w_spawn = !w_spawn; }
-		if (ImGui::MenuItem("Level")) { w_level = !w_level; }
-		if (!m_materialToQuadblocks.empty() && ImGui::MenuItem("Material")) { w_material = !w_material; }
-		if (ImGui::MenuItem("Anim Tex")) { w_animtex = !w_animtex; }
-		if (ImGui::MenuItem("Quadblocks")) { w_quadblocks = !w_quadblocks; }
-		if (ImGui::MenuItem("Checkpoints")) { w_checkpoints = !w_checkpoints; }
-		if (ImGui::MenuItem("BSP Tree")) { w_bsp = !w_bsp; }
-		if (ImGui::MenuItem("Renderer")) { w_renderer = !w_renderer; }
-		if (ImGui::MenuItem("Ghosts")) { w_ghost = !w_ghost; }
+		if (ImGui::MenuItem("Spawn")) { Windows::w_spawn = !Windows::w_spawn; }
+		if (ImGui::MenuItem("Level")) { Windows::w_level = !Windows::w_level; }
+		if (!m_materialToQuadblocks.empty() && ImGui::MenuItem("Material")) { Windows::w_material = !Windows::w_material; }
+		if (ImGui::MenuItem("Anim Tex")) { Windows::w_animtex = !Windows::w_animtex; }
+		if (ImGui::MenuItem("Quadblocks")) { Windows::w_quadblocks = !Windows::w_quadblocks; }
+		if (ImGui::MenuItem("Checkpoints")) { Windows::w_checkpoints = !Windows::w_checkpoints; }
+		if (ImGui::MenuItem("BSP Tree")) { Windows::w_bsp = !Windows::w_bsp; }
+		if (ImGui::MenuItem("Renderer")) { Windows::w_renderer = !Windows::w_renderer; }
+		if (ImGui::MenuItem("Ghosts")) { Windows::w_ghost = !Windows::w_ghost; }
 		ImGui::EndMainMenuBar();
 	}
 
-  if (w_spawn)
+  if (Windows::w_spawn)
   {
-    if (ImGui::Begin("Spawn", &w_spawn))
+    if (ImGui::Begin("Spawn", &Windows::w_spawn))
     {
       for (size_t i = 0; i < NUM_DRIVERS; i++)
       {
@@ -426,9 +417,9 @@ void Level::RenderUI()
     ImGui::End();
   }
 
-  if (w_level)
+  if (Windows::w_level)
   {
-    if (ImGui::Begin("Level", &w_level))
+    if (ImGui::Begin("Level", &Windows::w_level))
     {
       if (ImGui::TreeNode("Flags"))
       {
@@ -491,9 +482,9 @@ void Level::RenderUI()
     ImGui::End();
   }
 
-  if (w_material)
+  if (Windows::w_material)
   {
-    if (ImGui::Begin("Material", &w_material))
+    if (ImGui::Begin("Material", &Windows::w_material))
     {
       for (const auto& [material, quadblockIndexes] : m_materialToQuadblocks)
       {
@@ -533,11 +524,11 @@ void Level::RenderUI()
     ImGui::End();
   }
 
-  if (!w_material) { RestoreMaterials(this); }
+  if (!Windows::w_material) { RestoreMaterials(this); }
 
-	if (w_animtex)
+	if (Windows::w_animtex)
 	{
-		if (ImGui::Begin("Animated Textures", &w_animtex))
+		if (ImGui::Begin("Animated Textures", &Windows::w_animtex))
 		{
 			static std::string animTexQuerry;
 			std::vector<std::string> animTexNames;
@@ -594,10 +585,10 @@ void Level::RenderUI()
 	}
 
   static std::string quadblockQuery;
-  if (w_quadblocks)
+  if (Windows::w_quadblocks)
   {
     bool resetBsp = false;
-    if (ImGui::Begin("Quadblocks", &w_quadblocks))
+    if (ImGui::Begin("Quadblocks", &Windows::w_quadblocks))
     {
       ImGui::InputTextWithHint("Search", "Search Quadblocks...", &quadblockQuery);
       for (Quadblock& quadblock : m_quadblocks)
@@ -619,12 +610,12 @@ void Level::RenderUI()
     }
   }
 
-  if (!quadblockQuery.empty() && !w_quadblocks) { quadblockQuery.clear(); }
+  if (!quadblockQuery.empty() && !Windows::w_quadblocks) { quadblockQuery.clear(); }
 
   static std::string checkpointQuery;
-  if (w_checkpoints)
+  if (Windows::w_checkpoints)
   {
-    if (ImGui::Begin("Checkpoints", &w_checkpoints))
+    if (ImGui::Begin("Checkpoints", &Windows::w_checkpoints))
     {
       ImGui::InputTextWithHint("Search##", "Search Quadblocks...", &checkpointQuery);
       if (ImGui::TreeNode("Checkpoints"))
@@ -703,11 +694,11 @@ void Level::RenderUI()
     ImGui::End();
   }
 
-  if (!checkpointQuery.empty() && !w_checkpoints) { checkpointQuery.clear(); }
+  if (!checkpointQuery.empty() && !Windows::w_checkpoints) { checkpointQuery.clear(); }
 
-  if (w_bsp)
+  if (Windows::w_bsp)
   {
-    if (ImGui::Begin("BSP Tree", &w_bsp))
+    if (ImGui::Begin("BSP Tree", &Windows::w_bsp))
     {
       if (!m_bsp.Empty()) { m_bsp.RenderUI(m_quadblocks); }
 
@@ -732,9 +723,9 @@ void Level::RenderUI()
     ImGui::End();
   }
 
-  if (w_ghost)
+  if (Windows::w_ghost)
   {
-    if (ImGui::Begin("Ghost", &w_ghost))
+    if (ImGui::Begin("Ghost", &Windows::w_ghost))
     {
       static ButtonUI saveGhostButton(20);
       static std::string saveGhostFeedback;
@@ -837,16 +828,15 @@ void Level::RenderUI()
     ImGui::End();
   }
 
-  if (w_renderer)
+  if (Windows::w_renderer)
   {
-
     static Renderer rend = Renderer(800.0f, 400.0f);
     static bool initRend = true;
     constexpr float bottomPaneHeight = 200.0f;
 
     if (initRend) { ImGui::SetNextWindowSize({rend.GetWidth(), rend.GetHeight() + bottomPaneHeight}); initRend = false; }
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-    if (ImGui::Begin("Renderer", &w_renderer, ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse))
+    if (ImGui::Begin("Renderer", &Windows::w_renderer, ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse))
     {
       ImVec2 pos = ImGui::GetCursorScreenPos();
       ImVec2 size = ImGui::GetWindowSize();

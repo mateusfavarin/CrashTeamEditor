@@ -5,6 +5,16 @@
 
 #include <filesystem>
 
+bool Windows::w_spawn = false;
+bool Windows::w_level = false;
+bool Windows::w_material = false;
+bool Windows::w_animtex = false;
+bool Windows::w_quadblocks = false;
+bool Windows::w_checkpoints = false;
+bool Windows::w_bsp = false;
+bool Windows::w_renderer = false;
+bool Windows::w_ghost = false;
+
 void UI::Render(int width, int height)
 {
 	MainMenu();

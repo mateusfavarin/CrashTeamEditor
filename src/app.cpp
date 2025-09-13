@@ -4,11 +4,15 @@
 #include "globalimguiglglfw.h"
 #include "renderer.h"
 
+#include <nlohmann/json.hpp>
+#include <fstream>
+
 bool App::Init()
 {
 	bool success = true;
 	success &= InitGLFW();
 	success &= InitImGui();
+	InitUISettings();
 	return  success;
 }
 
@@ -44,6 +48,7 @@ void App::Run()
 
 void App::Close()
 {
+	SaveUISettings();
 	CloseImGui();
 }
 
@@ -122,6 +127,51 @@ bool App::InitImGui()
 	success &= ImGui_ImplOpenGL3_Init(m_glslVer.c_str());
 	ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 	return success;
+}
+
+void App::InitUISettings()
+{
+	if (!std::filesystem::exists(m_configFile))
+	{
+		Windows::w_animtex = false;
+		Windows::w_bsp = false;
+		Windows::w_checkpoints = false;
+		Windows::w_ghost = false;
+		Windows::w_level = false;
+		Windows::w_material = false;
+		Windows::w_quadblocks = false;
+		Windows::w_renderer = false;
+		Windows::w_spawn = false;
+		SaveUISettings();
+		return;
+	}
+	nlohmann::json json = nlohmann::json::parse(std::ifstream(m_configFile));
+	if (json.contains("AnimTex")) { Windows::w_animtex = json["AnimTex"]; }
+	if (json.contains("BSP")) { Windows::w_bsp = json["BSP"]; }
+	if (json.contains("Checkpoints")) { Windows::w_checkpoints = json["Checkpoints"]; }
+	if (json.contains("Ghost")) { Windows::w_ghost = json["Ghost"]; }
+	if (json.contains("Level")) { Windows::w_level = json["Level"]; }
+	if (json.contains("Material")) { Windows::w_material = json["Material"]; }
+	if (json.contains("Quadblocks")) { Windows::w_quadblocks = json["Quadblocks"]; }
+	if (json.contains("Renderer")) { Windows::w_renderer = json["Renderer"]; }
+	if (json.contains("Spawn")) { Windows::w_spawn = json["Spawn"]; }
+}
+
+void App::SaveUISettings()
+{
+	nlohmann::json json;
+	json["AnimTex"] = Windows::w_animtex;
+	json["BSP"] = Windows::w_bsp;
+	json["Checkpoints"] = Windows::w_checkpoints;
+	json["Ghost"] = Windows::w_ghost;
+	json["Level"] = Windows::w_level;
+	json["Material"] = Windows::w_material;
+	json["Quadblocks"] = Windows::w_quadblocks;
+	json["Renderer"] = Windows::w_renderer;
+	json["Spawn"] = Windows::w_spawn;
+	std::ofstream file = std::ofstream(m_configFile);
+	file << std::setw(4) << json << std::endl;
+	file.close();
 }
 
 void App::CloseImGui()

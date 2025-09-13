@@ -41,3 +41,4 @@ packages/
 CMakeCache.txt
 /glfw-build-unix
 /glfw-build-win
+*.json
