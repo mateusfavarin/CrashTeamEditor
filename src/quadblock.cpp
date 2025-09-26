@@ -92,9 +92,9 @@ Quadblock::Quadblock(const std::string& name, Tri& t0, Tri& t1, Tri& t2, Tri& t3
 		Swap(m_p[3], m_p[4]);
 	}
 
-	m_p[5] = m_p[4];
-	m_p[7] = m_p[4];
-	m_p[8] = m_p[4];
+	m_p[5] = m_p[6];
+	m_p[7] = m_p[6];
+	m_p[8] = m_p[6];
 
 	auto FindTri = [](const Vec3& pos, const Tri& t0, const Tri& t1, const Tri& t2, const Tri& t3) -> const Tri*
 		{
