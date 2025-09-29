@@ -14,6 +14,7 @@ bool Windows::w_checkpoints = false;
 bool Windows::w_bsp = false;
 bool Windows::w_renderer = false;
 bool Windows::w_ghost = false;
+std::string Windows::lastOpenedFolder = ".";
 
 void UI::Render(int width, int height)
 {
@@ -29,12 +30,11 @@ void UI::MainMenu()
 		{
 			if (ImGui::MenuItem("Open"))
 			{
-				static std::string lastOpenedFolder = ".";
-				auto selection = pfd::open_file("Level File", lastOpenedFolder, {"Level Files", "*.obj *.lev"}, pfd::opt::force_path).result();
+				auto selection = pfd::open_file("Level File", Windows::lastOpenedFolder, {"Level Files", "*.obj *.lev"}, pfd::opt::force_path).result();
 				if (!selection.empty())
 				{
 					const std::filesystem::path levPath = selection.front();
-					lastOpenedFolder = levPath.string();
+					Windows::lastOpenedFolder = levPath.string();
 					if (!m_lev.Load(levPath)) { m_lev.Clear(false); }
 				}
 			}

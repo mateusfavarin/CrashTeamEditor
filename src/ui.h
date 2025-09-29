@@ -2,6 +2,8 @@
 
 #include "level.h"
 
+#include <string>
+
 struct Windows
 {
 	static bool w_spawn;
@@ -13,6 +15,7 @@ struct Windows
 	static bool w_bsp;
 	static bool w_renderer;
 	static bool w_ghost;
+	static std::string lastOpenedFolder;
 };
 
 class UI
