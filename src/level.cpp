@@ -742,7 +742,7 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 
 	std::vector<uint32_t> visibleQuadsAll(visQuadSize, 0xFFFFFFFF);
 	size_t quadIndex = 0;
-	const bool validVisTree = !m_bspVis.Empty();
+	const bool validVisTree = m_genVisTree && !m_bspVis.Empty();
 	const std::vector<const BSP*> bspLeaves = m_bsp.GetLeaves();
 	std::unordered_map<size_t, const BSP*> idToLeaf;
 	std::unordered_map<const BSP*, size_t> leafToMatrix;
