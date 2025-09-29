@@ -438,7 +438,22 @@ bool Level::LoadLEV(const std::filesystem::path& levFile)
 	PSX::LevHeader header = {};
 	Read(file, header);
 
+	m_configFlags = header.config;
+	m_clearColor = ConvertColor(header.clear);
 	m_stars = ConvertStars(header.stars);
+	for (size_t i = 0; i < m_spawn.size(); i++)
+	{
+		m_spawn[i].pos = ConvertPSXVec3(header.driverSpawn[i].pos, FP_ONE_GEO);
+		m_spawn[i].rot = ConvertPSXAngle(header.driverSpawn[i].rot);
+	}
+	for (size_t i = 0; i < NUM_GRADIENT; i++)
+	{
+		m_skyGradient[i].posFrom = ConvertFP(header.skyGradient[i].posFrom, 1u);
+		m_skyGradient[i].posTo = ConvertFP(header.skyGradient[i].posTo, 1u);
+		m_skyGradient[i].colorFrom = ConvertColor(header.skyGradient[i].colorFrom);
+		m_skyGradient[i].colorTo = ConvertColor(header.skyGradient[i].colorTo);
+	}
+
 	PSX::MeshInfo meshInfo = {};
 	file.seekg(offLev + std::streampos(header.offMeshInfo));
 	Read(file, meshInfo);
@@ -888,7 +903,7 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	for (size_t i = 0; i < NUM_DRIVERS; i++)
 	{
 		header.driverSpawn[i].pos = ConvertVec3(m_spawn[i].pos, FP_ONE_GEO);
-		header.driverSpawn[i].rot = ConvertVec3(m_spawn[i].rot);
+		header.driverSpawn[i].rot = ConvertAngle(m_spawn[i].rot);
 	}
 	header.config = m_configFlags;
 	for (size_t i = 0; i < NUM_GRADIENT; i++)

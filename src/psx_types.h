@@ -364,7 +364,27 @@ static constexpr int16_t FP_ONE_GEO = 64;
 static constexpr int16_t FP_ONE_CP = 8;
 
 static inline int16_t ConvertFloat(float x, int16_t one = FP_ONE) { return static_cast<int16_t>(x * static_cast<float>(one)); };
+static inline int16_t ConvertAngle(float x) { return static_cast<int16_t>((x * static_cast<float>(FP_ONE)) / 360.0f); }
 static inline float ConvertFP(int16_t fp, int16_t one = FP_ONE) { return static_cast<float>(fp) / static_cast<float>(one); }
+static inline float ConvertFPAngle(int16_t fp) { return (static_cast<float>(fp) * 360.0f) / static_cast<float>(FP_ONE); }
+
+static inline PSX::Vec3 ConvertAngle(const Vec3& v)
+{
+	PSX::Vec3 out = {};
+	out.x = ConvertAngle(v.x);
+	out.y = ConvertAngle(v.y);
+	out.z = ConvertAngle(v.z);
+	return out;
+}
+
+static inline Vec3 ConvertPSXAngle(const PSX::Vec3& v)
+{
+	Vec3 out = {};
+	out.x = ConvertFPAngle(v.x);
+	out.y = ConvertFPAngle(v.y);
+	out.z = ConvertFPAngle(v.z);
+	return out;
+}
 
 static inline PSX::Vec3 ConvertVec3(const Vec3& v, int16_t one = FP_ONE)
 {
