@@ -34,13 +34,22 @@ public:
 	const std::string& GetName() const;
 	const std::vector<Quadblock>& GetQuadblocks() const;
 	const std::filesystem::path& GetParentPath() const;
-	const PSX::Stars GetStars() const { return ConvertStars(m_stars); }
-	void SetStars(const PSX::Stars& stars) { m_stars = ConvertStars(stars); }
-	bool GenerateBSP();
-	bool GenerateCheckpoints();
 	bool LoadPreset(const std::filesystem::path& filename);
 	bool SavePreset(const std::filesystem::path& path);
 	void RenderUI();
+
+private:
+	void ManageTurbopad(Quadblock& quadblock);
+	bool LoadLEV(const std::filesystem::path& levFile);
+	bool SaveLEV(const std::filesystem::path& path);
+	bool LoadOBJ(const std::filesystem::path& objFile);
+	bool StartEmuIPC(const std::string& emulator);
+	bool HotReload(const std::string& levPath, const std::string& vrmPath, const std::string& emulator);
+	bool SaveGhostData(const std::string& emulator, const std::filesystem::path& path);
+	bool SetGhostData(const std::filesystem::path& path, bool tropy);
+	bool UpdateVRM();
+	bool GenerateCheckpoints();
+	bool GenerateBSP();
 
 	void GenerateRenderLevData();
 	void GenerateRenderBspData(const BSP& bsp);
@@ -56,16 +65,6 @@ public:
 	void ViewportClickHandleBlockSelection(int pixelX, int pixelY, const Renderer& rend);
 
 private:
-	void ManageTurbopad(Quadblock& quadblock);
-	bool LoadLEV(const std::filesystem::path& levFile);
-	bool SaveLEV(const std::filesystem::path& path);
-	bool LoadOBJ(const std::filesystem::path& objFile);
-	bool StartEmuIPC(const std::string& emulator);
-	bool HotReload(const std::string& levPath, const std::string& vrmPath, const std::string& emulator);
-	bool SaveGhostData(const std::string& emulator, const std::filesystem::path& path);
-	bool SetGhostData(const std::filesystem::path& path, bool tropy);
-
-private:
 	bool m_showLogWindow;
 	bool m_showHotReloadWindow;
 	bool m_loaded;
@@ -75,9 +74,11 @@ private:
 	std::vector<std::tuple<std::string, std::string>> m_invalidQuadblocks;
 	std::string m_logMessage;
 	std::string m_name;
+
 	std::filesystem::path m_parentPath;
 	std::filesystem::path m_hotReloadLevPath;
 	std::filesystem::path m_hotReloadVRMPath;
+
 	std::array<Spawn, NUM_DRIVERS> m_spawn;
 	uint32_t m_configFlags;
 	std::array<ColorGradient, NUM_GRADIENT> m_skyGradient;
@@ -88,6 +89,11 @@ private:
 	std::vector<Quadblock> m_quadblocks;
 	std::vector<Checkpoint> m_checkpoints;
 	BSP m_bsp;
+	std::vector<Path> m_checkpointPaths;
+	std::vector<AnimTexture> m_animTextures;
+	BitMatrix m_bspVis;
+	std::vector<uint8_t> m_vrm;
+
 	std::unordered_map<std::string, std::vector<size_t>> m_materialToQuadblocks;
 	std::unordered_map<std::string, Texture> m_materialToTexture;
 	MaterialProperty<std::string, MaterialType::TERRAIN> m_propTerrain;
@@ -96,8 +102,6 @@ private:
 	MaterialProperty<bool, MaterialType::CHECKPOINT> m_propCheckpoints;
 	MaterialProperty<QuadblockTrigger, MaterialType::TURBO_PAD> m_propTurboPads;
 	MaterialProperty<int, MaterialType::SPEED_IMPACT> m_propSpeedImpact;
-	std::vector<Path> m_checkpointPaths;
-	std::vector<AnimTexture> m_animTextures;
 
 	Mesh m_lowLODMesh;
 	Mesh m_highLODMesh;
@@ -112,5 +116,4 @@ private:
 	Model m_multipleSelectedQuads;
 
 	size_t m_rendererSelectedQuadblockIndex;
-	BitMatrix m_bspVis;
 };

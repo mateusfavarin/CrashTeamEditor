@@ -524,60 +524,12 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	defaultTexGroup.near = defaultTex;
 	defaultTexGroup.mosaic = defaultTex;
 
-	std::vector<Texture*> textures;
-	std::vector<std::tuple<Texture*, Texture*>> copyTextureAttributes;
-	for (auto& [material, texture] : m_materialToTexture)
-	{
-		bool foundEqual = false;
-		for (Texture* addedTexture : textures)
-		{
-			if (texture == *addedTexture)
-			{
-				copyTextureAttributes.push_back({addedTexture, &texture});
-				foundEqual = true;
-				break;
-			}
-		}
-		if (foundEqual) { continue; }
-		textures.push_back(&texture);
-	}
-
-	for (const AnimTexture& animTex : m_animTextures)
-	{
-		const std::vector<AnimTextureFrame>& animFrames = animTex.GetFrames();
-		const std::vector<Texture>& animTextures = animTex.GetTextures();
-		for (const AnimTextureFrame& frame : animFrames)
-		{
-			bool foundEqual = false;
-			Texture* texture = const_cast<Texture*>(&animTextures[frame.textureIndex]);
-			for (Texture* addedTexture : textures)
-			{
-				if (*texture == *addedTexture)
-				{
-					copyTextureAttributes.push_back({addedTexture, texture});
-					foundEqual = true;
-					break;
-				}
-			}
-			if (foundEqual) { continue; }
-			textures.push_back(texture);
-		}
-	}
-
-	std::vector<uint8_t> vrm = PackVRM(textures);
-	const bool hasVRM = !vrm.empty();
-
 	std::vector<uint8_t> animData;
 	std::vector<size_t> animPtrMapOffsets;
 	std::vector<PSX::TextureGroup> texGroups;
 	std::unordered_map<PSX::TextureLayout, size_t> savedLayouts;
-	if (hasVRM)
+	if (UpdateVRM())
 	{
-		for (auto& [from, to] : copyTextureAttributes)
-		{
-			to->CopyVRAMAttributes(*from);
-		}
-
 		for (auto& [material, texture] : m_materialToTexture)
 		{
 			std::vector<size_t>& quadIndexes = m_materialToQuadblocks[material];
@@ -712,7 +664,7 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 
 		m_hotReloadVRMPath = path / (m_name + ".vrm");
 		std::ofstream vrmFile(m_hotReloadVRMPath, std::ios::binary);
-		Write(vrmFile, vrm.data(), vrm.size());
+		Write(vrmFile, m_vrm.data(), m_vrm.size());
 		vrmFile.close();
 	}
 	else
@@ -1453,6 +1405,59 @@ bool Level::SetGhostData(const std::filesystem::path& path, bool tropy)
 	if (tropy) { m_tropyGhost.resize(GHOST_DATA_FILESIZE); }
 	else { m_oxideGhost.resize(GHOST_DATA_FILESIZE); }
 	memcpy(tropy ? m_tropyGhost.data() : m_oxideGhost.data(), data.data(), data.size());
+	return true;
+}
+
+bool Level::UpdateVRM()
+{
+	std::vector<Texture*> textures;
+	std::vector<std::tuple<Texture*, Texture*>> copyTextureAttributes;
+	for (auto& [material, texture] : m_materialToTexture)
+	{
+		bool foundEqual = false;
+		for (Texture* addedTexture : textures)
+		{
+			if (texture == *addedTexture)
+			{
+				copyTextureAttributes.push_back({addedTexture, &texture});
+				foundEqual = true;
+				break;
+			}
+		}
+		if (foundEqual) { continue; }
+		textures.push_back(&texture);
+	}
+
+	for (const AnimTexture& animTex : m_animTextures)
+	{
+		const std::vector<AnimTextureFrame>& animFrames = animTex.GetFrames();
+		const std::vector<Texture>& animTextures = animTex.GetTextures();
+		for (const AnimTextureFrame& frame : animFrames)
+		{
+			bool foundEqual = false;
+			Texture* texture = const_cast<Texture*>(&animTextures[frame.textureIndex]);
+			for (Texture* addedTexture : textures)
+			{
+				if (*texture == *addedTexture)
+				{
+					copyTextureAttributes.push_back({addedTexture, texture});
+					foundEqual = true;
+					break;
+				}
+			}
+			if (foundEqual) { continue; }
+			textures.push_back(texture);
+		}
+	}
+
+	m_vrm = PackVRM(textures);
+	if (m_vrm.empty()) { return false; }
+
+	for (auto& [from, to] : copyTextureAttributes)
+	{
+		to->CopyVRAMAttributes(*from);
+	}
+
 	return true;
 }
 
