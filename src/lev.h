@@ -44,7 +44,7 @@ struct Stars
 };
 
 static const std::vector<std::string> CTR_CHARACTERS = {
-	"Crash Bandicoot", "Dr. Neo Cortex", "Tiny Tiger", "Coco Bandicoot"
+	"Crash Bandicoot", "Dr. Neo Cortex", "Tiny Tiger", "Coco Bandicoot",
 	"N. Gin", "Dingodile", "Polar", "Pura", "Pinstripe", "Papu Papu",
 	"Ripper Roo", "Komodo Joe", "N. Tropy", "Penta Penguin",
 	"Fake Crash", "Nitrous Oxide"
