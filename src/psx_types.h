@@ -262,7 +262,7 @@ namespace PSX
 		uint8_t triNormalVecBitshift; // 0x3F
 		uint32_t offLowTexture; // 0x40
 		uint32_t offVisibleSet; // 0x44
-		uint16_t triNormalVecDividend[10]; // 0x48
+		int16_t triNormalVecDividend[10]; // 0x48
 	};
 
 	struct Checkpoint

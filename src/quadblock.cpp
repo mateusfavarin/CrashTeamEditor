@@ -586,9 +586,9 @@ std::vector<uint8_t> Quadblock::Serialize(size_t id, size_t offTextures, const s
 	quadblock.checkpointIndex = static_cast<uint8_t>(m_checkpointIndex);
 	quadblock.triNormalVecBitshift = static_cast<uint8_t>(std::round(std::log2(std::max(ComputeNormalVector(0, 2, 6).Length(), ComputeNormalVector(2, 8, 6).Length()) * 512.0f)));
 
-	auto CalculateNormalDividend = [this](size_t id0, size_t id1, size_t id2, float scaler) -> uint16_t
+	auto CalculateNormalDividend = [this](size_t id0, size_t id1, size_t id2, float scaler) -> int16_t
 		{
-			return static_cast<uint16_t>(std::round(scaler / ComputeNormalVector(id0, id1, id2).Length()));
+			return static_cast<int16_t>(std::round(scaler / ComputeNormalVector(id0, id1, id2).Length()));
 		};
 
 	float scaler = static_cast<float>(1 << quadblock.triNormalVecBitshift);
