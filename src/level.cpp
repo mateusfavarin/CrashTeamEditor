@@ -1062,7 +1062,6 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 			Vec2 uv = {std::stof(tokens[1]), 1.0f - std::stof(tokens[2])};
 			if (currQuadblockGoodUV && (uv.x < 0 || uv.x > 1 || uv.y < 0 || uv.y > 1))
 			{
-				m_showLogWindow = true;
 				currQuadblockGoodUV = false;
 				m_invalidQuadblocks.emplace_back(currQuadblockName, "UV outside of expect range [0.0f, 1.0f].");
 			}
@@ -1073,7 +1072,6 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 			if (tokens.size() < 2 || meshMap.contains(tokens[1]))
 			{
 				ret = false;
-				m_showLogWindow = true;
 				m_invalidQuadblocks.emplace_back(tokens[1], "Duplicated mesh name.");
 				continue;
 			}
@@ -1096,7 +1094,6 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 			if (meshMap.contains(currQuadblockName) && meshMap.at(currQuadblockName))
 			{
 				ret = false;
-				m_showLogWindow = true;
 				m_invalidQuadblocks.emplace_back(currQuadblockName, "Triblock and Quadblock merged in the same mesh.");
 				continue;
 			}
@@ -1113,7 +1110,6 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 				token2.size() < EXPECTED_INFORMATION_PER_TOKEN)
 			{
 				ret = false;
-				m_showLogWindow = true;
 				m_invalidQuadblocks.emplace_back(currQuadblockName, "Missing vertex normals.");
 				continue;
 			}
@@ -1151,6 +1147,11 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 					vertices[i1].uv = uvs[uv1];
 					vertices[i2].uv = uvs[uv2];
 				}
+			}
+
+			if (!currQuadblockGoodUV)
+			{
+				m_invalidQuadblocks.emplace_back(currQuadblockName, "Missing UVs.");
 			}
 
 			bool blockFetched = false;
@@ -1208,12 +1209,23 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 						m_propSpeedImpact.RegisterMaterial(this);
 					}
 				}
+				bool sameUVs = true;
 				if (isQuadblock)
 				{
 					Quad& q0 = quadMap[currQuadblockName][0];
 					Quad& q1 = quadMap[currQuadblockName][1];
 					Quad& q2 = quadMap[currQuadblockName][2];
 					Quad& q3 = quadMap[currQuadblockName][3];
+					const Vec2& targetUV = q0.p[0].uv;
+					for (size_t i = 0; i < 4; i++)
+					{
+						const Quad& q = quadMap[currQuadblockName][i];
+						for (size_t j = 0; j < 4; j++)
+						{
+							if (q.p[j].uv != targetUV) { sameUVs = false; break; }
+						}
+						if (!sameUVs) { break; }
+					}
 					try
 					{
 						m_quadblocks.emplace_back(currQuadblockName, q0, q1, q2, q3, averageNormal, material, currQuadblockGoodUV);
@@ -1222,7 +1234,6 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 					catch (const QuadException& e)
 					{
 						ret = false;
-						m_showLogWindow = true;
 						m_invalidQuadblocks.emplace_back(currQuadblockName, e.what());
 					}
 				}
@@ -1232,6 +1243,16 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 					Tri& t1 = triMap[currQuadblockName][1];
 					Tri& t2 = triMap[currQuadblockName][2];
 					Tri& t3 = triMap[currQuadblockName][3];
+					const Vec2& targetUV = t0.p[0].uv;
+					for (size_t i = 0; i < 4; i++)
+					{
+						const Tri& t = triMap[currQuadblockName][i];
+						for (size_t j = 0; j < 3; j++)
+						{
+							if (t.p[j].uv != targetUV) { sameUVs = false; break; }
+						}
+						if (!sameUVs) { break; }
+					}
 					try
 					{
 						m_quadblocks.emplace_back(currQuadblockName, t0, t1, t2, t3, averageNormal, material, currQuadblockGoodUV);
@@ -1240,14 +1261,19 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 					catch (const QuadException& e)
 					{
 						ret = false;
-						m_showLogWindow = true;
 						m_invalidQuadblocks.emplace_back(currQuadblockName, e.what());
 					}
+				}
+				if (sameUVs)
+				{
+					m_invalidQuadblocks.emplace_back(currQuadblockName, "Degenerated UV data.");
 				}
 			}
 		}
 	}
 	file.close();
+
+	m_showLogWindow = !m_invalidQuadblocks.empty();
 
 	if (!materials.empty())
 	{
