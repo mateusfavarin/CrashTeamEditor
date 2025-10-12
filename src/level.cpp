@@ -7,6 +7,7 @@
 #include "gui_render_settings.h"
 #include "renderer.h"
 #include "vistree.h"
+#include "simple_level_instances.h"
 
 #include <fstream>
 #include <unordered_set>
@@ -1044,7 +1045,38 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 		std::vector<std::string> tokens = Split(line);
 		if (tokens.empty()) { continue; }
 		const std::string& command = tokens[0];
-		if (command == "v")
+		if (command == "o")
+		{
+			bool isLevInstStub = false;
+			for (const auto& e : SimpleLevelInstances::mesh_prefixes_to_enum)
+			{
+				if (tokens[1].starts_with(e.first))
+				{
+					//for position, you need to get all the verts that belong to this mesh, calculate their average pos.
+					//for rotation, idk because obj file format bakes the rotation into the position.
+					//maybe calculate it based on the normal of the quad that it's sitting on?
+					Vec3 pos{};
+					Vec3 rot{}; //don't know for now
+					m_levInstPosRot[e.second] = std::make_tuple(pos, rot);
+					m_levelInstancesModels.push_back(Model(&SimpleLevelInstances::GetMeshInstance(e.second), glm::vec3(pos.x, pos.y, pos.z), glm::vec3(1.f, 1.f, 1.f), glm::quat(0.f, 0.f, 0.f, 0.f)));
+					isLevInstStub = true;
+					break;
+				}
+			}
+			//if (isLevInstStub) { continue; } we want to skip the whole object
+			if (tokens.size() < 2 || meshMap.contains(tokens[1]))
+			{
+				ret = false;
+				m_showLogWindow = true;
+				m_invalidQuadblocks.emplace_back(tokens[1], "Duplicated mesh name.");
+				continue;
+			}
+			currQuadblockName = tokens[1];
+			currQuadblockGoodUV = true;
+			meshMap[currQuadblockName] = false;
+			quadblockCount++;
+		}
+		else if (command == "v")
 		{
 			if (tokens.size() < 4) { continue; }
 			vertices.emplace_back(std::stof(tokens[1]), std::stof(tokens[2]), std::stof(tokens[3]));

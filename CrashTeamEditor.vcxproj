@@ -31,6 +31,7 @@
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\simple_level_instances.cpp" />
     <ClCompile Include="src\animtexture.cpp" />
     <ClCompile Include="src\shader_templates.cpp" />
     <ClCompile Include="src\gui_render_settings.cpp" />
@@ -67,6 +68,7 @@
     <ClCompile Include="src\manual_third_party\glad.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\simple_level_instances.h" />
     <ClInclude Include="src\animtexture.h" />
     <ClInclude Include="src\shader_templates.h" />
     <ClInclude Include="src\gui_render_settings.h" />
@@ -94,6 +96,11 @@
     <ClInclude Include="src\vistree.h" />
     <ClCompile Include="src\manual_third_party\khrplatform.h" />
     <ClCompile Include="src\manual_third_party\glad.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <CopyFileToFolders Include="level_instances_assets\**">
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
+    </CopyFileToFolders>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>

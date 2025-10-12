@@ -135,6 +135,9 @@
     <ClCompile Include="src\vistree.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\simple_level_instances.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\app.h">
@@ -212,8 +215,48 @@
     <ClInclude Include="src\vistree.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\simple_level_instances.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="$(SolutionDir)third_party\glfw" />
+  </ItemGroup>
+  <ItemGroup>
+    <CopyFileToFolders Include="level_instances_assets\**" />
+    <CopyFileToFolders Include="level_instances_assets\**" />
+    <CopyFileToFolders Include="level_instances_assets\**" />
+    <CopyFileToFolders Include="level_instances_assets\**" />
+    <CopyFileToFolders Include="level_instances_assets\**" />
+    <CopyFileToFolders Include="level_instances_assets\**" />
+    <CopyFileToFolders Include="level_instances_assets\**" />
+    <CopyFileToFolders Include="level_instances_assets\**" />
+    <CopyFileToFolders Include="level_instances_assets\**" />
+    <CopyFileToFolders Include="level_instances_assets\**" />
+    <CopyFileToFolders Include="level_instances_assets\**" />
+    <CopyFileToFolders Include="level_instances_assets\**" />
+    <CopyFileToFolders Include="level_instances_assets\**" />
+    <CopyFileToFolders Include="level_instances_assets\**" />
+    <CopyFileToFolders Include="level_instances_assets\**" />
+    <CopyFileToFolders Include="level_instances_assets\**" />
+    <CopyFileToFolders Include="level_instances_assets\**">
+      <Filter>Resource Files</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="level_instances_assets\**">
+      <Filter>Resource Files</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="level_instances_assets\**">
+      <Filter>Resource Files</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="level_instances_assets\**">
+      <Filter>Resource Files</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="level_instances_assets\**">
+      <Filter>Resource Files</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="level_instances_assets\**" />
+    <CopyFileToFolders Include="level_instances_assets\**" />
+    <CopyFileToFolders Include="level_instances_assets\**" />
+    <CopyFileToFolders Include="level_instances_assets\**" />
   </ItemGroup>
 </Project>

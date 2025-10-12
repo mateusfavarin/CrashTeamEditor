@@ -114,6 +114,7 @@ private:
 	Model m_checkModel;
 	Model m_selectedBlockModel;
 	Model m_multipleSelectedQuads;
+	std::vector<Model> m_levelInstancesModels;
 
 	size_t m_rendererSelectedQuadblockIndex;
 };
