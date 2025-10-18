@@ -477,6 +477,15 @@ bool Level::LoadLEV(const std::filesystem::path& levFile)
 		m_materialToQuadblocks["default"].push_back(i);
 	}
 
+	file.seekg(offLev + std::streampos(header.offCheckpointNodes));
+	for (uint32_t i = 0; i < header.numCheckpointNodes; i++)
+	{
+		PSX::Checkpoint checkpoint = {};
+		Read(file, checkpoint);
+		m_checkpoints.emplace_back(checkpoint, static_cast<int>(i));
+	}
+	GenerateRenderCheckpointData(m_checkpoints);
+
 	m_loaded = true;
 	file.close();
 	GenerateRenderLevData();
@@ -1866,6 +1875,8 @@ void Level::GenerateRenderBspData(const BSP& bsp)
 
 void Level::GenerateRenderCheckpointData(std::vector<Checkpoint>& checkpoints)
 {
+	if (checkpoints.empty()) { return; }
+
 	static Mesh checkMesh;
 	std::vector<float> checkData;
 

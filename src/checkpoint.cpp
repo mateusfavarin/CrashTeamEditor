@@ -37,6 +37,32 @@ Checkpoint::Checkpoint(int index, const Vec3& pos, const std::string& quadName)
 	m_uiLinkRight = DEFAULT_UI_CHECKBOX_LABEL;
 }
 
+Checkpoint::Checkpoint(const PSX::Checkpoint& checkpoint, int index)
+{
+	m_index = index;
+	m_pos = ConvertPSXVec3(checkpoint.pos, FP_ONE_GEO);
+	m_distToFinish = ConvertFP(checkpoint.distToFinish, FP_ONE_CP);
+
+	auto UpdateLink = [](int& link, std::string& str, uint8_t idx)
+		{
+			link = static_cast<int>(idx);
+			if (link == UINT8_MAX)
+			{
+				link = NONE_CHECKPOINT_INDEX;
+				str = DEFAULT_UI_CHECKBOX_LABEL;
+			}
+			else
+			{
+				str = "Checkpoint " + std::to_string(link);
+			}
+		};
+	UpdateLink(m_up, m_uiLinkUp, checkpoint.linkUp);
+	UpdateLink(m_down, m_uiLinkDown, checkpoint.linkDown);
+	UpdateLink(m_left, m_uiLinkLeft, checkpoint.linkLeft);
+	UpdateLink(m_right, m_uiLinkRight, checkpoint.linkRight);
+	m_delete = false;
+}
+
 int Checkpoint::GetIndex() const
 {
 	return m_index;

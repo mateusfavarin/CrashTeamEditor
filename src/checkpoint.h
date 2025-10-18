@@ -2,6 +2,7 @@
 
 #include "geo.h"
 #include "quadblock.h"
+#include "psx_types.h"
 
 #include <string>
 #include <vector>
@@ -14,6 +15,7 @@ class Checkpoint
 public:
 	Checkpoint(int index);
 	Checkpoint(int index, const Vec3& pos, const std::string& quadName);
+	Checkpoint(const PSX::Checkpoint& checkpoint, int index);
 	int GetIndex() const;
 	float GetDistFinish() const;
 	const Vec3& GetPos() const;
