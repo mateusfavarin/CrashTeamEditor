@@ -30,7 +30,7 @@ struct BSPFlags
 struct BSPID
 {
 	static constexpr uint16_t LEAF = 0x4000;
-	static constexpr uint16_t EMPTY = 0x8000;
+	static constexpr uint16_t EMPTY = 0xFFFF;
 };
 
 static constexpr size_t MAX_QUADBLOCKS_LEAF = 32;
