@@ -183,7 +183,7 @@ bool Level::GenerateCheckpoints()
             numToRemove = numRemovable;
         }
 
-		// Euristic: Pick smallest-dist-to-next checkpoint to remove
+		// Heuristic: Pick smallest-dist-to-next checkpoint to remove
         std::unordered_set<size_t> indexesToRemove;
         auto it = distToNextMap.begin();
         for (size_t i = 0; i < numToRemove && it != distToNextMap.end(); ++i, ++it)
