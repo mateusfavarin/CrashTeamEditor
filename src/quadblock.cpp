@@ -438,6 +438,11 @@ void Quadblock::SetCheckpoint(int index)
 	m_checkpointIndex = index;
 }
 
+int Quadblock::GetCheckpoint() const
+{
+	return m_checkpointIndex;
+}
+
 void Quadblock::SetDrawDoubleSided(bool active)
 {
 	m_doubleSided = active;

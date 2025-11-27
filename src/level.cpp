@@ -154,9 +154,111 @@ bool Level::GenerateCheckpoints()
 			node.UpdateUp(static_cast<int>(linkNodeIndexes[linkUp]));
 		}
 	}
-	GenerateRenderCheckpointData(m_checkpoints);
-	return true;
+
+    // Cap the number of checkpoints to 255
+    const size_t MAX_CHECKPOINTS = 255;
+    if (m_checkpoints.size() > MAX_CHECKPOINTS)
+    {
+        std::unordered_set<size_t> protectedIndices(linkNodeIndexes.begin(), linkNodeIndexes.end());
+
+        // Build dist->index map for candidates
+        std::multimap<float, size_t> distToNextMap;
+        for (size_t i = 0; i < m_checkpoints.size(); ++i)
+        {
+            if (protectedIndices.find(i) != protectedIndices.end()) continue;
+            const Checkpoint& cp = m_checkpoints[i];
+            int downIndex = cp.GetDown();
+            if (downIndex != NONE_CHECKPOINT_INDEX)
+            {
+                float distToNext = (m_checkpoints[downIndex].GetPos() - cp.GetPos()).Length();
+                distToNextMap.insert({ distToNext, i });
+            }
+        }
+
+        size_t total = m_checkpoints.size();
+        size_t numToRemove = total - MAX_CHECKPOINTS;
+        size_t numRemovable = distToNextMap.size();
+        if (numToRemove > numRemovable)
+        {
+            numToRemove = numRemovable;
+        }
+
+		// Euristic: Pick smallest-dist-to-next checkpoint to remove
+        std::unordered_set<size_t> indexesToRemove;
+        auto it = distToNextMap.begin();
+        for (size_t i = 0; i < numToRemove && it != distToNextMap.end(); ++i, ++it)
+        {
+            indexesToRemove.insert(it->second);
+        }
+
+        // Build mapping oldIndex -> newIndex
+        std::vector<int> oldToNew(total, -1);
+        std::vector<Checkpoint> newCheckpoints;
+        newCheckpoints.reserve(MAX_CHECKPOINTS);
+
+        for (size_t old = 0; old < total; ++old)
+        {
+            if (indexesToRemove.find(old) == indexesToRemove.end())
+            {
+                int newIdx = static_cast<int>(newCheckpoints.size());
+                oldToNew[old] = newIdx;
+                // copy original checkpoint
+                newCheckpoints.push_back(m_checkpoints[old]);
+            }
+        }
+
+        // Update links
+        const int N = static_cast<int>(newCheckpoints.size());
+
+        for (int i = 0; i < N; ++i)
+        {
+            newCheckpoints[i].SetIndex(i);
+
+            int newUp   = (i + 1) % N;
+            int newDown = (i == 0) ? (N - 1) : (i - 1);
+            newCheckpoints[i].UpdateUp(newUp);
+            newCheckpoints[i].UpdateDown(newDown);
+        }
+
+        // Update quadblock checkpoint references
+        for (Quadblock& qb : m_quadblocks)
+        {
+            int oldCheckpoint = qb.GetCheckpoint();
+            if (oldCheckpoint >= 0 && oldCheckpoint < static_cast<int>(oldToNew.size()))
+            {
+                int newCheckpoint = oldToNew[oldCheckpoint];
+                if (newCheckpoint == -1)
+                {
+                    // This checkpoint was removed, find nearest valid checkpoint
+                    float minDist = std::numeric_limits<float>::max();
+                    int nearestCheckpoint = 0;
+                    Vec3 qbCenter = qb.GetBoundingBox().Midpoint();
+                    
+                    for (int i = 0; i < N; ++i)
+                    {
+                        float dist = (newCheckpoints[i].GetPos() - qbCenter).Length();
+                        if (dist < minDist)
+                        {
+                            minDist = dist;
+                            nearestCheckpoint = i;
+                        }
+                    }
+                    qb.SetCheckpoint(nearestCheckpoint);
+                }
+                else
+                {
+                    qb.SetCheckpoint(newCheckpoint);
+                }
+            }
+        }
+
+        m_checkpoints = std::move(newCheckpoints);
+    }
+
+    GenerateRenderCheckpointData(m_checkpoints);
+    return true;
 }
+
 
 enum class PresetHeader : unsigned
 {
