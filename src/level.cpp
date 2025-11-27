@@ -155,14 +155,24 @@ bool Level::GenerateCheckpoints()
 		}
 	}
 
-    // Cap the number of checkpoints to 255
+	// Cap the number of checkpoints to 255
     const size_t MAX_CHECKPOINTS = 255;
     if (m_checkpoints.size() > MAX_CHECKPOINTS)
     {
         std::unordered_set<size_t> protectedIndices(linkNodeIndexes.begin(), linkNodeIndexes.end());
+        for (size_t i = 0; i < m_checkpoints.size(); ++i)
+        {
+            const Checkpoint& cp = m_checkpoints[i];
+            if (cp.GetRight() != NONE_CHECKPOINT_INDEX || cp.GetLeft() != NONE_CHECKPOINT_INDEX)
+            {
+                protectedIndices.insert(i);
+            }
+        }
 
         // Build dist->index map for candidates
         std::multimap<float, size_t> distToNextMap;
+        std::unordered_map<size_t, float> currentDistances;
+        
         for (size_t i = 0; i < m_checkpoints.size(); ++i)
         {
             if (protectedIndices.find(i) != protectedIndices.end()) continue;
@@ -171,6 +181,7 @@ bool Level::GenerateCheckpoints()
             if (downIndex != NONE_CHECKPOINT_INDEX)
             {
                 float distToNext = (m_checkpoints[downIndex].GetPos() - cp.GetPos()).Length();
+                currentDistances[i] = distToNext;
                 distToNextMap.insert({ distToNext, i });
             }
         }
@@ -183,12 +194,44 @@ bool Level::GenerateCheckpoints()
             numToRemove = numRemovable;
         }
 
-		// Heuristic: Pick smallest-dist-to-next checkpoint to remove
+        // Heuristic: Pick smallest-dist-to-next checkpoint to remove
         std::unordered_set<size_t> indexesToRemove;
         auto it = distToNextMap.begin();
-        for (size_t i = 0; i < numToRemove && it != distToNextMap.end(); ++i, ++it)
+        for (size_t i = 0; i < numToRemove && it != distToNextMap.end(); )
         {
-            indexesToRemove.insert(it->second);
+            size_t candidateIndex = it->second;
+            indexesToRemove.insert(candidateIndex);
+            
+            // Update distance for previous checkpoint
+            const Checkpoint& removedCP = m_checkpoints[candidateIndex];
+            int upIndex = removedCP.GetUp();
+            int downIndex = removedCP.GetDown();
+            
+            if (upIndex != NONE_CHECKPOINT_INDEX && 
+                downIndex != NONE_CHECKPOINT_INDEX &&
+                protectedIndices.find(upIndex) == protectedIndices.end())
+            {
+                // Update the distance for the checkpoint before this one
+                float oldDist = currentDistances[upIndex];
+                float removedDist = currentDistances[candidateIndex];
+                float newDist = oldDist + removedDist;
+                
+                auto range = distToNextMap.equal_range(oldDist);
+                for (auto mapIt = range.first; mapIt != range.second; ++mapIt)
+                {
+                    if (mapIt->second == upIndex)
+                    {
+                        distToNextMap.erase(mapIt);
+                        break;
+                    }
+                }
+				
+                currentDistances[upIndex] = newDist;
+                distToNextMap.insert({ newDist, upIndex });
+            }
+            
+            ++it;
+            ++i;
         }
 
         // Build mapping oldIndex -> newIndex
