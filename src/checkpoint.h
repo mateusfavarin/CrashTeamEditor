@@ -17,6 +17,7 @@ public:
 	Checkpoint(int index, const Vec3& pos, const std::string& quadName);
 	Checkpoint(const PSX::Checkpoint& checkpoint, int index);
 	int GetIndex() const;
+    void SetIndex(int idx);
 	float GetDistFinish() const;
 	const Vec3& GetPos() const;
 	int GetUp() const;

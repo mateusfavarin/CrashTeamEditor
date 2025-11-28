@@ -68,6 +68,11 @@ int Checkpoint::GetIndex() const
 	return m_index;
 }
 
+void Checkpoint::SetIndex(int idx)
+{
+	m_index = idx;
+}
+
 float Checkpoint::GetDistFinish() const
 {
 	return m_distToFinish;

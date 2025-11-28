@@ -160,6 +160,7 @@ public:
 	void SetTerrain(uint8_t terrain);
 	void SetFlag(uint16_t flag);
 	void SetCheckpoint(int index);
+	int GetCheckpoint() const;
 	void SetDrawDoubleSided(bool active);
 	void SetCheckpointStatus(bool active);
 	void SetName(const std::string& name);
