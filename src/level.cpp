@@ -846,6 +846,7 @@ bool Level::LoadLEV(const std::filesystem::path& levFile)
 
 bool Level::SaveLEV(const std::filesystem::path& path)
 {
+	#define nameof(x) #x
 	/*
 	*	Serialization order:
 	*		- offMap
@@ -877,13 +878,16 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 
 	PSX::LevHeader header = {};
 	const size_t offHeader = 0;
+	printf(nameof(offHeader) " = %zx\n", offHeader);
 	size_t currOffset = sizeof(header);
 
 	PSX::MeshInfo meshInfo = {};
 	const size_t offMeshInfo = currOffset;
+	printf(nameof(offMeshInfo) " = %zx\n", offMeshInfo);
 	currOffset += sizeof(meshInfo);
 
 	const size_t offTexture = currOffset;
+	printf(nameof(offTexture) " = %zx\n", offTexture);
 	size_t offAnimData = 0;
 
 	PSX::TextureLayout defaultTex = {};
@@ -1011,6 +1015,7 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 			}
 
 			offAnimData = currOffset + (sizeof(PSX::TextureGroup) * texGroups.size());
+			printf(nameof(offAnimData) " = %zx\n", offAnimData);
 
 			animPtrMapOffsets.push_back(animData.size());
 			size_t offEndAnimData = animData.size();
@@ -1033,6 +1038,7 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 		else
 		{
 			offAnimData = currOffset + (sizeof(PSX::TextureGroup) * texGroups.size());
+			printf(nameof(offAnimData) " = %zx\n", offAnimData);
 			for (size_t i = 0; i < sizeof(uint32_t); i++) { animData.push_back(0); }
 			memcpy(&animData[0], &offAnimData, sizeof(uint32_t));
 			animPtrMapOffsets.push_back(0);
@@ -1047,6 +1053,7 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	{
 		texGroups.push_back(defaultTexGroup);
 		offAnimData = currOffset + (sizeof(PSX::TextureGroup) * texGroups.size());
+		printf(nameof(offAnimData) " = %zx\n", offAnimData);
 		for (size_t i = 0; i < sizeof(uint32_t); i++) { animData.push_back(0); }
 		memcpy(&animData[0], &offAnimData, sizeof(uint32_t));
 		animPtrMapOffsets.push_back(0);
@@ -1055,6 +1062,7 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	currOffset += (sizeof(PSX::TextureGroup) * texGroups.size()) + animData.size();
 
 	const size_t offQuadblocks = currOffset;
+	printf(nameof(offQuadblocks) " = %zx\n", offQuadblocks);
 	std::vector<std::vector<uint8_t>> serializedBSPs;
 	std::vector<std::vector<uint8_t>> serializedQuads;
 	std::vector<const Quadblock*> orderedQuads;
@@ -1148,13 +1156,14 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	currOffset += visibleQuadsAll.size() * sizeof(uint32_t);
 
 	std::vector<uint32_t> visibleInstancesDummy;
-	visibleInstancesDummy.push_back(0);
+	visibleInstancesDummy.push_back(0xFFFFFFFF);
 	visibleInstances.push_back({visibleInstancesDummy, currOffset});
 	currOffset += visibleInstancesDummy.size() * sizeof(uint32_t);
 
 	std::unordered_map<PSX::VisibleSet, size_t> visibleSetMap;
 	std::vector<PSX::VisibleSet> visibleSets;
 	const size_t offVisibleSet = currOffset;
+	printf(nameof(offVisibleSet) " = %zx\n", offVisibleSet);
 
 	for (size_t quadCount = 0; quadCount < orderedQuads.size(); quadCount++)
 	{
@@ -1181,6 +1190,7 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	currOffset += visibleSets.size() * sizeof(PSX::VisibleSet);
 
 	const size_t offVertices = currOffset;
+	printf(nameof(offVertices) " = %zx\n", offVertices);
 	std::vector<std::vector<uint8_t>> serializedVertices;
 	for (const Vertex& vertex : orderedVertices)
 	{
@@ -1189,6 +1199,7 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	}
 
 	const size_t offBSP = currOffset;
+	printf(nameof(offBSP) " = %zx\n", offBSP);
 	currOffset += bspSize;
 
 	meshInfo.numQuadblocks = static_cast<uint32_t>(serializedQuads.size());
@@ -1201,6 +1212,7 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	meshInfo.numBSPNodes = static_cast<uint32_t>(serializedBSPs.size());
 
 	const size_t offCheckpoints = currOffset;
+	printf(nameof(offCheckpoints) " = %zx\n", offCheckpoints);
 	std::vector<std::vector<uint8_t>> serializedCheckpoints;
 	for (const Checkpoint& checkpoint : m_checkpoints)
 	{
@@ -1209,9 +1221,11 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	}
 
 	const size_t offTropyGhost = m_tropyGhost.empty() ? 0 : currOffset;
+	printf(nameof(offTropyGhost) " = %zx\n", offTropyGhost);
 	currOffset += m_tropyGhost.size();
 
 	const size_t offOxideGhost = m_oxideGhost.empty() ? 0 : currOffset;
+	printf(nameof(offOxideGhost) " = %zx\n", offOxideGhost);
 	currOffset += m_oxideGhost.size();
 
 	PSX::LevelExtraHeader extraHeader = {};
@@ -1230,24 +1244,29 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	extraHeader.offsets[PSX::LevelExtra::CREDITS] = 0;
 
 	const size_t offExtraHeader = currOffset;
+	printf(nameof(offExtraHeader) " = %zx\n", offExtraHeader);
 	currOffset += sizeof(extraHeader);
 
 	constexpr size_t BOT_PATH_COUNT = 3;
 	std::vector<PSX::NavHeader> navHeaders(BOT_PATH_COUNT);
 
 	const size_t offNavHeaders = currOffset;
+	printf(nameof(offNavHeaders) " = %zx\n", offNavHeaders);
 	currOffset += navHeaders.size() * sizeof(PSX::NavHeader);
 
 	std::vector<uint32_t> visMemNodesP1(visNodeSize);
 	const size_t offVisMemNodesP1 = currOffset;
+	printf(nameof(offVisMemNodesP1) " = %zx\n", offVisMemNodesP1);
 	currOffset += visMemNodesP1.size() * sizeof(uint32_t);
 
 	std::vector<uint32_t> visMemQuadsP1(visQuadSize);
 	const size_t offVisMemQuadsP1 = currOffset;
+	printf(nameof(offVisMemQuadsP1) " = %zx\n", offVisMemQuadsP1);
 	currOffset += visMemQuadsP1.size() * sizeof(uint32_t);
 
 	std::vector<uint32_t> visMemBSPP1(bspNodes.size() * 2);
 	const size_t offVisMemBSPP1 = currOffset;
+	printf(nameof(offVisMemBSPP1) " = %zx\n", offVisMemBSPP1);
 	currOffset += visMemBSPP1.size() * sizeof(uint32_t);
 
 	PSX::VisualMem visMem = {};
@@ -1255,9 +1274,8 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	visMem.offQuads[0] = static_cast<uint32_t>(offVisMemQuadsP1);
 	visMem.offBSP[0] = static_cast<uint32_t>(offVisMemBSPP1);
 	const size_t offVisMem = currOffset;
+  printf(nameof(offVisMem) " = %zx\n", offVisMem);
 	currOffset += sizeof(visMem);
-
-	const size_t offPointerMap = currOffset;
 
 	header.offMeshInfo = static_cast<uint32_t>(offMeshInfo);
 	header.offAnimTex = static_cast<uint32_t>(offAnimData);
@@ -1281,22 +1299,287 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	header.offVisMem = static_cast<uint32_t>(offVisMem);
 	header.offLevNavTable = static_cast<uint32_t>(offNavHeaders);
 
+
+	PSX::InstDef cactus = {};
+	const size_t offCactus = currOffset;
+	printf(nameof(offCactus) " = %zx\n", offCactus);
+  currOffset += sizeof(cactus);
+
+	const size_t offInstDefList_ptrArray = currOffset;
+	printf(nameof(offInstDefList_ptrArray) " = %zx\n", offInstDefList_ptrArray);
+	uint32_t instDefList_ptrArray[2] =
+	{
+		offCactus,
+		0x0, //NULL
+	};
+	currOffset += sizeof(instDefList_ptrArray);
+
+	const size_t offInstDefList2_ptrArray = currOffset;
+	printf(nameof(offInstDefList2_ptrArray) " = %zx\n", offInstDefList2_ptrArray);
+	uint32_t instDefList2_ptrArray[2] =
+	{
+		offCactus,
+		0x0, //NULL
+	};
+	currOffset += sizeof(instDefList2_ptrArray);
+
+	for (auto& set : visibleSets)
+	{
+		size_t index = visibleSetMap[set];
+		visibleSetMap.erase(set);
+		set.offVisibleInstances = offInstDefList2_ptrArray;
+		visibleSetMap[set] = index;
+	}
+
+	header.numInstances = 1;
+	header.offInstances = (uint32_t)offCactus;
+	header.numModels = 1;
+	//header.offModels taken care of a few lines below
+	header.offModelInstances = (uint32_t)offInstDefList_ptrArray;
+
+  PSX::Model cactusModel = {};
+  const size_t offCactusModel = currOffset;
+	printf(nameof(offCactusModel) " = %zx\n", offCactusModel);
+  currOffset += sizeof(cactusModel);
+
+	const size_t offModelList_ptrArray = currOffset;
+	printf(nameof(offModelList_ptrArray) " = %zx\n", offModelList_ptrArray);
+	uint32_t modelList_ptrArray[2] =
+	{
+		offCactusModel,
+		0x0, //NULL
+	};
+	currOffset += sizeof(modelList_ptrArray);
+  header.offModels = (uint32_t)offModelList_ptrArray;
+
+  PSX::ModelHeader cactusModelHeader = {};
+  const size_t offCactusModelHeader = currOffset;
+	printf(nameof(offCactusModelHeader) " = %zx\n", offCactusModelHeader);
+  currOffset += sizeof(cactusModelHeader);
+
+	char commandList[] =
+	{
+		0x1C, 0x00, 0x00, 0x00, 0x01, 0x10, 0x0E, 0xB8, 0x01, 0x0E, 0x0F, 0x38, 0x01, 0x0C, 0x57, 0x38, 0x02, 0x04, 0x10, 0x18, 0x01, 0x00, 0x57, 0x38, 0x02, 0x2C, 0x11, 0x18, 0x01, 0x00, 0x57, 0x38, 0x02, 0x2C, 0x12, 0x18, 0x01, 0x2A, 0x57, 0x38, 0x02, 0x04, 0x13, 0x18, 0x01, 0x28, 0x57, 0x38, 0x02, 0x2C, 0x14, 0x18, 0x01, 0x10, 0x0E, 0x3C, 0x02, 0x0E, 0x0F, 0x1C, 0x03, 0x26, 0x0E, 0x58, 0x04, 0x24, 0x0F, 0x38, 0x01, 0x22, 0x15, 0x78, 0x05, 0x04, 0x10, 0x7C, 0x06, 0x20, 0x10, 0x18, 0x01, 0x2C, 0x11, 0x3C, 0x02, 0x00, 0x11, 0x18, 0x07, 0x1E, 0x16, 0x38, 0x08, 0x1C, 0x17, 0x78, 0x09, 0x2C, 0x12, 0x7C, 0x0A, 0x26, 0x12, 0x18, 0x09, 0x00, 0x18, 0x38, 0x01, 0x04, 0x13, 0x7C, 0x02, 0x04, 0x13, 0x18, 0x05, 0x2C, 0x14, 0x3C, 0x06, 0x1A, 0x14, 0x18, 0x0B, 0x18, 0x19, 0x38, 0x04, 0x26, 0x0E, 0x7C, 0x03, 0x16, 0x0E, 0x18, 0x04, 0x26, 0x1A, 0x38, 0x01, 0x24, 0x0F, 0x7C, 0x02, 0x14, 0x0F, 0x18, 0x01, 0x1E, 0x1B, 0x38, 0x0C, 0x22, 0x15, 0x7C, 0x0D, 0x1A, 0x14, 0x1C, 0x02, 0x18, 0x19, 0x5C, 0x03, 0x12, 0x19, 0x58, 0x04, 0x16, 0x0E, 0x3C, 0x09, 0x12, 0x57, 0x18, 0x0E, 0x26, 0x1A, 0x3C, 0x07, 0x14, 0x0F, 0x1C, 0x07, 0x12, 0x19, 0x5C, 0x0C, 0x1E, 0x1B, 0x3C, 0x01, 0x1A, 0x14, 0xBC, 0x01, 0x36, 0x0E, 0x38, 0x01, 0x22, 0x15, 0x3C, 0x02, 0x2E, 0x0F, 0x18, 0x01, 0x20, 0x10, 0x3C, 0x02, 0x20, 0x10, 0x18, 0x01, 0x00, 0x11, 0x3C, 0x02, 0x30, 0x11, 0x18, 0x01, 0x00, 0x18, 0x3C, 0x07, 0x0A, 0x15, 0x78, 0x08, 0x1E, 0x16, 0x7C, 0x0E, 0x16, 0x16, 0x18, 0x08, 0x08, 0x19, 0x38, 0x09, 0x1C, 0x17, 0x7C, 0x0A, 0x06, 0x17, 0x18, 0x09, 0x26, 0x12, 0x3C, 0x0A, 0x26, 0x12, 0x18, 0x09, 0x0A, 0x15, 0x3C, 0x0F, 0x00, 0x18, 0x7C, 0x10, 0x0A, 0x15, 0x9C, 0x10, 0x16, 0x16, 0x1C, 0x10, 0x26, 0x12, 0x1C, 0x11, 0x08, 0x57, 0x38, 0x12, 0x06, 0x17, 0x1C, 0x06, 0x08, 0x19, 0x3C, 0x06, 0x16, 0x16, 0x7C, 0x02, 0x30, 0x11, 0x9C, 0x02, 0x00, 0x18, 0x1C, 0x02, 0x32, 0x12, 0x18, 0x01, 0x04, 0x13, 0x3C, 0x02, 0x02, 0x57, 0x18, 0x01, 0x1A, 0x14, 0x3C, 0x02, 0x36, 0x0E, 0x1C, 0x09, 0x34, 0x57, 0x58, 0x12, 0x32, 0x12, 0x5C, 0x06, 0x30, 0x11, 0x3C, 0x06, 0x20, 0x10, 0x7C, 0x06, 0x2E, 0x0F, 0x7C, 0x06, 0x36, 0x0E, 0x7C, 0xFF, 0xFF, 0xFF, 0xFF
+	};
+  const size_t offCommandList = currOffset;
+	printf(nameof(offCommandList) " = %zx\n", offCommandList);
+  currOffset += sizeof(commandList);
+
+  PSX::ModelFrame cactusModelFrame = {};
+  const size_t offCactusModelFrame = currOffset;
+	printf(nameof(offCactusModelFrame) " = %zx\n", offCactusModelFrame);
+  currOffset += sizeof(cactusModelFrame);
+
+	char cactusVertexData[] =
+	{ //the beginning of this data is definitely cactus vertex data, but we don't know how long it is, so we copied an amount that was large enough that we were sure it was at least "all of it"
+		0xAE, 0xB3, 0x00, 0xA3, 0xB3, 0x70, 0x8F, 0xE4, 0x00, 0x83, 0xE9, 0x4E, 0x70, 0xB3, 0x00, 0x58, 0xA9, 0x4D, 0x70, 0x50, 0x00, 0x58, 0x5C, 0x4D, 0x8F, 0x1F, 0x00, 0x83, 0x13, 0x4E, 0xAE, 0x50, 0x00, 0xA4, 0x55, 0x68, 0xCA, 0x59, 0x6E, 0xC9, 0xB1, 0x70, 0xA2, 0xA7, 0x8E, 0x7D, 0xFE, 0x85, 0x52, 0xB1, 0x62, 0x3A, 0xA3, 0x66, 0x38, 0x9F, 0x53, 0x38, 0x67, 0x50, 0x53, 0x53, 0x68, 0x7A, 0x00, 0x99, 0xA3, 0x61, 0x97, 0xC4, 0x51, 0x8E, 0xDD, 0x47, 0xBA, 0xF6, 0x57, 0x8B, 0xF3, 0xB6, 0x92, 0xC4, 0xB4, 0x8C, 0xE0, 0xBB, 0xB4, 0xFE, 0x83, 0xAA, 0x9D, 0x51, 0xF1, 0x9D, 0xB3, 0xF1, 0x7D, 0xE4, 0xF2, 0x5E, 0xB3, 0xF2, 0x3B, 0x61, 0x6A, 0x20, 0x44, 0x98, 0x1B, 0xBF, 0x91, 0x05, 0xB7, 0x75, 0x00, 0x4F, 0x6E, 0x00, 0x6F, 0x8C, 0x5E, 0x51, 0xF2, 0x7D, 0x20, 0xF2, 0x7E, 0x82, 0xFF, 0x00, 0x00, 0x00, 0xF4, 0x47, 0x06, 0x00, 0x00, 0x48, 0x06, 0x00, 0x0C, 0x48, 0x06, 0x00, 0x18, 0x48, 0x06, 0x00, 0x24, 0x48, 0x06, 0x00, 0x30, 0x48, 0x06, 0x00, 0x3C, 0x48, 0x06, 0x00, 0x48, 0x48, 0x06, 0x00, 0x54, 0x48, 0x06, 0x00, 0x60, 0x48, 0x06, 0x00, 0x6C, 0x48, 0x06, 0x00, 0x78, 0x48, 0x06, 0x00, 0x84, 0x48, 0x06, 0x00, 0x90, 0x48, 0x06, 0x00, 0x9C, 0x48, 0x06, 0x00, 0xA8, 0x48, 0x06, 0x00, 0xB4, 0x48, 0x06, 0x00, 0xC0, 0x48, 0x06, 0x00, 0x5F, 0xE0, 0x38, 0x73, 0x5F, 0xFF, 0x7A, 0x00, 0x40, 0xE0, 0x40, 0xE0, 0x5F, 0xFF, 0x38, 0x73, 0x40, 0xE0, 0x7A, 0x00, 0x40, 0xFF, 0x40, 0xFF, 0x5F, 0xE0, 0x38, 0x73, 0x40, 0xE0, 0x7A, 0x00, 0x5F, 0xFF, 0x5F, 0xFF, 0x40, 0xE0, 0x38, 0x73, 0x5F, 0xFF, 0x7A, 0x00, 0x40, 0xFF, 0x40, 0xFF, 0x5F, 0xFF, 0x38, 0x73, 0x5F, 0xE0, 0x7A, 0x00, 0x40, 0xFF, 0x40, 0xFF, 0x5F, 0xE0, 0x38, 0x73, 0x40, 0xFF, 0x7A, 0x00, 0x40, 0xE0, 0x40, 0xE0, 0x5F, 0xE0, 0x38, 0x73, 0x40, 0xE0, 0x7A, 0x00, 0x40, 0xFF, 0x40, 0xFF, 0x5F, 0xE0, 0x38, 0x73, 0x40, 0xFF, 0x7A, 0x00, 0x5F, 0xFF, 0x5F, 0xFF, 0x40, 0xE0, 0x38, 0x73, 0x40, 0xFF, 0x7A, 0x00, 0x5F, 0xE0, 0x5F, 0xE0, 0x40, 0xFF, 0x38, 0x73, 0x5F, 0xE0, 0x7A, 0x00, 0x5F, 0xFF, 0x5F, 0xFF, 0x40, 0xE0, 0x38, 0x73, 0x5F, 0xE0, 0x7A, 0x00, 0x5F, 0xFF, 0x5F, 0xFF, 0x5F, 0xFF, 0x38, 0x73, 0x40, 0xFF, 0x7A, 0x00, 0x40, 0xE0, 0x40, 0xE0, 0x5F, 0xFF, 0x38, 0x73, 0x5F, 0xE0, 0x7A, 0x00, 0x40, 0xE0, 0x40, 0xE0, 0x40, 0xE0, 0x38, 0x73, 0x5F, 0xE0, 0x7A, 0x00, 0x40, 0xFF, 0x40, 0xFF, 0x40, 0xFF, 0x38, 0x73, 0x5F, 0xFF, 0x7A, 0x00, 0x5F, 0xE0, 0x5F, 0xE0, 0x5F, 0xE0, 0x38, 0x73, 0x5F, 0xFF, 0x7A, 0x00, 0x40, 0xFF, 0x40, 0xFF, 0x40, 0xFF, 0x38, 0x73, 0x40, 0xE0, 0x7A, 0x00, 0x5F, 0xE0, 0x5F, 0xE0, 0x40, 0xFF, 0x38, 0x73, 0x5F, 0xE0, 0x7A, 0x00, 0x00, 0x00, 0x00, 0x00
+	};
+	const size_t offCactusVertexData = currOffset; //not used
+	printf(nameof(offCactusVertexData) " = %zx\n", offCactusVertexData);
+  currOffset += sizeof(cactusVertexData);
+
+	PSX::TextureLayout cactusTextureLayouts[18] = {};
+	memcpy(&cactusTextureLayouts[0],  "\x5F\xE0\x38\x73\x5F\xFF\x7A\x00\x40\xE0\x40\xE0", sizeof(PSX::TextureLayout));
+	memcpy(&cactusTextureLayouts[1],  "\x5F\xFF\x38\x73\x40\xE0\x7A\x00\x40\xFF\x40\xFF", sizeof(PSX::TextureLayout));
+	memcpy(&cactusTextureLayouts[2],  "\x5F\xE0\x38\x73\x40\xE0\x7A\x00\x5F\xFF\x5F\xFF", sizeof(PSX::TextureLayout));
+	memcpy(&cactusTextureLayouts[3],  "\x40\xE0\x38\x73\x5F\xFF\x7A\x00\x40\xFF\x40\xFF", sizeof(PSX::TextureLayout));
+	memcpy(&cactusTextureLayouts[4],  "\x5F\xFF\x38\x73\x5F\xE0\x7A\x00\x40\xFF\x40\xFF", sizeof(PSX::TextureLayout));
+	memcpy(&cactusTextureLayouts[5],  "\x5F\xE0\x38\x73\x40\xFF\x7A\x00\x40\xE0\x40\xE0", sizeof(PSX::TextureLayout));
+	memcpy(&cactusTextureLayouts[6],  "\x5F\xE0\x38\x73\x40\xE0\x7A\x00\x40\xFF\x40\xFF", sizeof(PSX::TextureLayout));
+	memcpy(&cactusTextureLayouts[7],  "\x5F\xE0\x38\x73\x40\xFF\x7A\x00\x5F\xFF\x5F\xFF", sizeof(PSX::TextureLayout));
+	memcpy(&cactusTextureLayouts[8],  "\x40\xE0\x38\x73\x40\xFF\x7A\x00\x5F\xE0\x5F\xE0", sizeof(PSX::TextureLayout));
+	memcpy(&cactusTextureLayouts[9],  "\x40\xFF\x38\x73\x5F\xE0\x7A\x00\x5F\xFF\x5F\xFF", sizeof(PSX::TextureLayout));
+	memcpy(&cactusTextureLayouts[10], "\x40\xE0\x38\x73\x5F\xE0\x7A\x00\x5F\xFF\x5F\xFF", sizeof(PSX::TextureLayout));
+	memcpy(&cactusTextureLayouts[11], "\x5F\xFF\x38\x73\x40\xFF\x7A\x00\x40\xE0\x40\xE0", sizeof(PSX::TextureLayout));
+	memcpy(&cactusTextureLayouts[12], "\x5F\xFF\x38\x73\x5F\xE0\x7A\x00\x40\xE0\x40\xE0", sizeof(PSX::TextureLayout));
+	memcpy(&cactusTextureLayouts[13], "\x40\xE0\x38\x73\x5F\xE0\x7A\x00\x40\xFF\x40\xFF", sizeof(PSX::TextureLayout));
+	memcpy(&cactusTextureLayouts[14], "\x40\xFF\x38\x73\x5F\xFF\x7A\x00\x5F\xE0\x5F\xE0", sizeof(PSX::TextureLayout));
+	memcpy(&cactusTextureLayouts[15], "\x5F\xE0\x38\x73\x5F\xFF\x7A\x00\x40\xFF\x40\xFF", sizeof(PSX::TextureLayout));
+	memcpy(&cactusTextureLayouts[16], "\x40\xFF\x38\x73\x40\xE0\x7A\x00\x5F\xE0\x5F\xE0", sizeof(PSX::TextureLayout));
+	memcpy(&cactusTextureLayouts[17], "\x40\xFF\x38\x73\x5F\xE0\x7A\x00\x40\xE0\x40\xE0", sizeof(PSX::TextureLayout));
+	const size_t offCactusTextureLayouts = currOffset;
+	printf(nameof(offCactusTextureLayouts) " = %zx\n", offCactusTextureLayouts);
+  currOffset += sizeof(cactusTextureLayouts);
+
+	const size_t offCactusTextureLayout_ptrArray = currOffset;
+	printf(nameof(offCactusTextureLayout_ptrArray) " = %zx\n", offCactusTextureLayout_ptrArray);
+	uint32_t cactusTextureLayout_ptrArray[18] =
+	{
+		offCactusTextureLayouts + (sizeof(PSX::TextureLayout) * 0),
+		offCactusTextureLayouts + (sizeof(PSX::TextureLayout) * 1),
+		offCactusTextureLayouts + (sizeof(PSX::TextureLayout) * 2),
+		offCactusTextureLayouts + (sizeof(PSX::TextureLayout) * 3),
+		offCactusTextureLayouts + (sizeof(PSX::TextureLayout) * 4),
+		offCactusTextureLayouts + (sizeof(PSX::TextureLayout) * 5),
+		offCactusTextureLayouts + (sizeof(PSX::TextureLayout) * 6),
+		offCactusTextureLayouts + (sizeof(PSX::TextureLayout) * 7),
+		offCactusTextureLayouts + (sizeof(PSX::TextureLayout) * 8),
+		offCactusTextureLayouts + (sizeof(PSX::TextureLayout) * 9),
+		offCactusTextureLayouts + (sizeof(PSX::TextureLayout) * 10),
+		offCactusTextureLayouts + (sizeof(PSX::TextureLayout) * 11),
+		offCactusTextureLayouts + (sizeof(PSX::TextureLayout) * 12),
+		offCactusTextureLayouts + (sizeof(PSX::TextureLayout) * 13),
+		offCactusTextureLayouts + (sizeof(PSX::TextureLayout) * 14),
+		offCactusTextureLayouts + (sizeof(PSX::TextureLayout) * 15),
+		offCactusTextureLayouts + (sizeof(PSX::TextureLayout) * 16),
+		offCactusTextureLayouts + (sizeof(PSX::TextureLayout) * 17),
+	};
+  currOffset += sizeof(cactusTextureLayout_ptrArray);
+
+	//PSX::CLUT cactusColorsCLUT = {};
+	//memcpy(&cactusColorsCLUT, "\x2F\x33", sizeof(PSX::CLUT));
+ // const size_t offCactusCLUT = currOffset;
+	//printf(nameof(offCactusCLUT) " = %zx\n", offCactusCLUT);
+ // currOffset += sizeof(PSX::CLUT);
+
+	char cactusColorsCLUTData[256] = 
+	{
+		0x2F, 0x33, 0x19, 0x00, 0xCB, 0xB6, 0x2D, 0x00, 0x9E, 0x8F, 0x29, 0x00, 0x0E, 0x0C, 0x0E, 0x00, 0xD2, 0xBD, 0x2E, 0x00, 0x84, 0x79, 0x26, 0x00, 0x20, 0x22, 0x13, 0x00, 0x24, 0x24, 0x17, 0x00, 0x2F, 0x31, 0x19, 0x00, 0xD0, 0xB9, 0x2E, 0x00, 0x22, 0x22, 0x15, 0x00, 0xC5, 0xB2, 0x2C, 0x00, 0x65, 0x65, 0x29, 0x00, 0x3C, 0x42, 0x16, 0x00, 0x11, 0x0F, 0x11, 0x00, 0x81, 0x76, 0x26, 0x00, 0xFF, 0xE5, 0x38, 0x00, 0x42, 0x46, 0x20, 0x00, 0x12, 0x10, 0x12, 0x00, 0x25, 0x29, 0x2C, 0x00, 0x1A, 0x1C, 0x0C, 0x00, 0x4E, 0x48, 0x20, 0x00, 0x1B, 0x11, 0x2A, 0x00, 0x66, 0x6E, 0x29, 0x00, 0x41, 0x46, 0x1D, 0x00, 0x3D, 0x43, 0x17, 0x00, 0x80, 0x8C, 0x2F, 0x00, 0x62, 0x6B, 0x24, 0x00, 0x72, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x95, 0x00, 0x01, 0x00, 0x54, 0x49, 0x06, 0x00, 0x72, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0x4F, 0x07, 0x82, 0x07, 0x49, 0x03, 0x00, 0x00, 0xB4, 0x49, 0x06, 0x00, 0x74, 0x4B, 0x06, 0x00, 0xC4, 0x4C, 0x06, 0x00, 0x04, 0x51, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x04, 0x00, 0x00, 0xAE, 0xFF, 0xEE, 0xFF, 0xAE, 0xFF, 0x52, 0x00, 0x92, 0x00, 0x52, 0x00, 0x00, 0x00, 0x3F, 0x00, 0x00, 0x00, 0x52, 0x00, 0xDF, 0x1A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x13, 0x00, 0x00, 0x00, 0x01, 0x00, 0x57, 0xB8, 0x01, 0x00, 0x57, 0x38, 0x01, 0x00, 0x57, 0x38, 0x02, 0x00, 0x57, 0x18, 0x03, 0x22, 0x57, 0xB8
+	};
+	const size_t offCactusColorsCLUTData = currOffset;
+	printf(nameof(offCactusColorsCLUTData) " = %zx\n", offCactusColorsCLUTData);
+  currOffset += sizeof(cactusColorsCLUTData);
+
+	//set up InstDef
+	memcpy(&cactus.name, "cactus_saguro#2", 16);
+	cactus.offModel = offCactusModel;
+	cactus.scale.x = cactus.scale.y = cactus.scale.z = 0x1000;
+	cactus.maybeScaleMaybePadding = 0x0;
+	cactus.colorRGBA = 0x0;
+	//cactus.flags = 0xB;
+	//0xB = 1011 (cactus)
+	//0xF = 1111 (armadillo)
+	cactus.flags = 0xB;
+	cactus.unk24 = 0x0;
+	cactus.unk28 = 0x0;
+	cactus.offInstance = 0x0; //filled in at runtime (connect InstDef to Instance)
+	//cactus.pos.x = 0x0C2D;
+	//cactus.pos.y = 0x0900;
+	//cactus.pos.z = 0xED86;
+  //cactus.pos.x = 0x4000;
+	cactus.pos.x = 0x0000;
+	cactus.pos.y = 0x0000;
+	cactus.pos.z = 0x0000;
+	cactus.rot.x = 0x0000;
+	cactus.rot.y = 0xFF94;
+	cactus.rot.z = 0x0000;
+	cactus.modelID = 0xFFFFFFFF;
+
+	//set up Model
+	memcpy(&cactusModel.name, "cactus_saguro", 14);
+	cactusModel.id = 0xFFFF;
+	cactusModel.numHeaders = 0x0001;
+	cactusModel.offHeaders = offCactusModelHeader;
+
+  //set up ModelHeader
+	memcpy(&cactusModelHeader.name, "cactus_saguro_h", 16);
+	cactusModelHeader.unk1 = 0x0;
+	cactusModelHeader.maxDistanceLOD = 0x2000;
+	cactusModelHeader.flags = 0x0000;
+	cactusModelHeader.scale.x = 0x271E;
+	cactusModelHeader.scale.y = 0x2B3B;
+	cactusModelHeader.scale.z = 0x0E5E;
+  cactusModelHeader.maybeScaleMaybePadding = 0x0;
+	cactusModelHeader.offCommandList = offCommandList;
+  cactusModelHeader.offFrameData = offCactusModelFrame;
+	cactusModelHeader.offTexLayout = offCactusTextureLayout_ptrArray;
+	cactusModelHeader.offColors = offCactusColorsCLUTData;
+	cactusModelHeader.unk3 = 0x0;
+	cactusModelHeader.numAnimations = 0x0;
+	cactusModelHeader.offAnimations = 0x0;
+	cactusModelHeader.offAnimtex = 0x0;
+
+	//set up commandList
+	//already taken care of up top
+
+	//set up cactusModelFrame
+	cactusModelFrame.pos.x = 0xFF65;
+	cactusModelFrame.pos.y = 0x0000;
+	cactusModelFrame.pos.z = 0xFF7E;
+	cactusModelFrame.maybePosMaybePadding = 0x0;
+	memcpy(&cactusModelFrame.unk16, "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", 16);
+	cactusModelFrame.vertexOffset = 0x1C;
+	//TODO verts immediately following this??? not sure
+
+	//set up cactusColorsCLUT
+	//already taken care of up top
+
+	//char bunchOfFs[] =
+	//{
+	//	0xFF, 0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF, 0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF, 0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF, 0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF
+	//};
+	//const size_t offBunchOfFs = currOffset;
+	//printf(nameof(offBunchOfFs) " = %zx\n", offBunchOfFs);
+	//currOffset += sizeof(offBunchOfFs);
+
+	//header.offUnk_0x1C = offBunchOfFs;
+	//header.offUnk_0x20 = offBunchOfFs;
+	//header.offUnk_0xCC = offBunchOfFs;
+	//header.offUnk_0xD0 = offBunchOfFs;
+	//header.unk_0x170 = offBunchOfFs;
+
 #define CALCULATE_OFFSET(s, m, b) static_cast<uint32_t>(offsetof(s, m) + b)
+
+	const size_t offPaddingForMultOfFour = currOffset;
+	printf(nameof(offPaddingForMultOfFour) " = %zx\n", offPaddingForMultOfFour);
+	size_t paddingSizeForMultOfFour = 4 - (offPaddingForMultOfFour % 4);
+	paddingSizeForMultOfFour = (paddingSizeForMultOfFour == 4) ? 0 : paddingSizeForMultOfFour;
+
+	const size_t offPointerMap = currOffset;
+	printf(nameof(offPointerMap) " = %zx\n", offPointerMap);
 
 	std::vector<uint32_t> pointerMap =
 	{
 		CALCULATE_OFFSET(PSX::LevHeader, offMeshInfo, offHeader),
+		CALCULATE_OFFSET(PSX::LevHeader, offInstances, offHeader),
+		CALCULATE_OFFSET(PSX::LevHeader, offModels, offHeader),
+		CALCULATE_OFFSET(PSX::LevHeader, offModelInstances, offHeader),
 		CALCULATE_OFFSET(PSX::LevHeader, offExtra, offHeader),
 		CALCULATE_OFFSET(PSX::LevHeader, offCheckpointNodes, offHeader),
 		CALCULATE_OFFSET(PSX::LevHeader, offVisMem, offHeader),
 		CALCULATE_OFFSET(PSX::LevHeader, offAnimTex, offHeader),
 		CALCULATE_OFFSET(PSX::LevHeader, offLevNavTable, offHeader),
+
+		//CALCULATE_OFFSET(PSX::LevHeader, offUnk_0x1C, offHeader),
+		//CALCULATE_OFFSET(PSX::LevHeader, offUnk_0x20, offHeader),
+		//CALCULATE_OFFSET(PSX::LevHeader, offUnk_0xCC, offHeader),
+		//CALCULATE_OFFSET(PSX::LevHeader, offUnk_0xD0, offHeader),
+		//CALCULATE_OFFSET(PSX::LevHeader, unk_0x170, offHeader),
+
 		CALCULATE_OFFSET(PSX::MeshInfo, offQuadblocks, offMeshInfo),
 		CALCULATE_OFFSET(PSX::MeshInfo, offVertices, offMeshInfo),
 		CALCULATE_OFFSET(PSX::MeshInfo, offBSPNodes, offMeshInfo),
 		CALCULATE_OFFSET(PSX::VisualMem, offNodes[0], offVisMem),
 		CALCULATE_OFFSET(PSX::VisualMem, offQuads[0], offVisMem),
 		CALCULATE_OFFSET(PSX::VisualMem, offBSP[0], offVisMem),
+
+		CALCULATE_OFFSET(PSX::InstDef, offModel, offCactus),
+		CALCULATE_OFFSET(PSX::Model, offHeaders, offCactusModel),
+		CALCULATE_OFFSET(PSX::ModelHeader, offCommandList, offCactusModelHeader),
+		CALCULATE_OFFSET(PSX::ModelHeader, offFrameData, offCactusModelHeader),
+		CALCULATE_OFFSET(PSX::ModelHeader, offTexLayout, offCactusModelHeader),
+		CALCULATE_OFFSET(PSX::ModelHeader, offColors, offCactusModelHeader),
+		(uint32_t)offInstDefList_ptrArray,
+		(uint32_t)offInstDefList2_ptrArray,
+		(uint32_t)offModelList_ptrArray,
+		(uint32_t)(offCactusTextureLayout_ptrArray + sizeof(uint32_t) * 0),
+		(uint32_t)(offCactusTextureLayout_ptrArray + sizeof(uint32_t) * 1),
+		(uint32_t)(offCactusTextureLayout_ptrArray + sizeof(uint32_t) * 2),
+		(uint32_t)(offCactusTextureLayout_ptrArray + sizeof(uint32_t) * 3),
+		(uint32_t)(offCactusTextureLayout_ptrArray + sizeof(uint32_t) * 4),
+		(uint32_t)(offCactusTextureLayout_ptrArray + sizeof(uint32_t) * 5),
+		(uint32_t)(offCactusTextureLayout_ptrArray + sizeof(uint32_t) * 6),
+		(uint32_t)(offCactusTextureLayout_ptrArray + sizeof(uint32_t) * 7),
+		(uint32_t)(offCactusTextureLayout_ptrArray + sizeof(uint32_t) * 8),
+		(uint32_t)(offCactusTextureLayout_ptrArray + sizeof(uint32_t) * 9),
+		(uint32_t)(offCactusTextureLayout_ptrArray + sizeof(uint32_t) * 10),
+		(uint32_t)(offCactusTextureLayout_ptrArray + sizeof(uint32_t) * 11),
+		(uint32_t)(offCactusTextureLayout_ptrArray + sizeof(uint32_t) * 12),
+		(uint32_t)(offCactusTextureLayout_ptrArray + sizeof(uint32_t) * 13),
+		(uint32_t)(offCactusTextureLayout_ptrArray + sizeof(uint32_t) * 14),
+		(uint32_t)(offCactusTextureLayout_ptrArray + sizeof(uint32_t) * 15),
+		(uint32_t)(offCactusTextureLayout_ptrArray + sizeof(uint32_t) * 16),
+		(uint32_t)(offCactusTextureLayout_ptrArray + sizeof(uint32_t) * 17),
 	};
 
 	if (offTropyGhost != 0) { pointerMap.push_back(CALCULATE_OFFSET(PSX::LevelExtraHeader, offsets[PSX::LevelExtra::N_TROPY_GHOST], offExtraHeader)); }
@@ -1374,6 +1657,25 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	Write(file, visMemQuadsP1.data(), visMemQuadsP1.size() * sizeof(uint32_t));
 	Write(file, visMemBSPP1.data(), visMemBSPP1.size() * sizeof(uint32_t));
 	Write(file, &visMem, sizeof(visMem));
+  Write(file, &cactus, sizeof(cactus));
+	Write(file, &instDefList_ptrArray[0], sizeof(instDefList_ptrArray));
+	Write(file, &instDefList2_ptrArray[0], sizeof(instDefList2_ptrArray));
+	Write(file, &cactusModel, sizeof(cactusModel));
+	Write(file, &modelList_ptrArray[0], sizeof(modelList_ptrArray));
+  Write(file, &cactusModelHeader, sizeof(cactusModelHeader));
+	Write(file, &commandList, sizeof(commandList));
+  Write(file, &cactusModelFrame, sizeof(cactusModelFrame));
+	Write(file, &cactusVertexData[0], sizeof(cactusVertexData));
+  Write(file, &cactusTextureLayouts[0], sizeof(cactusTextureLayouts));
+	Write(file, &cactusTextureLayout_ptrArray[0], sizeof(cactusTextureLayout_ptrArray));
+  Write(file, &cactusColorsCLUTData, sizeof(cactusColorsCLUTData));
+	//Write(file, &bunchOfFs[0], sizeof(bunchOfFs));
+	uint32_t fourBytesOfZero = 0;
+	if (paddingSizeForMultOfFour > 0)
+	{
+		printf("WARNING: HAD TO PAD %d BYTES\n", paddingSizeForMultOfFour);
+		Write(file, &fourBytesOfZero, paddingSizeForMultOfFour);
+	}
 	Write(file, &pointerMapBytes, sizeof(uint32_t));
 	Write(file, pointerMap.data(), pointerMapBytes);
 	file.close();
