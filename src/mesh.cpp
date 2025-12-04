@@ -251,7 +251,7 @@ void Mesh::SetTextureStore(const std::map<int, std::filesystem::path>& texturePa
     const std::filesystem::path& path = texturePaths.at(texIndex);
     int w, h, channels;
     stbi_uc* originalData;
-    originalData = stbi_load(path.generic_string().c_str(), &w, &h, &channels, 0);
+    originalData = stbi_load(path.generic_string().c_str(), &w, &h, &channels, 4);
 
     constexpr int ww = 256, hh = 256;
     static unsigned char finalData[ww * hh * 4];
@@ -270,11 +270,10 @@ void Mesh::SetTextureStore(const std::map<int, std::filesystem::path>& texturePa
     {
       memset(finalData, 0xFF, ww * hh * 4);
 
-      stbir_resize(originalData, w, h, channels * w, finalData, ww, hh, 4 * ww, stbir_pixel_layout::STBIR_RGBA, stbir_datatype::STBIR_TYPE_UINT8, stbir_edge::STBIR_EDGE_CLAMP, stbir_filter::STBIR_FILTER_POINT_SAMPLE);
-
-      //stbir_resize_uint8_srgb(originalData, w, h, channels * w, finalData, ww, hh, 4 * ww, stbir_pixel_layout::STBIR_RGBA);
+      stbir_resize(originalData, w, h, 4 * w, finalData, ww, hh, 4 * ww, stbir_pixel_layout::STBIR_RGBA, stbir_datatype::STBIR_TYPE_UINT8, stbir_edge::STBIR_EDGE_CLAMP, stbir_filter::STBIR_FILTER_POINT_SAMPLE);
 
       glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, static_cast<GLint>(texIndex), 256, 256, 1, GL_RGBA, GL_UNSIGNED_BYTE, (const void*)finalData);
+      stbi_image_free(originalData);
     }
   }
 }

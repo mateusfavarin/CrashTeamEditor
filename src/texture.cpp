@@ -169,7 +169,7 @@ PSX::TextureLayout Texture::Serialize(const QuadUV& uvs)
 			else { n1--; }
 		};
 
-	if (std::max(layout.u0, layout.u1) - std::min(layout.u0, layout.u1) > std::max(layout.v0, layout.v1) - std::min(layout.v0, layout.v1))
+	if (std::max(u0, u1) - std::min(u0, u1) > std::max(v0, v1) - std::min(v0, v1))
 	{
 		FixOffByOne(u0, u1);
 		FixOffByOne(u2, u3);
