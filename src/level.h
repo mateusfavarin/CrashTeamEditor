@@ -78,6 +78,7 @@ private:
 	bool GenerateBSP();
 
 	void OpenHotReloadWindow();
+	void OpenModelExtractorWindow();
 	void RenderUI(Renderer& renderer);
 
 	void InitModels(Renderer& renderer);
@@ -96,6 +97,7 @@ private:
 	bool m_saveScript;
 	bool m_showLogWindow;
 	bool m_showHotReloadWindow;
+	bool m_showModelExtractorWindow;
 	bool m_loaded;
 	bool m_simpleVisTree;
 	bool m_genVisTree;
@@ -111,6 +113,8 @@ private:
 	std::filesystem::path m_parentPath;
 	std::filesystem::path m_hotReloadLevPath;
 	std::filesystem::path m_hotReloadVRMPath;
+	std::filesystem::path m_modelExtractorLevPath;
+	std::filesystem::path m_modelExtractorVrmPath;
 
 	std::array<Spawn, NUM_DRIVERS> m_spawn;
 	uint32_t m_configFlags;
