@@ -1719,7 +1719,7 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 					//maybe calculate it based on the normal of the quad that it's sitting on?
 					Vec3 pos{};
 					Vec3 rot{}; //don't know for now
-					m_levInstPosRot[e.second] = std::make_tuple(pos, rot);
+					//m_levInstPosRot[e.second] = std::make_tuple(pos, rot);
 					m_levelInstancesModels.push_back(Model(&SimpleLevelInstances::GetMeshInstance(e.second), glm::vec3(pos.x, pos.y, pos.z), glm::vec3(1.f, 1.f, 1.f), glm::quat(0.f, 0.f, 0.f, 0.f)));
 					isLevInstStub = true;
 					break;
