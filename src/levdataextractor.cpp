@@ -140,10 +140,12 @@ void LevDataExtractor::ExtractModels(void)
 				numberOfCommands = commandListEntryIndex + 1;
         const PSX::InstDrawCommand& command = commandList[commandListEntryIndex];
 
-				referencedTextures.insert({ command.texCoordIndex, textureIndexCounter });
-				textureIndexCounter++;
-				referencedColorCoords.insert({ command.colorCoordIndex, colorCoordIndexCounter });
-				colorCoordIndexCounter++;
+				// Only increment counter if we actually inserted a new entry
+				auto texResult = referencedTextures.insert({ command.texCoordIndex, textureIndexCounter });
+				if (texResult.second) { textureIndexCounter++; }
+
+				auto colorResult = referencedColorCoords.insert({ command.colorCoordIndex, colorCoordIndexCounter });
+				if (colorResult.second) { colorCoordIndexCounter++; }
 
 				if (command.readNextVertFromStackIndexFlag == 0) { numberOfStoredVerts++; }
 			}
@@ -156,6 +158,17 @@ void LevDataExtractor::ExtractModels(void)
 			const size_t commandListSize = (numberOfCommands + 1) * sizeof(PSX::InstDrawCommand);
 			PSX::InstDrawCommand* output_CommandList = reinterpret_cast<PSX::InstDrawCommand*>(malloc(commandListSize));
 			memcpy(output_CommandList, commandList, commandListSize);
+
+			// Remap texture and color indices to new sequential indices
+			for (size_t i = 0; i < numberOfCommands; i++)
+			{
+				uint32_t oldTexIndex = output_CommandList[i].texCoordIndex;
+				uint32_t oldColorIndex = output_CommandList[i].colorCoordIndex;
+
+				output_CommandList[i].texCoordIndex = referencedTextures[oldTexIndex];
+				output_CommandList[i].colorCoordIndex = referencedColorCoords[oldColorIndex];
+			}
+
 			currentOffset += commandListSize;
 			modelDataChunks.push_back({ commandListSize, output_CommandList });
 
