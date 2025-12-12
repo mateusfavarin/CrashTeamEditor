@@ -81,8 +81,14 @@ void LevDataExtractor::ExtractModels(void)
     //model.numHeaders --- done
     //model.offHeaders --- done
 
-		std::vector<size_t> modelHeaderOffsets{};
-    std::vector<PSX::ModelHeader*> output_ModelHeaders{};
+		// Pre-allocate contiguous block for ALL ModelHeaders
+		const size_t allHeadersSize = model.numHeaders * sizeof(PSX::ModelHeader);
+		const size_t allHeadersOffset = currentOffset;
+		PSX::ModelHeader* output_AllModelHeaders =
+		    reinterpret_cast<PSX::ModelHeader*>(malloc(allHeadersSize));
+		currentOffset += allHeadersSize;
+		modelDataChunks.push_back({ allHeadersSize, output_AllModelHeaders });
+
 		for (size_t modelHeaderIndex = 0; (modelHeaderIndex < model.numHeaders) && isSupportedByCurrentTechnology; modelHeaderIndex++)
 		{
 			//modelHeaders are expected to be stored contiguously
@@ -111,16 +117,10 @@ void LevDataExtractor::ExtractModels(void)
 				break;
 			}
 
-			const size_t modelHeaderOffset = currentOffset;
-			modelHeaderOffsets.push_back(modelHeaderOffset);
-			//consider pre-allocating the output modelheaders outside of this for loop, that way we can have the data 
-      //belonging to the headers appended afterwards, avoiding the, "modelHeaders are expected to be stored contiguously" issue.
-			PSX::ModelHeader* output_ModelHeader = reinterpret_cast<PSX::ModelHeader*>(malloc(sizeof(PSX::ModelHeader)));
-			currentOffset += sizeof(*output_ModelHeader);
-      output_ModelHeaders.push_back(output_ModelHeader);
-			modelDataChunks.push_back({ sizeof(*output_ModelHeader), output_ModelHeader });
+			// Get pointer to THIS header within the pre-allocated block
+			PSX::ModelHeader* output_ModelHeader = &output_AllModelHeaders[modelHeaderIndex];
 
-			//Reminder: modelHeaders are expected to be stored contiguously, so we can't have any of this other data intermixed.
+			// Headers are now contiguously stored in the pre-allocated block
 			memcpy(output_ModelHeader, &modelHeader, sizeof(modelHeader));
       output_ModelHeader->offCommandList = 0; //patch later
       output_ModelHeader->offFrameData = 0; //patch later
@@ -151,19 +151,49 @@ void LevDataExtractor::ExtractModels(void)
 			printf("    ModelHeader references %lld unique color coords\n", referencedColorCoords.size());
 			printf("    ModelHeader stores %lld vertices\n", numberOfStoredVerts);
 
+			// Extract command list (including 0xFFFFFFFF terminator)
+			const size_t commandListOffset = currentOffset;
+			const size_t commandListSize = (numberOfCommands + 1) * sizeof(PSX::InstDrawCommand);
+			PSX::InstDrawCommand* output_CommandList = reinterpret_cast<PSX::InstDrawCommand*>(malloc(commandListSize));
+			memcpy(output_CommandList, commandList, commandListSize);
+			currentOffset += commandListSize;
+			modelDataChunks.push_back({ commandListSize, output_CommandList });
+
 			if (modelHeader.offFrameData != (uint32_t)nullptr)
 			{ //not animated
 				const PSX::ModelFrame& modelFrame = *reinterpret_cast<const PSX::ModelFrame*>(Deref(modelHeader.offFrameData));
-				const uint8_t* vertData = Deref(((uint32_t)&modelFrame) + modelFrame.vertexOffset); //capture "numberOfStoredVerts * 3" starting at this location
+				const uint8_t* frameDataBase = reinterpret_cast<const uint8_t*>(&modelFrame);
+				const uint8_t* vertData = Deref(((uint32_t)&modelFrame) + modelFrame.vertexOffset);
 
-				//although these considerations are valid, concerns about padding are more applicable once this model is
-				//embedded in a level. For "serializing" to it's own discrete "model file", we can just ignore this.
-				//size_t totalVertDataLength = numberOfStoredVerts * 3;
-				//size_t vertDataStartAddr = (uint32_t)vertData;
-				//size_t vertDataEndAddr = vertDataStartAddr + totalVertDataLength;
-				//size_t totalVertDataLengthIncludingPadding;
-				//if (vertDataEndAddr % 4 == 0) { totalVertDataLengthIncludingPadding = totalVertDataLength; }
-				//else { totalVertDataLengthIncludingPadding = totalVertDataLength + (4 - (totalVertDataLength % 4)); }
+				// Extract frame data: ModelFrame + mystery padding + vertices
+				const size_t frameDataOffset = currentOffset;
+
+				// ModelFrame structure
+				PSX::ModelFrame* output_ModelFrame = reinterpret_cast<PSX::ModelFrame*>(malloc(sizeof(PSX::ModelFrame)));
+				memcpy(output_ModelFrame, &modelFrame, sizeof(PSX::ModelFrame));
+
+				// Force vertexOffset to 0x1C (drop any mystery padding from original)
+				output_ModelFrame->vertexOffset = 0x1C;
+
+				// Log warning if original had non-standard offset
+				if (modelFrame.vertexOffset > 0x1C)
+				{
+					size_t droppedBytes = modelFrame.vertexOffset - 0x1C;
+					printf("    WARNING: Model has non-standard vertexOffset 0x%X, dropping %lld mystery bytes\n",
+					       modelFrame.vertexOffset, droppedBytes);
+					// NOTE: If these bytes become significant, we'll need to revisit this decision
+				}
+
+				currentOffset += sizeof(PSX::ModelFrame);
+				modelDataChunks.push_back({ sizeof(PSX::ModelFrame), output_ModelFrame });
+
+
+				// Vertex data
+				const size_t vertexDataSize = numberOfStoredVerts * 3;
+				uint8_t* output_VertexData = reinterpret_cast<uint8_t*>(malloc(vertexDataSize));
+				memcpy(output_VertexData, vertData, vertexDataSize);
+				currentOffset += vertexDataSize;
+				modelDataChunks.push_back({ vertexDataSize, output_VertexData });
 			}
 			else
 			{
@@ -176,6 +206,42 @@ void LevDataExtractor::ExtractModels(void)
 
       const PSX::TextureLayout* textureLayoutArray = reinterpret_cast<const PSX::TextureLayout*>(Deref(modelHeader.offTexLayout));
 			const PSX::CLUT* clutArray = reinterpret_cast<const PSX::CLUT*>(Deref(modelHeader.offColors));
+
+			// Extract texture layouts
+			const size_t texLayoutOffset = currentOffset;
+			const size_t numTexLayouts = referencedTextures.size();
+			const size_t texLayoutSize = numTexLayouts * sizeof(PSX::TextureLayout);
+			if (numTexLayouts > 0)
+			{
+				PSX::TextureLayout* output_TextureLayouts = reinterpret_cast<PSX::TextureLayout*>(malloc(texLayoutSize));
+				for (const auto& [originalIndex, newIndex] : referencedTextures)
+				{
+					output_TextureLayouts[newIndex] = textureLayoutArray[originalIndex];
+				}
+				currentOffset += texLayoutSize;
+				modelDataChunks.push_back({ texLayoutSize, output_TextureLayouts });
+			}
+
+			// Extract CLUTs
+			const size_t clutOffset = currentOffset;
+			const size_t numCLUTs = referencedColorCoords.size();
+			const size_t clutSize = numCLUTs * sizeof(PSX::CLUT);
+			if (numCLUTs > 0)
+			{
+				PSX::CLUT* output_CLUTs = reinterpret_cast<PSX::CLUT*>(malloc(clutSize));
+				for (const auto& [originalIndex, newIndex] : referencedColorCoords)
+				{
+					output_CLUTs[newIndex] = clutArray[originalIndex];
+				}
+				currentOffset += clutSize;
+				modelDataChunks.push_back({ clutSize, output_CLUTs });
+			}
+
+			// Patch ModelHeader offsets
+			output_ModelHeader->offCommandList = commandListOffset;
+			output_ModelHeader->offFrameData = frameDataOffset;
+			output_ModelHeader->offTexLayout = (numTexLayouts > 0) ? texLayoutOffset : 0;
+			output_ModelHeader->offColors = (numCLUTs > 0) ? clutOffset : 0;
 
 
       //modelHeader.name --- done
@@ -198,7 +264,12 @@ void LevDataExtractor::ExtractModels(void)
 			//TODO: fix bug where spam clicking around causes turbo pads suddenly delete themselves
 		}
 
-		output_Model->offHeaders = modelHeaderOffsets[0];
+		output_Model->offHeaders = allHeadersOffset;
+
+		// Patch CtrModel header
+		output_CtrModel->modelOffset = modelOffset;
+		output_CtrModel->modelPatchTableOffset = 0; // Not implemented yet
+		output_CtrModel->vramDataOffset = 0; // Textures not implemented yet
 
 		for (const SH::WriteableObject& chunk : modelDataChunks)
 		{
