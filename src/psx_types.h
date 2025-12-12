@@ -10,6 +10,13 @@ namespace PSX
 {
 	static constexpr size_t MAX_NUM_PLAYERS = 4;
 
+	struct Vec3b
+	{
+		int8_t x;
+		int8_t y;
+		int8_t z;
+  };
+
 	struct Vec3
 	{
 		int16_t x;
@@ -311,6 +318,27 @@ namespace PSX
 
 		// 0x3C
 		uint32_t offAnimtex; //0x0
+	};
+
+	//see https://github.com/CTR-tools/CTR-tools/blob/master/formats/txt_ctr.txt
+	struct InstDrawCommand
+	{
+		union {
+			uint32_t command;
+			struct {
+				uint32_t resetFlag : 1;
+				uint32_t swapFlag : 1;
+				uint32_t normalFlipFlag : 1;
+				uint32_t noBackfaceFlag : 1;
+				uint32_t colorFromScratchpadOrRamFlag : 1;
+				uint32_t readNextVertFromStackIndexFlag : 1;
+				uint32_t unk1 : 1;
+				uint32_t unk2 : 1;
+				uint32_t stackWriteLocationIndex : 8;
+				uint32_t colorCoordIndex : 7;
+				uint32_t texCoordIndex : 9;
+			};
+		};
 	};
 
 	struct ModelFrame
