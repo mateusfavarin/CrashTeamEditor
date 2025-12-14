@@ -120,7 +120,7 @@ void Texture::SetBlendMode(uint16_t mode)
 	m_blendMode = mode;
 }
 
-PSX::TextureLayout Texture::Serialize(const QuadUV& uvs, bool triblock) const
+PSX::TextureLayout Texture::Serialize(const QuadUV& uvs) const
 {
 	PSX::TextureLayout layout = {};
 	if (Empty()) { return layout; }
@@ -150,39 +150,12 @@ PSX::TextureLayout Texture::Serialize(const QuadUV& uvs, bool triblock) const
 
 	size_t x = (m_imageX % TEXPAGE_WIDTH) * bppMultiplier;
 	size_t y = m_imageY % TEXPAGE_HEIGHT;
-	float width = static_cast<float>(GetWidth());
-	float height = static_cast<float>(GetHeight());
+	const float width = static_cast<float>(GetWidth() - 1);
+	const float height = static_cast<float>(GetHeight() - 1);
 	size_t u0 = x + static_cast<size_t>(std::round(uvs[0].x * width));	size_t v0 = y + static_cast<size_t>(std::round(uvs[0].y * height));
 	size_t u1 = x + static_cast<size_t>(std::round(uvs[1].x * width));	size_t v1 = y + static_cast<size_t>(std::round(uvs[1].y * height));
 	size_t u2 = x + static_cast<size_t>(std::round(uvs[2].x * width));	size_t v2 = y + static_cast<size_t>(std::round(uvs[2].y * height));
 	size_t u3 = x + static_cast<size_t>(std::round(uvs[3].x * width));	size_t v3 = y + static_cast<size_t>(std::round(uvs[3].y * height));
-
-	auto FixOffByOne = [](size_t& n0, size_t& n1)
-		{
-			if (n0 == n1)
-			{
-				if (n0 == 256) { n0--; n1--; }
-				return;
-			}
-			size_t max = std::max(n0, n1);
-			if (max == n0) { n0--; }
-			else { n1--; }
-		};
-
-	if (std::max(u0, u1) - std::min(u0, u1) > std::max(v0, v1) - std::min(v0, v1))
-	{
-		FixOffByOne(u0, u1);
-		if (!triblock) { FixOffByOne(u2, u3); }
-		FixOffByOne(v0, v2);
-		if (!triblock) { FixOffByOne(v1, v3); }
-	}
-	else
-	{
-		FixOffByOne(v0, v1);
-		if (!triblock) { FixOffByOne(v2, v3); }
-		FixOffByOne(u0, u2);
-		if (!triblock) { FixOffByOne(u1, u3); }
-	}
 
 	layout.u0 = static_cast<uint8_t>(u0); layout.v0 = static_cast<uint8_t>(v0);
 	layout.u1 = static_cast<uint8_t>(u1); layout.v1 = static_cast<uint8_t>(v1);
