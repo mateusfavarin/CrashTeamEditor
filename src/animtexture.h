@@ -20,6 +20,7 @@ public:
 	AnimTexture() {};
 	AnimTexture(const std::filesystem::path& path, const std::vector<std::string>& usedNames);
 	bool Empty() const;
+	bool IsTriblock() const;
 	const std::vector<AnimTextureFrame>& GetFrames() const;
 	const std::vector<Texture>& GetTextures() const;
 	const std::vector<size_t>& GetQuadblockIndexes() const;
@@ -43,6 +44,7 @@ private:
 	void RotateFrames(int targetRotation);
 
 private:
+	bool m_triblock;
 	bool m_manualOrientation;
 	std::string m_name;
 	std::filesystem::path m_path;

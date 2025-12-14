@@ -120,7 +120,7 @@ void Texture::SetBlendMode(uint16_t mode)
 	m_blendMode = mode;
 }
 
-PSX::TextureLayout Texture::Serialize(const QuadUV& uvs)
+PSX::TextureLayout Texture::Serialize(const QuadUV& uvs, bool triblock) const
 {
 	PSX::TextureLayout layout = {};
 	if (Empty()) { return layout; }
@@ -172,16 +172,16 @@ PSX::TextureLayout Texture::Serialize(const QuadUV& uvs)
 	if (std::max(u0, u1) - std::min(u0, u1) > std::max(v0, v1) - std::min(v0, v1))
 	{
 		FixOffByOne(u0, u1);
-		FixOffByOne(u2, u3);
+		if (!triblock) { FixOffByOne(u2, u3); }
 		FixOffByOne(v0, v2);
-		FixOffByOne(v1, v3);
+		if (!triblock) { FixOffByOne(v1, v3); }
 	}
 	else
 	{
 		FixOffByOne(v0, v1);
-		FixOffByOne(v2, v3);
+		if (!triblock) { FixOffByOne(v2, v3); }
 		FixOffByOne(u0, u2);
-		FixOffByOne(u1, u3);
+		if (!triblock) { FixOffByOne(u1, u3); }
 	}
 
 	layout.u0 = static_cast<uint8_t>(u0); layout.v0 = static_cast<uint8_t>(v0);

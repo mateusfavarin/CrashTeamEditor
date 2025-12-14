@@ -28,6 +28,11 @@ bool AnimTexture::Empty() const
 	return m_frames.empty();
 }
 
+bool AnimTexture::IsTriblock() const
+{
+	return m_triblock;
+}
+
 const std::vector<AnimTextureFrame>& AnimTexture::GetFrames() const
 {
 	return m_frames;
@@ -78,6 +83,7 @@ void AnimTexture::CopyParameters(const AnimTexture& animTex)
 
 bool AnimTexture::IsEquivalent(const AnimTexture& animTex) const
 {
+	if (m_triblock != animTex.m_triblock) { return false; }
 	if (m_startAtFrame != animTex.m_startAtFrame) { return false; }
 	if (m_duration != animTex.m_duration) { return false; }
 	if (m_frames.size() != animTex.m_frames.size()) { return false; }
@@ -109,6 +115,7 @@ bool AnimTexture::ReadAnimation(const std::filesystem::path& path)
 	const std::vector<Quadblock>& quadblocks = dummy.GetQuadblocks();
 	for (const Quadblock& quadblock : quadblocks)
 	{
+		m_triblock = !quadblock.IsQuadblock();
 		const auto& uvs = quadblock.GetUVs();
 		const std::filesystem::path& texPath = quadblock.GetTexPath();
 		if (texPath.empty()) { return false; }
@@ -181,29 +188,42 @@ void AnimTexture::MirrorQuadUV(bool horizontal, std::array<QuadUV, 5>& uvs)
 
 void AnimTexture::RotateQuadUV(std::array<QuadUV, 5>& uvs)
 {
-	auto SwapQuadUV = [](QuadUV& dst, const QuadUV& tgt)
+	auto SwapQuadUV = [this](QuadUV& dst, const QuadUV& tgt)
 		{
 			dst[0] = tgt[2];
 			dst[1] = tgt[0];
-			dst[2] = tgt[3];
-			dst[3] = tgt[1];
+			if (m_triblock) { dst[2] = tgt[1]; }
+			else
+			{
+				dst[2] = tgt[3];
+				dst[3] = tgt[1];
+			}
 		};
 
 	QuadUV tmp = uvs[0];
 	SwapQuadUV(uvs[0], uvs[2]);
-	SwapQuadUV(uvs[2], uvs[3]);
-	SwapQuadUV(uvs[3], uvs[1]);
+	if (m_triblock) { SwapQuadUV(uvs[2], uvs[1]); }
+	else
+	{
+		SwapQuadUV(uvs[2], uvs[3]);
+		SwapQuadUV(uvs[3], uvs[1]);
+	}
 	SwapQuadUV(uvs[1], tmp);
 
 	Vec2 lowTmp = uvs[4][0];
 	uvs[4][0] = uvs[4][2];
-	uvs[4][2] = uvs[4][3];
-	uvs[4][3] = uvs[4][1];
+	if (m_triblock) { uvs[4][2] = uvs[4][1]; }
+	else
+	{
+		uvs[4][2] = uvs[4][3];
+		uvs[4][3] = uvs[4][1];
+	}
 	uvs[4][1] = lowTmp;
 }
 
 void AnimTexture::MirrorFrames(bool horizontal)
 {
+	if (m_triblock) { return; }
 	for (AnimTextureFrame& frame : m_frames)
 	{
 		MirrorQuadUV(horizontal, frame.uvs);
