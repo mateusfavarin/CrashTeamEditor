@@ -38,6 +38,11 @@ Path::Path(size_t index)
 	m_quadIndexesIgnore = std::vector<size_t>();
 }
 
+Path::Path(const Path& path)
+{
+	*this = path;
+}
+
 Path::~Path()
 {
 	delete m_left;
@@ -229,4 +234,26 @@ void Path::GetStartEndIndexes(std::vector<size_t>& out) const
 	for (const size_t index : m_quadIndexesStart) { out.push_back(index); }
 	for (const size_t index : m_quadIndexesIgnore) { out.push_back(index); }
 	for (const size_t index : m_quadIndexesEnd) { out.push_back(index); }
+}
+
+Path& Path::operator=(const Path& path)
+{
+	if (this == &path) { return *this; }
+	m_index = path.m_index;
+	m_start = path.m_start;
+	m_end = path.m_end;
+	if (path.m_left) { m_left = new Path(*path.m_left); }
+	else { m_left = nullptr; }
+	if (path.m_right) { m_right = new Path(*path.m_right); }
+	else { m_right = nullptr; }
+	m_previewValueStart = path.m_previewValueStart;
+	m_previewLabelStart = path.m_previewLabelStart;
+	m_quadIndexesStart = path.m_quadIndexesStart;
+	m_previewValueEnd = path.m_previewValueEnd;
+	m_previewLabelEnd = path.m_previewLabelEnd;
+	m_quadIndexesEnd = path.m_quadIndexesEnd;
+	m_previewValueIgnore = path.m_previewValueIgnore;
+	m_previewLabelIgnore = path.m_previewLabelIgnore;
+	m_quadIndexesIgnore = path.m_quadIndexesIgnore;
+	return *this;
 }

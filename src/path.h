@@ -12,6 +12,7 @@ class Path
 public:
 	Path();
 	Path(size_t index);
+	Path(const Path& path);
 	~Path();
 	size_t GetIndex() const;
 	size_t GetStart() const;
@@ -23,6 +24,8 @@ public:
 	void RenderUI(const std::string& title, const std::vector<Quadblock>& quadblocks, const std::string& searchQuery, bool drawPathBtn, bool& insertAbove, bool& removePath);
 	void ToJson(nlohmann::json& json, const std::vector<Quadblock>& quadblocks) const;
 	void FromJson(const nlohmann::json& json, const std::vector<Quadblock>& quadblocks);
+
+	Path& operator=(const Path& path);
 
 private:
 	void GetStartEndIndexes(std::vector<size_t>& out) const;

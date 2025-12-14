@@ -64,10 +64,20 @@ Quadblock::Quadblock(const std::string& name, Tri& t0, Tri& t1, Tri& t2, Tri& t3
 			return ret;
 		};
 
-	std::vector<const Point*> q0Adjs;
-	m_p[0] = Vertex(*FindUniquePoint(*adjTris[0], q0Adjs));
-	m_p[1] = Vertex(*q0Adjs[0]);
-	m_p[3] = Vertex(*q0Adjs[1]);
+	auto MakeVertex = [](const Point* p) -> Vertex
+		{
+			if (!p) { throw QuadException("Tris contain overlapping points"); }
+			return Vertex(*p);
+		};
+
+	try
+	{
+		std::vector<const Point*> q0Adjs;
+		m_p[0] = MakeVertex(FindUniquePoint(*adjTris[0], q0Adjs));
+		m_p[1] = MakeVertex(q0Adjs[0]);
+		m_p[3] = MakeVertex(q0Adjs[1]);
+	}
+	catch (const QuadException& e) { throw e; }
 
 	bool q1Next = false;
 	for (size_t i = 0; i < 3; i++)
@@ -76,12 +86,20 @@ Quadblock::Quadblock(const std::string& name, Tri& t0, Tri& t1, Tri& t2, Tri& t3
 	}
 	if (!q1Next) { Swap(adjTris[1], adjTris[2]); }
 
-	std::vector<const Point*> q2Adjs;
-	m_p[2] = Vertex(*FindUniquePoint(*adjTris[1], q2Adjs));
-	m_p[4] = q2Adjs[0]->pos == m_p[1].m_pos ? Vertex(*q2Adjs[1]) : Vertex(*q2Adjs[0]);
+	try
+	{
+		std::vector<const Point*> q2Adjs;
+		m_p[2] = MakeVertex(FindUniquePoint(*adjTris[1], q2Adjs));
+		m_p[4] = q2Adjs[0]->pos == m_p[1].m_pos ? MakeVertex(q2Adjs[1]) : MakeVertex(q2Adjs[0]);
+	}
+	catch (const QuadException& e) { throw e; }
 
-	std::vector<const Point*> q4Adjs;
-	m_p[6] = *FindUniquePoint(*adjTris[2], q4Adjs);
+	try
+	{
+		std::vector<const Point*> q4Adjs;
+		m_p[6] = MakeVertex(FindUniquePoint(*adjTris[2], q4Adjs));
+	}
+	catch (const QuadException& e) { throw e; }
 
 	Vec3 quadNormal = ComputeNormalVector(0, 2, 6);
 	quadNormal = quadNormal / quadNormal.Length();
@@ -205,6 +223,7 @@ Quadblock::Quadblock(const std::string& name, Quad& q0, Quad& q1, Quad& q2, Quad
 
 	const Point* p1 = FindAdjacentPoint(q0, q1, centerVertex);
 	const Point* p3 = FindAdjacentPoint(q0, q2, centerVertex);
+
 	if (!p1)
 	{
 		Swap(m_p[2], m_p[8]);
@@ -216,10 +235,20 @@ Quadblock::Quadblock(const std::string& name, Quad& q0, Quad& q1, Quad& q2, Quad
 		Swap(q2, q3);
 	}
 
-	m_p[1] = p1 ? Vertex(*p1) : Vertex(*FindAdjacentPoint(q0, q1, centerVertex));
-	m_p[3] = p3 ? Vertex(*p3) : Vertex(*FindAdjacentPoint(q0, q2, centerVertex));
-	m_p[5] = Vertex(*FindAdjacentPoint(q1, q3, centerVertex));
-	m_p[7] = Vertex(*FindAdjacentPoint(q2, q3, centerVertex));
+	auto MakeVertex = [](const Point* p) -> Vertex
+		{
+			if (!p) { throw QuadException("Quads contain overlapping points"); }
+			return Vertex(*p);
+		};
+
+	try
+	{
+		m_p[1] = p1 ? MakeVertex(p1) : MakeVertex(FindAdjacentPoint(q0, q1, centerVertex));
+		m_p[3] = p3 ? MakeVertex(p3) : MakeVertex(FindAdjacentPoint(q0, q2, centerVertex));
+		m_p[5] = MakeVertex(FindAdjacentPoint(q1, q3, centerVertex));
+		m_p[7] = MakeVertex(FindAdjacentPoint(q2, q3, centerVertex));
+	}
+	catch (const QuadException& e) { throw e; }
 
 	Vec3 quadNormal = ComputeNormalVector(0, 2, 6);
 	quadNormal = quadNormal / quadNormal.Length();
@@ -495,7 +524,7 @@ void Quadblock::SetAnimated(bool animated)
 
 void Quadblock::SetSpeedImpact(int speed)
 {
-	m_speedImpact = speed;
+	m_downforce = speed;
 }
 
 void Quadblock::TranslateNormalVec(float ratio)
@@ -585,7 +614,7 @@ std::vector<uint8_t> Quadblock::Serialize(size_t id, size_t offTextures, const s
 	quadblock.terrain = m_terrain;
 	quadblock.weatherIntensity = 0;
 	quadblock.weatherVanishRate = 0;
-	quadblock.speedImpact = static_cast<int8_t>(m_speedImpact);
+	quadblock.speedImpact = static_cast<int8_t>(m_downforce);
 	const size_t idVis = id / 32;
 	quadblock.id = static_cast<uint16_t>((32 * idVis) + (31 - (id % 32)));
 	quadblock.checkpointIndex = static_cast<uint8_t>(m_checkpointIndex);
@@ -629,7 +658,7 @@ void Quadblock::SetDefaultValues()
 	m_turboPadIndex = TURBO_PAD_INDEX_NONE;
 	m_hide = false;
 	m_animated = false;
-	m_speedImpact = 0;
+	m_downforce = 0;
 }
 
 Vec3 Quadblock::ComputeNormalVector(size_t id0, size_t id1, size_t id2) const

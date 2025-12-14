@@ -172,7 +172,7 @@ bool Level::GenerateCheckpoints()
         // Build dist->index map for candidates
         std::multimap<float, size_t> distToNextMap;
         std::unordered_map<size_t, float> currentDistances;
-        
+
         for (size_t i = 0; i < m_checkpoints.size(); ++i)
         {
             if (protectedIndices.find(i) != protectedIndices.end()) continue;
@@ -201,13 +201,13 @@ bool Level::GenerateCheckpoints()
         {
             size_t candidateIndex = it->second;
             indexesToRemove.insert(candidateIndex);
-            
+
             // Update distance for previous checkpoint
             const Checkpoint& removedCP = m_checkpoints[candidateIndex];
             int upIndex = removedCP.GetUp();
             int downIndex = removedCP.GetDown();
-            
-            if (upIndex != NONE_CHECKPOINT_INDEX && 
+
+            if (upIndex != NONE_CHECKPOINT_INDEX &&
                 downIndex != NONE_CHECKPOINT_INDEX &&
                 protectedIndices.find(upIndex) == protectedIndices.end())
             {
@@ -215,7 +215,7 @@ bool Level::GenerateCheckpoints()
                 float oldDist = currentDistances[upIndex];
                 float removedDist = currentDistances[candidateIndex];
                 float newDist = oldDist + removedDist;
-                
+
                 auto range = distToNextMap.equal_range(oldDist);
                 for (auto mapIt = range.first; mapIt != range.second; ++mapIt)
                 {
@@ -225,11 +225,11 @@ bool Level::GenerateCheckpoints()
                         break;
                     }
                 }
-				
+
                 currentDistances[upIndex] = newDist;
                 distToNextMap.insert({ newDist, upIndex });
             }
-            
+
             ++it;
             ++i;
         }
@@ -276,7 +276,7 @@ bool Level::GenerateCheckpoints()
                     float minDist = std::numeric_limits<float>::max();
                     int nearestCheckpoint = 0;
                     Vec3 qbCenter = qb.GetBoundingBox().Midpoint();
-                    
+
                     for (int i = 0; i < N; ++i)
                     {
                         float dist = (newCheckpoints[i].GetPos() - qbCenter).Length();
@@ -2215,16 +2215,16 @@ void Level::GenerateRenderMultipleQuadsData(const std::vector<Quadblock*>& quads
 
 void Level::ViewportClickHandleBlockSelection(int pixelX, int pixelY, const Renderer& rend)
 {
-	std::function<std::optional<std::tuple<const Quadblock&, const glm::vec3>>(int, int, std::vector<Quadblock>&, unsigned)> check = [&rend](int pixelCoordX, int pixelCoordY, std::vector<Quadblock>& qbs, unsigned index)
+	std::function<std::optional<std::tuple<const Quadblock*, const glm::vec3>>(int, int, std::vector<Quadblock>&, unsigned)> check = [&rend](int pixelCoordX, int pixelCoordY, const std::vector<Quadblock>& qbs, unsigned index)
 		{
-			std::vector<std::tuple<Quadblock&, glm::vec3, float>> passed;
+			std::vector<std::tuple<const Quadblock*, glm::vec3, float>> passed;
 
 			//we're currently checking ALL quadblocks on a click (bad), so we should
 			//use an acceleration structure (good thing we can have a BSP :) )
 			//although it may be better to use a different acceleration structure.
 			//I don't care for right now, clicking causes a little lag spike. TODO.
 			//another option to speed this up is to do collision testing for the low LOD instead.
-			for (Quadblock& qb : qbs)
+			for (const Quadblock& qb : qbs)
 			{
 				bool collided = false;
 				const Vertex* verts = qb.GetUnswizzledVertices();
@@ -2278,22 +2278,22 @@ void Level::ViewportClickHandleBlockSelection(int pixelX, int pixelY, const Rend
 				//}
 
 
-				if (collided) { passed.push_back(std::tuple<Quadblock&, glm::vec3, float>(qb, std::get<0>(queryResult), std::get<1>(queryResult))); continue; }
+				if (collided) { passed.push_back(std::tuple<const Quadblock*, glm::vec3, float>(&qb, std::get<0>(queryResult), std::get<1>(queryResult))); continue; }
 			}
 
 			//sort collided blocks by time value (distance from camera).
 			std::sort(passed.begin(), passed.end(),
-				[](const std::tuple<Quadblock&, glm::vec3, float>& a, const std::tuple<Quadblock&, glm::vec3, float>& b) {
+				[](const std::tuple<const Quadblock*, glm::vec3, float>& a, const std::tuple<const Quadblock*, glm::vec3, float>& b) {
 					return std::get<2>(a) < std::get<2>(b);
 				});
 
-			std::optional<std::tuple<Quadblock&, glm::vec3>> result;
+			std::optional<std::tuple<const Quadblock*, glm::vec3>> result;
 			//at the very end
 			if (passed.size() > 0)
 			{
-				auto tuple = passed[index % passed.size()];
-				Quadblock& qb = std::get<0>(tuple);
-				result = std::make_optional(std::tuple<Quadblock&, glm::vec3>(qb, std::get<1>(tuple)));
+				const auto& tuple = passed[index % passed.size()];
+				const Quadblock* qb = std::get<0>(tuple);
+				result = std::make_optional(std::tuple<const Quadblock*, glm::vec3>(qb, std::get<1>(tuple)));
 			}
 			else
 			{
@@ -2317,13 +2317,13 @@ void Level::ViewportClickHandleBlockSelection(int pixelX, int pixelY, const Rend
 		indenticalClickTimes = 0;
 	}
 
-	std::optional<std::tuple<const Quadblock&, const glm::vec3>> collidedQB = check(pixelX, pixelY, m_quadblocks, indenticalClickTimes);
+	std::optional<std::tuple<const Quadblock*, const glm::vec3>> collidedQB = check(pixelX, pixelY, m_quadblocks, indenticalClickTimes);
 
 	if (collidedQB.has_value())
 	{
 		glm::vec3 p = std::get<1>(collidedQB.value());
 		Vec3 point = Vec3(p.x, p.y, p.z);
-		GenerateRenderSelectedBlockData(std::get<0>(collidedQB.value()), point);
+		GenerateRenderSelectedBlockData(*std::get<0>(collidedQB.value()), point);
 	}
 	else
 	{

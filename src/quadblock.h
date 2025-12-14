@@ -210,7 +210,7 @@ private:
 	uint16_t m_flags;
 	uint8_t m_terrain;
 	QuadblockTrigger m_trigger;
-	int m_speedImpact;
+	int m_downforce;
 	size_t m_turboPadIndex;
 	mutable size_t m_bspID;
 	std::array<QuadUV, NUM_FACES_QUADBLOCK + 1> m_uvs; /* Last id is reserved for low tex */

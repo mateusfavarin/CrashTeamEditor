@@ -5,6 +5,8 @@
 
 #include <filesystem>
 
+int Windows::w_width = 1024;
+int Windows::w_height = 768;
 bool Windows::w_spawn = false;
 bool Windows::w_level = false;
 bool Windows::w_material = false;

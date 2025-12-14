@@ -10,9 +10,9 @@
 bool App::Init()
 {
 	bool success = true;
+	InitUISettings();
 	success &= InitGLFW();
 	success &= InitImGui();
-	InitUISettings();
 	return  success;
 }
 
@@ -37,9 +37,8 @@ void App::Run()
 		glClear(GL_COLOR_BUFFER_BIT);
 		ImGui::NewFrame();
 		glViewport(0, 0, static_cast<int>(io.DisplaySize.x), static_cast<int>(io.DisplaySize.y));
-		int width, height;
-		glfwGetWindowSize(m_window, &width, &height);
-		ui.Render(width, height);
+		glfwGetWindowSize(m_window, &Windows::w_width, &Windows::w_height);
+		ui.Render(Windows::w_width, Windows::w_height);
 		ImGui::Render();
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 		glfwSwapBuffers(m_window);
@@ -60,8 +59,7 @@ static void glfw_error_callback(int error, const char* description)
 bool App::InitGLFW()
 {
 	glfwSetErrorCallback(glfw_error_callback);
-	if (!glfwInit())
-		return false;
+	if (!glfwInit()) { return false; }
 
 	// Decide GL+GLSL versions
 #if defined(IMGUI_IMPL_OPENGL_ES2)
@@ -96,13 +94,13 @@ bool App::InitGLFW()
 	const std::string title = "Crash Team Editor " + m_version;
 	glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE); //resizeable window
 	glfwWindowHint(GLFW_SCALE_TO_MONITOR, GLFW_TRUE); //high dpi
-	m_window = glfwCreateWindow(1024, 768, title.c_str(), nullptr, nullptr);
-	if (m_window == nullptr)
-		return false;
+	m_window = glfwCreateWindow(Windows::w_width, Windows::w_height, title.c_str(), nullptr, nullptr);
+	if (m_window == nullptr) { return false; }
 	glfwMakeContextCurrent(m_window);
 	glfwSwapInterval(1); // Enable vsync
 
-	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
+	{
 		fprintf(stderr, "Failed to initialize OpenGL loader!");
 		return false;
 	}
@@ -133,19 +131,12 @@ void App::InitUISettings()
 {
 	if (!std::filesystem::exists(m_configFile))
 	{
-		Windows::w_animtex = false;
-		Windows::w_bsp = false;
-		Windows::w_checkpoints = false;
-		Windows::w_ghost = false;
-		Windows::w_level = false;
-		Windows::w_material = false;
-		Windows::w_quadblocks = false;
-		Windows::w_renderer = false;
-		Windows::w_spawn = false;
 		SaveUISettings();
 		return;
 	}
 	nlohmann::json json = nlohmann::json::parse(std::ifstream(m_configFile));
+	if (json.contains("Width")) { Windows::w_width = json["Width"]; }
+	if (json.contains("Height")) { Windows::w_height = json["Height"]; }
 	if (json.contains("AnimTex")) { Windows::w_animtex = json["AnimTex"]; }
 	if (json.contains("BSP")) { Windows::w_bsp = json["BSP"]; }
 	if (json.contains("Checkpoints")) { Windows::w_checkpoints = json["Checkpoints"]; }
@@ -161,6 +152,8 @@ void App::InitUISettings()
 void App::SaveUISettings()
 {
 	nlohmann::json json;
+	json["Width"] = Windows::w_width;
+	json["Height"] = Windows::w_height;
 	json["AnimTex"] = Windows::w_animtex;
 	json["BSP"] = Windows::w_bsp;
 	json["Checkpoints"] = Windows::w_checkpoints;
