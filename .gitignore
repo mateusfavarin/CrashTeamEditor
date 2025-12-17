@@ -43,3 +43,4 @@ CMakeCache.txt
 /glfw-build-win
 python_bindings/build
 *.json
+*.ctrmodel

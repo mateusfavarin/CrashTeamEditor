@@ -321,22 +321,24 @@ namespace PSX
 	};
 
 	//see https://github.com/CTR-tools/CTR-tools/blob/master/formats/txt_ctr.txt
+	// Format: slndkv?? iiiiiiii ccccccct tttttttt (bits 31->0, MSB->LSB)
+	// On little-endian (x86/x64), bitfields pack from bit 0 upward, so declare in REVERSE order:
 	struct InstDrawCommand
 	{
 		union {
 			uint32_t command;
 			struct {
-				uint32_t resetFlag : 1;
-				uint32_t swapFlag : 1;
-				uint32_t normalFlipFlag : 1;
-				uint32_t noBackfaceFlag : 1;
-				uint32_t colorFromScratchpadOrRamFlag : 1;
-				uint32_t readNextVertFromStackIndexFlag : 1;
-				uint32_t unk1 : 1;
-				uint32_t unk2 : 1;
-				uint32_t stackWriteLocationIndex : 8;
-				uint32_t colorCoordIndex : 7;
-				uint32_t texCoordIndex : 9;
+				uint32_t texCoordIndex : 9;                      // bits 0-8   (t: tex coord index, 0=no texture)
+				uint32_t colorCoordIndex : 7;                    // bits 9-15  (c: color coord index)
+				uint32_t stackWriteLocationIndex : 8;           // bits 16-23 (i: stack index)
+				uint32_t unk2 : 1;                               // bit 24     (?: unknown)
+				uint32_t unk1 : 1;                               // bit 25     (?: unknown)
+				uint32_t readNextVertFromStackIndexFlag : 1;    // bit 26     (v: read from stack vs array)
+				uint32_t colorFromScratchpadOrRamFlag : 1;      // bit 27     (k: scratchpad vs ram)
+				uint32_t noBackfaceFlag : 1;                     // bit 28     (d: cull backface)
+				uint32_t normalFlipFlag : 1;                     // bit 29     (n: flip normal)
+				uint32_t swapFlag : 1;                           // bit 30     (l: swap 1st vertex)
+				uint32_t resetFlag : 1;                          // bit 31     (s: new face block/reset)
 			};
 		};
 	};
