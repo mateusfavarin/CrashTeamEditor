@@ -1066,22 +1066,6 @@ void Level::RenderUI()
 		if (ImGui::Begin("Python", &Windows::w_python))
 		{
 			ImGui::Text("Script Editor");
-			ImGui::Separator();
-			ImVec2 editorSize = ImVec2(ImGui::GetContentRegionAvail().x, 150.0f);
-			ImGui::InputTextMultiline("##python_editor", &m_pythonScript, editorSize, ImGuiInputTextFlags_AllowTabInput);
-
-			if (ImGui::Button("Run"))
-			{
-				std::string result = Script::ExecutePythonScript(*this, m_pythonScript);
-				if (result.empty()) { result = "[No output]"; }
-				if (!m_pythonConsole.empty() && m_pythonConsole.back() != '\n')
-				{
-					m_pythonConsole += '\n';
-				}
-				m_pythonConsole += result;
-				if (m_pythonConsole.back() != '\n') { m_pythonConsole += '\n'; }
-			}
-			ImGui::SameLine();
 			if (ImGui::Button("Open .py"))
 			{
 				auto selection = pfd::open_file("Open Python Script", m_parentPath.string(), {"Python Files", "*.py"}, pfd::opt::force_path).result();
@@ -1095,6 +1079,22 @@ void Level::RenderUI()
 						m_pythonScript = buffer.str();
 					}
 				}
+			}
+			ImGui::Separator();
+			ImVec2 editorSize = ImVec2(ImGui::GetContentRegionAvail().x, 150.0f);
+			ImGui::InputTextMultiline("##python_editor", &m_pythonScript, editorSize, ImGuiInputTextFlags_AllowTabInput);
+
+			if (ImGui::Button("Run"))
+			{
+				m_pythonConsole.clear();
+				std::string result = Script::ExecutePythonScript(*this, m_pythonScript);
+				if (result.empty()) { result = "[No output]"; }
+				if (!m_pythonConsole.empty() && m_pythonConsole.back() != '\n')
+				{
+					m_pythonConsole += '\n';
+				}
+				m_pythonConsole += result;
+				if (m_pythonConsole.back() != '\n') { m_pythonConsole += '\n'; }
 			}
 			ImGui::SameLine();
 			static bool displayHelper = true;
