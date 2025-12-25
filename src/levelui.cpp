@@ -1103,6 +1103,14 @@ void Level::RenderUI()
 			ImGui::SameLine();
 			static bool displayHelper = true;
 			if (ImGui::Button("Clear Console")) { m_pythonConsole.clear(); displayHelper = false; }
+			ImGui::SameLine();
+			if (ImGui::Button("Copy to Clipboard"))
+			{
+				if (!m_pythonConsole.empty())
+				{
+					ImGui::SetClipboardText(m_pythonConsole.c_str());
+				}
+			}
 
 			ImGui::Separator();
 			ImGui::Text("Console Output:");
