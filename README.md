@@ -23,6 +23,10 @@ Track editor for the Playstation 1 game Crash Team Racing
 
 Bindings are implemented with pybind11 (included under `third_party/pybind11`). The same `python_bindings/cte_bindings.cpp` file exposes a standalone `crashteameditor` module and also registers an embedded module that the editor's built-in Python console reuses.
 
+### Python API reference
+
+See `docs/python_bindings.md` for the full list of exposed classes, methods, enums, and constants.
+
 ### Building CrashTeamEditor with Python support
 
 Because the editor links `python_bindings/cte_bindings.cpp` directly, the build needs access to Python headers and libraries. See the `Building` section above for platform-specific setup (especially `PYTHON_HOME` on Windows).
