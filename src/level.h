@@ -30,6 +30,7 @@ public:
 	bool Save(const std::filesystem::path& path);
 	bool Loaded() const;
 	void OpenHotReloadWindow();
+	void OpenModelExtractorWindow();
 	void Clear(bool clearErrors);
 	const std::string& GetName() const;
 	const std::vector<Quadblock>& GetQuadblocks() const;
@@ -67,6 +68,7 @@ private:
 private:
 	bool m_showLogWindow;
 	bool m_showHotReloadWindow;
+	bool m_showModelExtractorWindow;
 	bool m_loaded;
 	bool m_genVisTree;
 	float m_maxLeafAxisLength;
@@ -78,6 +80,8 @@ private:
 	std::filesystem::path m_parentPath;
 	std::filesystem::path m_hotReloadLevPath;
 	std::filesystem::path m_hotReloadVRMPath;
+	std::filesystem::path m_modelExtractorLevPath;
+	std::filesystem::path m_modelExtractorVrmPath;
 
 	std::array<Spawn, NUM_DRIVERS> m_spawn;
 	uint32_t m_configFlags;
@@ -114,6 +118,7 @@ private:
 	Model m_checkModel;
 	Model m_selectedBlockModel;
 	Model m_multipleSelectedQuads;
+	std::vector<Model> m_levelInstancesModels;
 
 	size_t m_rendererSelectedQuadblockIndex;
 };

@@ -158,13 +158,13 @@ namespace PSX
 		uint32_t offMeshInfo; // 0x0
 		uint32_t offSkybox; // 0x4
 		uint32_t offAnimTex; // 0x8
-		uint32_t numInstances; // 0xC
-		uint32_t offInstances; // 0x10
-		uint32_t numModels; // 0x14
-		uint32_t offModels; // 0x18
-		uint32_t offUnk_0x1C; // 0x1C
-		uint32_t offUnk_0x20; // 0x20
-		uint32_t offModelInstances; // 0x24
+		uint32_t numInstances; // 0xC ////////////0x42
+		uint32_t offInstances; // 0x10 ////////////0x690 ~~~~~PATCH_ME~~~~~ //ptr to an actual instdef
+		uint32_t numModels; // 0x14 ////////////0xF
+		uint32_t offModels; // 0x18 ////////////0x1710 ~~~~~PATCH_ME~~~~~ //ptr to an array of ptrs to models
+		uint32_t offUnk_0x1C; // 0x1C //ptr to a region of 160 0xff's
+		uint32_t offUnk_0x20; // 0x20 //ptr to a region of 68 0xff's
+		uint32_t offModelInstances; // 0x24 ////////////0x5A90C ~~~~~PATCH_ME~~~~~ //ptr to an array of pts to instdefs
 		uint32_t offUnk_0x28; // 0x28
 		uint32_t null_0x2C; // 0x2C
 		uint32_t null_0x30; // 0x30
@@ -175,15 +175,15 @@ namespace PSX
 		uint32_t offEnvironmentMap; // 0x44
 		PSX::ColorGradient skyGradient[NUM_GRADIENT]; // 0x48
 		PSX::Spawn driverSpawn[NUM_DRIVERS]; // 0x6C
-		uint32_t offUnk_0xCC; // 0xCC
-		uint32_t offUnk_0xD0; // 0xD0
+		uint32_t offUnk_0xCC; // 0xCC //ptr to a region of 60 0xff's
+		uint32_t offUnk_0xD0; // 0xD0 //ptr to a region of 44 0xff's
 		uint32_t offLowTexArray; // 0xD4
 		PSX::Color clear; // 0xD8
 		uint32_t config; // 0xDC
 		uint32_t offBuildStart; // 0xE0
 		uint32_t offBuildEnd; // 0xE4
 		uint32_t offBuildType; // 0xE8
-		uint8_t unk_0xEC[0x18]; // 0xEC
+		uint8_t unk_0xEC[0x18]; // 0xEC // 0x18 0x0's
 		PSX::Weather weather; // 0x104
 		uint32_t offExtra; // 0x134
 		uint32_t numSpawnType_2; // 0x138
@@ -192,18 +192,135 @@ namespace PSX
 		uint32_t offSpawnType_2_posRot; // 0x144
 		uint32_t numCheckpointNodes; // 0x148
 		uint32_t offCheckpointNodes; // 0x14C
-		uint8_t unk_0x150[0x10]; // 0x150
+		uint8_t unk_0x150[0x10]; // 0x150 // 0x10 0x0's
 		PSX::Color gradientClear[3]; // 0x160
-		uint32_t unk_0x16C; // 0x16C
-		uint32_t unk_0x170; // 0x170
+		uint32_t unk_0x16C; // 0x16C // 0x0
+		uint32_t unk_0x170; // 0x170 //ptr to a region of unknown length (probably 0x4) of 0xff's
 		uint32_t numSCVertices; // 0x174
 		uint32_t offSCVertices; // 0x178
 		Stars stars; // 0x17C
 		uint8_t splitLines[4]; // 0x184
 		uint32_t offLevNavTable; // 0x188
-		uint32_t unk_0x18C; // 0x18C
+		uint32_t unk_0x18C; // 0x18C //0x0
 		uint32_t offVisMem; // 0x190
 		uint8_t footer[0x60]; // 0x194
+	};
+
+	struct InstDef
+	{
+		// 0
+		char name[0x10]; //cactus_saguro#2
+
+		// 0x10 (0x18 - 8)
+		uint32_t offModel; //offset 0x00064534 ~~~~~PATCH_ME~~~~~ (struct Model*)
+
+		// 0x14 (0x1c - 8)
+		Vec3 scale; //0x1000 0x1000 0x1000
+
+		int16_t maybeScaleMaybePadding; //0x0
+
+		// 0x1c (0x24 - 8)
+		uint32_t colorRGBA; //0x0
+
+		// 0x20 (0x28 - 8)
+		uint32_t flags; //0x0000000B
+
+		uint32_t unk24; //0x0
+		uint32_t unk28; //0x0
+
+		// 0x2c
+		uint32_t offInstance; //0x0 (filled in at runtime)
+
+		// 0x30
+		Vec3 pos; //0x0C2D 0x0900 0xED86
+
+		// 0x36
+		Vec3 rot; //0x0000 0xFF94 0x0000
+
+		// 0x3c
+		int32_t modelID; //0xFFFFFFFF
+
+		// 0x40 -- struct size
+	};
+
+	struct Model
+	{
+		// name of model group
+		// "oxide" for example
+		// 0x0
+		char name[0x10]; //cactus_saguro
+
+		// index of 2160 array
+		// 0x10
+		int16_t id; //0xFFFF
+
+		// 0x12
+		uint16_t numHeaders; //0x0001
+
+		// 0x14
+		uint32_t offHeaders; //0x0006454C ~~~~~PATCH_ME~~~~~ (struct ModelHeader)
+	};
+
+	struct ModelHeader
+	{
+		// name of individual model LOD,
+		// "oxide_hi" for example
+		// 0x0
+		char name[0x10]; //cactus_saguro_h
+
+		// 0x10
+		uint32_t unk1; //0x0
+
+		// 0x14
+		uint16_t maxDistanceLOD; //0x2000
+
+		// 0x16
+		// 0x0 - normal 3D model
+		// 0x1 - always point north
+		// 0x2 - always point to camera (warppad numbers)
+		uint16_t flags; //0x0000
+
+		// 0x18
+		Vec3 scale; //0x271E 0x2B3B 0x0E5E
+
+		int16_t maybeScaleMaybePadding; //0x0
+
+		// 0x20
+		uint32_t offCommandList; //0x000645AC ~~~~~PATCH_ME~~~~~
+
+		// 0x24
+		// null if there are animations
+		uint32_t offFrameData; //0x0006470C ~~~~~PATCH_ME~~~~~ (struct ModelFrame)
+
+		// 0x28
+		uint32_t offTexLayout; // same as LEV ~~~~~PATCH_ME~~~~~ //0x000647AC
+
+		// 0x2C
+		uint32_t offColors; // CLUT = color lookup table ~~~~~PATCH_ME~~~~~ //0x000648CC
+
+		// 0x30
+		// same as anim->0x14
+		uint32_t unk3; //0x0
+
+		// 0x34
+		uint32_t numAnimations; //0x0
+
+		// 0x38
+		uint32_t offAnimations; //0x0
+
+		// 0x3C
+		uint32_t offAnimtex; //0x0
+	};
+
+	struct ModelFrame
+	{
+		// origin
+		Vec3 pos; //0xFF65 0x0000 0xFF7E
+		int16_t maybePosMaybePadding; //0x0
+		char unk16[16]; //sixteen 0x0
+		int vertexOffset; // always 0x1C //0x0000001C
+
+		//char verts[0];
 	};
 
 	struct MeshInfo

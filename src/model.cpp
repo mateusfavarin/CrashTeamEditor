@@ -1,6 +1,6 @@
 #include "model.h"
 
-Model::Model(Mesh* mesh, const glm::vec3& position, const glm::vec3& scale, const glm::quat& rotation)
+Model::Model(const Mesh* mesh, const glm::vec3& position, const glm::vec3& scale, const glm::quat& rotation)
 {
   m_mesh = mesh;
   m_position = position;
@@ -17,12 +17,12 @@ void Model::Draw()
 	m_mesh->Unbind();
 }
 
-Mesh* Model::GetMesh()
+const Mesh* Model::GetMesh()
 {
   return m_mesh;
 }
 
-void Model::SetMesh(Mesh* newMesh)
+void Model::SetMesh(const Mesh* newMesh)
 {
   m_mesh = newMesh;
 }

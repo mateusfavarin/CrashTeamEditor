@@ -227,7 +227,7 @@ int Mesh::GetShaderSettings() const
   return m_shaderSettings;
 }
 
-void Mesh::SetShaderSettings(unsigned shadSettings)
+void Mesh::SetShaderSettings(unsigned shadSettings) const
 {
   m_shaderSettings = shadSettings;
 }
@@ -278,7 +278,7 @@ void Mesh::SetTextureStore(const std::map<int, std::filesystem::path>& texturePa
   }
 }
 
-GLuint Mesh::GetTextureStore()
+GLuint Mesh::GetTextureStore() const
 {
   return m_textures;
 }

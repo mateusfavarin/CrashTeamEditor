@@ -37,9 +37,9 @@ public:
 	void UpdateMesh(const std::vector<float>& data, unsigned includedDataFlags, unsigned shadSettings, bool dataIsInterlaced = true);
 	int GetDatas() const;
 	int GetShaderSettings() const;
-	void SetShaderSettings(unsigned shadSettings);
+	void SetShaderSettings(unsigned shadSettings) const;
 	void SetTextureStore(const std::map<int, std::filesystem::path>& texturePaths);
-	GLuint GetTextureStore();
+	GLuint GetTextureStore() const;
 
 private:
 	void Bind() const;
@@ -53,7 +53,7 @@ private:
 	GLuint m_textures = 0;
 	int m_dataBufSize = 0;
 	unsigned m_includedData = 0;
-	unsigned m_shaderSettings = 0;
+	mutable unsigned m_shaderSettings = 0;
 
 	friend class Model;
 };

@@ -11,6 +11,7 @@
 #include "mesh.h"
 #include "texture.h"
 #include "ui.h"
+#include "levdataextractor.h"
 
 #include <imgui.h>
 #include <misc/cpp/imgui_stdlib.h>
@@ -373,6 +374,43 @@ void Level::RenderUI()
 			}
 			ImGui::EndDisabled();
 			if (vrmDisabled) { ImGui::SetItemTooltip("You must select the vrm path before hot reloading the vram."); }
+		}
+		ImGui::End();
+	}
+
+	if (m_showModelExtractorWindow)
+	{
+		if (ImGui::Begin("Model Extractor", &m_showModelExtractorWindow))
+		{
+			std::string levPath = m_modelExtractorLevPath.string();
+			ImGui::Text("Lev Path"); ImGui::SameLine();
+			ImGui::InputText("##levpath_extractor", &levPath, ImGuiInputTextFlags_ReadOnly);
+			ImGui::SetItemTooltip(levPath.c_str()); ImGui::SameLine();
+			if (ImGui::Button("...##levextractor"))
+			{
+				auto selection = pfd::open_file("Lev File", m_parentPath.string(), {"Lev Files", "*.lev"}, pfd::opt::force_path).result();
+				if (!selection.empty()) { m_modelExtractorLevPath = selection.front(); }
+			}
+
+			std::string vrmPath = m_modelExtractorVrmPath.string();
+			ImGui::Text("Vrm Path"); ImGui::SameLine();
+			ImGui::InputText("##vrmpath_extractor", &vrmPath, ImGuiInputTextFlags_ReadOnly);
+			ImGui::SetItemTooltip(vrmPath.c_str()); ImGui::SameLine();
+			if (ImGui::Button("...##vrmextractor"))
+			{
+				auto selection = pfd::open_file("Vrm File", m_parentPath.string(), {"Vrm Files", "*.vrm"}, pfd::opt::force_path).result();
+				if (!selection.empty()) { m_modelExtractorVrmPath = selection.front(); }
+			}
+
+			bool disabled = levPath.empty() || vrmPath.empty();
+			ImGui::BeginDisabled(disabled);
+			if (ImGui::Button("Extract Models"))
+			{
+        LevDataExtractor extractor{ m_modelExtractorLevPath, m_modelExtractorVrmPath };
+        extractor.ExtractModels();
+			}
+			ImGui::EndDisabled();
+			if (disabled) { ImGui::SetItemTooltip("You must select both lev and vrm files before extracting models."); }
 		}
 		ImGui::End();
 	}
