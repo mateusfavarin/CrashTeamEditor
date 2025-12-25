@@ -32,10 +32,10 @@ public:
 	void OpenHotReloadWindow();
 	void Clear(bool clearErrors);
 	const std::string& GetName() const;
-	const std::vector<Quadblock>& GetQuadblocks() const;
-	const BSP& GetBSP() const;
-	const std::vector<Checkpoint>& GetCheckpoints() const;
-	const std::vector<Path>& GetCheckpointPaths() const;
+	std::vector<Quadblock>& GetQuadblocks();
+	BSP& GetBSP();
+	std::vector<Checkpoint>& GetCheckpoints();
+	std::vector<Path>& GetCheckpointPaths();
 	const std::filesystem::path& GetParentPath() const;
 	bool LoadPreset(const std::filesystem::path& filename);
 	bool SavePreset(const std::filesystem::path& path);

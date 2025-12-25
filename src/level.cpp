@@ -79,22 +79,22 @@ const std::string& Level::GetName() const
 	return m_name;
 }
 
-const std::vector<Quadblock>& Level::GetQuadblocks() const
+std::vector<Quadblock>& Level::GetQuadblocks()
 {
 	return m_quadblocks;
 }
 
-const BSP& Level::GetBSP() const
+BSP& Level::GetBSP()
 {
 	return m_bsp;
 }
 
-const std::vector<Checkpoint>& Level::GetCheckpoints() const
+std::vector<Checkpoint>& Level::GetCheckpoints()
 {
 	return m_checkpoints;
 }
 
-const std::vector<Path>& Level::GetCheckpointPaths() const
+std::vector<Path>& Level::GetCheckpointPaths()
 {
 	return m_checkpointPaths;
 }
