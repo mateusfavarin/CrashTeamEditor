@@ -9,8 +9,10 @@ Track editor for the Playstation 1 game Crash Team Racing
    - `git submodule update --init --recursive`
 2. Install Python (the editor embeds Python via pybind11) and set `PYTHON_HOME` to your Python install root (the folder that contains `include/` and `libs/`).
    - Example: `PYTHON_HOME=C:\Users\you\AppData\Local\Programs\Python\Python312`
-3. Open `CrashTeamEditor.sln` and build `x64` `Debug`/`Release`.
-4. If the executable fails to start due to a missing `python3xx.dll`, add these to your debugger environment `PATH` (or system `PATH`):
+3. (Optional, for smaller bundles) Download the official Python embeddable ZIP and set `PYTHON_EMBED_HOME` to its extracted folder.
+   - Example: `PYTHON_EMBED_HOME=C:\Users\you\Downloads\python-3.12.4-embed-amd64`
+4. Open `CrashTeamEditor.sln` and build `x64` `Debug`/`Release`.
+5. If the executable fails to start due to a missing `python3xx.dll`, add these to your debugger environment `PATH` (or system `PATH`):
    - `$(PYTHON_HOME)`
    - `$(PYTHON_HOME)\DLLs`
 

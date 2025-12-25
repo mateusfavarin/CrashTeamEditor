@@ -157,6 +157,20 @@
       <AdditionalLibraryDirectories>$(PYTHON_HOME)\libs;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>opengl32.lib;$(SolutionDir)glfw-build-win\src\$(Configuration)\glfw3.lib$(PYTHON_LIB_DEP);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>if "$(PYTHON_EMBED_HOME)"=="" exit /b 0
+set "PY_BUNDLE_DIR=$(OutDir)python"
+if not exist "%PY_BUNDLE_DIR%" mkdir "%PY_BUNDLE_DIR%"
+if exist "$(PYTHON_EMBED_HOME)\python*.dll" xcopy "$(PYTHON_EMBED_HOME)\python*.dll" "$(OutDir)" /D /Y &gt;nul
+if exist "$(PYTHON_EMBED_HOME)\python*.zip" xcopy "$(PYTHON_EMBED_HOME)\python*.zip" "%PY_BUNDLE_DIR%\" /D /Y &gt;nul
+if exist "$(PYTHON_EMBED_HOME)\*.dll" xcopy "$(PYTHON_EMBED_HOME)\*.dll" "%PY_BUNDLE_DIR%\" /D /Y &gt;nul
+if exist "$(PYTHON_EMBED_HOME)\*.pyd" xcopy "$(PYTHON_EMBED_HOME)\*.pyd" "%PY_BUNDLE_DIR%\" /D /Y &gt;nul
+if exist "$(PYTHON_EMBED_HOME)\*.exe" xcopy "$(PYTHON_EMBED_HOME)\*.exe" "%PY_BUNDLE_DIR%\" /D /Y &gt;nul
+if exist "$(PYTHON_EMBED_HOME)\*.pth" xcopy "$(PYTHON_EMBED_HOME)\*.pth" "%PY_BUNDLE_DIR%\" /D /Y &gt;nul
+if exist "$(PYTHON_EMBED_HOME)\DLLs" xcopy "$(PYTHON_EMBED_HOME)\DLLs\*.pyd" "%PY_BUNDLE_DIR%\DLLs\" /E /I /Y /D &gt;nul
+if exist "$(PYTHON_EMBED_HOME)\DLLs" xcopy "$(PYTHON_EMBED_HOME)\DLLs\*.dll" "%PY_BUNDLE_DIR%\DLLs\" /E /I /Y /D &gt;nul
+</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -179,7 +193,29 @@
       <AdditionalLibraryDirectories>$(PYTHON_HOME)\libs;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>opengl32.lib;$(SolutionDir)glfw-build-win\src\$(Configuration)\glfw3.lib$(PYTHON_LIB_DEP);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>if "$(PYTHON_EMBED_HOME)"=="" exit /b 0
+set "PY_BUNDLE_DIR=$(OutDir)python"
+if not exist "%PY_BUNDLE_DIR%" mkdir "%PY_BUNDLE_DIR%"
+if exist "$(PYTHON_EMBED_HOME)\python*.dll" xcopy "$(PYTHON_EMBED_HOME)\python*.dll" "$(OutDir)" /D /Y &gt;nul
+if exist "$(PYTHON_EMBED_HOME)\python*.zip" xcopy "$(PYTHON_EMBED_HOME)\python*.zip" "%PY_BUNDLE_DIR%\" /D /Y &gt;nul
+if exist "$(PYTHON_EMBED_HOME)\*.dll" xcopy "$(PYTHON_EMBED_HOME)\*.dll" "%PY_BUNDLE_DIR%\" /D /Y &gt;nul
+if exist "$(PYTHON_EMBED_HOME)\*.pyd" xcopy "$(PYTHON_EMBED_HOME)\*.pyd" "%PY_BUNDLE_DIR%\" /D /Y &gt;nul
+if exist "$(PYTHON_EMBED_HOME)\*.exe" xcopy "$(PYTHON_EMBED_HOME)\*.exe" "%PY_BUNDLE_DIR%\" /D /Y &gt;nul
+if exist "$(PYTHON_EMBED_HOME)\*.pth" xcopy "$(PYTHON_EMBED_HOME)\*.pth" "%PY_BUNDLE_DIR%\" /D /Y &gt;nul
+if exist "$(PYTHON_EMBED_HOME)\DLLs" xcopy "$(PYTHON_EMBED_HOME)\DLLs\*.pyd" "%PY_BUNDLE_DIR%\DLLs\" /E /I /Y /D &gt;nul
+if exist "$(PYTHON_EMBED_HOME)\DLLs" xcopy "$(PYTHON_EMBED_HOME)\DLLs\*.dll" "%PY_BUNDLE_DIR%\DLLs\" /E /I /Y /D &gt;nul
+</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />
+  <Target Name="AfterClean">
+    <ItemGroup>
+      <_PythonBundleDirs Include="$(OutDir)python;$(TargetDir)python" />
+      <_PythonDlls Include="$(OutDir)python*.dll;$(TargetDir)python*.dll" />
+    </ItemGroup>
+    <RemoveDir Directories="@(_PythonBundleDirs)" />
+    <Delete Files="@(_PythonDlls)" />
+  </Target>
 </Project>
