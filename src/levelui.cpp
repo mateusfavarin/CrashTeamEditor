@@ -1066,6 +1066,7 @@ void Level::RenderUI()
 		if (ImGui::Begin("Python", &Windows::w_python))
 		{
 			ImGui::Text("Script Editor");
+			ImGui::SameLine();
 			if (ImGui::Button("Open .py"))
 			{
 				auto selection = pfd::open_file("Open Python Script", m_parentPath.string(), {"Python Files", "*.py"}, pfd::opt::force_path).result();
@@ -1081,7 +1082,10 @@ void Level::RenderUI()
 				}
 			}
 			ImGui::Separator();
-			ImVec2 editorSize = ImVec2(ImGui::GetContentRegionAvail().x, 150.0f);
+			const ImVec2 avail = ImGui::GetContentRegionAvail();
+			const float editorHeight = avail.y * 0.7f;
+			const float consoleHeight = std::max(0.0f, avail.y - editorHeight - ImGui::GetFrameHeightWithSpacing() * 2.0f);
+			ImVec2 editorSize = ImVec2(avail.x, editorHeight);
 			ImGui::InputTextMultiline("##python_editor", &m_pythonScript, editorSize, ImGuiInputTextFlags_AllowTabInput);
 
 			if (ImGui::Button("Run"))
@@ -1102,7 +1106,7 @@ void Level::RenderUI()
 
 			ImGui::Separator();
 			ImGui::Text("Console Output:");
-			ImGui::BeginChild("##python_console", ImVec2(0.0f, 150.0f), true, ImGuiWindowFlags_HorizontalScrollbar);
+			ImGui::BeginChild("##python_console", ImVec2(0.0f, consoleHeight), true, ImGuiWindowFlags_HorizontalScrollbar);
 			if (displayHelper && m_pythonConsole.empty())
 			{
 				ImGui::TextUnformatted("Console output will appear here.");
