@@ -1071,10 +1071,7 @@ void Level::RenderUI()
 				if (ImGui::Button("Run"))
 				{
 					std::string result = Script::ExecutePythonScript(*this, m_pythonScript);
-					if (result.empty())
-					{
-						result = "[No output]";
-					}
+					if (result.empty()) { result = "[No output]"; }
 					if (!m_pythonConsole.empty() && m_pythonConsole.back() != '\n')
 					{
 						m_pythonConsole += '\n';
@@ -1098,12 +1095,13 @@ void Level::RenderUI()
 					}
 				}
 				ImGui::SameLine();
-				if (ImGui::Button("Clear Console")) { m_pythonConsole.clear(); }
+				static bool displayHelper = true;
+				if (ImGui::Button("Clear Console")) { m_pythonConsole.clear(); displayHelper = false; }
 
 				ImGui::Separator();
 				ImGui::Text("Console Output:");
 				ImGui::BeginChild("##python_console", ImVec2(0.0f, 150.0f), true, ImGuiWindowFlags_HorizontalScrollbar);
-				if (m_pythonConsole.empty())
+				if (displayHelper && m_pythonConsole.empty())
 				{
 					ImGui::TextUnformatted("Console output will appear here.");
 				}
