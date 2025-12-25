@@ -151,9 +151,9 @@ public:
 	size_t GetTurboPadIndex() const;
 	size_t GetBSPID() const;
 	void SetBSPID(size_t id) const;
-	bool Hide() const;
-	bool IsAnimated() const;
-	bool& CheckpointStatus();
+	bool GetHide() const;
+	bool GetAnimated() const;
+	bool GetCheckpointStatus() const;
 	const QuadUV& GetQuadUV(size_t quad) const;
 	const std::filesystem::path& GetTexPath() const;
 	const std::array<QuadUV, NUM_FACES_QUADBLOCK + 1>& GetUVs() const;

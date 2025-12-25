@@ -19,7 +19,7 @@ class AnimTexture
 public:
 	AnimTexture() {};
 	AnimTexture(const std::filesystem::path& path, const std::vector<std::string>& usedNames);
-	bool Empty() const;
+	bool IsEmpty() const;
 	bool IsTriblock() const;
 	const std::vector<AnimTextureFrame>& GetFrames() const;
 	const std::vector<Texture>& GetTextures() const;

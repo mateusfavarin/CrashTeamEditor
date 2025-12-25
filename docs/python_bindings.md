@@ -156,7 +156,7 @@ Properties:
 - `hide: bool`
 - `animated: bool`
 - `checkpoint_index: int`
-- `checkpoint_status: bool` (backed by a reference; toggling this mutates the instance)
+- `checkpoint_status: bool`
 - `tex_path: pathlib.Path`
 - `bounding_box: BoundingBox` (copy)
 - `uvs: list` (copy of the UV array)
@@ -212,7 +212,7 @@ Methods:
 - `get_index() -> int`
 - `get_start() -> int`
 - `get_end() -> int`
-- `ready() -> bool`
+- `is_ready() -> bool`
 - `set_index(index: int) -> None`
 - `update_dist(dist: float, ref_point: Vec3, checkpoints: list[Checkpoint]) -> None`
 - `generate_path(path_start_index: int, quadblocks: list[Quadblock]) -> list[Checkpoint]`
@@ -227,9 +227,9 @@ Constructors:
 - `BSP(type: BSPNode, quadblock_indexes: list[int], parent: BSP | None = None, quadblocks: list[Quadblock])`
 
 Methods:
-- `id() -> int`
-- `empty() -> bool`
-- `valid() -> bool`
+- `get_id() -> int`
+- `is_empty() -> bool`
+- `is_valid() -> bool`
 - `is_branch() -> bool`
 - `flags() -> int`
 - `type() -> str`
@@ -259,7 +259,7 @@ Methods:
 - `save_preset(path: pathlib.Path) -> bool`
 
 Properties:
-- `loaded: bool`
+- `is_loaded: bool`
 - `name: str`
 - `quadblocks: list[Quadblock]` (live references)
 - `bsp: BSP` (live reference)

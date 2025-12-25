@@ -28,7 +28,7 @@ class Level
 public:
 	bool Load(const std::filesystem::path& filename);
 	bool Save(const std::filesystem::path& path);
-	bool Loaded() const;
+	bool IsLoaded() const;
 	void OpenHotReloadWindow();
 	void Clear(bool clearErrors);
 	const std::string& GetName() const;

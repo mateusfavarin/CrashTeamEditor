@@ -512,7 +512,7 @@ void Level::RenderUI()
 					if (m_propTurboPads.RenderUI(material, quadblockIndexes, m_quadblocks))
 					{
 						for (size_t index : quadblockIndexes) { ManageTurbopad(m_quadblocks[index]); }
-						if (m_bsp.Valid())
+						if (m_bsp.IsValid())
 						{
 							m_bsp.Clear();
 							GenerateRenderBspData(m_bsp);
@@ -556,7 +556,7 @@ void Level::RenderUI()
 				{
 					const std::filesystem::path& animTexPath = selection.front();
 					AnimTexture animTex = AnimTexture(animTexPath, animTexNames);
-					if (!animTex.Empty()) { m_animTextures.push_back(animTex); errorLoadingAnim.clear(); }
+					if (!animTex.IsEmpty()) { m_animTextures.push_back(animTex); errorLoadingAnim.clear(); }
 					else { errorLoadingAnim = "Error loading " + animTexPath.string(); }
 				}
 			}
@@ -604,7 +604,7 @@ void Level::RenderUI()
 			ImGui::InputTextWithHint("Search", "Search Quadblocks...", &quadblockQuery);
 			for (Quadblock& quadblock : m_quadblocks)
 			{
-				if (!quadblock.Hide() && Matches(quadblock.GetName(), quadblockQuery))
+				if (!quadblock.GetHide() && Matches(quadblock.GetName(), quadblockQuery))
 				{
 					if (quadblock.RenderUI(m_checkpoints.size() - 1, resetBsp))
 					{
@@ -614,7 +614,7 @@ void Level::RenderUI()
 			}
 		}
 		ImGui::End();
-		if (resetBsp && m_bsp.Valid())
+		if (resetBsp && m_bsp.IsValid())
 		{
 			m_bsp.Clear();
 			GenerateRenderBspData(m_bsp);
@@ -691,7 +691,7 @@ void Level::RenderUI()
 			bool ready = !m_checkpointPaths.empty();
 			for (const Path& path : m_checkpointPaths)
 			{
-				if (!path.Ready()) { ready = false; break; }
+				if (!path.IsReady()) { ready = false; break; }
 			}
 			ImGui::BeginDisabled(!ready);
 			static ButtonUI generateButton;
@@ -711,7 +711,7 @@ void Level::RenderUI()
 	{
 		if (ImGui::Begin("BSP Tree", &Windows::w_bsp))
 		{
-			if (!m_bsp.Empty()) { m_bsp.RenderUI(m_quadblocks); }
+			if (!m_bsp.IsEmpty()) { m_bsp.RenderUI(m_quadblocks); }
 
 			static std::string buttonMessage;
 			static ButtonUI generateBSPButton = ButtonUI();
@@ -1042,7 +1042,7 @@ void Level::RenderUI()
 							{
 								ManageTurbopad(quadblock);
 							}
-							if (resetBsp && m_bsp.Valid())
+							if (resetBsp && m_bsp.IsValid())
 							{
 								m_bsp.Clear();
 								GenerateRenderBspData(m_bsp);
@@ -1428,7 +1428,7 @@ void Texture::RenderUI(const std::vector<size_t>& quadblockIndexes, std::vector<
 				for (const size_t index : quadblockIndexes) { quadblocks[index].SetTexPath(newTexPath); }
 			}
 		}
-		if (Empty()) { ImGui::TreePop(); return; }
+		if (IsEmpty()) { ImGui::TreePop(); return; }
 		constexpr size_t NUM_BLEND_MODES = 4;
 		const std::array<std::string, NUM_BLEND_MODES> BLEND_MODES = {"Half Transparent", "Additive", "Subtractive", "Additive Translucent"};
 		uint16_t blendMode = GetBlendMode();
@@ -1529,7 +1529,7 @@ bool AnimTexture::RenderUI(std::vector<std::string>& animTexNames, std::vector<Q
 				for (size_t i = 0; i < quadblocks.size(); i++)
 				{
 					const Quadblock& quadblock = quadblocks[i];
-					if (!quadblock.Hide() && Matches(quadblock.GetName(), query) && ImGui::Selectable(quadblock.GetName().c_str()))
+					if (!quadblock.GetHide() && Matches(quadblock.GetName(), query) && ImGui::Selectable(quadblock.GetName().c_str()))
 					{
 						m_previewQuadName = quadblock.GetName();
 						m_previewQuadIndex = i;

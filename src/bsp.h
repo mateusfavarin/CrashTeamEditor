@@ -40,9 +40,9 @@ class BSP
 public:
 	BSP();
 	BSP(BSPNode type, const std::vector<size_t>& quadblockIndexes, BSP* parent, const std::vector<Quadblock>& quadblocks);
-	size_t Id() const;
-	bool Empty() const;
-	bool Valid() const;
+	size_t GetId() const;
+	bool IsEmpty() const;
+	bool IsValid() const;
 	bool IsBranch() const;
 	uint16_t GetFlags() const;
 	const std::string& GetType() const;

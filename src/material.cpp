@@ -103,12 +103,12 @@ void MaterialProperty<T, M>::Apply(const std::string& material, const std::vecto
 	for (const size_t index : quadblockIndexes)
 	{
 		Quadblock& quadblock = quadblocks[index];
-		if (!quadblock.Hide())
+		if (!quadblock.GetHide())
 		{
 			if constexpr (M == MaterialType::TERRAIN) { if (!preview.empty()) { quadblock.SetTerrain(TerrainType::LABELS.at(preview)); } }
 			else if constexpr (M == MaterialType::QUAD_FLAGS) { quadblock.SetFlag(preview); }
 			else if constexpr (M == MaterialType::DRAW_FLAGS) { quadblock.SetDrawDoubleSided(preview); }
-			else if constexpr (M == MaterialType::CHECKPOINT) { quadblock.CheckpointStatus() = preview; }
+			else if constexpr (M == MaterialType::CHECKPOINT) { quadblock.SetCheckpointStatus(preview); }
 			else if constexpr (M == MaterialType::TURBO_PAD)
 			{
 				quadblock.SetTrigger(preview);

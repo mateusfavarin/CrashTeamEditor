@@ -22,7 +22,7 @@ void BitMatrix::Set(bool value, size_t x, size_t y)
 	m_data[(y * m_width) + x] = value;
 }
 
-bool BitMatrix::Empty()
+bool BitMatrix::IsEmpty() const
 {
 	return m_data.empty();
 }

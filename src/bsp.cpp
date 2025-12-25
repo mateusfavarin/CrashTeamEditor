@@ -36,22 +36,22 @@ BSP::BSP(BSPNode type, const std::vector<size_t>& quadblockIndexes, BSP* parent,
 	}
 }
 
-size_t BSP::Id() const
+size_t BSP::GetId() const
 {
 	return m_id;
 }
 
-bool BSP::Empty() const
+bool BSP::IsEmpty() const
 {
 	return m_quadblockIndexes.empty();
 }
 
-bool BSP::Valid() const
+bool BSP::IsValid() const
 {
 	for (const BSP* bsp : GetTree())
 	{
 		if (bsp->m_node == BSPNode::BRANCH) { if (!bsp->m_right && !bsp->m_left) { return false; } }
-		else if (bsp->Empty()) { return false; }
+		else if (bsp->IsEmpty()) { return false; }
 	}
 	return true;
 }

@@ -23,7 +23,7 @@ AnimTexture::AnimTexture(const std::filesystem::path& path, const std::vector<st
 	if (!ReadAnimation(path)) { ClearAnimation(); }
 }
 
-bool AnimTexture::Empty() const
+bool AnimTexture::IsEmpty() const
 {
 	return m_frames.empty();
 }
@@ -63,7 +63,7 @@ const std::string& AnimTexture::GetName() const
 
 bool AnimTexture::IsPopulated() const
 {
-	return !Empty() && !m_quadblockIndexes.empty();
+	return !IsEmpty() && !m_quadblockIndexes.empty();
 }
 
 void AnimTexture::AddQuadblockIndex(size_t index)
