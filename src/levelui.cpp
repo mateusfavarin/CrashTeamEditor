@@ -1254,6 +1254,30 @@ bool Quadblock::RenderUI(size_t checkpointCount, bool& resetBsp)
 		if (ImGui::TreeNode("Draw Flags"))
 		{
 			ImGui::Checkbox("Double Sided", &m_doubleSided);
+			const std::vector<std::string> s_rotateFlip = { "None", "Rotate 90", "Rotate 180", "Rotate -90", "Flip + Rotate 90", "Flip + Rotate 180", "Flip + Rotate -90", "Flip" };
+			const std::vector<std::string> s_faceDrawMode = { "Both", "Left", "Right", "None" };
+
+			auto UISelectable = [](size_t quadIndex, const std::string& label, const std::vector<std::string>& options, uint32_t* data)
+				{
+					if (ImGui::BeginCombo((label + "##" + std::to_string(quadIndex)).c_str(), options[data[quadIndex]].c_str()))
+					{
+						for (size_t i = 0; i < options.size(); i++)
+						{
+							if (ImGui::Selectable(options[i].c_str()))
+							{
+								data[quadIndex] = static_cast<int>(i);
+							}
+						}
+						ImGui::EndCombo();
+					}
+				};
+			for (size_t i = 0; i < NUM_FACES_QUADBLOCK; i++)
+			{
+				ImGui::Text(("Face " + std::to_string(i)).c_str());
+				UISelectable(i, "Rotate Flip", s_rotateFlip, m_faceRotateFlip);
+				UISelectable(i, "Draw Mode", s_faceDrawMode, m_faceDrawMode);
+			}
+
 			ImGui::TreePop();
 		}
 		ImGui::Text("Downforce:");

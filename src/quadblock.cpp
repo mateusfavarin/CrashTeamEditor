@@ -110,7 +110,7 @@ Quadblock::Quadblock(const std::string& name, Tri& t0, Tri& t1, Tri& t2, Tri& t3
 		Swap(m_p[3], m_p[4]);
 	}
 
-	m_p[5] = m_p[6];
+	m_p[5] = m_p[4];
 	m_p[7] = m_p[6];
 	m_p[8] = m_p[6];
 
@@ -363,7 +363,13 @@ Quadblock::Quadblock(const PSX::Quadblock& quadblock, const std::vector<PSX::Ver
 
 	m_name = "Quadblock " + std::to_string(quadblock.id);
 	m_flags = quadblock.flags;
-	m_doubleSided = quadblock.drawOrderLow & (1 << 31);
+	m_doubleSided = (quadblock.drawOrderLow & (1 << 31)) != 0;
+	for (size_t i = 0; i < NUM_FACES_QUADBLOCK; i++)
+	{
+		uint32_t packedFace = (quadblock.drawOrderLow >> (8 + i * 5)) & 0b11111;
+		m_faceRotateFlip[i] = packedFace & 0b111;
+		m_faceDrawMode[i] = (packedFace >> 3) & 0b11;
+	}
 	m_terrain = quadblock.terrain;
 	m_checkpointIndex = quadblock.checkpointIndex;
 	m_material = "default";
