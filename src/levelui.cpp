@@ -647,7 +647,7 @@ void Level::RenderUI()
 					{
 						m_checkpoints[i].RemoveInvalidCheckpoints(checkpointsDelete);
 						m_checkpoints[i].UpdateInvalidCheckpoints(checkpointsDelete);
-						m_checkpoints[i].UpdateIndex(i);
+						m_checkpoints[i].SetIndex(i);
 					}
 				}
 				if (ImGui::Button("Add Checkpoint"))

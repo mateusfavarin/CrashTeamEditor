@@ -193,7 +193,6 @@ Methods:
 - `get_left() -> int`
 - `get_right() -> int`
 - `update_dist_finish(dist: float) -> None`
-- `update_index(index: int) -> None`
 - `update_up(up: int) -> None`
 - `update_down(down: int) -> None`
 - `update_left(left: int) -> None`
