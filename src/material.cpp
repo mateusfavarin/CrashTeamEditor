@@ -105,7 +105,7 @@ void MaterialProperty<T, M>::Apply(const std::string& material, const std::vecto
 		Quadblock& quadblock = quadblocks[index];
 		if (!quadblock.Hide())
 		{
-			if constexpr (M == MaterialType::TERRAIN) { quadblock.SetTerrain(TerrainType::LABELS.at(preview)); }
+			if constexpr (M == MaterialType::TERRAIN) { if (!preview.empty()) { quadblock.SetTerrain(TerrainType::LABELS.at(preview)); } }
 			else if constexpr (M == MaterialType::QUAD_FLAGS) { quadblock.SetFlag(preview); }
 			else if constexpr (M == MaterialType::DRAW_FLAGS) { quadblock.SetDrawDoubleSided(preview); }
 			else if constexpr (M == MaterialType::CHECKPOINT) { quadblock.CheckpointStatus() = preview; }

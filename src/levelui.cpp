@@ -1090,6 +1090,7 @@ void Level::RenderUI()
 
 			if (ImGui::Button("Run"))
 			{
+				m_saveScript = true;
 				m_pythonConsole.clear();
 				std::string result = Script::ExecutePythonScript(*this, m_pythonScript);
 				if (result.empty()) { result = "[No output]"; }

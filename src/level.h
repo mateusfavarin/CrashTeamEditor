@@ -68,6 +68,7 @@ private:
 	void ViewportClickHandleBlockSelection(int pixelX, int pixelY, const Renderer& rend);
 
 private:
+	bool m_saveScript;
 	bool m_showLogWindow;
 	bool m_showHotReloadWindow;
 	bool m_loaded;

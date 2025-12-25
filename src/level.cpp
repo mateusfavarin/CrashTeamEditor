@@ -71,6 +71,8 @@ void Level::Clear(bool clearErrors)
 	m_bspVis.Clear();
 	m_maxLeafAxisLength = 64.0f;
 	m_distanceFarClip = 1000.0f;
+	m_pythonConsole.clear();
+	m_saveScript = false;
 	DeleteMaterials(this);
 }
 
@@ -320,7 +322,7 @@ bool Level::GenerateCheckpoints()
 
 enum class PresetHeader : unsigned
 {
-	SPAWN, LEVEL, PATH, MATERIAL, TURBO_PAD, ANIM_TEXTURES
+	SPAWN, LEVEL, PATH, MATERIAL, TURBO_PAD, ANIM_TEXTURES, SCRIPT
 };
 
 bool Level::LoadPreset(const std::filesystem::path& filename)
@@ -445,6 +447,10 @@ bool Level::LoadPreset(const std::filesystem::path& filename)
 			}
 		}
 	}
+	else if (header == PresetHeader::SCRIPT)
+	{
+		m_pythonScript = json["script"];
+	}
 	else
 	{
 		m_logMessage += "\nFailed loaded preset: " + filename.string();
@@ -534,6 +540,14 @@ bool Level::SavePreset(const std::filesystem::path& path)
 		turboPadJson["header"] = PresetHeader::TURBO_PAD;
 		turboPadJson["turbopads"] = turboPads;
 		SaveJSON(dirPath / "turbopad.json", turboPadJson);
+	}
+
+	if (m_saveScript)
+	{
+		nlohmann::json scriptJson = {};
+		scriptJson["header"] = PresetHeader::SCRIPT;
+		scriptJson["script"] = m_pythonScript;
+		SaveJSON(dirPath / "script.json", scriptJson);
 	}
 	return true;
 }
