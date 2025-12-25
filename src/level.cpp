@@ -84,6 +84,21 @@ const std::vector<Quadblock>& Level::GetQuadblocks() const
 	return m_quadblocks;
 }
 
+const BSP& Level::GetBSP() const
+{
+	return m_bsp;
+}
+
+const std::vector<Checkpoint>& Level::GetCheckpoints() const
+{
+	return m_checkpoints;
+}
+
+const std::vector<Path>& Level::GetCheckpointPaths() const
+{
+	return m_checkpointPaths;
+}
+
 const std::filesystem::path& Level::GetParentPath() const
 {
 	return m_parentPath;

@@ -33,6 +33,9 @@ public:
 	void Clear(bool clearErrors);
 	const std::string& GetName() const;
 	const std::vector<Quadblock>& GetQuadblocks() const;
+	const BSP& GetBSP() const;
+	const std::vector<Checkpoint>& GetCheckpoints() const;
+	const std::vector<Path>& GetCheckpointPaths() const;
 	const std::filesystem::path& GetParentPath() const;
 	bool LoadPreset(const std::filesystem::path& filename);
 	bool SavePreset(const std::filesystem::path& path);
@@ -90,6 +93,8 @@ private:
 	std::vector<Checkpoint> m_checkpoints;
 	BSP m_bsp;
 	std::vector<Path> m_checkpointPaths;
+	std::string m_pythonScript = "print('CrashTeamEditor Python console ready!')\nprint('Level:', m_lev.name)";
+	std::string m_pythonConsole;
 	std::vector<AnimTexture> m_animTextures;
 	BitMatrix m_bspVis;
 	std::vector<uint8_t> m_vrm;

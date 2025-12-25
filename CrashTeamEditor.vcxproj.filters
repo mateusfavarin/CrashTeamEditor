@@ -78,6 +78,9 @@
     <ClCompile Include="src\levelui.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\script.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="src\path.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -144,6 +147,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\level.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\script.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\io.h">

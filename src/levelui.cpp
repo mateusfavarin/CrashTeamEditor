@@ -11,6 +11,7 @@
 #include "mesh.h"
 #include "texture.h"
 #include "ui.h"
+#include "script.h"
 
 #include <imgui.h>
 #include <misc/cpp/imgui_stdlib.h>
@@ -20,6 +21,7 @@
 #include <chrono>
 #include <functional>
 #include <cmath>
+#include <fstream>
 #include <sstream>
 
 class ButtonUI
@@ -390,6 +392,7 @@ void Level::RenderUI()
 		if (ImGui::MenuItem("BSP Tree")) { Windows::w_bsp = !Windows::w_bsp; }
 		if (ImGui::MenuItem("Renderer")) { Windows::w_renderer = !Windows::w_renderer; }
 		if (ImGui::MenuItem("Ghosts")) { Windows::w_ghost = !Windows::w_ghost; }
+		if (ImGui::MenuItem("Python")) { Windows::w_python = !Windows::w_python; }
 		ImGui::EndMainMenuBar();
 	}
 
@@ -1054,6 +1057,65 @@ void Level::RenderUI()
 			ImGui::EndChild();
 		}
 		ImGui::End();
+
+		if (Windows::w_python)
+		{
+			ImGui::SetNextWindowSize(ImVec2(600.0f, 320.0f), ImGuiCond_FirstUseEver);
+			if (ImGui::Begin("Python", &Windows::w_python))
+			{
+				ImGui::Text("Script Editor");
+				ImGui::Separator();
+				ImVec2 editorSize = ImVec2(ImGui::GetContentRegionAvail().x, 150.0f);
+				ImGui::InputTextMultiline("##python_editor", &m_pythonScript, editorSize, ImGuiInputTextFlags_AllowTabInput);
+
+				if (ImGui::Button("Run"))
+				{
+					std::string result = Script::ExecutePythonScript(*this, m_pythonScript);
+					if (result.empty())
+					{
+						result = "[No output]";
+					}
+					if (!m_pythonConsole.empty() && m_pythonConsole.back() != '\n')
+					{
+						m_pythonConsole += '\n';
+					}
+					m_pythonConsole += result;
+					if (m_pythonConsole.back() != '\n') { m_pythonConsole += '\n'; }
+				}
+				ImGui::SameLine();
+				if (ImGui::Button("Open .py"))
+				{
+					auto selection = pfd::open_file("Open Python Script", m_parentPath.string(), {"Python Files", "*.py"}, pfd::opt::force_path).result();
+					if (!selection.empty())
+					{
+						std::ifstream input(selection.front(), std::ios::binary);
+						if (input)
+						{
+							std::ostringstream buffer;
+							buffer << input.rdbuf();
+							m_pythonScript = buffer.str();
+						}
+					}
+				}
+				ImGui::SameLine();
+				if (ImGui::Button("Clear Console")) { m_pythonConsole.clear(); }
+
+				ImGui::Separator();
+				ImGui::Text("Console Output:");
+				ImGui::BeginChild("##python_console", ImVec2(0.0f, 150.0f), true, ImGuiWindowFlags_HorizontalScrollbar);
+				if (m_pythonConsole.empty())
+				{
+					ImGui::TextUnformatted("Console output will appear here.");
+				}
+				else
+				{
+					ImGui::TextUnformatted(m_pythonConsole.c_str());
+				}
+				ImGui::EndChild();
+			}
+			ImGui::End();
+		}
+
 		ImGui::PopStyleVar();
 	}
 }

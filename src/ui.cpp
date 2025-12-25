@@ -16,6 +16,7 @@ bool Windows::w_checkpoints = false;
 bool Windows::w_bsp = false;
 bool Windows::w_renderer = false;
 bool Windows::w_ghost = false;
+bool Windows::w_python = false;
 std::string Windows::lastOpenedFolder = ".";
 
 void UI::Render(int width, int height)
