@@ -1,23 +1,31 @@
 # CrashTeamEditor
 Track editor for the Playstation 1 game Crash Team Racing
 
+## Building
+
+### Windows (Visual Studio)
+
+1. Clone and fetch submodules (pybind11, glfw, etc.):
+   - `git submodule update --init --recursive`
+2. Install Python (the editor embeds Python via pybind11) and set `PYTHON_HOME` to your Python install root (the folder that contains `include/` and `libs/`).
+   - Example: `PYTHON_HOME=C:\Users\you\AppData\Local\Programs\Python\Python312`
+3. Open `CrashTeamEditor.sln` and build `x64` `Debug`/`Release`.
+4. If the executable fails to start due to a missing `python3xx.dll`, add these to your debugger environment `PATH` (or system `PATH`):
+   - `$(PYTHON_HOME)`
+   - `$(PYTHON_HOME)\DLLs`
+
+### Makefile (Linux/macOS/MSYS2)
+
+- `make release` (or `make debug`)
+- The Makefile uses `PYTHON_EXECUTABLE` (default: `python`) to detect include/lib paths via `sysconfig`.
+
 ## Python bindings
 
 Bindings are implemented with pybind11 (included under `third_party/pybind11`). The same `python_bindings/cte_bindings.cpp` file exposes a standalone `crashteameditor` module and also registers an embedded module that the editor's built-in Python console reuses.
 
-### In-editor Python console
-
-A `Window → Python Console` menu entry opens the embedded console, which combines:
-
-- a multiline script editor pre-filled with a starter snippet,
-- a **Run** button that executes the script inside the embedded interpreter while stdout/stderr are redirected back into the UI,
-- a console pane that shows the captured output or traceback.
-
-Scripts share the same `crashteameditor` bindings, plus a global `m_lev` object that points to the `Level` instance displayed in the UI, so you can inspect or mutate the currently loaded level on the fly.
-
 ### Building CrashTeamEditor with Python support
 
-Because the editor now links `python_bindings/cte_bindings.cpp` directly, the Makefile and Visual Studio project both need access to Python headers and libraries. The Makefile probes `PYTHON_EXECUTABLE` (e.g. `python` or `py -3`) and derives `PYTHON_INCLUDE_DIR`, `PYTHON_LIBRARY_DIR`, and `PYTHON_LIBRARY_NAME` from `sysconfig`; override any of those if your interpreter lives in a custom location. The Visual Studio build respects `PYTHON_HOME` (or `PYTHON_INCLUDE_DIR`/`PYTHON_LIB`), so set them before opening the solution or pass `/p:PYTHON_INCLUDE_DIR=...` and `/p:PYTHON_LIB=...` to `msbuild`. These settings just point the compiler to `pybind11/embed.h` and the Python import library that the editor links.
+Because the editor links `python_bindings/cte_bindings.cpp` directly, the build needs access to Python headers and libraries. See the `Building` section above for platform-specific setup (especially `PYTHON_HOME` on Windows).
 
 ### Standalone crashteameditor module
 
@@ -31,10 +39,3 @@ Because the editor now links `python_bindings/cte_bindings.cpp` directly, the Ma
    cmake --build python_bindings/build --config Release
    ```
 3. Import the generated `crashteameditor` module from Python scripts in the same interpreter whose headers were used during the build.
-
-The `crashteameditor` module bundles the following bindings:
-
-- Geometry helpers (`Vec2`, `Vec3`, `Color`, `Vertex`, `BoundingBox`) plus `Quadblock` with its properties, UVs, serialization, and neighbor helpers.
-- `Checkpoint` allows reading and mutating checkpoint state, serializing to bytes, and pruning invalid indexes.
-- `Path` exposes start/end markers, readiness checks, and JSON (via Python `json` objects) export/import helpers for the checkpoint routing data.
-- `BSP` and `Level` wrap the existing spatial structure and level lifecycle APIs so Python scripts can generate BSPs, query quadblocks, and save/load `.lev` presets.

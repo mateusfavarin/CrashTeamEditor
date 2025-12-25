@@ -105,17 +105,6 @@
     <RootNamespace>CrashTeamEditor</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(PYTHON_HOME)'==''">
-    <PYTHON_HOME Condition="Exists('$(LOCALAPPDATA)\Programs\Python\Python312')">$(LOCALAPPDATA)\Programs\Python\Python312</PYTHON_HOME>
-    <PYTHON_HOME Condition="'$(PYTHON_HOME)'=='' AND Exists('$(LOCALAPPDATA)\Programs\Python\Python311')">$(LOCALAPPDATA)\Programs\Python\Python311</PYTHON_HOME>
-    <PYTHON_HOME Condition="'$(PYTHON_HOME)'=='' AND Exists('$(LOCALAPPDATA)\Programs\Python\Python310')">$(LOCALAPPDATA)\Programs\Python\Python310</PYTHON_HOME>
-    <PYTHON_HOME Condition="'$(PYTHON_HOME)'=='' AND Exists('$(ProgramFiles)\Python312')">$(ProgramFiles)\Python312</PYTHON_HOME>
-    <PYTHON_HOME Condition="'$(PYTHON_HOME)'=='' AND Exists('$(ProgramFiles)\Python311')">$(ProgramFiles)\Python311</PYTHON_HOME>
-    <PYTHON_HOME Condition="'$(PYTHON_HOME)'=='' AND Exists('$(ProgramFiles)\Python310')">$(ProgramFiles)\Python310</PYTHON_HOME>
-  </PropertyGroup>
-  <PropertyGroup>
-    <PYTHON_HOME Condition="'$(PYTHON_HOME)'==''">$(PYTHONHOME)</PYTHON_HOME>
-  </PropertyGroup>
   <PropertyGroup>
     <PYTHON_INCLUDE_DIR Condition="'$(PYTHON_INCLUDE_DIR)'=='' AND '$(PYTHON_HOME)'!=''">$(PYTHON_HOME)\include</PYTHON_INCLUDE_DIR>
     <PYTHON_LIB_FILE Condition="'$(PYTHON_LIB_FILE)'=='' AND Exists('$(PYTHON_HOME)\libs\python312.lib')">$(PYTHON_HOME)\libs\python312.lib</PYTHON_LIB_FILE>
