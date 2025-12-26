@@ -16,6 +16,7 @@ bool Windows::w_checkpoints = false;
 bool Windows::w_bsp = false;
 bool Windows::w_renderer = false;
 bool Windows::w_ghost = false;
+bool Windows::w_python = false;
 std::string Windows::lastOpenedFolder = ".";
 
 void UI::Render(int width, int height)
@@ -40,7 +41,7 @@ void UI::MainMenu()
 					if (!m_lev.Load(levPath)) { m_lev.Clear(false); }
 				}
 			}
-			if (ImGui::MenuItem("Save", nullptr, nullptr, m_lev.Loaded()))
+			if (ImGui::MenuItem("Save", nullptr, nullptr, m_lev.IsLoaded()))
 			{
 				auto selection = pfd::select_folder("Level Folder", m_lev.GetParentPath().string(), pfd::opt::force_path).result();
 				if (!selection.empty())
@@ -52,7 +53,7 @@ void UI::MainMenu()
 
 			if (ImGui::MenuItem("Hot Reload")) { m_lev.OpenHotReloadWindow(); }
 
-			ImGui::BeginDisabled(!m_lev.Loaded());
+			ImGui::BeginDisabled(!m_lev.IsLoaded());
 			if (ImGui::BeginMenu("Preset"))
 			{
 				if (ImGui::MenuItem("Load"))

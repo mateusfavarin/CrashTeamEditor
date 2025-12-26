@@ -27,7 +27,7 @@ public:
 	int GetHeight() const;
 	uint16_t GetBlendMode() const;
 	const std::filesystem::path& GetPath() const;
-	bool Empty() const;
+	bool IsEmpty() const;
 	const std::vector<uint16_t>& GetImage() const;
 	const std::vector<uint16_t>& GetClut() const;
 	size_t GetImageX() const;

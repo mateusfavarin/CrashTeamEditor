@@ -17,7 +17,7 @@ public:
 	size_t GetIndex() const;
 	size_t GetStart() const;
 	size_t GetEnd() const;
-	bool Ready() const;
+	bool IsReady() const;
 	void SetIndex(size_t index);
 	void UpdateDist(float dist, const Vec3& refPoint, std::vector<Checkpoint>& checkpoints);
 	std::vector<Checkpoint> GeneratePath(size_t pathStartIndex, std::vector<Quadblock>& quadblocks);

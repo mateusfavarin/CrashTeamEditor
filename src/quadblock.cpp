@@ -372,6 +372,8 @@ Quadblock::Quadblock(const PSX::Quadblock& quadblock, const std::vector<PSX::Ver
 	}
 	m_terrain = quadblock.terrain;
 	m_checkpointIndex = quadblock.checkpointIndex;
+	if (m_checkpointIndex == std::numeric_limits<uint8_t>::max()) { m_checkpointIndex = -1; }
+	else { m_checkpointStatus = true; }
 	m_material = "default";
 	m_triblock = false;
 }
@@ -428,17 +430,17 @@ void Quadblock::SetBSPID(size_t id) const
 	m_bspID = id;
 }
 
-bool Quadblock::Hide() const
+bool Quadblock::GetHide() const
 {
 	return m_hide;
 }
 
-bool Quadblock::IsAnimated() const
+bool Quadblock::GetAnimated() const
 {
 	return m_animated;
 }
 
-bool& Quadblock::CheckpointStatus()
+bool Quadblock::GetCheckpointStatus() const
 {
 	return m_checkpointStatus;
 }

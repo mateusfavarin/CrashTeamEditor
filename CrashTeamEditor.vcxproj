@@ -45,6 +45,7 @@
     <ClCompile Include="src\io.cpp" />
     <ClCompile Include="src\level.cpp" />
     <ClCompile Include="src\levelui.cpp" />
+    <ClCompile Include="src\script.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\material.cpp" />
     <ClCompile Include="src\path.cpp" />
@@ -54,6 +55,7 @@
     <ClCompile Include="src\ui.cpp" />
     <ClCompile Include="src\utils.cpp" />
     <ClCompile Include="src\vertex.cpp" />
+    <ClCompile Include="python_bindings\cte_bindings.cpp" />
     <ClCompile Include="src\vistree.cpp" />
     <!--IMGUI stuff-->
     <ClCompile Include="third_party\imgui\backends\imgui_impl_glfw.cpp" />
@@ -68,6 +70,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\animtexture.h" />
+    <ClInclude Include="src\script.h" />
     <ClInclude Include="src\shader_templates.h" />
     <ClInclude Include="src\gui_render_settings.h" />
     <ClInclude Include="src\model.h" />
@@ -102,6 +105,15 @@
     <RootNamespace>CrashTeamEditor</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
+  <PropertyGroup>
+    <PYTHON_INCLUDE_DIR Condition="'$(PYTHON_INCLUDE_DIR)'=='' AND '$(PYTHON_HOME)'!=''">$(PYTHON_HOME)\include</PYTHON_INCLUDE_DIR>
+    <PYTHON_LIB_FILE Condition="'$(PYTHON_LIB_FILE)'=='' AND Exists('$(PYTHON_HOME)\libs\python312.lib')">$(PYTHON_HOME)\libs\python312.lib</PYTHON_LIB_FILE>
+    <PYTHON_LIB_FILE Condition="'$(PYTHON_LIB_FILE)'=='' AND Exists('$(PYTHON_HOME)\libs\python311.lib')">$(PYTHON_HOME)\libs\python311.lib</PYTHON_LIB_FILE>
+    <PYTHON_LIB_FILE Condition="'$(PYTHON_LIB_FILE)'=='' AND Exists('$(PYTHON_HOME)\libs\python310.lib')">$(PYTHON_HOME)\libs\python310.lib</PYTHON_LIB_FILE>
+    <PYTHON_LIB_FILE Condition="'$(PYTHON_LIB_FILE)'=='' AND '$(PYTHON_LIB)'!=''">$(PYTHON_LIB)</PYTHON_LIB_FILE>
+    <PYTHON_LIB_FILE Condition="'$(PYTHON_LIB_FILE)'=='' AND Exists('$(PYTHON_HOME)\libs\python3.lib')">$(PYTHON_HOME)\libs\python3.lib</PYTHON_LIB_FILE>
+    <PYTHON_LIB_DEP Condition="'$(PYTHON_LIB_FILE)'!=''">;"$(PYTHON_LIB_FILE)"</PYTHON_LIB_DEP>
+  </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -132,18 +144,33 @@
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NOMINMAX;_USE_MATH_DEFINES;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NOMINMAX;_USE_MATH_DEFINES;_DEBUG;_CONSOLE;CTE_EMBEDDED_BUILD;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)third_party\imgui\;$(SolutionDir)third_party\imgui\backends;$(SolutionDir)third_party\portable-file-dialogs\;$(SolutionDir)third_party\glfw\include\;$(SolutionDir)third_party\glm\glm\;$(SolutionDir)third_party\json\include\;$(SolutionDir)third_party\stb\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)third_party\imgui\;$(SolutionDir)third_party\imgui\backends;$(SolutionDir)third_party\portable-file-dialogs\;$(SolutionDir)third_party\glfw\include\;$(SolutionDir)third_party\glm\glm\;$(SolutionDir)third_party\json\include\;$(SolutionDir)third_party\stb\;$(SolutionDir)src\;$(SolutionDir)third_party\pybind11\include\;$(PYTHON_INCLUDE_DIR)\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/wd4189 /wd4100 /wd4661 /wd4201 %(AdditionalOptions)</AdditionalOptions>
       <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>opengl32.lib;$(SolutionDir)glfw-build-win\src\$(Configuration)\glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(PYTHON_HOME)\libs;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>opengl32.lib;$(SolutionDir)glfw-build-win\src\$(Configuration)\glfw3.lib$(PYTHON_LIB_DEP);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>if "$(PYTHON_EMBED_HOME)"=="" exit /b 0
+set "PY_BUNDLE_DIR=$(OutDir)python"
+if not exist "%PY_BUNDLE_DIR%" mkdir "%PY_BUNDLE_DIR%"
+if exist "$(PYTHON_EMBED_HOME)\python*.dll" xcopy "$(PYTHON_EMBED_HOME)\python*.dll" "$(OutDir)" /D /Y &gt;nul
+if exist "$(PYTHON_EMBED_HOME)\python*.zip" xcopy "$(PYTHON_EMBED_HOME)\python*.zip" "%PY_BUNDLE_DIR%\" /D /Y &gt;nul
+if exist "$(PYTHON_EMBED_HOME)\*.dll" xcopy "$(PYTHON_EMBED_HOME)\*.dll" "%PY_BUNDLE_DIR%\" /D /Y &gt;nul
+if exist "$(PYTHON_EMBED_HOME)\*.pyd" xcopy "$(PYTHON_EMBED_HOME)\*.pyd" "%PY_BUNDLE_DIR%\" /D /Y &gt;nul
+if exist "$(PYTHON_EMBED_HOME)\*.exe" xcopy "$(PYTHON_EMBED_HOME)\*.exe" "%PY_BUNDLE_DIR%\" /D /Y &gt;nul
+if exist "$(PYTHON_EMBED_HOME)\*.pth" xcopy "$(PYTHON_EMBED_HOME)\*.pth" "%PY_BUNDLE_DIR%\" /D /Y &gt;nul
+if exist "$(PYTHON_EMBED_HOME)\DLLs" xcopy "$(PYTHON_EMBED_HOME)\DLLs\*.pyd" "%PY_BUNDLE_DIR%\DLLs\" /E /I /Y /D &gt;nul
+if exist "$(PYTHON_EMBED_HOME)\DLLs" xcopy "$(PYTHON_EMBED_HOME)\DLLs\*.dll" "%PY_BUNDLE_DIR%\DLLs\" /E /I /Y /D &gt;nul
+</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -151,10 +178,10 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NOMINMAX;_USE_MATH_DEFINES;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NOMINMAX;_USE_MATH_DEFINES;NDEBUG;_CONSOLE;CTE_EMBEDDED_BUILD;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)third_party\imgui\;$(SolutionDir)third_party\imgui\backends;$(SolutionDir)third_party\portable-file-dialogs\;$(SolutionDir)third_party\glfw\include\;$(SolutionDir)third_party\glm\glm\;$(SolutionDir)third_party\json\include\;$(SolutionDir)third_party\stb\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)third_party\imgui\;$(SolutionDir)third_party\imgui\backends;$(SolutionDir)third_party\portable-file-dialogs\;$(SolutionDir)third_party\glfw\include\;$(SolutionDir)third_party\glm\glm\;$(SolutionDir)third_party\json\include\;$(SolutionDir)third_party\stb\;$(SolutionDir)src\;$(SolutionDir)third_party\pybind11\include\;$(PYTHON_INCLUDE_DIR)\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/wd4189 /wd4100 /wd4661 /wd4201 %(AdditionalOptions)</AdditionalOptions>
       <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
@@ -163,9 +190,32 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>opengl32.lib;$(SolutionDir)glfw-build-win\src\$(Configuration)\glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(PYTHON_HOME)\libs;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>opengl32.lib;$(SolutionDir)glfw-build-win\src\$(Configuration)\glfw3.lib$(PYTHON_LIB_DEP);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>if "$(PYTHON_EMBED_HOME)"=="" exit /b 0
+set "PY_BUNDLE_DIR=$(OutDir)python"
+if not exist "%PY_BUNDLE_DIR%" mkdir "%PY_BUNDLE_DIR%"
+if exist "$(PYTHON_EMBED_HOME)\python*.dll" xcopy "$(PYTHON_EMBED_HOME)\python*.dll" "$(OutDir)" /D /Y &gt;nul
+if exist "$(PYTHON_EMBED_HOME)\python*.zip" xcopy "$(PYTHON_EMBED_HOME)\python*.zip" "%PY_BUNDLE_DIR%\" /D /Y &gt;nul
+if exist "$(PYTHON_EMBED_HOME)\*.dll" xcopy "$(PYTHON_EMBED_HOME)\*.dll" "%PY_BUNDLE_DIR%\" /D /Y &gt;nul
+if exist "$(PYTHON_EMBED_HOME)\*.pyd" xcopy "$(PYTHON_EMBED_HOME)\*.pyd" "%PY_BUNDLE_DIR%\" /D /Y &gt;nul
+if exist "$(PYTHON_EMBED_HOME)\*.exe" xcopy "$(PYTHON_EMBED_HOME)\*.exe" "%PY_BUNDLE_DIR%\" /D /Y &gt;nul
+if exist "$(PYTHON_EMBED_HOME)\*.pth" xcopy "$(PYTHON_EMBED_HOME)\*.pth" "%PY_BUNDLE_DIR%\" /D /Y &gt;nul
+if exist "$(PYTHON_EMBED_HOME)\DLLs" xcopy "$(PYTHON_EMBED_HOME)\DLLs\*.pyd" "%PY_BUNDLE_DIR%\DLLs\" /E /I /Y /D &gt;nul
+if exist "$(PYTHON_EMBED_HOME)\DLLs" xcopy "$(PYTHON_EMBED_HOME)\DLLs\*.dll" "%PY_BUNDLE_DIR%\DLLs\" /E /I /Y /D &gt;nul
+</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />
+  <Target Name="AfterClean">
+    <ItemGroup>
+      <_PythonBundleDirs Include="$(OutDir)python;$(TargetDir)python" />
+      <_PythonDlls Include="$(OutDir)python*.dll;$(TargetDir)python*.dll" />
+    </ItemGroup>
+    <RemoveDir Directories="@(_PythonBundleDirs)" />
+    <Delete Files="@(_PythonDlls)" />
+  </Target>
 </Project>

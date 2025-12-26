@@ -147,6 +147,7 @@ void App::InitUISettings()
 	if (json.contains("Renderer")) { Windows::w_renderer = json["Renderer"]; }
 	if (json.contains("Spawn")) { Windows::w_spawn = json["Spawn"]; }
 	if (json.contains("LastOpenedFolder")) { Windows::lastOpenedFolder = json["LastOpenedFolder"]; }
+	if (json.contains("Script")) { Windows::w_python = json["Script"]; }
 }
 
 void App::SaveUISettings()
@@ -164,6 +165,7 @@ void App::SaveUISettings()
 	json["Renderer"] = Windows::w_renderer;
 	json["Spawn"] = Windows::w_spawn;
 	json["LastOpenedFolder"] = Windows::lastOpenedFolder;
+	json["Script"] = Windows::w_python;
 	std::ofstream file = std::ofstream(m_configFile);
 	file << std::setw(4) << json << std::endl;
 	file.close();

@@ -11,6 +11,7 @@
 #include "mesh.h"
 #include "texture.h"
 #include "ui.h"
+#include "script.h"
 
 #include <imgui.h>
 #include <misc/cpp/imgui_stdlib.h>
@@ -20,6 +21,7 @@
 #include <chrono>
 #include <functional>
 #include <cmath>
+#include <fstream>
 #include <sstream>
 
 class ButtonUI
@@ -390,6 +392,7 @@ void Level::RenderUI()
 		if (ImGui::MenuItem("BSP Tree")) { Windows::w_bsp = !Windows::w_bsp; }
 		if (ImGui::MenuItem("Renderer")) { Windows::w_renderer = !Windows::w_renderer; }
 		if (ImGui::MenuItem("Ghosts")) { Windows::w_ghost = !Windows::w_ghost; }
+		if (ImGui::MenuItem("Python")) { Windows::w_python = !Windows::w_python; }
 		ImGui::EndMainMenuBar();
 	}
 
@@ -509,7 +512,7 @@ void Level::RenderUI()
 					if (m_propTurboPads.RenderUI(material, quadblockIndexes, m_quadblocks))
 					{
 						for (size_t index : quadblockIndexes) { ManageTurbopad(m_quadblocks[index]); }
-						if (m_bsp.Valid())
+						if (m_bsp.IsValid())
 						{
 							m_bsp.Clear();
 							GenerateRenderBspData(m_bsp);
@@ -553,7 +556,7 @@ void Level::RenderUI()
 				{
 					const std::filesystem::path& animTexPath = selection.front();
 					AnimTexture animTex = AnimTexture(animTexPath, animTexNames);
-					if (!animTex.Empty()) { m_animTextures.push_back(animTex); errorLoadingAnim.clear(); }
+					if (!animTex.IsEmpty()) { m_animTextures.push_back(animTex); errorLoadingAnim.clear(); }
 					else { errorLoadingAnim = "Error loading " + animTexPath.string(); }
 				}
 			}
@@ -601,7 +604,7 @@ void Level::RenderUI()
 			ImGui::InputTextWithHint("Search", "Search Quadblocks...", &quadblockQuery);
 			for (Quadblock& quadblock : m_quadblocks)
 			{
-				if (!quadblock.Hide() && Matches(quadblock.GetName(), quadblockQuery))
+				if (!quadblock.GetHide() && Matches(quadblock.GetName(), quadblockQuery))
 				{
 					if (quadblock.RenderUI(m_checkpoints.size() - 1, resetBsp))
 					{
@@ -611,7 +614,7 @@ void Level::RenderUI()
 			}
 		}
 		ImGui::End();
-		if (resetBsp && m_bsp.Valid())
+		if (resetBsp && m_bsp.IsValid())
 		{
 			m_bsp.Clear();
 			GenerateRenderBspData(m_bsp);
@@ -644,7 +647,7 @@ void Level::RenderUI()
 					{
 						m_checkpoints[i].RemoveInvalidCheckpoints(checkpointsDelete);
 						m_checkpoints[i].UpdateInvalidCheckpoints(checkpointsDelete);
-						m_checkpoints[i].UpdateIndex(i);
+						m_checkpoints[i].SetIndex(i);
 					}
 				}
 				if (ImGui::Button("Add Checkpoint"))
@@ -688,7 +691,7 @@ void Level::RenderUI()
 			bool ready = !m_checkpointPaths.empty();
 			for (const Path& path : m_checkpointPaths)
 			{
-				if (!path.Ready()) { ready = false; break; }
+				if (!path.IsReady()) { ready = false; break; }
 			}
 			ImGui::BeginDisabled(!ready);
 			static ButtonUI generateButton;
@@ -708,7 +711,7 @@ void Level::RenderUI()
 	{
 		if (ImGui::Begin("BSP Tree", &Windows::w_bsp))
 		{
-			if (!m_bsp.Empty()) { m_bsp.RenderUI(m_quadblocks); }
+			if (!m_bsp.IsEmpty()) { m_bsp.RenderUI(m_quadblocks); }
 
 			static std::string buttonMessage;
 			static ButtonUI generateBSPButton = ButtonUI();
@@ -1039,7 +1042,7 @@ void Level::RenderUI()
 							{
 								ManageTurbopad(quadblock);
 							}
-							if (resetBsp && m_bsp.Valid())
+							if (resetBsp && m_bsp.IsValid())
 							{
 								m_bsp.Clear();
 								GenerateRenderBspData(m_bsp);
@@ -1055,6 +1058,75 @@ void Level::RenderUI()
 		}
 		ImGui::End();
 		ImGui::PopStyleVar();
+	}
+
+	if (Windows::w_python)
+	{
+		ImGui::SetNextWindowSize(ImVec2(600.0f, 320.0f), ImGuiCond_FirstUseEver);
+		if (ImGui::Begin("Python", &Windows::w_python))
+		{
+			ImGui::Text("Script Editor");
+			ImGui::SameLine();
+			if (ImGui::Button("Open .py"))
+			{
+				auto selection = pfd::open_file("Open Python Script", m_parentPath.string(), {"Python Files", "*.py"}, pfd::opt::force_path).result();
+				if (!selection.empty())
+				{
+					std::ifstream input(selection.front(), std::ios::binary);
+					if (input)
+					{
+						std::ostringstream buffer;
+						buffer << input.rdbuf();
+						m_pythonScript = buffer.str();
+					}
+				}
+			}
+			ImGui::Separator();
+			const ImVec2 avail = ImGui::GetContentRegionAvail();
+			const float editorHeight = avail.y * 0.7f;
+			const float consoleHeight = std::max(0.0f, avail.y - editorHeight - ImGui::GetFrameHeightWithSpacing() * 2.0f);
+			ImVec2 editorSize = ImVec2(avail.x, editorHeight);
+			ImGui::InputTextMultiline("##python_editor", &m_pythonScript, editorSize, ImGuiInputTextFlags_AllowTabInput);
+
+			if (ImGui::Button("Run"))
+			{
+				m_saveScript = true;
+				m_pythonConsole.clear();
+				std::string result = Script::ExecutePythonScript(*this, m_pythonScript);
+				if (result.empty()) { result = "[No output]"; }
+				if (!m_pythonConsole.empty() && m_pythonConsole.back() != '\n')
+				{
+					m_pythonConsole += '\n';
+				}
+				m_pythonConsole += result;
+				if (m_pythonConsole.back() != '\n') { m_pythonConsole += '\n'; }
+			}
+			ImGui::SameLine();
+			static bool displayHelper = true;
+			if (ImGui::Button("Clear Console")) { m_pythonConsole.clear(); displayHelper = false; }
+			ImGui::SameLine();
+			if (ImGui::Button("Copy to Clipboard"))
+			{
+				if (!m_pythonConsole.empty())
+				{
+					ImGui::SetClipboardText(m_pythonConsole.c_str());
+				}
+			}
+
+			ImGui::Separator();
+			ImGui::Text("Console Output:");
+			ImGui::BeginChild("##python_console", ImVec2(0.0f, consoleHeight), true, ImGuiWindowFlags_HorizontalScrollbar);
+			if (displayHelper && m_pythonConsole.empty())
+			{
+				ImGui::TextUnformatted("Console output will appear here.");
+			}
+			else
+			{
+				ImGui::TextUnformatted(m_pythonConsole.c_str());
+			}
+			ImGui::EndChild();
+		}
+		ImGui::End();
 	}
 }
 
@@ -1356,7 +1428,7 @@ void Texture::RenderUI(const std::vector<size_t>& quadblockIndexes, std::vector<
 				for (const size_t index : quadblockIndexes) { quadblocks[index].SetTexPath(newTexPath); }
 			}
 		}
-		if (Empty()) { ImGui::TreePop(); return; }
+		if (IsEmpty()) { ImGui::TreePop(); return; }
 		constexpr size_t NUM_BLEND_MODES = 4;
 		const std::array<std::string, NUM_BLEND_MODES> BLEND_MODES = {"Half Transparent", "Additive", "Subtractive", "Additive Translucent"};
 		uint16_t blendMode = GetBlendMode();
@@ -1457,7 +1529,7 @@ bool AnimTexture::RenderUI(std::vector<std::string>& animTexNames, std::vector<Q
 				for (size_t i = 0; i < quadblocks.size(); i++)
 				{
 					const Quadblock& quadblock = quadblocks[i];
-					if (!quadblock.Hide() && Matches(quadblock.GetName(), query) && ImGui::Selectable(quadblock.GetName().c_str()))
+					if (!quadblock.GetHide() && Matches(quadblock.GetName(), query) && ImGui::Selectable(quadblock.GetName().c_str()))
 					{
 						m_previewQuadName = quadblock.GetName();
 						m_previewQuadIndex = i;

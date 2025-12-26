@@ -28,7 +28,7 @@ bool Level::Save(const std::filesystem::path& path)
 	return SaveLEV(path);
 }
 
-bool Level::Loaded() const
+bool Level::IsLoaded() const
 {
 	return m_loaded;
 }
@@ -71,6 +71,8 @@ void Level::Clear(bool clearErrors)
 	m_bspVis.Clear();
 	m_maxLeafAxisLength = 64.0f;
 	m_distanceFarClip = 1000.0f;
+	m_pythonConsole.clear();
+	m_saveScript = false;
 	DeleteMaterials(this);
 }
 
@@ -79,9 +81,24 @@ const std::string& Level::GetName() const
 	return m_name;
 }
 
-const std::vector<Quadblock>& Level::GetQuadblocks() const
+std::vector<Quadblock>& Level::GetQuadblocks()
 {
 	return m_quadblocks;
+}
+
+BSP& Level::GetBSP()
+{
+	return m_bsp;
+}
+
+std::vector<Checkpoint>& Level::GetCheckpoints()
+{
+	return m_checkpoints;
+}
+
+std::vector<Path>& Level::GetCheckpointPaths()
+{
+	return m_checkpointPaths;
 }
 
 const std::filesystem::path& Level::GetParentPath() const
@@ -96,7 +113,7 @@ bool Level::GenerateBSP()
 	m_bsp.Clear();
 	m_bsp.SetQuadblockIndexes(quadIndexes);
 	m_bsp.Generate(m_quadblocks, MAX_QUADBLOCKS_LEAF, m_maxLeafAxisLength);
-	if (m_bsp.Valid())
+	if (m_bsp.IsValid())
 	{
 		GenerateRenderBspData(m_bsp);
 		std::vector<const BSP*> bspLeaves = m_bsp.GetLeaves();
@@ -111,7 +128,7 @@ bool Level::GenerateCheckpoints()
 {
 	if (m_checkpointPaths.empty()) { return false; }
 
-	for (const Path& path : m_checkpointPaths) { if (!path.Ready()) { return false; } }
+	for (const Path& path : m_checkpointPaths) { if (!path.IsReady()) { return false; } }
 
 	size_t checkpointIndex = 0;
 	std::vector<size_t> linkNodeIndexes;
@@ -305,7 +322,7 @@ bool Level::GenerateCheckpoints()
 
 enum class PresetHeader : unsigned
 {
-	SPAWN, LEVEL, PATH, MATERIAL, TURBO_PAD, ANIM_TEXTURES
+	SPAWN, LEVEL, PATH, MATERIAL, TURBO_PAD, ANIM_TEXTURES, SCRIPT
 };
 
 bool Level::LoadPreset(const std::filesystem::path& filename)
@@ -421,7 +438,7 @@ bool Level::LoadPreset(const std::filesystem::path& filename)
 					if (!json.contains(quadName + "_trigger")) { continue; }
 					quadblock.SetTrigger(json[quadName + "_trigger"]);
 					ManageTurbopad(quadblock);
-					if (m_bsp.Valid())
+					if (m_bsp.IsValid())
 					{
 						m_bsp.Clear();
 						GenerateRenderBspData(m_bsp);
@@ -429,6 +446,10 @@ bool Level::LoadPreset(const std::filesystem::path& filename)
 				}
 			}
 		}
+	}
+	else if (header == PresetHeader::SCRIPT)
+	{
+		m_pythonScript = json["script"];
 	}
 	else
 	{
@@ -519,6 +540,14 @@ bool Level::SavePreset(const std::filesystem::path& path)
 		turboPadJson["header"] = PresetHeader::TURBO_PAD;
 		turboPadJson["turbopads"] = turboPads;
 		SaveJSON(dirPath / "turbopad.json", turboPadJson);
+	}
+
+	if (m_saveScript)
+	{
+		nlohmann::json scriptJson = {};
+		scriptJson["header"] = PresetHeader::SCRIPT;
+		scriptJson["script"] = m_pythonScript;
+		SaveJSON(dirPath / "script.json", scriptJson);
 	}
 	return true;
 }
@@ -662,11 +691,11 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	m_hotReloadLevPath = path / (m_name + ".lev");
 	std::ofstream file(m_hotReloadLevPath, std::ios::binary);
 
-	if (m_bsp.Empty()) { GenerateBSP(); }
+	if (m_bsp.IsEmpty()) { GenerateBSP(); }
 
 	std::vector<const BSP*> bspNodes = m_bsp.GetTree();
 	std::vector<const BSP*> orderedBSPNodes(bspNodes.size());
-	for (const BSP* bsp : bspNodes) { orderedBSPNodes[bsp->Id()] = bsp; }
+	for (const BSP* bsp : bspNodes) { orderedBSPNodes[bsp->GetId()] = bsp; }
 
 	PSX::LevHeader header = {};
 	const size_t offHeader = 0;
@@ -705,7 +734,7 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 			for (size_t index : quadIndexes)
 			{
 				Quadblock& currQuad = m_quadblocks[index];
-				if (currQuad.IsAnimated()) { continue; }
+				if (currQuad.GetAnimated()) { continue; }
 				for (size_t i = 0; i < NUM_FACES_QUADBLOCK + 1; i++)
 				{
 					size_t textureID = 0;
@@ -891,16 +920,16 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	std::vector<uint32_t> visibleNodeAll(visNodeSize, 0xFFFFFFFF);
 	for (const BSP* bsp : orderedBSPNodes)
 	{
-		if (bsp->GetFlags() & BSPFlags::INVISIBLE) { visibleNodeAll[bsp->Id() / BITS_PER_SLOT] &= ~(1 << (bsp->Id() % BITS_PER_SLOT)); }
+		if (bsp->GetFlags() & BSPFlags::INVISIBLE) { visibleNodeAll[bsp->GetId() / BITS_PER_SLOT] &= ~(1 << (bsp->GetId() % BITS_PER_SLOT)); }
 	}
 
 	std::vector<uint32_t> visibleQuadsAll(visQuadSize, 0xFFFFFFFF);
 	size_t quadIndex = 0;
-	const bool validVisTree = m_genVisTree && !m_bspVis.Empty();
+	const bool validVisTree = m_genVisTree && !m_bspVis.IsEmpty();
 	const std::vector<const BSP*> bspLeaves = m_bsp.GetLeaves();
 	std::unordered_map<size_t, const BSP*> idToLeaf;
 	std::unordered_map<const BSP*, size_t> leafToMatrix;
-	for (const BSP* leaf : bspLeaves) { idToLeaf[leaf->Id()] = leaf; }
+	for (const BSP* leaf : bspLeaves) { idToLeaf[leaf->GetId()] = leaf; }
 	for (size_t i = 0; i < bspLeaves.size(); i++) { leafToMatrix[bspLeaves[i]] = i; }
 	for (const Quadblock* quad : orderedQuads)
 	{
@@ -920,7 +949,7 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 					const BSP* curr = bspLeaves[i];
 					while (curr != nullptr)
 					{
-						visNodes[curr->Id() / BITS_PER_SLOT] |= (1 << (31 - (curr->Id() % BITS_PER_SLOT)));
+						visNodes[curr->GetId() / BITS_PER_SLOT] |= (1 << (31 - (curr->GetId() % BITS_PER_SLOT)));
 						curr = curr->GetParent();
 					}
 				}
@@ -2123,7 +2152,7 @@ void Level::GenerateRenderSelectedBlockData(const Quadblock& quadblock, const Ve
 		for (size_t bsp_index = 0; bsp_index < bspLeaves.size(); bsp_index++)
 		{
 			const BSP& bsp = *bspLeaves[bsp_index];
-			if (bsp.Id() == quadblock.GetBSPID()) { myBSPIndex = bsp_index; }
+			if (bsp.GetId() == quadblock.GetBSPID()) { myBSPIndex = bsp_index; }
 		}
 
 		std::vector<Quadblock*> quadsToSelect;

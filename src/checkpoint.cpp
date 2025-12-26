@@ -108,11 +108,6 @@ void Checkpoint::UpdateDistFinish(float dist)
 	m_distToFinish = dist;
 }
 
-void Checkpoint::UpdateIndex(int index)
-{
-	m_index = index;
-}
-
 void Checkpoint::UpdateUp(int up)
 {
 	m_up = up;

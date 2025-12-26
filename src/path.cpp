@@ -66,10 +66,10 @@ size_t Path::GetEnd() const
 	return m_end;
 }
 
-bool Path::Ready() const
+bool Path::IsReady() const
 {
-	bool left = true; if (m_left) { left = m_left->Ready(); }
-	bool right = true; if (m_right) { right = m_right->Ready(); }
+	bool left = true; if (m_left) { left = m_left->IsReady(); }
+	bool right = true; if (m_right) { right = m_right->IsReady(); }
 	return left && right && !m_quadIndexesStart.empty() && !m_quadIndexesEnd.empty();
 }
 
@@ -113,7 +113,7 @@ std::vector<Checkpoint> Path::GeneratePath(size_t pathStartIndex, std::vector<Qu
 
 	for (size_t i = 0; i < quadblocks.size(); i++)
 	{
-		if (!quadblocks[i].CheckpointStatus())
+		if (!quadblocks[i].GetCheckpointStatus())
 		{
 			visitedQuadblocks[i] = true;
 			visitedCount++;

@@ -17,6 +17,7 @@ struct Windows
 	static bool w_bsp;
 	static bool w_renderer;
 	static bool w_ghost;
+	static bool w_python;
 	static std::string lastOpenedFolder;
 };
 

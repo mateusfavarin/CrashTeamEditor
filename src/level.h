@@ -28,11 +28,14 @@ class Level
 public:
 	bool Load(const std::filesystem::path& filename);
 	bool Save(const std::filesystem::path& path);
-	bool Loaded() const;
+	bool IsLoaded() const;
 	void OpenHotReloadWindow();
 	void Clear(bool clearErrors);
 	const std::string& GetName() const;
-	const std::vector<Quadblock>& GetQuadblocks() const;
+	std::vector<Quadblock>& GetQuadblocks();
+	BSP& GetBSP();
+	std::vector<Checkpoint>& GetCheckpoints();
+	std::vector<Path>& GetCheckpointPaths();
 	const std::filesystem::path& GetParentPath() const;
 	bool LoadPreset(const std::filesystem::path& filename);
 	bool SavePreset(const std::filesystem::path& path);
@@ -65,6 +68,7 @@ private:
 	void ViewportClickHandleBlockSelection(int pixelX, int pixelY, const Renderer& rend);
 
 private:
+	bool m_saveScript;
 	bool m_showLogWindow;
 	bool m_showHotReloadWindow;
 	bool m_loaded;
@@ -90,6 +94,8 @@ private:
 	std::vector<Checkpoint> m_checkpoints;
 	BSP m_bsp;
 	std::vector<Path> m_checkpointPaths;
+	std::string m_pythonScript = "print('CrashTeamEditor Python console ready!')\nprint('Level:', m_lev.name)";
+	std::string m_pythonConsole;
 	std::vector<AnimTexture> m_animTextures;
 	BitMatrix m_bspVis;
 	std::vector<uint8_t> m_vrm;

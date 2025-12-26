@@ -68,7 +68,7 @@ const std::filesystem::path& Texture::GetPath() const
 	return m_path;
 }
 
-bool Texture::Empty() const
+bool Texture::IsEmpty() const
 {
 	return m_width == 0;
 }
@@ -123,7 +123,7 @@ void Texture::SetBlendMode(uint16_t mode)
 PSX::TextureLayout Texture::Serialize(const QuadUV& uvs) const
 {
 	PSX::TextureLayout layout = {};
-	if (Empty()) { return layout; }
+	if (IsEmpty()) { return layout; }
 
 	layout.texPage.blendMode = m_blendMode;
 	size_t bppMultiplier = 1;
@@ -372,7 +372,7 @@ std::vector<uint8_t> PackVRM(std::vector<Texture*>& textures)
 
 	for (Texture* texture : textures)
 	{
-		if (texture->Empty()) { continue; }
+		if (texture->IsEmpty()) { continue; }
 
 		bool foundEquivalent = false;
 		for (Texture* cachedTexture : cachedTextures)
@@ -402,7 +402,7 @@ std::vector<uint8_t> PackVRM(std::vector<Texture*>& textures)
 
 	for (Texture* texture : textures)
 	{
-		if (texture->Empty()) { continue; }
+		if (texture->IsEmpty()) { continue; }
 
 		Texture::BPP bpp = texture->GetBPP();
 		if (bpp == Texture::BPP::BPP_16) { continue; }
