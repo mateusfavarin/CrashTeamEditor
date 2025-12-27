@@ -1,6 +1,7 @@
 #include <pybind11/embed.h>
 #include <pybind11/operators.h>
 #include <pybind11/stl.h>
+#include <pybind11/stl_bind.h>
 #include <pybind11/stl/filesystem.h>
 
 #include <filesystem>
@@ -15,6 +16,10 @@
 #include "path.h"
 
 namespace py = pybind11;
+
+PYBIND11_MAKE_OPAQUE(std::vector<Quadblock>);
+PYBIND11_MAKE_OPAQUE(std::vector<Checkpoint>);
+PYBIND11_MAKE_OPAQUE(std::vector<Path>);
 
 namespace
 {
@@ -259,6 +264,10 @@ void init_crashteameditor(py::module_& m)
 		.def("generate_path", &Path::GeneratePath, py::arg("path_start_index"), py::arg("quadblocks"))
 		.def("__copy__", [](const Path& p) { return Path(p); })
 		.def("__deepcopy__", [](const Path& p, py::dict) { return Path(p); }, py::arg("memo"));
+
+	py::bind_vector<std::vector<Quadblock>>(m, "QuadblockList");
+	py::bind_vector<std::vector<Checkpoint>>(m, "CheckpointList");
+	py::bind_vector<std::vector<Path>>(m, "PathList");
 
 	py::enum_<BSPNode> bspNode(m, "BSPNode");
 	bspNode
