@@ -21,6 +21,8 @@ public:
   Renderer(float width, float height);
   void RescaleFramebuffer(float width, float height);
   void Render(const std::vector<Model>& models);
+  void RenderToScreen(const std::vector<Model>& models);
+  void SetViewportSize(float width, float height);
   float GetLastDeltaTime() const;
   float GetLastTime() const;
 	float GetWidth() const;
@@ -42,6 +44,7 @@ public:
 	glm::vec3 ScreenspaceToWorldRay(int pixelX, int pixelY) const;
 
 private:
+	void RenderInternal(const std::vector<Model>& models, bool useFramebuffer);
 	int m_width;
 	int m_height;
 	GLuint m_texturebuffer;

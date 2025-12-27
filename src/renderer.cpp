@@ -52,7 +52,19 @@ Renderer::Renderer(float width, float height)
 
 void Renderer::Render(const std::vector<Model>& models)
 {
-  glBindFramebuffer(GL_FRAMEBUFFER, m_framebuffer);
+  RenderInternal(models, true);
+}
+
+void Renderer::RenderToScreen(const std::vector<Model>& models)
+{
+  RenderInternal(models, false);
+}
+
+void Renderer::RenderInternal(const std::vector<Model>& models, bool useFramebuffer)
+{
+  if (m_width <= 0 || m_height <= 0) { return; }
+
+  glBindFramebuffer(GL_FRAMEBUFFER, useFramebuffer ? m_framebuffer : 0);
 
   //clear screen with dark blue
   glEnable(GL_DEPTH_TEST);
@@ -70,9 +82,10 @@ void Renderer::Render(const std::vector<Model>& models)
   }
 
   //render
-  float thisFrameMoveSpeed = 15.f * m_deltaTime * GuiRenderSettings::camMoveMult;
-  float thisFrameLookSpeed = 50.f * m_deltaTime * GuiRenderSettings::camRotateMult;
-	if (ImGui::IsKeyDown(ImGuiKey_LeftCtrl)) { thisFrameMoveSpeed *= GuiRenderSettings::camSprintMult; }
+  const bool allowShortcuts = !ImGui::IsWindowFocused(ImGuiFocusedFlags_AnyWindow);
+  float thisFrameMoveSpeed = allowShortcuts ? (15.f * m_deltaTime * GuiRenderSettings::camMoveMult) : 0.0f;
+  float thisFrameLookSpeed = allowShortcuts ? (50.f * m_deltaTime * GuiRenderSettings::camRotateMult) : 0.0f;
+	if (allowShortcuts && ImGui::IsKeyDown(ImGuiKey_LeftCtrl)) { thisFrameMoveSpeed *= GuiRenderSettings::camSprintMult; }
 
   static glm::vec3 camFront = glm::vec3(0.f, 0.f, -1.f);
   static glm::vec3 camUp = glm::vec3(0.f, 1.f, 0.f);
@@ -82,10 +95,10 @@ void Renderer::Render(const std::vector<Model>& models)
     static float yaw = 0.f;
     float xpos = 0.f;
     float ypos = 0.f;
-		if (ImGui::IsKeyDown(ImGuiKey_UpArrow)) { ypos += 1.f * thisFrameLookSpeed; }
-		if (ImGui::IsKeyDown(ImGuiKey_DownArrow)) { ypos -= 1.f * thisFrameLookSpeed; }
-		if (ImGui::IsKeyDown(ImGuiKey_LeftArrow)) { xpos -= 1.f * thisFrameLookSpeed; }
-		if (ImGui::IsKeyDown(ImGuiKey_RightArrow)) { xpos += 1.f * thisFrameLookSpeed; }
+		if (allowShortcuts && ImGui::IsKeyDown(ImGuiKey_UpArrow)) { ypos += 1.f * thisFrameLookSpeed; }
+		if (allowShortcuts && ImGui::IsKeyDown(ImGuiKey_DownArrow)) { ypos -= 1.f * thisFrameLookSpeed; }
+		if (allowShortcuts && ImGui::IsKeyDown(ImGuiKey_LeftArrow)) { xpos -= 1.f * thisFrameLookSpeed; }
+		if (allowShortcuts && ImGui::IsKeyDown(ImGuiKey_RightArrow)) { xpos += 1.f * thisFrameLookSpeed; }
 
     yaw += xpos;
 
@@ -99,34 +112,34 @@ void Renderer::Render(const std::vector<Model>& models)
     camFront = glm::normalize(direction);
   }
 
-	if (ImGui::IsKeyDown(ImGuiKey_W))
+	if (allowShortcuts && ImGui::IsKeyDown(ImGuiKey_W))
 	{
     m_camWorldPos += glm::vec3(thisFrameMoveSpeed * camFront.x, thisFrameMoveSpeed * camFront.y, thisFrameMoveSpeed * camFront.z);
 	}
-	if (ImGui::IsKeyDown(ImGuiKey_S))
+	if (allowShortcuts && ImGui::IsKeyDown(ImGuiKey_S))
 	{
     m_camWorldPos -= glm::vec3(thisFrameMoveSpeed * camFront.x, thisFrameMoveSpeed * camFront.y, thisFrameMoveSpeed * camFront.z);
 	}
-  if (ImGui::IsKeyDown(ImGuiKey_A))
+  if (allowShortcuts && ImGui::IsKeyDown(ImGuiKey_A))
   {
     glm::vec3 interm = glm::normalize(glm::cross(camFront, camUp));
     glm::vec3 moveBy = glm::vec3(thisFrameMoveSpeed * interm.x, thisFrameMoveSpeed * interm.y, thisFrameMoveSpeed * interm.z);
     m_camWorldPos -= moveBy;
   }
-  if (ImGui::IsKeyDown(ImGuiKey_D))
+  if (allowShortcuts && ImGui::IsKeyDown(ImGuiKey_D))
   {
     glm::vec3 interm = glm::normalize(glm::cross(camFront, camUp));
     glm::vec3 moveBy = glm::vec3(thisFrameMoveSpeed * interm.x, thisFrameMoveSpeed * interm.y, thisFrameMoveSpeed * interm.z);
     m_camWorldPos += moveBy;
   }
-  if (ImGui::IsKeyDown(ImGuiKey_Space))
+  if (allowShortcuts && ImGui::IsKeyDown(ImGuiKey_Space))
   {
     glm::vec3 interm = glm::normalize(glm::cross(camFront, camUp));
     interm = glm::normalize(glm::cross(camFront, interm));
     glm::vec3 moveBy = glm::vec3(thisFrameMoveSpeed * interm.x, thisFrameMoveSpeed * interm.y, thisFrameMoveSpeed * interm.z);
     m_camWorldPos -= moveBy;
   }
-  if (ImGui::IsKeyDown(ImGuiKey_LeftShift))
+  if (allowShortcuts && ImGui::IsKeyDown(ImGuiKey_LeftShift))
   {
     glm::vec3 interm = glm::normalize(glm::cross(camFront, camUp));
     interm = glm::normalize(glm::cross(camFront, interm));
@@ -246,6 +259,17 @@ void Renderer::RescaleFramebuffer(float width, float height)
   glBindTexture(GL_TEXTURE_2D, 0);
   glBindRenderbuffer(GL_RENDERBUFFER, 0);
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void Renderer::SetViewportSize(float width, float height)
+{
+	int tempWidth = static_cast<int>(width);
+	int tempHeight = static_cast<int>(height);
+	if (tempWidth <= 0 || tempHeight <= 0) { return; }
+	if (tempWidth == m_width && tempHeight == m_height) { return; }
+
+	m_width = tempWidth;
+	m_height = tempHeight;
 }
 
 std::tuple<glm::vec3, float> Renderer::WorldspaceRayTriIntersection(glm::vec3 worldSpaceRay, const glm::vec3 tri[3]) const
