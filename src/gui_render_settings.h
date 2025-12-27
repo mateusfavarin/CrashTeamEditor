@@ -7,13 +7,10 @@ struct GuiRenderSettings
 	// note: updating this also requires updating all shader source.
   enum RenderType
 	{
-    VColorTex,
-    Tex,
-    VColor,
-    Diffuse,
-    ObjFaceDirection,
-    CalcFaceDirection,
-    WorldNormals,
+    Default,
+    Texture,
+    VertexColor,
+    Normals,
   };
 
   static int renderType, bspTreeTopDepth, bspTreeBottomDepth, bspTreeMaxDepth;

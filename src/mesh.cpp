@@ -121,7 +121,7 @@ void Mesh::UpdateMesh(const std::vector<float>& data, unsigned includedDataFlags
     case VBufDataType::Barycentric: //dimension = 3
       ultimateStrideSize += 3;
       break;
-    case VBufDataType::VColor: //dimension = 3
+    case VBufDataType::VertexColor: //dimension = 3
       ultimateStrideSize += 3;
       break;
     case VBufDataType::Normals: //dimension = 3
@@ -163,8 +163,8 @@ void Mesh::UpdateMesh(const std::vector<float>& data, unsigned includedDataFlags
           takenSize += dim;
         }
         break;
-      case VBufDataType::VColor:
-        if ((includedDataFlags & VBufDataType::VColor) != 0)
+      case VBufDataType::VertexColor:
+        if ((includedDataFlags & VBufDataType::VertexColor) != 0)
         {
           constexpr int dim = 3;
           glVertexAttribPointer(takenCount, dim, GL_FLOAT, GL_FALSE, ultimateStrideSize * sizeof(float), (void*)(takenSize * sizeof(float)));

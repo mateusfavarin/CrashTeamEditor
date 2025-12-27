@@ -161,28 +161,23 @@ void main()
 {
   float diffuseLit = max(dot(-normalize(Normal), lightDir), 0.0);
   vec4 diffCol = vec4(diffuseLit, diffuseLit, diffuseLit, 1.0);
-  if (drawType == 0) //0 == "VColor + Tex"
+  if (drawType == 0) //0 == "Default"
   {
 		vec4 vertColor = vec4(VertColor.rgb, 1.0);
     vec4 texColor = texture(tex, vec3(TexCoord, TexIndex));
     FragColor = texColor * (vertColor * 2.0);
   }
-  else if (drawType == 1) //1 == "Tex"
+  else if (drawType == 1) //1 == "Texture"
   {
     vec4 texColor = texture(tex, vec3(TexCoord, TexIndex));
     FragColor = texColor;
   }
-  else if (drawType == 2) //2 == "VColor"
+  else if (drawType == 2) //2 == "Vertex Color"
   {
     vec4 vertColor = vec4(VertColor.rgb, 1.0);
     FragColor = vertColor;
   }
-  else if (drawType == 3) //3 == "Diffuse"
-  {
-    vec4 finalCol = (vec4(0.1, 0.0, 0.3, 1.0) + diffCol) * vec4(0.2, 1.0, 0.2, 1.0); //(ambient + diffuse) * objcolor;
-	  FragColor = finalCol;
-  }
-  else if (drawType == 4) //4 == "(.obj Normals) Face Direction"
+  else if (drawType == 3) //3 == "Normals"
   { //Exterior normals=blue, interior normals=red
     //this logic for red/blue might be backwards idk (compare to blender to make sure).
     float normalDir = dot(-normalize(Normal), (camWorldPos - FragWorldPos));
@@ -194,14 +189,10 @@ void main()
     chosenColor = (vec4(0.1, 0.1, 0.1, 1.0) + diffCol) * chosenColor;  //(ambient + diffuse) * objcolor;
     FragColor = chosenColor;
   }
-  else if (drawType == 5) //5 == "(calc Normals) Face Direction"
-  { //Exterior normals=blue, interior normals=red
-    //todo
-    FragColor = vec4(1.0, 0.0, 0.2, 1.0);
-  }
-  else if (drawType == 6) //6 == "World Normals"
+  else
   {
-    FragColor = vec4((normalize(Normal) + vec3(1.0, 1.0, 1.0)) * 0.5, 1.0);
+    vec4 vertColor = vec4(VertColor.rgb, 1.0);
+    FragColor = vertColor;
   }
 
   if ((shaderSettings & 32) != 0) //32 == "Blinky"
@@ -245,14 +236,7 @@ void main()
 {
   float diffuseLit = max(dot(-normalize(Normal), lightDir), 0.0);
   vec4 diffCol = vec4(diffuseLit, diffuseLit, diffuseLit, 1.0);
-  if (drawType == 0) //0 == "VColor"
-    FragColor = vec4(VertColor.rgb, 1.0);
-  else if (drawType == 1) //1 == "Diffuse"
-  {
-    vec4 finalCol = (vec4(0.1, 0.0, 0.3, 1.0) + diffCol) * vec4(0.2, 1.0, 0.2, 1.0); //(ambient + diffuse) * objcolor;
-	  FragColor = finalCol;
-  }
-  else if (drawType == 2) //2 == "(.obj Normals) Face Direction"
+  if (drawType == 3) //3 == "Normals"
   { //Exterior normals=blue, interior normals=red
     //this logic for red/blue might be backwards idk (compare to blender to make sure).
     float normalDir = dot(-normalize(Normal), (camWorldPos - FragWorldPos));
@@ -264,13 +248,9 @@ void main()
     chosenColor = (vec4(0.1, 0.1, 0.1, 1.0) + diffCol) * chosenColor;  //(ambient + diffuse) * objcolor;
     FragColor = chosenColor;
   }
-  else if (drawType == 3) //3 == "(calc Normals) Face Direction"
-  { //Exterior normals=blue, interior normals=red
-    //todo
-  }
-  else if (drawType == 4) //4 == "World Normals"
+  else
   {
-    FragColor = vec4((normalize(Normal) + vec3(1.0, 1.0, 1.0)) * 0.5, 1.0);
+    FragColor = vec4(VertColor.rgb, 1.0);
   }
 
   if ((shaderSettings & 32) != 0) //32 == "Blinky"
@@ -289,11 +269,11 @@ std::string ShaderTemplates::frag_;
 std::map<int, std::tuple<std::string, std::string, std::string>> ShaderTemplates::datasToShaderSourceMap =
 {
   {
-    (Mesh::VBufDataType::VertexPos | Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals),
+    (Mesh::VBufDataType::VertexPos | Mesh::VBufDataType::VertexColor | Mesh::VBufDataType::Normals),
     (std::make_tuple(ShaderTemplates::geom_vcolornormal, ShaderTemplates::vert_vcolornormal, ShaderTemplates::frag_vcolornormal))
   },
   {
-    (Mesh::VBufDataType::VertexPos | Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals | Mesh::VBufDataType::STUV | Mesh::VBufDataType::TexIndex),
+    (Mesh::VBufDataType::VertexPos | Mesh::VBufDataType::VertexColor | Mesh::VBufDataType::Normals | Mesh::VBufDataType::STUV | Mesh::VBufDataType::TexIndex),
     (std::make_tuple(ShaderTemplates::geom_vcolornormaltex, ShaderTemplates::vert_vcolornormaltex, ShaderTemplates::frag_vcolornormaltex))
   },
 };

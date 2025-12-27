@@ -26,7 +26,7 @@ public:
 	{ //all are assumed to have vertex data (otherwise, what the hell are we drawing?)
 		static constexpr unsigned VertexPos = 1; //implicitly always on
 		static constexpr unsigned Barycentric = 2;
-		static constexpr unsigned VColor = 4;
+		static constexpr unsigned VertexColor = 4;
 		static constexpr unsigned Normals = 8;
 		static constexpr unsigned STUV = 16; //tex coords
 		static constexpr unsigned TexIndex = 32;
