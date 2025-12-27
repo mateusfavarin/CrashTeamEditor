@@ -105,6 +105,9 @@
     <ClCompile Include="src\shader.cpp">
       <Filter>Renderer</Filter>
     </ClCompile>
+    <ClCompile Include="src\camera.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
     <ClCompile Include="src\renderer.cpp">
       <Filter>Renderer</Filter>
     </ClCompile>
@@ -189,6 +192,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\renderer.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\camera.h">
       <Filter>Renderer</Filter>
     </ClInclude>
     <ClInclude Include="src\shader.h">

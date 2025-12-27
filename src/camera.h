@@ -1,0 +1,29 @@
+#pragma once
+
+#include "glm.hpp"
+
+struct ImGuiIO;
+
+class Camera
+{
+public:
+	Camera();
+	void Update(bool allowShortcuts, float deltaTime);
+	const glm::vec3& GetPosition() const;
+	const glm::vec3& GetFront() const;
+	const glm::vec3& GetTarget() const;
+	const glm::mat4& GetViewMatrix() const;
+	float GetDistance() const;
+
+private:
+	void Initialize();
+
+	glm::vec3 m_position;
+	glm::vec3 m_front;
+	glm::vec3 m_target;
+	glm::mat4 m_matrix;
+	float m_distance;
+	float m_pitch;
+	float m_yaw;
+	bool m_initialized;
+};

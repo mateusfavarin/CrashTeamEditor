@@ -841,12 +841,13 @@ void Level::RenderUI()
 	{
 		if (ImGui::Begin("Renderer", &Windows::w_renderer))
 		{
-			ImGui::Text(""
-				"Camera Controls:\n"
-				"\t* WASD to move in/out & pan\n"
-				"\t* Arrow keys to rotate cam\n"
-				"\t* Spacebar to move up, Shift to move down\n"
-				"\t* Ctrl to \"Sprint\"");
+					ImGui::Text(""
+						"Camera Controls:\n"
+						"\t* Right mouse button: drag to orbit\n"
+						"\t* Mouse wheel to zoom\n"
+						"\t* WASD to move on camera plane\n"
+						"\t* Q/E to move up/down\n"
+						"\t* Shift to sprint");
 
 			ImGui::Combo("Render", &GuiRenderSettings::renderType, GuiRenderSettings::renderTypeLabels.data(), static_cast<int>(GuiRenderSettings::renderTypeLabels.size()));
 
@@ -878,7 +879,8 @@ void Level::RenderUI()
 
 			textUI("Camera Move Multiplier", GuiRenderSettings::camMoveMult, 0.01f);
 			textUI("Camera Rotate Multiplier", GuiRenderSettings::camRotateMult, 0.01f);
-			textUI("Camera Sprint Multiplier", GuiRenderSettings::camSprintMult, 1.0f);
+			textUI("Camera Zoom Multiplier", GuiRenderSettings::camZoomMult, 0.01f);
+			textUI("Camera Sprint Multiplier", GuiRenderSettings::camSprintMult, 0.01f);
 			textUI("Camera FOV", GuiRenderSettings::camFovDeg, 5.0f, 150.0f);
 			ImGui::PopItemWidth();
 

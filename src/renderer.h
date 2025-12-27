@@ -12,6 +12,7 @@
 #include "shader.h"
 #include "mesh.h"
 #include "model.h"
+#include "camera.h"
 #include <vector>
 #include <map>
 
@@ -52,7 +53,6 @@ private:
 	float m_time = 0.0f;
 	float m_lastFrameTime = 0.0f;
 	float m_deltaTime = -1.0f;
-	glm::mat4 m_cameraView;
 	glm::mat4 m_perspective;
-	glm::vec3 m_camWorldPos = glm::vec3(0.f, 0.f, 3.f);
+	Camera m_camera;
 };
