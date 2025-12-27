@@ -148,7 +148,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalIncludeDirectories>$(SolutionDir)third_party\imgui\;$(SolutionDir)third_party\imgui\backends;$(SolutionDir)third_party\portable-file-dialogs\;$(SolutionDir)third_party\glfw\include\;$(SolutionDir)third_party\glm\glm\;$(SolutionDir)third_party\json\include\;$(SolutionDir)third_party\stb\;$(SolutionDir)src\;$(SolutionDir)third_party\pybind11\include\;$(PYTHON_INCLUDE_DIR)\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalOptions>/wd4189 /wd4100 /wd4661 /wd4201 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/wd4189 /wd4100 /wd4661 /wd4201 /bigobj %(AdditionalOptions)</AdditionalOptions>
       <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Link>
@@ -182,7 +182,7 @@ if exist "$(PYTHON_EMBED_HOME)\DLLs" xcopy "$(PYTHON_EMBED_HOME)\DLLs\*.dll" "%P
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalIncludeDirectories>$(SolutionDir)third_party\imgui\;$(SolutionDir)third_party\imgui\backends;$(SolutionDir)third_party\portable-file-dialogs\;$(SolutionDir)third_party\glfw\include\;$(SolutionDir)third_party\glm\glm\;$(SolutionDir)third_party\json\include\;$(SolutionDir)third_party\stb\;$(SolutionDir)src\;$(SolutionDir)third_party\pybind11\include\;$(PYTHON_INCLUDE_DIR)\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalOptions>/wd4189 /wd4100 /wd4661 /wd4201 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/wd4189 /wd4100 /wd4661 /wd4201 /bigobj %(AdditionalOptions)</AdditionalOptions>
       <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Link>

@@ -7,9 +7,9 @@ struct GuiRenderSettings
 	// note: updating this also requires updating all shader source.
   enum RenderType
 	{
-    VColor,
-    Tex,
     VColorTex,
+    Tex,
+    VColor,
     Diffuse,
     ObjFaceDirection,
     CalcFaceDirection,

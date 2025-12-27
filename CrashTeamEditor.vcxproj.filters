@@ -138,6 +138,9 @@
     <ClCompile Include="src\vistree.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="python_bindings\cte_bindings.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\app.h">

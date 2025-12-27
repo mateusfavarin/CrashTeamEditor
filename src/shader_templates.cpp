@@ -161,21 +161,21 @@ void main()
 {
   float diffuseLit = max(dot(-normalize(Normal), lightDir), 0.0);
   vec4 diffCol = vec4(diffuseLit, diffuseLit, diffuseLit, 1.0);
-  if (drawType == 0) //0 == "VColor"
+  if (drawType == 0) //0 == "VColor + Tex"
   {
-    vec4 vertColor = vec4(VertColor.rgb, 1.0);
-    FragColor = vertColor;
+		vec4 vertColor = vec4(VertColor.rgb, 1.0);
+    vec4 texColor = texture(tex, vec3(TexCoord, TexIndex));
+    FragColor = texColor * (vertColor * 2.0);
   }
   else if (drawType == 1) //1 == "Tex"
   {
     vec4 texColor = texture(tex, vec3(TexCoord, TexIndex));
     FragColor = texColor;
   }
-  else if (drawType == 2) //2 == "VColor + Tex"
+  else if (drawType == 2) //2 == "VColor"
   {
     vec4 vertColor = vec4(VertColor.rgb, 1.0);
-    vec4 texColor = texture(tex, vec3(TexCoord, TexIndex));
-    FragColor = texColor * (vertColor * 2.0);
+    FragColor = vertColor;
   }
   else if (drawType == 3) //3 == "Diffuse"
   {
@@ -288,7 +288,7 @@ std::string ShaderTemplates::frag_;
 
 std::map<int, std::tuple<std::string, std::string, std::string>> ShaderTemplates::datasToShaderSourceMap =
 {
-  { 
+  {
     (Mesh::VBufDataType::VertexPos | Mesh::VBufDataType::VColor | Mesh::VBufDataType::Normals),
     (std::make_tuple(ShaderTemplates::geom_vcolornormal, ShaderTemplates::vert_vcolornormal, ShaderTemplates::frag_vcolornormal))
   },

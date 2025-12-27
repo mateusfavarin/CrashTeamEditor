@@ -857,124 +857,111 @@ void Level::RenderUI()
 	{
 		if (ImGui::Begin("Renderer", &Windows::w_renderer))
 		{
-			if (ImGui::TreeNode("Options"))
+			/*
+				* *** Enable viewport resizing
+				* Filter by material (highlight all quads with a specified subset of materials)
+				* Filter by quad flags (higlight all quads with a specified subset of quadflags)
+				* Filter by draw flags ""
+				* Filter by terrain ""
+				*
+				* draw bsp as wireframe or as transparent objs
+				*
+				* draw (low lod) wireframe on top of the mesh as an option
+				*
+				* NOTE: resetBsp does not trigger when vertex color changes.
+				*
+				* Make mesh read live data.
+				*
+				* Editor features (edit in viewport blender style).
+				*/
+			static std::string camMoveMult = std::to_string(GuiRenderSettings::camMoveMult);
+			static std::string camRotateMult = std::to_string(GuiRenderSettings::camRotateMult);
+			static std::string camSprintMult = std::to_string(GuiRenderSettings::camSprintMult);
+			static std::string camFOV = std::to_string(GuiRenderSettings::camFovDeg);
+
+			ImGui::Text(""
+				"Camera Controls:\n"
+				"\t* WASD to move in/out & pan\n"
+				"\t* Arrow keys to rotate cam\n"
+				"\t* Spacebar to move up, Shift to move down\n"
+				"\t* Ctrl to \"Sprint\"");
+
+			ImGui::Combo("Render", &GuiRenderSettings::renderType, GuiRenderSettings::renderTypeLabels.data(), static_cast<int>(GuiRenderSettings::renderTypeLabels.size()));
+
+			ImGui::Checkbox("Show Low LOD", &GuiRenderSettings::showLowLOD);
+			ImGui::Checkbox("Show Wireframe", &GuiRenderSettings::showWireframe);
+			ImGui::Checkbox("Show Backfaces", &GuiRenderSettings::showBackfaces);
+			ImGui::Checkbox("Show Level Verts", &GuiRenderSettings::showLevVerts);
+			ImGui::Checkbox("Show Checkpoints", &GuiRenderSettings::showCheckpoints);
+			ImGui::Checkbox("Show Starting Positions", &GuiRenderSettings::showStartpoints);
+			ImGui::Checkbox("Show BSP Rect Tree", &GuiRenderSettings::showBspRectTree);
+			ImGui::Checkbox("Show Vis Tree", &GuiRenderSettings::showVisTree);
+
+			ImGui::PushItemWidth(std::max(ImGui::GetContentRegionAvail().x * 0.6f, 50.0f));
+			if (ImGui::SliderInt("BSP Rect Tree top depth", &GuiRenderSettings::bspTreeTopDepth, 0, GuiRenderSettings::bspTreeMaxDepth)) //top changed
 			{
-				if (ImGui::BeginTable("Renderer Settings Table", 2))
+				GuiRenderSettings::bspTreeBottomDepth = std::max(GuiRenderSettings::bspTreeBottomDepth, GuiRenderSettings::bspTreeTopDepth);
+				GenerateRenderBspData(m_bsp);
+			}
+			if (ImGui::SliderInt("BSP Rect Tree bottom depth", &GuiRenderSettings::bspTreeBottomDepth, 0, GuiRenderSettings::bspTreeMaxDepth)) //bottom changed
+			{
+				GuiRenderSettings::bspTreeTopDepth = std::min(GuiRenderSettings::bspTreeTopDepth, GuiRenderSettings::bspTreeBottomDepth);
+				GenerateRenderBspData(m_bsp);
+			}
+
+			/* TODO
+			if (ImGui::BeginCombo("(NOT IMPL) Mask by Materials", "..."))
+			{
+				ImGui::Selectable("(NOT IMPL)");
+				ImGui::EndCombo();
+			}
+			if (ImGui::BeginCombo("(NOT IMPL) Mask by Quad flags", "..."))
+			{
+				ImGui::Selectable("(NOT IMPL)");
+				ImGui::EndCombo();
+			}
+			if (ImGui::BeginCombo("(NOT IMPL) Mask by Draw flags", "..."))
+			{
+				ImGui::Selectable("(NOT IMPL)");
+				ImGui::EndCombo();
+			}
+			if (ImGui::BeginCombo("(NOT IMPL) Mask by Terrain", "..."))
+			{
+				ImGui::Selectable("(NOT IMPL)");
+				ImGui::EndCombo();
+			}
+			*/
+
+			auto textUI = [](const std::string& label, std::string& uiValue, float& renderSetting, float minThres = -std::numeric_limits<float>::max(), float maxThres = std::numeric_limits<float>::max())
 				{
-					/*
-						* *** Enable viewport resizing
-						* Filter by material (highlight all quads with a specified subset of materials)
-						* Filter by quad flags (higlight all quads with a specified subset of quadflags)
-						* Filter by draw flags ""
-						* Filter by terrain ""
-						*
-						* draw bsp as wireframe or as transparent objs
-						*
-						* draw (low lod) wireframe on top of the mesh as an option
-						*
-						* NOTE: resetBsp does not trigger when vertex color changes.
-						*
-						* Make mesh read live data.
-						*
-						* Editor features (edit in viewport blender style).
-						*/
-					static std::string camMoveMult = std::to_string(GuiRenderSettings::camMoveMult);
-					static std::string camRotateMult = std::to_string(GuiRenderSettings::camRotateMult);
-					static std::string camSprintMult = std::to_string(GuiRenderSettings::camSprintMult);
-					static std::string camFOV = std::to_string(GuiRenderSettings::camFovDeg);
-
-					ImGui::TableNextRow();
-					ImGui::TableSetColumnIndex(0);
-					ImGui::Text(""
-						"Camera Controls:\n"
-						"\t* WASD to move in/out & pan\n"
-						"\t* Arrow keys to rotate cam\n"
-						"\t* Spacebar to move up, Shift to move down\n"
-						"\t* Ctrl to \"Sprint\"");
-
-					ImGui::Combo("Render", &GuiRenderSettings::renderType, GuiRenderSettings::renderTypeLabels.data(), static_cast<int>(GuiRenderSettings::renderTypeLabels.size()));
-
-					ImGui::Checkbox("Show Low LOD", &GuiRenderSettings::showLowLOD);
-					ImGui::Checkbox("Show Wireframe", &GuiRenderSettings::showWireframe);
-					ImGui::Checkbox("Show Backfaces", &GuiRenderSettings::showBackfaces);
-					ImGui::Checkbox("Show Level Verts", &GuiRenderSettings::showLevVerts);
-					ImGui::Checkbox("Show Checkpoints", &GuiRenderSettings::showCheckpoints);
-					ImGui::Checkbox("Show Starting Positions", &GuiRenderSettings::showStartpoints);
-					ImGui::Checkbox("Show BSP Rect Tree", &GuiRenderSettings::showBspRectTree);
-					ImGui::Checkbox("Show Vis Tree", &GuiRenderSettings::showVisTree);
-
-					ImGui::PushItemWidth(std::max(ImGui::GetContentRegionAvail().x * 0.6f, 50.0f));
-					if (ImGui::SliderInt("BSP Rect Tree top depth", &GuiRenderSettings::bspTreeTopDepth, 0, GuiRenderSettings::bspTreeMaxDepth)) //top changed
+					float val;
+					if (ImGui::InputText(label.c_str(), &uiValue) && ParseFloat(uiValue, val))
 					{
-						GuiRenderSettings::bspTreeBottomDepth = std::max(GuiRenderSettings::bspTreeBottomDepth, GuiRenderSettings::bspTreeTopDepth);
-						GenerateRenderBspData(m_bsp);
+						val = Clamp(val, minThres, maxThres);
+						uiValue = std::to_string(val);
+						renderSetting = val;
 					}
-					if (ImGui::SliderInt("BSP Rect Tree bottom depth", &GuiRenderSettings::bspTreeBottomDepth, 0, GuiRenderSettings::bspTreeMaxDepth)) //bottom changed
-					{
-						GuiRenderSettings::bspTreeTopDepth = std::min(GuiRenderSettings::bspTreeTopDepth, GuiRenderSettings::bspTreeBottomDepth);
-						GenerateRenderBspData(m_bsp);
-					}
+				};
 
-					/* TODO
-					if (ImGui::BeginCombo("(NOT IMPL) Mask by Materials", "..."))
-					{
-						ImGui::Selectable("(NOT IMPL)");
-						ImGui::EndCombo();
-					}
-					if (ImGui::BeginCombo("(NOT IMPL) Mask by Quad flags", "..."))
-					{
-						ImGui::Selectable("(NOT IMPL)");
-						ImGui::EndCombo();
-					}
-					if (ImGui::BeginCombo("(NOT IMPL) Mask by Draw flags", "..."))
-					{
-						ImGui::Selectable("(NOT IMPL)");
-						ImGui::EndCombo();
-					}
-					if (ImGui::BeginCombo("(NOT IMPL) Mask by Terrain", "..."))
-					{
-						ImGui::Selectable("(NOT IMPL)");
-						ImGui::EndCombo();
-					}
-					*/
+			textUI("Camera Move Multiplier", camMoveMult, GuiRenderSettings::camMoveMult, 0.01f);
+			textUI("Camera Rotate Multiplier", camRotateMult, GuiRenderSettings::camRotateMult, 0.01f);
+			textUI("Camera Sprint Multiplier", camSprintMult, GuiRenderSettings::camSprintMult, 1.0f);
+			textUI("Camera FOV", camFOV, GuiRenderSettings::camFovDeg, 5.0f, 150.0f);
+			ImGui::PopItemWidth();
 
-					auto textUI = [](const std::string& label, std::string& uiValue, float& renderSetting, float minThres = -std::numeric_limits<float>::max(), float maxThres = std::numeric_limits<float>::max())
-						{
-							float val;
-							if (ImGui::InputText(label.c_str(), &uiValue) && ParseFloat(uiValue, val))
-							{
-								val = Clamp(val, minThres, maxThres);
-								uiValue = std::to_string(val);
-								renderSetting = val;
-							}
-						};
-
-					textUI("Camera Move Multiplier", camMoveMult, GuiRenderSettings::camMoveMult, 0.01f);
-					textUI("Camera Rotate Multiplier", camRotateMult, GuiRenderSettings::camRotateMult, 0.01f);
-					textUI("Camera Sprint Multiplier", camSprintMult, GuiRenderSettings::camSprintMult, 1.0f);
-					textUI("Camera FOV", camFOV, GuiRenderSettings::camFovDeg, 5.0f, 150.0f);
-					ImGui::PopItemWidth();
-
-					ImGui::TableSetColumnIndex(1);
-
-					if (m_rendererSelectedQuadblockIndex != REND_NO_SELECTED_QUADBLOCK)
-					{
-						Quadblock& quadblock = m_quadblocks[m_rendererSelectedQuadblockIndex];
-						bool resetBsp = false;
-						if (quadblock.RenderUI(m_checkpoints.size() - 1, resetBsp))
-						{
-							ManageTurbopad(quadblock);
-						}
-						if (resetBsp && m_bsp.IsValid())
-						{
-							m_bsp.Clear();
-							GenerateRenderBspData(m_bsp);
-						}
-					}
-
-					ImGui::EndTable();
+			if (m_rendererSelectedQuadblockIndex != REND_NO_SELECTED_QUADBLOCK)
+			{
+				Quadblock& quadblock = m_quadblocks[m_rendererSelectedQuadblockIndex];
+				bool resetBsp = false;
+				if (quadblock.RenderUI(m_checkpoints.size() - 1, resetBsp))
+				{
+					ManageTurbopad(quadblock);
 				}
-				ImGui::TreePop();
+				if (resetBsp && m_bsp.IsValid())
+				{
+					m_bsp.Clear();
+					GenerateRenderBspData(m_bsp);
+				}
 			}
 		}
 		ImGui::End();
@@ -1302,8 +1289,8 @@ bool Quadblock::RenderUI(size_t checkpointCount, bool& resetBsp)
 		if (ImGui::TreeNode("Draw Flags"))
 		{
 			ImGui::Checkbox("Double Sided", &m_doubleSided);
-			const std::vector<std::string> s_rotateFlip = { "None", "Rotate 90", "Rotate 180", "Rotate -90", "Flip + Rotate 90", "Flip + Rotate 180", "Flip + Rotate -90", "Flip" };
-			const std::vector<std::string> s_faceDrawMode = { "Both", "Left", "Right", "None" };
+			const std::vector<std::string> s_rotateFlip = {"None", "Rotate 90", "Rotate 180", "Rotate -90", "Flip + Rotate 90", "Flip + Rotate 180", "Flip + Rotate -90", "Flip"};
+			const std::vector<std::string> s_faceDrawMode = {"Both", "Left", "Right", "None"};
 
 			auto UISelectable = [](size_t quadIndex, const std::string& label, const std::vector<std::string>& options, uint32_t* data)
 				{
