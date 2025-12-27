@@ -39,6 +39,7 @@ public:
 	const std::filesystem::path& GetParentPath() const;
 	bool LoadPreset(const std::filesystem::path& filename);
 	bool SavePreset(const std::filesystem::path& path);
+	void BuildRenderModels(std::vector<Model>& models);
 	void RenderUI();
 
 private:
@@ -66,6 +67,8 @@ private:
 	void GeomBoundingRect(const BSP* b, int depth, std::vector<float>& data);
 	void GeomUVs(const Quadblock& qb, int quadInd, int vertInd, std::vector<float>& data, int textureIndex);
 	void ViewportClickHandleBlockSelection(int pixelX, int pixelY, const Renderer& rend);
+
+	friend class UI;
 
 private:
 	bool m_saveScript;

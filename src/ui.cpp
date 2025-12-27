@@ -1,8 +1,11 @@
 #include "ui.h"
 
+#include "renderer.h"
+
 #include <imgui.h>
 #include <portable-file-dialogs.h>
 
+#include <cmath>
 #include <filesystem>
 
 int Windows::w_width = 1024;
@@ -23,6 +26,7 @@ void UI::Render(int width, int height)
 {
 	MainMenu();
 	m_lev.RenderUI();
+	RenderWorld();
 }
 
 void UI::MainMenu()
@@ -81,5 +85,45 @@ void UI::MainMenu()
 			ImGui::EndMenu();
 		}
 		ImGui::EndMainMenuBar();
+	}
+}
+
+void UI::RenderWorld()
+{
+	if (!m_lev.IsLoaded()) { return; }
+
+	static Renderer rend = Renderer(800.0f, 400.0f);
+	ImGuiIO& io = ImGui::GetIO();
+	rend.SetViewportSize(io.DisplaySize.x, io.DisplaySize.y);
+
+	if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !io.WantCaptureMouse)
+	{
+		int pixelX = static_cast<int>(io.MousePos.x);
+		int pixelY = static_cast<int>(io.MousePos.y);
+		if (pixelX >= 0 && pixelY >= 0 && pixelX < static_cast<int>(rend.GetWidth()) && pixelY < static_cast<int>(rend.GetHeight()))
+		{
+			m_lev.ViewportClickHandleBlockSelection(pixelX, pixelY, rend);
+		}
+	}
+
+	std::vector<Model> modelsToRender;
+	m_lev.BuildRenderModels(modelsToRender);
+	rend.Render(modelsToRender);
+
+	static float rollingOneSecond = 0;
+	static int FPS = -1;
+	float fm = fmod(rollingOneSecond, 1.f);
+	if (fm != rollingOneSecond && rollingOneSecond >= 1.f) //2nd condition prevents fps not updating if deltaTime exactly equals 1.f
+	{
+		FPS = static_cast<int>(1.f / rend.GetLastDeltaTime());
+		rollingOneSecond = fm;
+	}
+	rollingOneSecond += rend.GetLastDeltaTime();
+	if (FPS >= 0)
+	{
+		std::string fpsLabel = "FPS: " + std::to_string(FPS);
+		ImVec2 textSize = ImGui::CalcTextSize(fpsLabel.c_str());
+		ImVec2 pos = ImVec2(io.DisplaySize.x - textSize.x - 10.0f, 10.0f);
+		ImGui::GetForegroundDrawList()->AddText(pos, ImGui::GetColorU32(ImGuiCol_Text), fpsLabel.c_str());
 	}
 }

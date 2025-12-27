@@ -52,19 +52,9 @@ Renderer::Renderer(float width, float height)
 
 void Renderer::Render(const std::vector<Model>& models)
 {
-  RenderInternal(models, true);
-}
-
-void Renderer::RenderToScreen(const std::vector<Model>& models)
-{
-  RenderInternal(models, false);
-}
-
-void Renderer::RenderInternal(const std::vector<Model>& models, bool useFramebuffer)
-{
   if (m_width <= 0 || m_height <= 0) { return; }
 
-  glBindFramebuffer(GL_FRAMEBUFFER, useFramebuffer ? m_framebuffer : 0);
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
   //clear screen with dark blue
   glEnable(GL_DEPTH_TEST);

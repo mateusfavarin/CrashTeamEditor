@@ -39,7 +39,7 @@ public:
 	int GetShaderSettings() const;
 	void SetShaderSettings(unsigned shadSettings);
 	void SetTextureStore(const std::map<int, std::filesystem::path>& texturePaths);
-	GLuint GetTextureStore();
+	GLuint GetTextureStore() const;
 
 private:
 	void Bind() const;

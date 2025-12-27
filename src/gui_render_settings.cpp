@@ -1,9 +1,9 @@
 #include "gui_render_settings.h"
 
-float GuiRenderSettings::camFovDeg = 70.f;
-float GuiRenderSettings::camSprintMult = 2.0f;
-float GuiRenderSettings::camRotateMult = 1.0f;
-float GuiRenderSettings::camMoveMult = 1.0f;
+float GuiRenderSettings::camFovDeg = 70.0f;
+float GuiRenderSettings::camSprintMult = 3.0f;
+float GuiRenderSettings::camRotateMult = 1.5f;
+float GuiRenderSettings::camMoveMult = 2.5f;
 bool GuiRenderSettings::showLowLOD = false;
 bool GuiRenderSettings::showWireframe = false;
 bool GuiRenderSettings::showLevVerts = false;

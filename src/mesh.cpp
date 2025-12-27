@@ -278,7 +278,7 @@ void Mesh::SetTextureStore(const std::map<int, std::filesystem::path>& texturePa
   }
 }
 
-GLuint Mesh::GetTextureStore()
+GLuint Mesh::GetTextureStore() const
 {
   return m_textures;
 }

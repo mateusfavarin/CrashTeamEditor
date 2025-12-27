@@ -6,7 +6,6 @@
 #include "quadblock.h"
 #include "vertex.h"
 #include "utils.h"
-#include "renderer.h"
 #include "gui_render_settings.h"
 #include "mesh.h"
 #include "texture.h"
@@ -20,7 +19,6 @@
 #include <string>
 #include <chrono>
 #include <functional>
-#include <cmath>
 #include <fstream>
 #include <sstream>
 
@@ -839,46 +837,10 @@ void Level::RenderUI()
 		ImGui::End();
 	}
 
-	static Renderer rend = Renderer(800.0f, 400.0f);
-	ImGuiIO& io = ImGui::GetIO();
-	rend.SetViewportSize(io.DisplaySize.x, io.DisplaySize.y);
-
-	if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !io.WantCaptureMouse)
-	{
-		int pixelX = static_cast<int>(io.MousePos.x);
-		int pixelY = static_cast<int>(io.MousePos.y);
-		if (pixelX >= 0 && pixelY >= 0 && pixelX < static_cast<int>(rend.GetWidth()) && pixelY < static_cast<int>(rend.GetHeight()))
-		{
-			ViewportClickHandleBlockSelection(pixelX, pixelY, rend);
-		}
-	}
-
 	if (Windows::w_renderer)
 	{
 		if (ImGui::Begin("Renderer", &Windows::w_renderer))
 		{
-			/*
-				* *** Enable viewport resizing
-				* Filter by material (highlight all quads with a specified subset of materials)
-				* Filter by quad flags (higlight all quads with a specified subset of quadflags)
-				* Filter by draw flags ""
-				* Filter by terrain ""
-				*
-				* draw bsp as wireframe or as transparent objs
-				*
-				* draw (low lod) wireframe on top of the mesh as an option
-				*
-				* NOTE: resetBsp does not trigger when vertex color changes.
-				*
-				* Make mesh read live data.
-				*
-				* Editor features (edit in viewport blender style).
-				*/
-			static std::string camMoveMult = std::to_string(GuiRenderSettings::camMoveMult);
-			static std::string camRotateMult = std::to_string(GuiRenderSettings::camRotateMult);
-			static std::string camSprintMult = std::to_string(GuiRenderSettings::camSprintMult);
-			static std::string camFOV = std::to_string(GuiRenderSettings::camFovDeg);
-
 			ImGui::Text(""
 				"Camera Controls:\n"
 				"\t* WASD to move in/out & pan\n"
@@ -909,44 +871,15 @@ void Level::RenderUI()
 				GenerateRenderBspData(m_bsp);
 			}
 
-			/* TODO
-			if (ImGui::BeginCombo("(NOT IMPL) Mask by Materials", "..."))
-			{
-				ImGui::Selectable("(NOT IMPL)");
-				ImGui::EndCombo();
-			}
-			if (ImGui::BeginCombo("(NOT IMPL) Mask by Quad flags", "..."))
-			{
-				ImGui::Selectable("(NOT IMPL)");
-				ImGui::EndCombo();
-			}
-			if (ImGui::BeginCombo("(NOT IMPL) Mask by Draw flags", "..."))
-			{
-				ImGui::Selectable("(NOT IMPL)");
-				ImGui::EndCombo();
-			}
-			if (ImGui::BeginCombo("(NOT IMPL) Mask by Terrain", "..."))
-			{
-				ImGui::Selectable("(NOT IMPL)");
-				ImGui::EndCombo();
-			}
-			*/
-
-			auto textUI = [](const std::string& label, std::string& uiValue, float& renderSetting, float minThres = -std::numeric_limits<float>::max(), float maxThres = std::numeric_limits<float>::max())
+			auto textUI = [](const std::string& label, float& renderSetting, float minThres = -std::numeric_limits<float>::max(), float maxThres = std::numeric_limits<float>::max())
 				{
-					float val;
-					if (ImGui::InputText(label.c_str(), &uiValue) && ParseFloat(uiValue, val))
-					{
-						val = Clamp(val, minThres, maxThres);
-						uiValue = std::to_string(val);
-						renderSetting = val;
-					}
+					if (ImGui::InputFloat(label.c_str(), &renderSetting)) { renderSetting = Clamp(renderSetting, minThres, maxThres); }
 				};
 
-			textUI("Camera Move Multiplier", camMoveMult, GuiRenderSettings::camMoveMult, 0.01f);
-			textUI("Camera Rotate Multiplier", camRotateMult, GuiRenderSettings::camRotateMult, 0.01f);
-			textUI("Camera Sprint Multiplier", camSprintMult, GuiRenderSettings::camSprintMult, 1.0f);
-			textUI("Camera FOV", camFOV, GuiRenderSettings::camFovDeg, 5.0f, 150.0f);
+			textUI("Camera Move Multiplier", GuiRenderSettings::camMoveMult, 0.01f);
+			textUI("Camera Rotate Multiplier", GuiRenderSettings::camRotateMult, 0.01f);
+			textUI("Camera Sprint Multiplier", GuiRenderSettings::camSprintMult, 1.0f);
+			textUI("Camera FOV", GuiRenderSettings::camFovDeg, 5.0f, 150.0f);
 			ImGui::PopItemWidth();
 
 			if (m_rendererSelectedQuadblockIndex != REND_NO_SELECTED_QUADBLOCK)
@@ -965,62 +898,6 @@ void Level::RenderUI()
 			}
 		}
 		ImGui::End();
-	}
-
-	std::vector<Model> modelsToRender;
-
-	if (GuiRenderSettings::showLevel)
-	{
-		modelsToRender.push_back(m_levelModel);
-		if (GuiRenderSettings::showLowLOD)
-		{
-			m_levelModel.SetMesh(&m_lowLODMesh);
-			if (GuiRenderSettings::showLevVerts)
-			{
-				m_levelModel.SetMesh(&m_vertexLowLODMesh);
-			}
-		}
-		else
-		{
-			m_levelModel.SetMesh(&m_highLODMesh);
-			if (GuiRenderSettings::showLevVerts)
-			{
-				m_levelModel.SetMesh(&m_vertexHighLODMesh);
-			}
-		}
-	}
-	if (GuiRenderSettings::showBspRectTree)
-	{
-		modelsToRender.push_back(m_bspModel);
-	}
-	if (GuiRenderSettings::showCheckpoints)
-	{
-		modelsToRender.push_back(m_checkModel);
-	}
-	if (GuiRenderSettings::showStartpoints)
-	{
-		modelsToRender.push_back(m_spawnsModel);
-	}
-	modelsToRender.push_back(m_selectedBlockModel);
-	modelsToRender.push_back(m_multipleSelectedQuads);
-
-	rend.RenderToScreen(modelsToRender);
-
-	static float rollingOneSecond = 0;
-	static int FPS = -1;
-	float fm = fmod(rollingOneSecond, 1.f);
-	if (fm != rollingOneSecond && rollingOneSecond >= 1.f) //2nd condition prevents fps not updating if deltaTime exactly equals 1.f
-	{
-		FPS = static_cast<int>(1.f / rend.GetLastDeltaTime());
-		rollingOneSecond = fm;
-	}
-	rollingOneSecond += rend.GetLastDeltaTime();
-	if (FPS >= 0)
-	{
-		std::string fpsLabel = "FPS: " + std::to_string(FPS);
-		ImVec2 textSize = ImGui::CalcTextSize(fpsLabel.c_str());
-		ImVec2 pos = ImVec2(io.DisplaySize.x - textSize.x - 10.0f, 10.0f);
-		ImGui::GetForegroundDrawList()->AddText(pos, ImGui::GetColorU32(ImGuiCol_Text), fpsLabel.c_str());
 	}
 
 	if (Windows::w_python)

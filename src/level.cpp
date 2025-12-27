@@ -552,6 +552,32 @@ bool Level::SavePreset(const std::filesystem::path& path)
 	return true;
 }
 
+void Level::BuildRenderModels(std::vector<Model>& models)
+{
+	models.clear();
+	if (!m_loaded) { return; }
+
+	if (GuiRenderSettings::showLevel)
+	{
+		models.push_back(m_levelModel);
+		if (GuiRenderSettings::showLowLOD)
+		{
+			if (GuiRenderSettings::showLevVerts) { m_levelModel.SetMesh(&m_vertexLowLODMesh); }
+			else { m_levelModel.SetMesh(&m_lowLODMesh); }
+		}
+		else
+		{
+			if (GuiRenderSettings::showLevVerts) { m_levelModel.SetMesh(&m_vertexHighLODMesh); }
+			else { m_levelModel.SetMesh(&m_highLODMesh); }
+		}
+	}
+	if (GuiRenderSettings::showBspRectTree) { models.push_back(m_bspModel); }
+	if (GuiRenderSettings::showCheckpoints) { models.push_back(m_checkModel); }
+	if (GuiRenderSettings::showStartpoints) { models.push_back(m_spawnsModel); }
+	models.push_back(m_selectedBlockModel);
+	models.push_back(m_multipleSelectedQuads);
+}
+
 void Level::ManageTurbopad(Quadblock& quadblock)
 {
 	bool stp = true;
