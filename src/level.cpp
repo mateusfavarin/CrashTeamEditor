@@ -1832,7 +1832,7 @@ void Level::GeomOctopoint(const Vertex* verts, int ind, std::vector<float>& data
 	v.m_pos.z -= radius; GeomPoint(&v, 0, data); v.m_pos.z += radius;
 }
 
-void Level::GeomBoundingRect(const BSP* b, int depth, std::vector<float>& data)
+void Level::GeomBoundingRect(const BSP* bsp, int depth, std::vector<float>& data)
 {
 	constexpr float sqrtThree = 1.44224957031f;
 
@@ -1840,7 +1840,7 @@ void Level::GeomBoundingRect(const BSP* b, int depth, std::vector<float>& data)
 	{
 		GuiRenderSettings::bspTreeMaxDepth = depth;
 	}
-	const BoundingBox& bb = b->GetBoundingBox();
+	const BoundingBox& bb = bsp->GetBoundingBox();
 	Color c = Color(depth * 30.0, 1.0, 1.0);
 	Vertex verts[] = {
 		Vertex(Point(bb.min.x, bb.min.y, bb.min.z, c.r, c.g, c.b)), //---
@@ -1864,34 +1864,32 @@ void Level::GeomBoundingRect(const BSP* b, int depth, std::vector<float>& data)
 
 	if (GuiRenderSettings::bspTreeTopDepth <= depth && GuiRenderSettings::bspTreeBottomDepth >= depth)
 	{
-		constexpr int NUM_PRISM_SIDES = 6;
-		constexpr int NUM_VERTEXES_PER_SIDE = 6;
-		int prismFaceIndexes[NUM_PRISM_SIDES][NUM_VERTEXES_PER_SIDE] =
+		constexpr int NUM_EDGES = 12;
+		constexpr int EDGE_VERTS = 2;
+		const int edgeIndexes[NUM_EDGES][EDGE_VERTS] =
 		{
-			{2, 1, 0, 5, 1, 2},
-			{6, 3, 0, 0, 1, 6},
-			{4, 2, 0, 0, 3, 4},
-			{7, 4, 3, 3, 6, 7},
-			{7, 6, 5, 5, 6, 1},
-			{5, 4, 7, 2, 4, 5}
+			{0, 1}, {2, 5}, {3, 6}, {4, 7},
+			{0, 2}, {1, 5}, {3, 4}, {6, 7},
+			{0, 3}, {1, 6}, {2, 4}, {5, 7},
 		};
 
-		for (int i = 0; i < NUM_PRISM_SIDES; i++)
+		for (int i = 0; i < NUM_EDGES; i++)
 		{
-			for (int j = 0; j < NUM_VERTEXES_PER_SIDE; j++)
-			{
-				GeomPoint(verts, prismFaceIndexes[i][j], data);
-			}
+			const int a = edgeIndexes[i][0];
+			const int b = edgeIndexes[i][1];
+			GeomPoint(verts, a, data);
+			GeomPoint(verts, b, data);
+			GeomPoint(verts, b, data);
 		}
 	}
 
-	if (b->GetLeftChildren() != nullptr)
+	if (bsp->GetLeftChildren() != nullptr)
 	{
-		GeomBoundingRect(b->GetLeftChildren(), depth + 1, data);
+		GeomBoundingRect(bsp->GetLeftChildren(), depth + 1, data);
 	}
-	if (b->GetRightChildren() != nullptr)
+	if (bsp->GetRightChildren() != nullptr)
 	{
-		GeomBoundingRect(b->GetRightChildren(), depth + 1, data);
+		GeomBoundingRect(bsp->GetRightChildren(), depth + 1, data);
 	}
 }
 
