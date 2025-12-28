@@ -1892,14 +1892,14 @@ void Level::GenerateRenderLevData(bool updateVertexMeshes)
 	std::vector<float> highLODData, lowLODData, vertexHighLODData, vertexLowLODData;
 
 	m_textureStorePaths.clear();
-	auto GetTextureIndex = [this](const std::filesystem::path& texPath) -> size_t
+	auto GetTextureIndex = [this](const std::filesystem::path& texPath) -> int
 		{
 			auto findResult = std::find_if(m_textureStorePaths.begin(), m_textureStorePaths.end(), [&texPath](const auto& pair) { return pair.second == texPath; });
 			if (findResult != m_textureStorePaths.end())
 			{ //this path already exists in the map
 				return findResult->first;
 			}
-			size_t texIndex = m_textureStorePaths.size();
+			int texIndex = static_cast<int>(m_textureStorePaths.size());
 			m_textureStorePaths[texIndex] = texPath;
 			return texIndex;
 		};
@@ -1947,23 +1947,9 @@ void Level::GenerateRenderLevData(bool updateVertexMeshes)
 			{
 				constexpr size_t HIGH_LOD_VERT_COUNT = 9;
 				const std::array<int, HIGH_LOD_VERT_COUNT> highLODIndexes = {0, 1, 2, 3, 4, 5, 6, 7, 8};
-				if (updateVertexMeshes)
-				{
-					for (int index : highLODIndexes)
-					{
-						GeomOctopoint(verts, index, vertexHighLODData);
-					}
-				}
 
 				constexpr size_t LOW_LOD_VERT_COUNT = 4;
 				const std::array<int, LOW_LOD_VERT_COUNT> lowLODIndexes = {0, 2, 6, 8};
-				if (updateVertexMeshes)
-				{
-					for (int index : lowLODIndexes)
-					{
-						GeomOctopoint(verts, index, vertexLowLODData);
-					}
-				}
 
 				for (int triIndex = 0; triIndex < 8; triIndex++)
 				{
@@ -1999,23 +1985,9 @@ void Level::GenerateRenderLevData(bool updateVertexMeshes)
 			{
 				constexpr size_t HIGH_LOD_VERT_COUNT = 6;
 				const std::array<int, HIGH_LOD_VERT_COUNT> highLODIndexes = {0, 1, 2, 3, 4, 6};
-				if (updateVertexMeshes)
-				{
-					for (int index : highLODIndexes)
-					{
-						GeomOctopoint(verts, index, vertexHighLODData);
-					}
-				}
 
 				constexpr size_t LOW_LOD_VERT_COUNT = 3;
 				const std::array<int, LOW_LOD_VERT_COUNT> lowLODIndexes = {0, 2, 6};
-				if (updateVertexMeshes)
-				{
-					for (int index : lowLODIndexes)
-					{
-						GeomOctopoint(verts, index, vertexLowLODData);
-					}
-				}
 
 				for (int triIndex = 0; triIndex < 4; triIndex++)
 				{
@@ -2072,15 +2044,6 @@ void Level::GenerateRenderLevData(bool updateVertexMeshes)
 	m_lowLODMesh.UpdateMesh(lowLODData, (Mesh::VBufDataType::VertexColor | Mesh::VBufDataType::Normals | Mesh::VBufDataType::STUV | Mesh::VBufDataType::TexIndex), Mesh::ShaderSettings::None);
 	m_lowLODMesh.SetTextureStore(m_textureStorePaths);
 	//m_lowLODLevelModel.SetMesh(&m_lowLODMesh);
-
-	if (updateVertexMeshes)
-	{
-		m_vertexHighLODMesh.UpdateMesh(vertexHighLODData, (Mesh::VBufDataType::VertexColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
-		//m_pointsHighLODLevelModel.SetMesh(&m_vertexHighLODMesh);
-
-		m_vertexLowLODMesh.UpdateMesh(vertexLowLODData, (Mesh::VBufDataType::VertexColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
-		//m_pointsLowLODLevelModel.SetMesh(&m_vertexLowLODMesh);
-	}
 }
 
 void Level::GenerateRenderBspData(const BSP& bsp)
