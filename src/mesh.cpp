@@ -241,7 +241,7 @@ void Mesh::SetShaderSettings(unsigned shadSettings)
   m_shaderSettings = shadSettings;
 }
 
-void Mesh::SetTextureStore(const std::unordered_map<int, std::filesystem::path>& texturePaths)
+void Mesh::SetTextureStore(const std::unordered_map<std::filesystem::path, int>& texturePaths)
 {
   if (m_textures) { glDeleteTextures(1, &m_textures); m_textures = 0; }
 
@@ -255,9 +255,9 @@ void Mesh::SetTextureStore(const std::unordered_map<int, std::filesystem::path>&
 
   glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA8, 256, 256, static_cast<GLsizei>(texturePaths.size()), 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
 
-  for (int texIndex = 0; texIndex < static_cast<int>(texturePaths.size()); texIndex++)
+  for (auto it = texturePaths.begin(); it != texturePaths.end(); it++)
   {
-    const std::filesystem::path& path = texturePaths.at(texIndex);
+    const std::filesystem::path& path = it->first;
     int w, h, channels;
     stbi_uc* originalData;
     originalData = stbi_load(path.generic_string().c_str(), &w, &h, &channels, 4);
@@ -267,23 +267,17 @@ void Mesh::SetTextureStore(const std::unordered_map<int, std::filesystem::path>&
 
     if (originalData == nullptr)
     {
-      printf("Failed to load texture: \"%s\", defaulting to 50%% grey.\n", path.generic_string().c_str());
-
       memset(finalData, 0x7F, ww * hh * 4);
-      for (size_t i = 0; i < ww * hh * 4; i += 4)
-        finalData[i + 3] = 0xFF;
-
-      glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, static_cast<GLint>(texIndex), 256, 256, 1, GL_RGBA, GL_UNSIGNED_BYTE, (const void*)finalData);
+			for (size_t i = 0; i < ww * hh * 4; i += 4) { finalData[i + 3] = 0xFF; }
+      glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, static_cast<GLint>(it->second), 256, 256, 1, GL_RGBA, GL_UNSIGNED_BYTE, (const void*)finalData);
     }
     else
     {
       memset(finalData, 0xFF, ww * hh * 4);
-
       stbir_resize(originalData, w, h, 4 * w, finalData, ww, hh, 4 * ww, stbir_pixel_layout::STBIR_RGBA, stbir_datatype::STBIR_TYPE_UINT8, stbir_edge::STBIR_EDGE_CLAMP, stbir_filter::STBIR_FILTER_POINT_SAMPLE);
-
-      glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, static_cast<GLint>(texIndex), 256, 256, 1, GL_RGBA, GL_UNSIGNED_BYTE, (const void*)finalData);
-      stbi_image_free(originalData);
+      glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, static_cast<GLint>(it->second), 256, 256, 1, GL_RGBA, GL_UNSIGNED_BYTE, (const void*)finalData);
     }
+    stbi_image_free(originalData);
   }
 }
 

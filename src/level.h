@@ -127,5 +127,4 @@ private:
 
 	size_t m_rendererSelectedQuadblockIndex;
 	size_t m_lastAnimTextureCount = 0;
-	std::unordered_map<int, std::filesystem::path> m_textureStorePaths;
 };

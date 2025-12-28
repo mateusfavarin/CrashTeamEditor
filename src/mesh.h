@@ -6,7 +6,6 @@
 #include "gtc/type_ptr.hpp"
 
 #include <filesystem>
-#include <map>
 
 class Mesh
 {
@@ -38,7 +37,7 @@ public:
 	int GetDatas() const;
 	int GetShaderSettings() const;
 	void SetShaderSettings(unsigned shadSettings);
-	void SetTextureStore(const std::unordered_map<int, std::filesystem::path>& texturePaths);
+	void SetTextureStore(const std::unordered_map<std::filesystem::path, int>& texturePaths);
 	GLuint GetTextureStore() const;
 
 private:
