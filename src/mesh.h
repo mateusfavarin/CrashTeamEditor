@@ -6,6 +6,8 @@
 #include "gtc/type_ptr.hpp"
 
 #include <filesystem>
+#include <unordered_map>
+#include <vector>
 
 class Mesh
 {
@@ -37,10 +39,13 @@ public:
 	int GetDatas() const;
 	int GetShaderSettings() const;
 	void SetShaderSettings(unsigned shadSettings);
-	void SetTextureStore(const std::unordered_map<std::filesystem::path, int>& texturePaths);
+	void UpdateTextureStore(const std::filesystem::path& texturePath);
 	GLuint GetTextureStore() const;
 
 private:
+	void AppendTextureStore(const std::filesystem::path& texturePath);
+	std::vector<unsigned char> LoadTextureData(const std::filesystem::path& path);
+	void RebuildTextureData();
 	void Bind() const;
 	void Unbind() const;
 	void Draw() const;
@@ -54,6 +59,7 @@ private:
 	int m_vertexCount = 0;
 	unsigned m_includedData = 0;
 	unsigned m_shaderSettings = 0;
-
+	std::vector<std::vector<unsigned char>> m_textureStoreData;
+	std::unordered_map<std::filesystem::path, size_t> m_textureStoreIndex;
 	friend class Model;
 };

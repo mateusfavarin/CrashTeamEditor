@@ -55,6 +55,7 @@ private:
 	bool GenerateCheckpoints();
 	bool GenerateBSP();
 
+	int GetTextureIndex(const std::filesystem::path& texPath);
 	void GenerateRenderLevData(bool updateVertexMeshes = true);
 	void GenerateRenderBspData(const BSP& bsp);
 	void GenerateRenderCheckpointData(std::vector<Checkpoint>&);
@@ -116,6 +117,7 @@ private:
 	Mesh m_highLODMesh;
 	Mesh m_vertexLowLODMesh;
 	Mesh m_vertexHighLODMesh;
+	std::unordered_map<std::filesystem::path, int> m_textureStorePaths;
 
 	Model m_levelModel;
 	Model m_bspModel;

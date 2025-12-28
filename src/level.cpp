@@ -1874,6 +1874,17 @@ void Level::GeomBoundingRect(const BSP* bsp, int depth, std::vector<float>& data
 	}
 }
 
+int Level::GetTextureIndex(const std::filesystem::path& texPath)
+{
+	auto findResult = m_textureStorePaths.find(texPath);
+	if (findResult != m_textureStorePaths.end()) { return findResult->second; }
+	int texIndex = static_cast<int>(m_textureStorePaths.size());
+	m_textureStorePaths[texPath] = texIndex;
+	m_highLODMesh.UpdateTextureStore(texPath);
+	m_lowLODMesh.UpdateTextureStore(texPath);
+	return texIndex;
+}
+
 void Level::GenerateRenderLevData(bool updateVertexMeshes)
 {
 	/* 062 is triblock
@@ -1883,15 +1894,7 @@ void Level::GenerateRenderLevData(bool updateVertexMeshes)
 		|  q2 |  q3 |
 		p6 -- p7 -- p8
 	*/
-	std::unordered_map<std::filesystem::path, int> textureStorePaths;
 	std::vector<float> highLODData, lowLODData, vertexHighLODData, vertexLowLODData;
-	auto GetTextureIndex = [&textureStorePaths](const std::filesystem::path& texPath) -> int
-		{
-			if (textureStorePaths.contains(texPath)) { return textureStorePaths[texPath]; }
-			int texIndex = static_cast<int>(textureStorePaths.size());
-			textureStorePaths[texPath] = texIndex;
-			return texIndex;
-		};
 
 	struct AnimRenderData
 	{
@@ -2055,9 +2058,7 @@ void Level::GenerateRenderLevData(bool updateVertexMeshes)
 	}
 
 	m_highLODMesh.UpdateMesh(highLODData, (Mesh::VBufDataType::VertexColor | Mesh::VBufDataType::Normals | Mesh::VBufDataType::STUV | Mesh::VBufDataType::TexIndex), Mesh::ShaderSettings::None);
-	m_highLODMesh.SetTextureStore(textureStorePaths);
 	m_lowLODMesh.UpdateMesh(lowLODData, (Mesh::VBufDataType::VertexColor | Mesh::VBufDataType::Normals | Mesh::VBufDataType::STUV | Mesh::VBufDataType::TexIndex), Mesh::ShaderSettings::None);
-	m_lowLODMesh.SetTextureStore(textureStorePaths);
 
 	if (updateVertexMeshes)
 	{
