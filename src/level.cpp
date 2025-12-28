@@ -2069,7 +2069,8 @@ void Level::GenerateRenderBspData(const BSP& bsp)
 	GuiRenderSettings::bspTreeMaxDepth = 0;
 	GeomBoundingRect(&bsp, 0, bspData);
 
-	bspMesh.UpdateMesh(bspData, (Mesh::VBufDataType::VertexColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
+	bspMesh.UpdateMesh(bspData, (Mesh::VBufDataType::VertexColor | Mesh::VBufDataType::Normals),
+		(Mesh::ShaderSettings::DrawWireframe | Mesh::ShaderSettings::DontOverrideShaderSettings));
 	m_bspModel.SetMesh(&bspMesh);
 }
 

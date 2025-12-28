@@ -843,7 +843,9 @@ void Level::RenderUI()
 		{
 			if (ImGui::TreeNodeEx("Settings", ImGuiTreeNodeFlags_DefaultOpen))
 			{
-				ImGui::Combo("Shader", &GuiRenderSettings::renderType, GuiRenderSettings::renderTypeLabels.data(), static_cast<int>(GuiRenderSettings::renderTypeLabels.size()));
+				ImGui::Text("Shader:");
+				ImGui::SameLine();
+				ImGui::Combo("##Shader", &GuiRenderSettings::renderType, GuiRenderSettings::renderTypeLabels.data(), static_cast<int>(GuiRenderSettings::renderTypeLabels.size()));
 				ImGui::Text("Flags:");
 				if (ImGui::BeginTable("Renderer Flags", 2, ImGuiTableFlags_SizingStretchSame))
 				{
@@ -859,12 +861,13 @@ void Level::RenderUI()
 					checkboxPair("Show Low LOD", &GuiRenderSettings::showLowLOD, "Show Wireframe", &GuiRenderSettings::showWireframe);
 					checkboxPair("Show Backfaces", &GuiRenderSettings::showBackfaces, "Show Level Verts", &GuiRenderSettings::showLevVerts);
 					checkboxPair("Show Checkpoints", &GuiRenderSettings::showCheckpoints, "Show Starting Positions", &GuiRenderSettings::showStartpoints);
-					checkboxPair("Show BSP Rect Tree", &GuiRenderSettings::showBspRectTree, "Show Vis Tree", &GuiRenderSettings::showVisTree);
+					checkboxPair("Show BSP", &GuiRenderSettings::showBspRectTree, "Show Vis Tree", &GuiRenderSettings::showVisTree);
 
 					ImGui::EndTable();
 				}
 
 				ImGui::Text("BSP Depth:");
+				ImGui::BeginDisabled(!GuiRenderSettings::showBspRectTree);
 				if (ImGui::BeginTable("BSP Depth", 2, ImGuiTableFlags_SizingStretchSame))
 				{
 					ImGui::TableNextRow();
@@ -882,7 +885,9 @@ void Level::RenderUI()
 					}
 					ImGui::EndTable();
 				}
+				ImGui::EndDisabled();
 
+				ImGui::Text("Camera:");
 				if (ImGui::BeginTable("Renderer Inputs", 2, ImGuiTableFlags_SizingStretchSame))
 				{
 					auto inputPair = [](const char* leftLabel, float& leftValue, float leftMin, float leftMax,
