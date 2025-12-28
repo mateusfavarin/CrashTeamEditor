@@ -841,53 +841,91 @@ void Level::RenderUI()
 	{
 		if (ImGui::Begin("Renderer", &Windows::w_renderer))
 		{
-					ImGui::Text(""
-						"Camera Controls:\n"
-						"\t* Right mouse button: drag to orbit\n"
-						"\t* Mouse wheel to zoom\n"
-						"\t* WASD to move on camera plane\n"
-						"\t* Q/E to move up/down\n"
-						"\t* Shift to sprint");
-
-			ImGui::Combo("Render", &GuiRenderSettings::renderType, GuiRenderSettings::renderTypeLabels.data(), static_cast<int>(GuiRenderSettings::renderTypeLabels.size()));
-
-			ImGui::Checkbox("Show Low LOD", &GuiRenderSettings::showLowLOD);
-			ImGui::Checkbox("Show Wireframe", &GuiRenderSettings::showWireframe);
-			ImGui::Checkbox("Show Backfaces", &GuiRenderSettings::showBackfaces);
-			ImGui::Checkbox("Show Level Verts", &GuiRenderSettings::showLevVerts);
-			ImGui::Checkbox("Show Checkpoints", &GuiRenderSettings::showCheckpoints);
-			ImGui::Checkbox("Show Starting Positions", &GuiRenderSettings::showStartpoints);
-			ImGui::Checkbox("Show BSP Rect Tree", &GuiRenderSettings::showBspRectTree);
-			ImGui::Checkbox("Show Vis Tree", &GuiRenderSettings::showVisTree);
-
-			ImGui::PushItemWidth(std::max(ImGui::GetContentRegionAvail().x * 0.6f, 50.0f));
-			if (ImGui::SliderInt("BSP Rect Tree top depth", &GuiRenderSettings::bspTreeTopDepth, 0, GuiRenderSettings::bspTreeMaxDepth)) //top changed
+			if (ImGui::TreeNodeEx("Settings", ImGuiTreeNodeFlags_DefaultOpen))
 			{
-				GuiRenderSettings::bspTreeBottomDepth = std::max(GuiRenderSettings::bspTreeBottomDepth, GuiRenderSettings::bspTreeTopDepth);
-				GenerateRenderBspData(m_bsp);
-			}
-			if (ImGui::SliderInt("BSP Rect Tree bottom depth", &GuiRenderSettings::bspTreeBottomDepth, 0, GuiRenderSettings::bspTreeMaxDepth)) //bottom changed
-			{
-				GuiRenderSettings::bspTreeTopDepth = std::min(GuiRenderSettings::bspTreeTopDepth, GuiRenderSettings::bspTreeBottomDepth);
-				GenerateRenderBspData(m_bsp);
-			}
-
-			auto textUI = [](const std::string& label, float& renderSetting, float minThres = -std::numeric_limits<float>::max(), float maxThres = std::numeric_limits<float>::max())
+				ImGui::Combo("Shader", &GuiRenderSettings::renderType, GuiRenderSettings::renderTypeLabels.data(), static_cast<int>(GuiRenderSettings::renderTypeLabels.size()));
+				ImGui::Text("Flags:");
+				if (ImGui::BeginTable("Renderer Flags", 2, ImGuiTableFlags_SizingStretchSame))
 				{
-					if (ImGui::InputFloat(label.c_str(), &renderSetting)) { renderSetting = Clamp(renderSetting, minThres, maxThres); }
-				};
+					auto checkboxPair = [](const char* leftLabel, bool* leftValue, const char* rightLabel, bool* rightValue)
+						{
+							ImGui::TableNextRow();
+							ImGui::TableSetColumnIndex(0);
+							ImGui::Checkbox(leftLabel, leftValue);
+							ImGui::TableSetColumnIndex(1);
+							ImGui::Checkbox(rightLabel, rightValue);
+						};
 
-			textUI("Camera Move Multiplier", GuiRenderSettings::camMoveMult, 0.01f);
-			textUI("Camera Rotate Multiplier", GuiRenderSettings::camRotateMult, 0.01f);
-			textUI("Camera Zoom Multiplier", GuiRenderSettings::camZoomMult, 0.01f);
-			textUI("Camera Sprint Multiplier", GuiRenderSettings::camSprintMult, 0.01f);
-			textUI("Camera FOV", GuiRenderSettings::camFovDeg, 5.0f, 150.0f);
-			ImGui::PopItemWidth();
+					checkboxPair("Show Low LOD", &GuiRenderSettings::showLowLOD, "Show Wireframe", &GuiRenderSettings::showWireframe);
+					checkboxPair("Show Backfaces", &GuiRenderSettings::showBackfaces, "Show Level Verts", &GuiRenderSettings::showLevVerts);
+					checkboxPair("Show Checkpoints", &GuiRenderSettings::showCheckpoints, "Show Starting Positions", &GuiRenderSettings::showStartpoints);
+					checkboxPair("Show BSP Rect Tree", &GuiRenderSettings::showBspRectTree, "Show Vis Tree", &GuiRenderSettings::showVisTree);
 
+					ImGui::EndTable();
+				}
+
+				ImGui::Text("BSP Depth:");
+				if (ImGui::BeginTable("BSP Depth", 2, ImGuiTableFlags_SizingStretchSame))
+				{
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					if (ImGui::SliderInt("Top", &GuiRenderSettings::bspTreeTopDepth, 0, GuiRenderSettings::bspTreeMaxDepth)) //top changed
+					{
+						GuiRenderSettings::bspTreeBottomDepth = std::max(GuiRenderSettings::bspTreeBottomDepth, GuiRenderSettings::bspTreeTopDepth);
+						GenerateRenderBspData(m_bsp);
+					}
+					ImGui::TableSetColumnIndex(1);
+					if (ImGui::SliderInt("Bottom", &GuiRenderSettings::bspTreeBottomDepth, 0, GuiRenderSettings::bspTreeMaxDepth)) //bottom changed
+					{
+						GuiRenderSettings::bspTreeTopDepth = std::min(GuiRenderSettings::bspTreeTopDepth, GuiRenderSettings::bspTreeBottomDepth);
+						GenerateRenderBspData(m_bsp);
+					}
+					ImGui::EndTable();
+				}
+
+				if (ImGui::BeginTable("Renderer Inputs", 2, ImGuiTableFlags_SizingStretchSame))
+				{
+					auto inputPair = [](const char* leftLabel, float& leftValue, float leftMin, float leftMax,
+						const char* rightLabel, float& rightValue, float rightMin, float rightMax)
+						{
+							ImGui::TableNextRow();
+							ImGui::TableSetColumnIndex(0);
+							if (leftLabel) { if (ImGui::InputFloat(leftLabel, &leftValue)) { leftValue = Clamp(leftValue, leftMin, leftMax); } }
+							else { ImGui::Dummy(ImVec2(0.0f, 0.0f)); }
+							ImGui::TableSetColumnIndex(1);
+							if (rightLabel) { if (ImGui::InputFloat(rightLabel, &rightValue)) { rightValue = Clamp(rightValue, rightMin, rightMax); } }
+							else { ImGui::Dummy(ImVec2(0.0f, 0.0f)); }
+						};
+
+					inputPair("Move Mult", GuiRenderSettings::camMoveMult, 0.0f, std::numeric_limits<float>::max(),
+										"Rotate Mult", GuiRenderSettings::camRotateMult, 0.0f, std::numeric_limits<float>::max());
+					inputPair("Zoom Mult", GuiRenderSettings::camZoomMult, 0.0f, std::numeric_limits<float>::max(),
+										"Sprint Mult", GuiRenderSettings::camSprintMult, 0.0f, std::numeric_limits<float>::max());
+					float dummy;
+					inputPair("FOV", GuiRenderSettings::camFovDeg, 5.0f, 150.0f, nullptr, dummy, 0.0f, 0.0f);
+					ImGui::EndTable();
+				}
+				ImGui::TreePop();
+			}
+
+			ImGui::Text(
+				"Camera Controls:\n"
+				"\t* Right mouse button: drag to orbit\n"
+				"\t* Mouse wheel to zoom\n"
+				"\t* WASD to move on camera plane\n"
+				"\t* Q/E to move up/down\n"
+				"\t* Shift to sprint");
+
+			static size_t prevSelectedQuadblock = REND_NO_SELECTED_QUADBLOCK;
 			if (m_rendererSelectedQuadblockIndex != REND_NO_SELECTED_QUADBLOCK)
 			{
 				Quadblock& quadblock = m_quadblocks[m_rendererSelectedQuadblockIndex];
 				bool resetBsp = false;
+				if (prevSelectedQuadblock != m_rendererSelectedQuadblockIndex)
+				{
+					prevSelectedQuadblock = m_rendererSelectedQuadblockIndex;
+					ImGui::SetNextItemOpen(true);
+				}
 				if (quadblock.RenderUI(m_checkpoints.size() - 1, resetBsp))
 				{
 					ManageTurbopad(quadblock);
