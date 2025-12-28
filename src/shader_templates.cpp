@@ -165,11 +165,13 @@ void main()
   {
 		vec4 vertColor = vec4(VertColor.rgb, 1.0);
     vec4 texColor = texture(tex, vec3(TexCoord, TexIndex));
+    if (texColor.a <= 0.001) { discard; }
     FragColor = texColor * (vertColor * 2.0);
   }
   else if (drawType == 1) //1 == "Texture"
   {
     vec4 texColor = texture(tex, vec3(TexCoord, TexIndex));
+    if (texColor.a <= 0.001) { discard; }
     FragColor = texColor;
   }
   else if (drawType == 2) //2 == "Vertex Color"

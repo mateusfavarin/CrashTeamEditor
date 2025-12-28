@@ -53,6 +53,8 @@ void Renderer::Render(const std::vector<Model>& models)
 
   //clear screen with dark blue
   glEnable(GL_DEPTH_TEST);
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
   glViewport(0, 0, m_width, m_height);
   glClearColor(0.0f, 0.05f, 0.1f, 1.0f);
