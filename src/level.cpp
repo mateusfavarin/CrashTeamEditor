@@ -1774,11 +1774,6 @@ void Level::GeomUVs(const std::array<QuadUV, NUM_FACES_QUADBLOCK + 1>& uvs, int 
 	data.push_back(std::bit_cast<float>(textureIndex)); //todo, do this in geometry shader since ID is the same for all 3 verts for this tri
 }
 
-void Level::GeomUVs(const Quadblock& qb, int quadInd, int vertInd, std::vector<float>& data, int textureIndex)
-{
-	GeomUVs(qb.GetUVs(), quadInd, vertInd, data, textureIndex);
-}
-
 void Level::GeomOctopoint(const Vertex* verts, int ind, std::vector<float>& data)
 {
 	constexpr float radius = 0.5f;

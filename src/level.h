@@ -66,7 +66,6 @@ private:
 	void GeomOctopoint(const Vertex* verts, int ind, std::vector<float>& data);
 	void GeomBoundingRect(const BSP* b, int depth, std::vector<float>& data);
 	void GeomUVs(const std::array<QuadUV, NUM_FACES_QUADBLOCK + 1>& uvs, int quadInd, int vertInd, std::vector<float>& data, int textureIndex);
-	void GeomUVs(const Quadblock& qb, int quadInd, int vertInd, std::vector<float>& data, int textureIndex);
 	void ViewportClickHandleBlockSelection(int pixelX, int pixelY, const Renderer& rend);
 
 	friend class UI;
