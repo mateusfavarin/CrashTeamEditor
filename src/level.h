@@ -56,7 +56,8 @@ private:
 	bool GenerateBSP();
 
 	int GetTextureIndex(const std::filesystem::path& texPath);
-	void GenerateRenderLevData(bool updateVertexMeshes = true);
+	void GenerateRenderLevData();
+	void UpdateAnimationRenderData();
 	void GenerateRenderBspData(const BSP& bsp);
 	void GenerateRenderCheckpointData(std::vector<Checkpoint>&);
 	void GenerateRenderStartpointData(std::array<Spawn, NUM_DRIVERS>&);

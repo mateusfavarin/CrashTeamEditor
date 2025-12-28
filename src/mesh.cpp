@@ -1,9 +1,43 @@
 #include <map>
+#include <bit>
 
 #include "mesh.h"
+#include "vertex.h"
 #include "stb_image.h"
 #define STB_IMAGE_RESIZE_IMPLEMENTATION
 #include "stb_image_resize2.h"
+
+static int GetStrideFloats(unsigned includedDataFlags)
+{
+	int stride = 0;
+	if ((includedDataFlags & Mesh::VBufDataType::VertexPos) != 0) { stride += 3; }
+	if ((includedDataFlags & Mesh::VBufDataType::Barycentric) != 0) { stride += 3; }
+	if ((includedDataFlags & Mesh::VBufDataType::VertexColor) != 0) { stride += 3; }
+	if ((includedDataFlags & Mesh::VBufDataType::Normals) != 0) { stride += 3; }
+	if ((includedDataFlags & Mesh::VBufDataType::STUV) != 0) { stride += 2; }
+	if ((includedDataFlags & Mesh::VBufDataType::TexIndex) != 0) { stride += 1; }
+	return stride;
+}
+
+static int GetAttributeOffsetFloats(unsigned includedDataFlags, unsigned targetFlag)
+{
+	int offset = 0;
+	auto step = [&](unsigned flag, int size) -> bool
+		{
+			if ((includedDataFlags & flag) == 0) { return false; }
+			if (targetFlag == flag) { return true; }
+			offset += size;
+			return false;
+		};
+
+	if (step(Mesh::VBufDataType::VertexPos, 3)) { return offset; }
+	if (step(Mesh::VBufDataType::Barycentric, 3)) { return offset; }
+	if (step(Mesh::VBufDataType::VertexColor, 3)) { return offset; }
+	if (step(Mesh::VBufDataType::Normals, 3)) { return offset; }
+	if (step(Mesh::VBufDataType::STUV, 2)) { return offset; }
+	if (step(Mesh::VBufDataType::TexIndex, 1)) { return offset; }
+	return -1;
+}
 
 void Mesh::Bind() const
 {
@@ -224,6 +258,92 @@ void Mesh::UpdateMesh(const std::vector<float>& data, unsigned includedDataFlags
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
+}
+
+void Mesh::UpdatePoint(const Vertex& vert, size_t vertexIndex)
+{
+	if (m_VBO == 0) { return; }
+	if ((m_includedData & VBufDataType::VertexPos) == 0) { return; }
+	if ((m_includedData & VBufDataType::VertexColor) == 0) { return; }
+	if ((m_includedData & VBufDataType::Normals) == 0) { return; }
+
+	const int stride = GetStrideFloats(m_includedData);
+	const int posOffset = GetAttributeOffsetFloats(m_includedData, VBufDataType::VertexPos);
+	const int colorOffset = GetAttributeOffsetFloats(m_includedData, VBufDataType::VertexColor);
+	const int normalOffset = GetAttributeOffsetFloats(m_includedData, VBufDataType::Normals);
+	if (stride <= 0 || posOffset < 0 || colorOffset < 0 || normalOffset < 0) { return; }
+
+	const float posData[3] = { vert.m_pos.x, vert.m_pos.y, vert.m_pos.z };
+	Color col = vert.GetColor(true);
+	const float colorData[3] = { col.Red(), col.Green(), col.Blue() };
+	const float normalData[3] = { vert.m_normal.x, vert.m_normal.y, vert.m_normal.z };
+
+	glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
+	glBufferSubData(GL_ARRAY_BUFFER, static_cast<GLintptr>((vertexIndex * stride + posOffset) * sizeof(float)), sizeof(posData), posData);
+	glBufferSubData(GL_ARRAY_BUFFER, static_cast<GLintptr>((vertexIndex * stride + colorOffset) * sizeof(float)), sizeof(colorData), colorData);
+	glBufferSubData(GL_ARRAY_BUFFER, static_cast<GLintptr>((vertexIndex * stride + normalOffset) * sizeof(float)), sizeof(normalData), normalData);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
+void Mesh::UpdateOctoPoint(const Vertex& vert, size_t baseVertexIndex)
+{
+	constexpr float radius = 0.5f;
+	constexpr float sqrtThree = 1.44224957031f;
+
+	Vertex v = Vertex(vert);
+	size_t vertexIndex = baseVertexIndex;
+
+	v.m_pos.x += radius; v.m_normal = Vec3(1.f / sqrtThree, 1.f / sqrtThree, 1.f / sqrtThree); UpdatePoint(v, vertexIndex++); v.m_pos.x -= radius;
+	v.m_pos.y += radius; UpdatePoint(v, vertexIndex++); v.m_pos.y -= radius;
+	v.m_pos.z += radius; UpdatePoint(v, vertexIndex++); v.m_pos.z -= radius;
+
+	v.m_pos.x -= radius; v.m_normal = Vec3(-1.f / sqrtThree, 1.f / sqrtThree, 1.f / sqrtThree); UpdatePoint(v, vertexIndex++); v.m_pos.x += radius;
+	v.m_pos.y += radius; UpdatePoint(v, vertexIndex++); v.m_pos.y -= radius;
+	v.m_pos.z += radius; UpdatePoint(v, vertexIndex++); v.m_pos.z -= radius;
+
+	v.m_pos.x += radius; v.m_normal = Vec3(1.f / sqrtThree, -1.f / sqrtThree, 1.f / sqrtThree); UpdatePoint(v, vertexIndex++); v.m_pos.x -= radius;
+	v.m_pos.y -= radius; UpdatePoint(v, vertexIndex++); v.m_pos.y += radius;
+	v.m_pos.z += radius; UpdatePoint(v, vertexIndex++); v.m_pos.z -= radius;
+
+	v.m_pos.x += radius; v.m_normal = Vec3(1.f / sqrtThree, 1.f / sqrtThree, -1.f / sqrtThree); UpdatePoint(v, vertexIndex++); v.m_pos.x -= radius;
+	v.m_pos.y += radius; UpdatePoint(v, vertexIndex++); v.m_pos.y -= radius;
+	v.m_pos.z -= radius; UpdatePoint(v, vertexIndex++); v.m_pos.z += radius;
+
+	v.m_pos.x -= radius; v.m_normal = Vec3(-1.f / sqrtThree, -1.f / sqrtThree, 1.f / sqrtThree); UpdatePoint(v, vertexIndex++); v.m_pos.x += radius;
+	v.m_pos.y -= radius; UpdatePoint(v, vertexIndex++); v.m_pos.y += radius;
+	v.m_pos.z += radius; UpdatePoint(v, vertexIndex++); v.m_pos.z -= radius;
+
+	v.m_pos.x += radius; v.m_normal = Vec3(1.f / sqrtThree, -1.f / sqrtThree, -1.f / sqrtThree); UpdatePoint(v, vertexIndex++); v.m_pos.x -= radius;
+	v.m_pos.y -= radius; UpdatePoint(v, vertexIndex++); v.m_pos.y += radius;
+	v.m_pos.z -= radius; UpdatePoint(v, vertexIndex++); v.m_pos.z += radius;
+
+	v.m_pos.x -= radius; v.m_normal = Vec3(-1.f / sqrtThree, 1.f / sqrtThree, -1.f / sqrtThree); UpdatePoint(v, vertexIndex++); v.m_pos.x += radius;
+	v.m_pos.y += radius; UpdatePoint(v, vertexIndex++); v.m_pos.y -= radius;
+	v.m_pos.z -= radius; UpdatePoint(v, vertexIndex++); v.m_pos.z += radius;
+
+	v.m_pos.x -= radius; v.m_normal = Vec3(-1.f / sqrtThree, -1.f / sqrtThree, -1.f / sqrtThree); UpdatePoint(v, vertexIndex++); v.m_pos.x += radius;
+	v.m_pos.y -= radius; UpdatePoint(v, vertexIndex++); v.m_pos.y += radius;
+	v.m_pos.z -= radius; UpdatePoint(v, vertexIndex++); v.m_pos.z += radius;
+}
+
+void Mesh::UpdateUV(const Vec2& uv, int textureIndex, size_t vertexIndex)
+{
+	if (m_VBO == 0) { return; }
+	if ((m_includedData & VBufDataType::STUV) == 0) { return; }
+	if ((m_includedData & VBufDataType::TexIndex) == 0) { return; }
+
+	const int stride = GetStrideFloats(m_includedData);
+	const int uvOffset = GetAttributeOffsetFloats(m_includedData, VBufDataType::STUV);
+	const int texOffset = GetAttributeOffsetFloats(m_includedData, VBufDataType::TexIndex);
+	if (stride <= 0 || uvOffset < 0 || texOffset < 0) { return; }
+
+	const float uvData[2] = { uv.x, uv.y };
+	const float texIndexData = std::bit_cast<float>(textureIndex);
+
+	glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
+	glBufferSubData(GL_ARRAY_BUFFER, static_cast<GLintptr>((vertexIndex * stride + uvOffset) * sizeof(float)), sizeof(uvData), uvData);
+	glBufferSubData(GL_ARRAY_BUFFER, static_cast<GLintptr>((vertexIndex * stride + texOffset) * sizeof(float)), sizeof(texIndexData), &texIndexData);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 int Mesh::GetDatas() const

@@ -9,6 +9,9 @@
 #include <unordered_map>
 #include <vector>
 
+class Vertex;
+struct Vec2;
+
 class Mesh
 {
 public:
@@ -36,6 +39,9 @@ public:
 public:
 	Mesh() {};
 	void UpdateMesh(const std::vector<float>& data, unsigned includedDataFlags, unsigned shadSettings, bool dataIsInterlaced = true);
+	void UpdatePoint(const Vertex& vert, size_t vertexIndex);
+	void UpdateOctoPoint(const Vertex& vert, size_t baseVertexIndex);
+	void UpdateUV(const Vec2& uv, int textureIndex, size_t vertexIndex);
 	int GetDatas() const;
 	int GetShaderSettings() const;
 	void SetShaderSettings(unsigned shadSettings);

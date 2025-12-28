@@ -1885,7 +1885,7 @@ int Level::GetTextureIndex(const std::filesystem::path& texPath)
 	return texIndex;
 }
 
-void Level::GenerateRenderLevData(bool updateVertexMeshes)
+void Level::GenerateRenderLevData()
 {
 	/* 062 is triblock
 		p0 -- p1 -- p2
@@ -1895,6 +1895,10 @@ void Level::GenerateRenderLevData(bool updateVertexMeshes)
 		p6 -- p7 -- p8
 	*/
 	std::vector<float> highLODData, lowLODData, vertexHighLODData, vertexLowLODData;
+	size_t highLodVertexCount = 0;
+	size_t lowLodVertexCount = 0;
+	size_t vertexHighLodVertexCount = 0;
+	size_t vertexLowLodVertexCount = 0;
 
 	struct AnimRenderData
 	{
@@ -1928,37 +1932,38 @@ void Level::GenerateRenderLevData(bool updateVertexMeshes)
 		for (size_t qbIndexIndex = 0; qbIndexIndex < quadblockIndexes.size(); qbIndexIndex++)
 		{
 			size_t qbIndex = quadblockIndexes[qbIndexIndex];
-			const Quadblock& qb = m_quadblocks[qbIndex];
+			Quadblock& qb = m_quadblocks[qbIndex];
 			const Vertex* verts = qb.GetUnswizzledVertices();
 			const AnimRenderData* animData = hasAnimRenderData[qbIndex] ? &animRenderData[qbIndex] : nullptr;
 			const std::array<QuadUV, NUM_FACES_QUADBLOCK + 1>& uvs = animData ? animData->frame->uvs : qb.GetUVs();
 			const int texIndex = animData ? animData->textureIndex : baseTexIndex;
+			const size_t highLodBaseIndex = highLodVertexCount;
+			const size_t lowLodBaseIndex = lowLodVertexCount;
+			const size_t vertexHighLodBaseIndex = vertexHighLodVertexCount;
+			const size_t vertexLowLodBaseIndex = vertexLowLodVertexCount;
+			qb.SetRenderIndices(highLodBaseIndex, lowLodBaseIndex, highLodBaseIndex, lowLodBaseIndex, vertexHighLodBaseIndex, vertexLowLodBaseIndex);
 
 			//clockwise point ordering
 			if (qb.IsQuadblock())
 			{
+				constexpr size_t HIGH_LOD_VERT_COUNT = 9;
+				const std::array<int, HIGH_LOD_VERT_COUNT> highLODIndexes = {0, 1, 2, 3, 4, 5, 6, 7, 8};
+				for (int index : highLODIndexes)
+				{
+					GeomOctopoint(verts, index, vertexHighLODData);
+					vertexHighLodVertexCount += 24;
+				}
+
+				constexpr size_t LOW_LOD_VERT_COUNT = 4;
+				const std::array<int, LOW_LOD_VERT_COUNT> lowLODIndexes = {0, 2, 6, 8};
+				for (int index : lowLODIndexes)
+				{
+					GeomOctopoint(verts, index, vertexLowLODData);
+					vertexLowLodVertexCount += 24;
+				}
+
 				for (int triIndex = 0; triIndex < 8; triIndex++)
 				{
-					if (updateVertexMeshes)
-					{
-						constexpr size_t HIGH_LOD_VERT_COUNT = 9;
-						const std::array<int, HIGH_LOD_VERT_COUNT> highLODIndexes = {0, 1, 2, 3, 4, 5, 6, 7, 8};
-						for (int index : highLODIndexes)
-						{
-							GeomOctopoint(verts, index, vertexHighLODData);
-						}
-					}
-
-					if (updateVertexMeshes)
-					{
-						constexpr size_t LOW_LOD_VERT_COUNT = 4;
-						const std::array<int, LOW_LOD_VERT_COUNT> lowLODIndexes = {0, 2, 6, 8};
-						for (int index : lowLODIndexes)
-						{
-							GeomOctopoint(verts, index, vertexLowLODData);
-						}
-					}
-
 					int firstPointIndex = FaceIndexConstants::quadHLODVertArrangements[triIndex][0];
 					GeomPoint(verts, firstPointIndex, highLODData);
 					GeomUVs(uvs, triIndex / 2, firstPointIndex, highLODData, texIndex); //triIndex / 2 (integer division) because 2 tris per quad
@@ -1970,6 +1975,8 @@ void Level::GenerateRenderLevData(bool updateVertexMeshes)
 					int thirdPointIndex = FaceIndexConstants::quadHLODVertArrangements[triIndex][2];
 					GeomPoint(verts, thirdPointIndex, highLODData);
 					GeomUVs(uvs, triIndex / 2, thirdPointIndex, highLODData, texIndex);
+
+					highLodVertexCount += 3;
 				}
 
 				for (int triIndex = 0; triIndex < 2; triIndex++)
@@ -1985,28 +1992,26 @@ void Level::GenerateRenderLevData(bool updateVertexMeshes)
 					int thirdPointIndex = FaceIndexConstants::quadLLODVertArrangements[triIndex][2];
 					GeomPoint(verts, thirdPointIndex, lowLODData);
 					GeomUVs(uvs, 4, thirdPointIndex, lowLODData, texIndex);
+
+					lowLodVertexCount += 3;
 				}
 			}
 			else
 			{
-				if (updateVertexMeshes)
+				constexpr size_t HIGH_LOD_VERT_COUNT = 6;
+				const std::array<int, HIGH_LOD_VERT_COUNT> highLODIndexes = {0, 1, 2, 3, 4, 6};
+				for (int index : highLODIndexes)
 				{
-					constexpr size_t HIGH_LOD_VERT_COUNT = 9;
-					const std::array<int, HIGH_LOD_VERT_COUNT> highLODIndexes = {0, 1, 2, 3, 4, 5, 6, 7, 8};
-					for (int index : highLODIndexes)
-					{
-						GeomOctopoint(verts, index, vertexHighLODData);
-					}
+					GeomOctopoint(verts, index, vertexHighLODData);
+					vertexHighLodVertexCount += 24;
 				}
 
-				if (updateVertexMeshes)
+				constexpr size_t LOW_LOD_VERT_COUNT = 3;
+				const std::array<int, LOW_LOD_VERT_COUNT> lowLODIndexes = {0, 2, 6};
+				for (int index : lowLODIndexes)
 				{
-					constexpr size_t LOW_LOD_VERT_COUNT = 4;
-					const std::array<int, LOW_LOD_VERT_COUNT> lowLODIndexes = {0, 2, 6, 8};
-					for (int index : lowLODIndexes)
-					{
-						GeomOctopoint(verts, index, vertexLowLODData);
-					}
+					GeomOctopoint(verts, index, vertexLowLODData);
+					vertexLowLodVertexCount += 24;
 				}
 
 				for (int triIndex = 0; triIndex < 4; triIndex++)
@@ -2037,6 +2042,8 @@ void Level::GenerateRenderLevData(bool updateVertexMeshes)
 					int thirdPointIndex = FaceIndexConstants::triHLODVertArrangements[triIndex][2];
 					GeomPoint(verts, thirdPointIndex, highLODData);
 					GeomUVs(uvs, quadBlockIndex, thirdPointIndex, highLODData, texIndex);
+
+					highLodVertexCount += 3;
 				}
 
 				for (int triIndex = 0; triIndex < 1; triIndex++)
@@ -2052,6 +2059,8 @@ void Level::GenerateRenderLevData(bool updateVertexMeshes)
 					int thirdPointIndex = FaceIndexConstants::triLLODVertArrangements[triIndex][2];
 					GeomPoint(verts, thirdPointIndex, lowLODData);
 					GeomUVs(uvs, 4, thirdPointIndex, lowLODData, texIndex);
+
+					lowLodVertexCount += 3;
 				}
 			}
 		}
@@ -2060,10 +2069,115 @@ void Level::GenerateRenderLevData(bool updateVertexMeshes)
 	m_highLODMesh.UpdateMesh(highLODData, (Mesh::VBufDataType::VertexColor | Mesh::VBufDataType::Normals | Mesh::VBufDataType::STUV | Mesh::VBufDataType::TexIndex), Mesh::ShaderSettings::None);
 	m_lowLODMesh.UpdateMesh(lowLODData, (Mesh::VBufDataType::VertexColor | Mesh::VBufDataType::Normals | Mesh::VBufDataType::STUV | Mesh::VBufDataType::TexIndex), Mesh::ShaderSettings::None);
 
-	if (updateVertexMeshes)
+	m_vertexHighLODMesh.UpdateMesh(vertexHighLODData, (Mesh::VBufDataType::VertexColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
+	m_vertexLowLODMesh.UpdateMesh(vertexLowLODData, (Mesh::VBufDataType::VertexColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
+}
+
+void Level::UpdateAnimationRenderData()
+{
+	constexpr int NUM_VERTICES_QUAD = 4;
+	constexpr int uvVertInd[NUM_FACES_QUADBLOCK + 1][NUM_VERTICES_QUAD] =
 	{
-		m_vertexHighLODMesh.UpdateMesh(vertexHighLODData, (Mesh::VBufDataType::VertexColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
-		m_vertexLowLODMesh.UpdateMesh(vertexLowLODData, (Mesh::VBufDataType::VertexColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
+		{0, 1, 3, 4},
+		{1, 2, 4, 5},
+		{3, 4, 6, 7},
+		{4, 5, 7, 8},
+		{0, 2, 6, 8},
+	};
+
+	auto GetUVForVertex = [&](const std::array<QuadUV, NUM_FACES_QUADBLOCK + 1>& uvs, int quadInd, int vertInd) -> Vec2
+		{
+			const QuadUV& quv = uvs[quadInd];
+			int vertIndInUvs = 0;
+			for (int i = 0; i < NUM_VERTICES_QUAD; i++)
+			{
+				if (vertInd == uvVertInd[quadInd][i]) { vertIndInUvs = i; break; }
+			}
+			return quv[vertIndInUvs];
+		};
+
+	for (const AnimTexture& animTex : m_animTextures)
+	{
+		if (!animTex.IsPopulated()) { continue; }
+		const std::vector<Texture>& textures = animTex.GetTextures();
+		const AnimTextureFrame& frame = animTex.GetRenderFrame();
+		int texIndex = GetTextureIndex(textures[frame.textureIndex].GetPath());
+		for (size_t qbIndex : animTex.GetQuadblockIndexes())
+		{
+			Quadblock& qb = m_quadblocks[qbIndex];
+			const std::array<QuadUV, NUM_FACES_QUADBLOCK + 1>& uvs = frame.uvs;
+			const size_t highLodBaseIndex = qb.GetRenderHighLodUVIndex();
+			const size_t lowLodBaseIndex = qb.GetRenderLowLodUVIndex();
+			if (highLodBaseIndex == RENDER_INDEX_NONE || lowLodBaseIndex == RENDER_INDEX_NONE) { continue; }
+
+			if (qb.IsQuadblock())
+			{
+				for (int triIndex = 0; triIndex < 8; triIndex++)
+				{
+					int firstPointIndex = FaceIndexConstants::quadHLODVertArrangements[triIndex][0];
+					m_highLODMesh.UpdateUV(GetUVForVertex(uvs, triIndex / 2, firstPointIndex), texIndex, highLodBaseIndex + triIndex * 3);
+
+					int secondPointIndex = FaceIndexConstants::quadHLODVertArrangements[triIndex][1];
+					m_highLODMesh.UpdateUV(GetUVForVertex(uvs, triIndex / 2, secondPointIndex), texIndex, highLodBaseIndex + triIndex * 3 + 1);
+
+					int thirdPointIndex = FaceIndexConstants::quadHLODVertArrangements[triIndex][2];
+					m_highLODMesh.UpdateUV(GetUVForVertex(uvs, triIndex / 2, thirdPointIndex), texIndex, highLodBaseIndex + triIndex * 3 + 2);
+				}
+
+				for (int triIndex = 0; triIndex < 2; triIndex++)
+				{
+					int firstPointIndex = FaceIndexConstants::quadLLODVertArrangements[triIndex][0];
+					m_lowLODMesh.UpdateUV(GetUVForVertex(uvs, 4, firstPointIndex), texIndex, lowLodBaseIndex + triIndex * 3);
+
+					int secondPointIndex = FaceIndexConstants::quadLLODVertArrangements[triIndex][1];
+					m_lowLODMesh.UpdateUV(GetUVForVertex(uvs, 4, secondPointIndex), texIndex, lowLodBaseIndex + triIndex * 3 + 1);
+
+					int thirdPointIndex = FaceIndexConstants::quadLLODVertArrangements[triIndex][2];
+					m_lowLODMesh.UpdateUV(GetUVForVertex(uvs, 4, thirdPointIndex), texIndex, lowLodBaseIndex + triIndex * 3 + 2);
+				}
+			}
+			else
+			{
+				for (int triIndex = 0; triIndex < 4; triIndex++)
+				{
+					int quadBlockIndex = 0;
+					switch (triIndex)
+					{
+					case 0:
+					case 1:
+						quadBlockIndex = 0;
+						break;
+					case 2:
+						quadBlockIndex = 1;
+						break;
+					case 3:
+						quadBlockIndex = 2;
+						break;
+					}
+
+					int firstPointIndex = FaceIndexConstants::triHLODVertArrangements[triIndex][0];
+					m_highLODMesh.UpdateUV(GetUVForVertex(uvs, quadBlockIndex, firstPointIndex), texIndex, highLodBaseIndex + triIndex * 3);
+
+					int secondPointIndex = FaceIndexConstants::triHLODVertArrangements[triIndex][1];
+					m_highLODMesh.UpdateUV(GetUVForVertex(uvs, quadBlockIndex, secondPointIndex), texIndex, highLodBaseIndex + triIndex * 3 + 1);
+
+					int thirdPointIndex = FaceIndexConstants::triHLODVertArrangements[triIndex][2];
+					m_highLODMesh.UpdateUV(GetUVForVertex(uvs, quadBlockIndex, thirdPointIndex), texIndex, highLodBaseIndex + triIndex * 3 + 2);
+				}
+
+				for (int triIndex = 0; triIndex < 1; triIndex++)
+				{
+					int firstPointIndex = FaceIndexConstants::triLLODVertArrangements[triIndex][0];
+					m_lowLODMesh.UpdateUV(GetUVForVertex(uvs, 4, firstPointIndex), texIndex, lowLodBaseIndex + triIndex * 3);
+
+					int secondPointIndex = FaceIndexConstants::triLLODVertArrangements[triIndex][1];
+					m_lowLODMesh.UpdateUV(GetUVForVertex(uvs, 4, secondPointIndex), texIndex, lowLodBaseIndex + triIndex * 3 + 1);
+
+					int thirdPointIndex = FaceIndexConstants::triLLODVertArrangements[triIndex][2];
+					m_lowLODMesh.UpdateUV(GetUVForVertex(uvs, 4, thirdPointIndex), texIndex, lowLodBaseIndex + triIndex * 3 + 2);
+				}
+			}
+		}
 	}
 }
 
