@@ -520,10 +520,7 @@ void Level::RenderUI()
 
 					if (m_materialToTexture.contains(material))
 					{
-						m_materialToTexture[material].RenderUI(quadblockIndexes, m_quadblocks, [&]() {
-							this->RefreshTextureStores();
-							this->GenerateRenderLevData();
-							});
+						m_materialToTexture[material].RenderUI(quadblockIndexes, m_quadblocks, [&]() { this->GenerateRenderLevData(false); });
 					}
 
 					ImGui::TreePop();

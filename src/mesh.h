@@ -38,7 +38,7 @@ public:
 	int GetDatas() const;
 	int GetShaderSettings() const;
 	void SetShaderSettings(unsigned shadSettings);
-	void SetTextureStore(const std::map<int, std::filesystem::path>& texturePaths);
+	void SetTextureStore(const std::unordered_map<int, std::filesystem::path>& texturePaths);
 	GLuint GetTextureStore() const;
 
 private:
@@ -52,6 +52,7 @@ private:
 	GLuint m_VBO = 0;
 	GLuint m_textures = 0;
 	int m_dataBufSize = 0;
+	int m_vertexCount = 0;
 	unsigned m_includedData = 0;
 	unsigned m_shaderSettings = 0;
 

@@ -67,6 +67,7 @@ void Level::Clear(bool clearErrors)
 	m_oxideGhost.clear();
 	m_animTextures.clear();
 	m_rendererSelectedQuadblockIndex = REND_NO_SELECTED_QUADBLOCK;
+	m_textureStorePaths.clear();
 	m_genVisTree = false;
 	m_bspVis.Clear();
 	m_maxLeafAxisLength = 64.0f;
@@ -1711,38 +1712,21 @@ bool Level::UpdateVRM()
 	return true;
 }
 
-void Level::RefreshTextureStores()
+bool Level::UpdateAnimTextures(float deltaTime)
 {
-	int texturePathsIdCounter = 0;
-	std::map<int, std::filesystem::path> texturePaths;
-
-	for (size_t matIndex = 0; matIndex < m_materialToQuadblocks.size(); matIndex++)
+	bool changed = false;
+	if (m_animTextures.size() != m_lastAnimTextureCount)
 	{
-		auto begin = m_materialToQuadblocks.begin();
-		std::advance(begin, matIndex);
-		const std::string& mat = begin->first;
-		const std::vector<size_t>& quadblockIndeces = begin->second;
-		for (size_t qbIndexIndex = 0; qbIndexIndex < quadblockIndeces.size(); qbIndexIndex++)
-		{
-			const auto& texPath = m_materialToTexture[mat].GetPath();
-			int texIndex;
-
-			auto findResult = std::find_if(texturePaths.begin(), texturePaths.end(), [&texPath](const auto& pair) { return pair.second == texPath; });
-			if (findResult != texturePaths.end())
-			{ //this path already exists in the map
-				texIndex = findResult->first;
-			}
-			else
-			{
-				texIndex = texturePathsIdCounter;
-				texturePaths[texIndex] = texPath;
-				texturePathsIdCounter++;
-			}
-		}
+		m_lastAnimTextureCount = m_animTextures.size();
+		changed = true;
 	}
 
-	m_highLODMesh.SetTextureStore(texturePaths);
-	m_lowLODMesh.SetTextureStore(texturePaths);
+	for (AnimTexture& animTex : m_animTextures)
+	{
+		if (animTex.AdvanceRender(deltaTime)) { changed = true; }
+	}
+
+	return changed;
 }
 
 void Level::GeomPoint(const Vertex* verts, int ind, std::vector<float>& data)
@@ -1760,9 +1744,8 @@ void Level::GeomPoint(const Vertex* verts, int ind, std::vector<float>& data)
 	data.push_back(verts[ind].m_normal.z);
 }
 
-void Level::GeomUVs(const Quadblock& qb, int quadInd, int vertInd, std::vector<float>& data, int textureIndex)
+void Level::GeomUVs(const std::array<QuadUV, NUM_FACES_QUADBLOCK + 1>& uvs, int quadInd, int vertInd, std::vector<float>& data, int textureIndex)
 {
-
 	/* 062 is triblock
 	p0 -- p1 -- p2
 	|  q0 |  q1 |
@@ -1770,7 +1753,6 @@ void Level::GeomUVs(const Quadblock& qb, int quadInd, int vertInd, std::vector<f
 	|  q2 |  q3 |
 	p6 -- p7 -- p8
 	*/
-	const std::array<QuadUV, NUM_FACES_QUADBLOCK + 1>& uvs = qb.GetUVs();
 	const QuadUV& quv = uvs[quadInd];
 	constexpr int NUM_VERTICES_QUAD = 4;
 	constexpr int uvVertInd[NUM_FACES_QUADBLOCK + 1][NUM_VERTICES_QUAD] =
@@ -1791,6 +1773,11 @@ void Level::GeomUVs(const Quadblock& qb, int quadInd, int vertInd, std::vector<f
 	data.push_back(uv.x);
 	data.push_back(uv.y);
 	data.push_back(std::bit_cast<float>(textureIndex)); //todo, do this in geometry shader since ID is the same for all 3 verts for this tri
+}
+
+void Level::GeomUVs(const Quadblock& qb, int quadInd, int vertInd, std::vector<float>& data, int textureIndex)
+{
+	GeomUVs(qb.GetUVs(), quadInd, vertInd, data, textureIndex);
 }
 
 void Level::GeomOctopoint(const Vertex* verts, int ind, std::vector<float>& data)
@@ -1893,7 +1880,7 @@ void Level::GeomBoundingRect(const BSP* bsp, int depth, std::vector<float>& data
 	}
 }
 
-void Level::GenerateRenderLevData()
+void Level::GenerateRenderLevData(bool updateVertexMeshes)
 {
 	/* 062 is triblock
 		p0 -- p1 -- p2
@@ -1904,96 +1891,130 @@ void Level::GenerateRenderLevData()
 	*/
 	std::vector<float> highLODData, lowLODData, vertexHighLODData, vertexLowLODData;
 
-	int texturePathsIdCounter = 0;
-	std::map<int, std::filesystem::path> texturePaths;
+	m_textureStorePaths.clear();
+	auto GetTextureIndex = [this](const std::filesystem::path& texPath) -> size_t
+		{
+			auto findResult = std::find_if(m_textureStorePaths.begin(), m_textureStorePaths.end(), [&texPath](const auto& pair) { return pair.second == texPath; });
+			if (findResult != m_textureStorePaths.end())
+			{ //this path already exists in the map
+				return findResult->first;
+			}
+			size_t texIndex = m_textureStorePaths.size();
+			m_textureStorePaths[texIndex] = texPath;
+			return texIndex;
+		};
+
+	struct AnimRenderData
+	{
+		const AnimTextureFrame* frame;
+		int textureIndex;
+	};
+
+	std::vector<AnimRenderData> animRenderData(m_quadblocks.size());
+	std::vector<bool> hasAnimRenderData(m_quadblocks.size(), false);
+	for (const AnimTexture& animTex : m_animTextures)
+	{
+		if (!animTex.IsPopulated()) { continue; }
+		const std::vector<AnimTextureFrame>& frames = animTex.GetFrames();
+		const std::vector<Texture>& textures = animTex.GetTextures();
+		const AnimTextureFrame& frame = animTex.GetRenderFrame();
+		int animTexIndex = GetTextureIndex(textures[frame.textureIndex].GetPath());
+		for (size_t qbIndex : animTex.GetQuadblockIndexes())
+		{
+			animRenderData[qbIndex] = {&frame, animTexIndex};
+			hasAnimRenderData[qbIndex] = true;
+		}
+	}
 
 	for (size_t matIndex = 0; matIndex < m_materialToQuadblocks.size(); matIndex++)
 	{
 		auto begin = m_materialToQuadblocks.begin();
 		std::advance(begin, matIndex);
 		const std::string& mat = begin->first;
-		const std::vector<size_t>& quadblockIndeces = begin->second;
-		for (size_t qbIndexIndex = 0; qbIndexIndex < quadblockIndeces.size(); qbIndexIndex++)
+		const std::vector<size_t>& quadblockIndexes = begin->second;
+		const size_t baseTexIndex = GetTextureIndex(m_materialToTexture[mat].GetPath());
+		for (size_t qbIndexIndex = 0; qbIndexIndex < quadblockIndexes.size(); qbIndexIndex++)
 		{
-			size_t qbIndex = quadblockIndeces[qbIndexIndex];
+			size_t qbIndex = quadblockIndexes[qbIndexIndex];
 			const Quadblock& qb = m_quadblocks[qbIndex];
 			const Vertex* verts = qb.GetUnswizzledVertices();
-			const auto& texPath = m_materialToTexture[mat].GetPath();
-			int texIndex;
-
-			auto findResult = std::find_if(texturePaths.begin(), texturePaths.end(), [&texPath](const auto& pair) { return pair.second == texPath; });
-			if (findResult != texturePaths.end())
-			{ //this path already exists in the map
-				texIndex = findResult->first;
-			}
-			else
-			{
-				texIndex = texturePathsIdCounter;
-				texturePaths[texIndex] = texPath;
-				texturePathsIdCounter++;
-			}
+			const AnimRenderData* animData = hasAnimRenderData[qbIndex] ? &animRenderData[qbIndex] : nullptr;
+			const std::array<QuadUV, NUM_FACES_QUADBLOCK + 1>& uvs = animData ? animData->frame->uvs : qb.GetUVs();
+			const int texIndex = animData ? animData->textureIndex : baseTexIndex;
 
 			//clockwise point ordering
 			if (qb.IsQuadblock())
 			{
 				constexpr size_t HIGH_LOD_VERT_COUNT = 9;
 				const std::array<int, HIGH_LOD_VERT_COUNT> highLODIndexes = {0, 1, 2, 3, 4, 5, 6, 7, 8};
-				for (int index : highLODIndexes)
+				if (updateVertexMeshes)
 				{
-					GeomOctopoint(verts, index, vertexHighLODData);
+					for (int index : highLODIndexes)
+					{
+						GeomOctopoint(verts, index, vertexHighLODData);
+					}
 				}
 
 				constexpr size_t LOW_LOD_VERT_COUNT = 4;
 				const std::array<int, LOW_LOD_VERT_COUNT> lowLODIndexes = {0, 2, 6, 8};
-				for (int index : lowLODIndexes)
+				if (updateVertexMeshes)
 				{
-					GeomOctopoint(verts, index, vertexLowLODData);
+					for (int index : lowLODIndexes)
+					{
+						GeomOctopoint(verts, index, vertexLowLODData);
+					}
 				}
 
 				for (int triIndex = 0; triIndex < 8; triIndex++)
 				{
 					int firstPointIndex = FaceIndexConstants::quadHLODVertArrangements[triIndex][0];
 					GeomPoint(verts, firstPointIndex, highLODData);
-					GeomUVs(qb, triIndex / 2, firstPointIndex, highLODData, texIndex); //triIndex / 2 (integer division) because 2 tris per quad
+					GeomUVs(uvs, triIndex / 2, firstPointIndex, highLODData, texIndex); //triIndex / 2 (integer division) because 2 tris per quad
 
 					int secondPointIndex = FaceIndexConstants::quadHLODVertArrangements[triIndex][1];
 					GeomPoint(verts, secondPointIndex, highLODData);
-					GeomUVs(qb, triIndex / 2, secondPointIndex, highLODData, texIndex);
+					GeomUVs(uvs, triIndex / 2, secondPointIndex, highLODData, texIndex);
 
 					int thirdPointIndex = FaceIndexConstants::quadHLODVertArrangements[triIndex][2];
 					GeomPoint(verts, thirdPointIndex, highLODData);
-					GeomUVs(qb, triIndex / 2, thirdPointIndex, highLODData, texIndex);
+					GeomUVs(uvs, triIndex / 2, thirdPointIndex, highLODData, texIndex);
 				}
 
 				for (int triIndex = 0; triIndex < 2; triIndex++)
 				{
 					int firstPointIndex = FaceIndexConstants::quadLLODVertArrangements[triIndex][0];
 					GeomPoint(verts, firstPointIndex, lowLODData);
-					GeomUVs(qb, 4, firstPointIndex, lowLODData, texIndex);
+					GeomUVs(uvs, 4, firstPointIndex, lowLODData, texIndex);
 
 					int secondPointIndex = FaceIndexConstants::quadLLODVertArrangements[triIndex][1];
 					GeomPoint(verts, secondPointIndex, lowLODData);
-					GeomUVs(qb, 4, secondPointIndex, lowLODData, texIndex);
+					GeomUVs(uvs, 4, secondPointIndex, lowLODData, texIndex);
 
 					int thirdPointIndex = FaceIndexConstants::quadLLODVertArrangements[triIndex][2];
 					GeomPoint(verts, thirdPointIndex, lowLODData);
-					GeomUVs(qb, 4, thirdPointIndex, lowLODData, texIndex);
+					GeomUVs(uvs, 4, thirdPointIndex, lowLODData, texIndex);
 				}
 			}
 			else
 			{
 				constexpr size_t HIGH_LOD_VERT_COUNT = 6;
 				const std::array<int, HIGH_LOD_VERT_COUNT> highLODIndexes = {0, 1, 2, 3, 4, 6};
-				for (int index : highLODIndexes)
+				if (updateVertexMeshes)
 				{
-					GeomOctopoint(verts, index, vertexHighLODData);
+					for (int index : highLODIndexes)
+					{
+						GeomOctopoint(verts, index, vertexHighLODData);
+					}
 				}
 
 				constexpr size_t LOW_LOD_VERT_COUNT = 3;
 				const std::array<int, LOW_LOD_VERT_COUNT> lowLODIndexes = {0, 2, 6};
-				for (int index : lowLODIndexes)
+				if (updateVertexMeshes)
 				{
-					GeomOctopoint(verts, index, vertexLowLODData);
+					for (int index : lowLODIndexes)
+					{
+						GeomOctopoint(verts, index, vertexLowLODData);
+					}
 				}
 
 				for (int triIndex = 0; triIndex < 4; triIndex++)
@@ -2015,48 +2036,51 @@ void Level::GenerateRenderLevData()
 
 					int firstPointIndex = FaceIndexConstants::triHLODVertArrangements[triIndex][0];
 					GeomPoint(verts, firstPointIndex, highLODData);
-					GeomUVs(qb, quadBlockIndex, firstPointIndex, highLODData, texIndex);
+					GeomUVs(uvs, quadBlockIndex, firstPointIndex, highLODData, texIndex);
 
 					int secondPointIndex = FaceIndexConstants::triHLODVertArrangements[triIndex][1];
 					GeomPoint(verts, secondPointIndex, highLODData);
-					GeomUVs(qb, quadBlockIndex, secondPointIndex, highLODData, texIndex);
+					GeomUVs(uvs, quadBlockIndex, secondPointIndex, highLODData, texIndex);
 
 					int thirdPointIndex = FaceIndexConstants::triHLODVertArrangements[triIndex][2];
 					GeomPoint(verts, thirdPointIndex, highLODData);
-					GeomUVs(qb, quadBlockIndex, thirdPointIndex, highLODData, texIndex);
+					GeomUVs(uvs, quadBlockIndex, thirdPointIndex, highLODData, texIndex);
 				}
 
 				for (int triIndex = 0; triIndex < 1; triIndex++)
 				{
 					int firstPointIndex = FaceIndexConstants::triLLODVertArrangements[triIndex][0];
 					GeomPoint(verts, firstPointIndex, lowLODData);
-					GeomUVs(qb, 4, firstPointIndex, lowLODData, texIndex);
+					GeomUVs(uvs, 4, firstPointIndex, lowLODData, texIndex);
 
 					int secondPointIndex = FaceIndexConstants::triLLODVertArrangements[triIndex][1];
 					GeomPoint(verts, secondPointIndex, lowLODData);
-					GeomUVs(qb, 4, secondPointIndex, lowLODData, texIndex);
+					GeomUVs(uvs, 4, secondPointIndex, lowLODData, texIndex);
 
 					int thirdPointIndex = FaceIndexConstants::triLLODVertArrangements[triIndex][2];
 					GeomPoint(verts, thirdPointIndex, lowLODData);
-					GeomUVs(qb, 4, thirdPointIndex, lowLODData, texIndex);
+					GeomUVs(uvs, 4, thirdPointIndex, lowLODData, texIndex);
 				}
 			}
 		}
 	}
 
 	m_highLODMesh.UpdateMesh(highLODData, (Mesh::VBufDataType::VertexColor | Mesh::VBufDataType::Normals | Mesh::VBufDataType::STUV | Mesh::VBufDataType::TexIndex), Mesh::ShaderSettings::None);
-	m_highLODMesh.SetTextureStore(texturePaths);
+	m_highLODMesh.SetTextureStore(m_textureStorePaths);
 	//m_highLODLevelModel.SetMesh(&m_highLODMesh);
 
 	m_lowLODMesh.UpdateMesh(lowLODData, (Mesh::VBufDataType::VertexColor | Mesh::VBufDataType::Normals | Mesh::VBufDataType::STUV | Mesh::VBufDataType::TexIndex), Mesh::ShaderSettings::None);
-	m_lowLODMesh.SetTextureStore(texturePaths);
+	m_lowLODMesh.SetTextureStore(m_textureStorePaths);
 	//m_lowLODLevelModel.SetMesh(&m_lowLODMesh);
 
-	m_vertexHighLODMesh.UpdateMesh(vertexHighLODData, (Mesh::VBufDataType::VertexColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
-	//m_pointsHighLODLevelModel.SetMesh(&m_vertexHighLODMesh);
+	if (updateVertexMeshes)
+	{
+		m_vertexHighLODMesh.UpdateMesh(vertexHighLODData, (Mesh::VBufDataType::VertexColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
+		//m_pointsHighLODLevelModel.SetMesh(&m_vertexHighLODMesh);
 
-	m_vertexLowLODMesh.UpdateMesh(vertexLowLODData, (Mesh::VBufDataType::VertexColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
-	//m_pointsLowLODLevelModel.SetMesh(&m_vertexLowLODMesh);
+		m_vertexLowLODMesh.UpdateMesh(vertexLowLODData, (Mesh::VBufDataType::VertexColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
+		//m_pointsLowLODLevelModel.SetMesh(&m_vertexLowLODMesh);
+	}
 }
 
 void Level::GenerateRenderBspData(const BSP& bsp)

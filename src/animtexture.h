@@ -24,6 +24,8 @@ public:
 	const std::vector<AnimTextureFrame>& GetFrames() const;
 	const std::vector<Texture>& GetTextures() const;
 	const std::vector<size_t>& GetQuadblockIndexes() const;
+	bool AdvanceRender(float deltaTime);
+	const AnimTextureFrame& GetRenderFrame() const;
 	std::vector<uint8_t> Serialize(size_t offsetFirstFrame, size_t offTextures) const;
 	const std::string& GetName() const;
 	bool IsPopulated() const;
@@ -42,6 +44,7 @@ private:
 	void RotateQuadUV(std::array<QuadUV, 5>& uvs);
 	void MirrorFrames(bool horizontal);
 	void RotateFrames(int targetRotation);
+	void ResetRenderState();
 
 private:
 	bool m_triblock;
@@ -57,6 +60,12 @@ private:
 	int m_rotation;
 	bool m_horMirror;
 	bool m_verMirror;
+
+	bool m_renderDirty;
+	size_t m_renderFrameIndex;
+	float m_renderFrameTimer;
+	size_t m_renderStartAtFrame;
+	unsigned int m_renderDuration;
 
 	std::string m_previewQuadName;
 	size_t m_previewQuadIndex;

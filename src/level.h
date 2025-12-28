@@ -55,16 +55,17 @@ private:
 	bool GenerateCheckpoints();
 	bool GenerateBSP();
 
-	void GenerateRenderLevData();
+	void GenerateRenderLevData(bool updateVertexMeshes = true);
 	void GenerateRenderBspData(const BSP& bsp);
 	void GenerateRenderCheckpointData(std::vector<Checkpoint>&);
 	void GenerateRenderStartpointData(std::array<Spawn, NUM_DRIVERS>&);
 	void GenerateRenderSelectedBlockData(const Quadblock& quadblock, const Vec3& queryPoint);
 	void GenerateRenderMultipleQuadsData(const std::vector<Quadblock*>& quads);
-	void RefreshTextureStores();
+	bool UpdateAnimTextures(float deltaTime);
 	void GeomPoint(const Vertex* verts, int ind, std::vector<float>& data);
 	void GeomOctopoint(const Vertex* verts, int ind, std::vector<float>& data);
 	void GeomBoundingRect(const BSP* b, int depth, std::vector<float>& data);
+	void GeomUVs(const std::array<QuadUV, NUM_FACES_QUADBLOCK + 1>& uvs, int quadInd, int vertInd, std::vector<float>& data, int textureIndex);
 	void GeomUVs(const Quadblock& qb, int quadInd, int vertInd, std::vector<float>& data, int textureIndex);
 	void ViewportClickHandleBlockSelection(int pixelX, int pixelY, const Renderer& rend);
 
@@ -125,4 +126,6 @@ private:
 	Model m_multipleSelectedQuads;
 
 	size_t m_rendererSelectedQuadblockIndex;
+	size_t m_lastAnimTextureCount = 0;
+	std::unordered_map<int, std::filesystem::path> m_textureStorePaths;
 };

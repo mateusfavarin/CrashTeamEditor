@@ -106,6 +106,8 @@ void UI::RenderWorld()
 		}
 	}
 
+	if (m_lev.UpdateAnimTextures(rend.GetLastDeltaTime())) { m_lev.GenerateRenderLevData(false); }
+
 	std::vector<Model> modelsToRender;
 	m_lev.BuildRenderModels(modelsToRender);
 	rend.Render(modelsToRender);

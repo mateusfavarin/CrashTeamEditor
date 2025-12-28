@@ -78,30 +78,73 @@ void Mesh::Unbind() const
 
 void Mesh::Draw() const
 {
-	if (m_VAO != 0)
-  {
-    glDrawArrays(GL_TRIANGLES, 0, m_dataBufSize / sizeof(float));
-  }
+	if (m_VAO == 0) { return; }
+	glDrawArrays(GL_TRIANGLES, 0, m_vertexCount);
 }
 
-/// <summary>
-/// When passing data[], any present data according to the "includedDataFlags" is expected to be in this order:
-///
-/// vertex/position data (always assumed to be present).
-/// barycentric (1, 0, 0), (0, 1, 0), (0, 0, 1).
-/// normal
-/// vcolor
-/// stuv_1
-/// </summary>
+/*
+When passing data[], any present data according to the "includedDataFlags" is expected to be in this order:
+* vertex/position data (always assumed to be present).
+* barycentric (1, 0, 0), (0, 1, 0), (0, 0, 1).
+* normal
+* vcolor
+* stuv_1
+*/
 void Mesh::UpdateMesh(const std::vector<float>& data, unsigned includedDataFlags, unsigned shadSettings, bool dataIsInterlaced)
 {
-  Dispose();
-
   includedDataFlags |= VBufDataType::VertexPos;
+  const bool reuseBuffers = (m_VAO != 0 && m_VBO != 0 && m_includedData == includedDataFlags);
+  if (!reuseBuffers) { Dispose(); }
 
   m_dataBufSize = static_cast<unsigned>(data.size() * sizeof(float));
   m_includedData = includedDataFlags;
   m_shaderSettings = shadSettings;
+  m_vertexCount = 0;
+
+  int ultimateStrideSize = 0;
+  for (size_t i = 0; i < sizeof(int) * 8; i++)
+  {
+    switch ((includedDataFlags) & (1 << i))
+    {
+    case VBufDataType::VertexPos:
+      ultimateStrideSize += 3;
+      break;
+    case VBufDataType::Barycentric:
+      ultimateStrideSize += 3;
+      break;
+    case VBufDataType::VertexColor:
+      ultimateStrideSize += 3;
+      break;
+    case VBufDataType::Normals:
+      ultimateStrideSize += 3;
+      break;
+    case VBufDataType::STUV:
+      ultimateStrideSize += 2;
+      break;
+    case VBufDataType::TexIndex:
+      ultimateStrideSize += 1;
+      break;
+    }
+  }
+
+  if (ultimateStrideSize > 0)
+  {
+    m_vertexCount = static_cast<int>(data.size() / ultimateStrideSize);
+  }
+
+  if (reuseBuffers && dataIsInterlaced)
+  {
+    glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
+    glBufferData(GL_ARRAY_BUFFER, m_dataBufSize, data.data(), GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    return;
+  }
+
+  if (!dataIsInterlaced)
+  {
+    fprintf(stderr, "Unimplemented dataIsInterlaced=false in Mesh::UpdateMesh()");
+    throw 0;
+  }
 
   glGenVertexArrays(1, &m_VAO);
   glBindVertexArray(m_VAO);
@@ -110,107 +153,73 @@ void Mesh::UpdateMesh(const std::vector<float>& data, unsigned includedDataFlags
   glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
   glBufferData(GL_ARRAY_BUFFER, m_dataBufSize, data.data(), GL_STATIC_DRAW);
 
-  int ultimateStrideSize = 0;
-  for (size_t i = 0; i < sizeof(int) * 8; i++)
+  //although this works, it's possible that what I'm trying to do here can be done much more simply via some opengl feature(s).
+  for (int openglPositionCounter = 0, takenSize = 0, takenCount = 0; openglPositionCounter < 6 /*# of flags in VBufDataType*/; openglPositionCounter++)
   {
-    switch ((includedDataFlags) & (1 << i))
+    switch (1 << openglPositionCounter)
     {
-    case VBufDataType::VertexPos: //dimension = 3
-      ultimateStrideSize += 3;
-      break;
-    case VBufDataType::Barycentric: //dimension = 3
-      ultimateStrideSize += 3;
-      break;
-    case VBufDataType::VertexColor: //dimension = 3
-      ultimateStrideSize += 3;
-      break;
-    case VBufDataType::Normals: //dimension = 3
-      ultimateStrideSize += 3;
-      break;
-    case VBufDataType::STUV: //dimension = 2
-      ultimateStrideSize += 2;
-      break;
-    case VBufDataType::TexIndex: //dimension = 1
-      ultimateStrideSize += 1;
-      break;
-    }
-  }
-
-  if (dataIsInterlaced)
-  {
-    //although this works, it's possible that what I'm trying to do here can be done much more simply via some opengl feature(s).
-    for (int openglPositionCounter = 0, takenSize = 0, takenCount = 0; openglPositionCounter < 6 /*# of flags in VBufDataType*/; openglPositionCounter++)
-    {
-      switch (1 << openglPositionCounter)
+		case VBufDataType::VertexPos:
+      if ((includedDataFlags & VBufDataType::VertexPos) != 0)
       {
-			case VBufDataType::VertexPos: //position
-        if ((includedDataFlags & VBufDataType::VertexPos) != 0)
-        {
-          constexpr int dim = 3;
-          glVertexAttribPointer(takenCount, dim, GL_FLOAT, GL_FALSE, ultimateStrideSize * sizeof(float), (void*)(takenSize * sizeof(float)));
-          glEnableVertexAttribArray(takenCount);
-          takenCount++;
-          takenSize += dim;
-        }
-        break;
-			case VBufDataType::Barycentric: //barycentric
-        if ((includedDataFlags & VBufDataType::Barycentric) != 0)
-        {
-          constexpr int dim = 3;
-          glVertexAttribPointer(takenCount, dim, GL_FLOAT, GL_FALSE, ultimateStrideSize * sizeof(float), (void*)(takenSize * sizeof(float)));
-          glEnableVertexAttribArray(takenCount);
-          takenCount++;
-          takenSize += dim;
-        }
-        break;
-      case VBufDataType::VertexColor:
-        if ((includedDataFlags & VBufDataType::VertexColor) != 0)
-        {
-          constexpr int dim = 3;
-          glVertexAttribPointer(takenCount, dim, GL_FLOAT, GL_FALSE, ultimateStrideSize * sizeof(float), (void*)(takenSize * sizeof(float)));
-          glEnableVertexAttribArray(takenCount);
-          takenCount++;
-          takenSize += dim;
-        }
-        break;
-      case VBufDataType::Normals:
-        if ((includedDataFlags & VBufDataType::Normals) != 0)
-        {
-          constexpr int dim = 3;
-          glVertexAttribPointer(takenCount, dim, GL_FLOAT, GL_FALSE, ultimateStrideSize * sizeof(float), (void*)(takenSize * sizeof(float)));
-          glEnableVertexAttribArray(takenCount);
-          takenCount++;
-          takenSize += dim;
-        }
-        break;
-      case VBufDataType::STUV:
-        if ((includedDataFlags & VBufDataType::STUV) != 0)
-        {
-          constexpr int dim = 2;
-          glVertexAttribPointer(takenCount, dim, GL_FLOAT, GL_FALSE, ultimateStrideSize * sizeof(float), (void*)(takenSize * sizeof(float)));
-          glEnableVertexAttribArray(takenCount);
-          takenCount++;
-          takenSize += dim;
-        }
-        break;
-      case VBufDataType::TexIndex:
-        if ((includedDataFlags & VBufDataType::TexIndex) != 0)
-        {
-          //this only works because sizeof(float) == sizeof(int)
-          constexpr int dim = 1;
-          glVertexAttribIPointer(takenCount, dim, GL_INT, ultimateStrideSize * sizeof(int), (void*)(takenSize * sizeof(int)));
-          glEnableVertexAttribArray(takenCount);
-          takenCount++;
-          takenSize += dim;
-        }
-        break;
+        constexpr int dim = 3;
+        glVertexAttribPointer(takenCount, dim, GL_FLOAT, GL_FALSE, ultimateStrideSize * sizeof(float), (void*)(takenSize * sizeof(float)));
+        glEnableVertexAttribArray(takenCount);
+        takenCount++;
+        takenSize += dim;
       }
+      break;
+		case VBufDataType::Barycentric:
+      if ((includedDataFlags & VBufDataType::Barycentric) != 0)
+      {
+        constexpr int dim = 3;
+        glVertexAttribPointer(takenCount, dim, GL_FLOAT, GL_FALSE, ultimateStrideSize * sizeof(float), (void*)(takenSize * sizeof(float)));
+        glEnableVertexAttribArray(takenCount);
+        takenCount++;
+        takenSize += dim;
+      }
+      break;
+    case VBufDataType::VertexColor:
+      if ((includedDataFlags & VBufDataType::VertexColor) != 0)
+      {
+        constexpr int dim = 3;
+        glVertexAttribPointer(takenCount, dim, GL_FLOAT, GL_FALSE, ultimateStrideSize * sizeof(float), (void*)(takenSize * sizeof(float)));
+        glEnableVertexAttribArray(takenCount);
+        takenCount++;
+        takenSize += dim;
+      }
+      break;
+    case VBufDataType::Normals:
+      if ((includedDataFlags & VBufDataType::Normals) != 0)
+      {
+        constexpr int dim = 3;
+        glVertexAttribPointer(takenCount, dim, GL_FLOAT, GL_FALSE, ultimateStrideSize * sizeof(float), (void*)(takenSize * sizeof(float)));
+        glEnableVertexAttribArray(takenCount);
+        takenCount++;
+        takenSize += dim;
+      }
+      break;
+    case VBufDataType::STUV:
+      if ((includedDataFlags & VBufDataType::STUV) != 0)
+      {
+        constexpr int dim = 2;
+        glVertexAttribPointer(takenCount, dim, GL_FLOAT, GL_FALSE, ultimateStrideSize * sizeof(float), (void*)(takenSize * sizeof(float)));
+        glEnableVertexAttribArray(takenCount);
+        takenCount++;
+        takenSize += dim;
+      }
+      break;
+    case VBufDataType::TexIndex:
+      if ((includedDataFlags & VBufDataType::TexIndex) != 0)
+      {
+        //this only works because sizeof(float) == sizeof(int)
+        constexpr int dim = 1;
+        glVertexAttribIPointer(takenCount, dim, GL_INT, ultimateStrideSize * sizeof(int), (void*)(takenSize * sizeof(int)));
+        glEnableVertexAttribArray(takenCount);
+        takenCount++;
+        takenSize += dim;
+      }
+      break;
     }
-  }
-  else
-  {
-    fprintf(stderr, "Unimplemented dataIsInterlaced=false in Mesh::UpdateMesh()");
-    throw 0;
   }
 
   glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -232,7 +241,7 @@ void Mesh::SetShaderSettings(unsigned shadSettings)
   m_shaderSettings = shadSettings;
 }
 
-void Mesh::SetTextureStore(const std::map<int, std::filesystem::path>& texturePaths)
+void Mesh::SetTextureStore(const std::unordered_map<int, std::filesystem::path>& texturePaths)
 {
   if (m_textures) { glDeleteTextures(1, &m_textures); m_textures = 0; }
 
@@ -288,4 +297,5 @@ void Mesh::Dispose()
 	if (m_VAO != 0) { glDeleteVertexArrays(1, &m_VAO); m_VAO = 0; }
 	if (m_VBO != 0) { glDeleteBuffers(1, &m_VBO); m_VBO = 0; }
   m_dataBufSize = 0;
+  m_vertexCount = 0;
 }
