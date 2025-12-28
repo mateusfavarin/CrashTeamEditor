@@ -1941,6 +1941,26 @@ void Level::GenerateRenderLevData(bool updateVertexMeshes)
 			{
 				for (int triIndex = 0; triIndex < 8; triIndex++)
 				{
+					if (updateVertexMeshes)
+					{
+						constexpr size_t HIGH_LOD_VERT_COUNT = 9;
+						const std::array<int, HIGH_LOD_VERT_COUNT> highLODIndexes = {0, 1, 2, 3, 4, 5, 6, 7, 8};
+						for (int index : highLODIndexes)
+						{
+							GeomOctopoint(verts, index, vertexHighLODData);
+						}
+					}
+
+					if (updateVertexMeshes)
+					{
+						constexpr size_t LOW_LOD_VERT_COUNT = 4;
+						const std::array<int, LOW_LOD_VERT_COUNT> lowLODIndexes = {0, 2, 6, 8};
+						for (int index : lowLODIndexes)
+						{
+							GeomOctopoint(verts, index, vertexLowLODData);
+						}
+					}
+
 					int firstPointIndex = FaceIndexConstants::quadHLODVertArrangements[triIndex][0];
 					GeomPoint(verts, firstPointIndex, highLODData);
 					GeomUVs(uvs, triIndex / 2, firstPointIndex, highLODData, texIndex); //triIndex / 2 (integer division) because 2 tris per quad
@@ -1971,6 +1991,26 @@ void Level::GenerateRenderLevData(bool updateVertexMeshes)
 			}
 			else
 			{
+				if (updateVertexMeshes)
+				{
+					constexpr size_t HIGH_LOD_VERT_COUNT = 9;
+					const std::array<int, HIGH_LOD_VERT_COUNT> highLODIndexes = {0, 1, 2, 3, 4, 5, 6, 7, 8};
+					for (int index : highLODIndexes)
+					{
+						GeomOctopoint(verts, index, vertexHighLODData);
+					}
+				}
+
+				if (updateVertexMeshes)
+				{
+					constexpr size_t LOW_LOD_VERT_COUNT = 4;
+					const std::array<int, LOW_LOD_VERT_COUNT> lowLODIndexes = {0, 2, 6, 8};
+					for (int index : lowLODIndexes)
+					{
+						GeomOctopoint(verts, index, vertexLowLODData);
+					}
+				}
+
 				for (int triIndex = 0; triIndex < 4; triIndex++)
 				{
 					int quadBlockIndex = 0;
@@ -2021,11 +2061,14 @@ void Level::GenerateRenderLevData(bool updateVertexMeshes)
 
 	m_highLODMesh.UpdateMesh(highLODData, (Mesh::VBufDataType::VertexColor | Mesh::VBufDataType::Normals | Mesh::VBufDataType::STUV | Mesh::VBufDataType::TexIndex), Mesh::ShaderSettings::None);
 	m_highLODMesh.SetTextureStore(textureStorePaths);
-	//m_highLODLevelModel.SetMesh(&m_highLODMesh);
-
 	m_lowLODMesh.UpdateMesh(lowLODData, (Mesh::VBufDataType::VertexColor | Mesh::VBufDataType::Normals | Mesh::VBufDataType::STUV | Mesh::VBufDataType::TexIndex), Mesh::ShaderSettings::None);
 	m_lowLODMesh.SetTextureStore(textureStorePaths);
-	//m_lowLODLevelModel.SetMesh(&m_lowLODMesh);
+
+	if (updateVertexMeshes)
+	{
+		m_vertexHighLODMesh.UpdateMesh(vertexHighLODData, (Mesh::VBufDataType::VertexColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
+		m_vertexLowLODMesh.UpdateMesh(vertexLowLODData, (Mesh::VBufDataType::VertexColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
+	}
 }
 
 void Level::GenerateRenderBspData(const BSP& bsp)
