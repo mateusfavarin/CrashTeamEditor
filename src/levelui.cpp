@@ -402,15 +402,17 @@ void Level::RenderUI()
 			{
 				if (ImGui::TreeNode(("Driver " + std::to_string(i)).c_str()))
 				{
-					ImGui::Text("Pos:"); ImGui::SameLine(); ImGui::InputFloat3("##pos", m_spawn[i].pos.Data());
+					ImGui::Text("Pos:"); ImGui::SameLine();
+					bool changed = ImGui::InputFloat3("##pos", m_spawn[i].pos.Data());
 					ImGui::Text("Rot:"); ImGui::SameLine();
 					if (ImGui::InputFloat3("##rot", m_spawn[i].rot.Data()))
 					{
+						changed = true;
 						m_spawn[i].rot.x = Clamp(m_spawn[i].rot.x, -360.0f, 360.0f);
 						m_spawn[i].rot.y = Clamp(m_spawn[i].rot.y, -360.0f, 360.0f);
 						m_spawn[i].rot.z = Clamp(m_spawn[i].rot.z, -360.0f, 360.0f);
 					};
-					GenerateRenderStartpointData(m_spawn);
+					if (changed) { GenerateRenderStartpointData(m_spawn); }
 					ImGui::TreePop();
 				}
 			}
@@ -861,18 +863,24 @@ void Level::RenderUI()
 				ImGui::Text("Flags:");
 				if (ImGui::BeginTable("Renderer Flags", 2, ImGuiTableFlags_SizingStretchSame))
 				{
-					auto checkboxPair = [](const char* leftLabel, bool* leftValue, const char* rightLabel, bool* rightValue)
+					constexpr unsigned REND_FLAGS_NONE = 0;
+					constexpr unsigned REND_FLAGS_COLUMN_0 = 1;
+					constexpr unsigned REND_FLAGS_COLUMN_1 = 2;
+					auto checkboxPair = [](const char* leftLabel, bool* leftValue, const char* rightLabel, bool* rightValue) -> unsigned
 						{
+							unsigned ret = REND_FLAGS_NONE;
 							ImGui::TableNextRow();
 							ImGui::TableSetColumnIndex(0);
-							ImGui::Checkbox(leftLabel, leftValue);
+							if (ImGui::Checkbox(leftLabel, leftValue)) { ret |= REND_FLAGS_COLUMN_0; }
 							ImGui::TableSetColumnIndex(1);
-							ImGui::Checkbox(rightLabel, rightValue);
+							if (ImGui::Checkbox(rightLabel, rightValue)) { ret |= REND_FLAGS_COLUMN_1; }
+							return ret;
 						};
 
 					checkboxPair("Show Low LOD", &GuiRenderSettings::showLowLOD, "Show Wireframe", &GuiRenderSettings::showWireframe);
 					checkboxPair("Show Backfaces", &GuiRenderSettings::showBackfaces, "Show Level Verts", &GuiRenderSettings::showLevVerts);
-					checkboxPair("Show Checkpoints", &GuiRenderSettings::showCheckpoints, "Show Starting Positions", &GuiRenderSettings::showStartpoints);
+					unsigned cpStartPoints = checkboxPair("Show Checkpoints", &GuiRenderSettings::showCheckpoints, "Show Starting Positions", &GuiRenderSettings::showStartpoints);
+					if (cpStartPoints & REND_FLAGS_COLUMN_1) { GenerateRenderStartpointData(m_spawn); }
 					checkboxPair("Show BSP", &GuiRenderSettings::showBspRectTree, "Show Vis Tree", &GuiRenderSettings::showVisTree);
 
 					ImGui::EndTable();
