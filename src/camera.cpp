@@ -39,8 +39,6 @@ void Camera::Initialize()
 void Camera::Update(bool allowShortcuts, float deltaTime)
 {
 	if (!m_initialized) { Initialize(); }
-	const glm::vec3 camUp(0.f, 1.f, 0.f);
-	m_matrix = glm::lookAt(m_position, m_position + m_front, camUp);
 
 	if (allowShortcuts)
 	{
@@ -51,9 +49,9 @@ void Camera::Update(bool allowShortcuts, float deltaTime)
 		if (ImGui::IsMouseDown(GuiRenderSettings::camOrbitMouseButton) && (io.MouseDelta.x != 0.0f || io.MouseDelta.y != 0.0f))
 		{
 			float orbitSpeed = 0.2f * GuiRenderSettings::camRotateMult;
-			m_yaw += io.MouseDelta.x * orbitSpeed;
+			m_yaw -= io.MouseDelta.x * orbitSpeed;
 			m_pitch -= io.MouseDelta.y * orbitSpeed;
-			m_pitch = Clamp(m_pitch, -89.0f, 89.0f);
+			m_pitch = Clamp(m_pitch, -90.0f, 90.0f);
 		}
 
 		if (io.MouseWheel != 0.0f)
@@ -84,12 +82,16 @@ void Camera::Update(bool allowShortcuts, float deltaTime)
 
 	m_distance = std::max(m_distance, 0.1f);
 
-	glm::vec3 offset;
-	offset.x = cos(glm::radians(m_pitch)) * cos(glm::radians(m_yaw));
-	offset.y = sin(glm::radians(m_pitch));
-	offset.z = cos(glm::radians(m_pitch)) * sin(glm::radians(m_yaw));
+	glm::vec3 offset = {
+		cos(glm::radians(m_pitch)) * cos(glm::radians(m_yaw)),
+		sin(glm::radians(m_pitch)),
+		cos(glm::radians(m_pitch)) * sin(glm::radians(m_yaw))
+	};
 	m_position = m_target + offset * m_distance;
 	m_front = glm::normalize(m_target - m_position);
+
+	const glm::vec3 camUp(0.f, 1.f, 0.f);
+	m_matrix = glm::lookAt(m_position, m_position + m_front, camUp);
 }
 
 const glm::vec3& Camera::GetPosition() const
