@@ -1,5 +1,6 @@
 #include "app.h"
 #include "ui.h"
+#include "gui_render_settings.h"
 
 #include "globalimguiglglfw.h"
 #include "renderer.h"
@@ -148,6 +149,18 @@ void App::InitUISettings()
 	if (json.contains("Spawn")) { Windows::w_spawn = json["Spawn"]; }
 	if (json.contains("LastOpenedFolder")) { Windows::lastOpenedFolder = json["LastOpenedFolder"]; }
 	if (json.contains("Script")) { Windows::w_python = json["Script"]; }
+	if (json.contains("CameraBindings"))
+	{
+		const nlohmann::json& bindings = json["CameraBindings"];
+		if (bindings.contains("Forward")) { GuiRenderSettings::camKeyForward = bindings["Forward"]; }
+		if (bindings.contains("Back")) { GuiRenderSettings::camKeyBack = bindings["Back"]; }
+		if (bindings.contains("Left")) { GuiRenderSettings::camKeyLeft = bindings["Left"]; }
+		if (bindings.contains("Right")) { GuiRenderSettings::camKeyRight = bindings["Right"]; }
+		if (bindings.contains("Up")) { GuiRenderSettings::camKeyUp = bindings["Up"]; }
+		if (bindings.contains("Down")) { GuiRenderSettings::camKeyDown = bindings["Down"]; }
+		if (bindings.contains("Sprint")) { GuiRenderSettings::camKeySprint = bindings["Sprint"]; }
+		if (bindings.contains("OrbitMouseButton")) { GuiRenderSettings::camOrbitMouseButton = bindings["OrbitMouseButton"]; }
+	}
 }
 
 void App::SaveUISettings()
@@ -166,6 +179,16 @@ void App::SaveUISettings()
 	json["Spawn"] = Windows::w_spawn;
 	json["LastOpenedFolder"] = Windows::lastOpenedFolder;
 	json["Script"] = Windows::w_python;
+	json["CameraBindings"] = {
+		{"Forward", GuiRenderSettings::camKeyForward},
+		{"Back", GuiRenderSettings::camKeyBack},
+		{"Left", GuiRenderSettings::camKeyLeft},
+		{"Right", GuiRenderSettings::camKeyRight},
+		{"Up", GuiRenderSettings::camKeyUp},
+		{"Down", GuiRenderSettings::camKeyDown},
+		{"Sprint", GuiRenderSettings::camKeySprint},
+		{"OrbitMouseButton", GuiRenderSettings::camOrbitMouseButton},
+	};
 	std::ofstream file = std::ofstream(m_configFile);
 	file << std::setw(4) << json << std::endl;
 	file.close();

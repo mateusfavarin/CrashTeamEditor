@@ -45,9 +45,10 @@ void Camera::Update(bool allowShortcuts, float deltaTime)
 	if (allowShortcuts)
 	{
 		ImGuiIO& io = ImGui::GetIO();
-		const bool shiftDown = ImGui::IsKeyDown(ImGuiKey_LeftShift) || ImGui::IsKeyDown(ImGuiKey_RightShift);
+		const ImGuiKey sprintKey = static_cast<ImGuiKey>(GuiRenderSettings::camKeySprint);
+		const bool shiftDown = ImGui::IsKeyDown(sprintKey);
 
-		if (ImGui::IsMouseDown(ImGuiMouseButton_Right) && (io.MouseDelta.x != 0.0f || io.MouseDelta.y != 0.0f))
+		if (ImGui::IsMouseDown(GuiRenderSettings::camOrbitMouseButton) && (io.MouseDelta.x != 0.0f || io.MouseDelta.y != 0.0f))
 		{
 			float orbitSpeed = 0.2f * GuiRenderSettings::camRotateMult;
 			m_yaw += io.MouseDelta.x * orbitSpeed;
@@ -68,12 +69,12 @@ void Camera::Update(bool allowShortcuts, float deltaTime)
 		glm::vec3 right = glm::normalize(glm::cross(forwardPlanar, glm::vec3(0.f, 1.f, 0.f)));
 		glm::vec3 movement(0.0f);
 
-		if (ImGui::IsKeyDown(ImGuiKey_W)) { movement -= forwardPlanar; }
-		if (ImGui::IsKeyDown(ImGuiKey_S)) { movement += forwardPlanar; }
-		if (ImGui::IsKeyDown(ImGuiKey_D)) { movement -= right; }
-		if (ImGui::IsKeyDown(ImGuiKey_A)) { movement += right; }
-		if (ImGui::IsKeyDown(ImGuiKey_E)) { movement += glm::vec3(0.f, 1.f, 0.f); }
-		if (ImGui::IsKeyDown(ImGuiKey_Q)) { movement -= glm::vec3(0.f, 1.f, 0.f); }
+		if (ImGui::IsKeyDown(static_cast<ImGuiKey>(GuiRenderSettings::camKeyForward))) { movement -= forwardPlanar; }
+		if (ImGui::IsKeyDown(static_cast<ImGuiKey>(GuiRenderSettings::camKeyBack))) { movement += forwardPlanar; }
+		if (ImGui::IsKeyDown(static_cast<ImGuiKey>(GuiRenderSettings::camKeyRight))) { movement -= right; }
+		if (ImGui::IsKeyDown(static_cast<ImGuiKey>(GuiRenderSettings::camKeyLeft))) { movement += right; }
+		if (ImGui::IsKeyDown(static_cast<ImGuiKey>(GuiRenderSettings::camKeyUp))) { movement += glm::vec3(0.f, 1.f, 0.f); }
+		if (ImGui::IsKeyDown(static_cast<ImGuiKey>(GuiRenderSettings::camKeyDown))) { movement -= glm::vec3(0.f, 1.f, 0.f); }
 
 		if (movement.x != 0.0f || movement.y != 0.0f || movement.z != 0.0f)
 		{

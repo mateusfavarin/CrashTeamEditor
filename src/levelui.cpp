@@ -838,6 +838,21 @@ void Level::RenderUI()
 	{
 		if (ImGui::Begin("Renderer", &Windows::w_renderer))
 		{
+			static std::unordered_map<ImGuiKey, std::string> keyOptions;
+			if (keyOptions.empty())
+			{
+				keyOptions.reserve(ImGuiKey_NamedKey_END - ImGuiKey_NamedKey_BEGIN);
+				for (int key = ImGuiKey_NamedKey_BEGIN; key < ImGuiKey_NamedKey_END; key++)
+				{
+					std::string label = ImGui::GetKeyName(static_cast<ImGuiKey>(key));
+					keyOptions.insert({static_cast<ImGuiKey>(key), label});
+				}
+				keyOptions.insert({static_cast<ImGuiKey>(ImGuiKey_ModShift), "Shift"});
+				keyOptions.insert({static_cast<ImGuiKey>(ImGuiKey_ModCtrl), "Ctrl"});
+				keyOptions.insert({static_cast<ImGuiKey>(ImGuiKey_ModAlt), "Alt"});
+				keyOptions.insert({static_cast<ImGuiKey>(ImGuiKey_ModSuper), "Super"});
+			}
+
 			if (ImGui::TreeNodeEx("Settings", ImGuiTreeNodeFlags_DefaultOpen))
 			{
 				ImGui::Text("Shader:");
@@ -907,16 +922,74 @@ void Level::RenderUI()
 					inputPair("FOV", GuiRenderSettings::camFovDeg, 5.0f, 150.0f, nullptr, dummy, 0.0f, 0.0f);
 					ImGui::EndTable();
 				}
+
+				ImGui::Text("Camera Bindings:");
+				auto DrawKeyRow = [](const char* label, int& keyValue)
+					{
+						ImGui::TableNextRow();
+						ImGui::TableSetColumnIndex(0);
+						ImGui::TextUnformatted(label);
+						ImGui::TableSetColumnIndex(1);
+						ImGuiKey currentKey = static_cast<ImGuiKey>(keyValue);
+						std::string preview = keyOptions[currentKey];
+						std::string comboId = std::string("##") + label;
+						if (ImGui::BeginCombo(comboId.c_str(), preview.c_str()))
+						{
+							for (const auto& entry : keyOptions)
+							{
+								bool selected = (entry.first == currentKey);
+								if (ImGui::Selectable(entry.second.c_str(), selected))
+								{
+									keyValue = entry.first;
+								}
+								if (selected) { ImGui::SetItemDefaultFocus(); }
+							}
+							ImGui::EndCombo();
+						}
+					};
+
+				auto DrawMouseRow = [](const char* label, int& buttonValue)
+					{
+						constexpr std::pair<int, const char*> mouseOptions[] = {
+							{ImGuiMouseButton_Left, "Left"},
+							{ImGuiMouseButton_Right, "Right"},
+							{ImGuiMouseButton_Middle, "Middle"},
+						};
+
+						ImGui::TableNextRow();
+						ImGui::TableSetColumnIndex(0);
+						ImGui::TextUnformatted(label);
+						ImGui::TableSetColumnIndex(1);
+						std::string comboId = std::string("##") + label;
+						if (ImGui::BeginCombo(comboId.c_str(), mouseOptions[buttonValue].second))
+						{
+							for (const auto& entry : mouseOptions)
+							{
+								bool selected = (entry.first == buttonValue);
+								if (ImGui::Selectable(entry.second, selected))
+								{
+									buttonValue = entry.first;
+								}
+								if (selected) { ImGui::SetItemDefaultFocus(); }
+							}
+							ImGui::EndCombo();
+						}
+					};
+
+				if (ImGui::BeginTable("Camera Bindings Table", 2, ImGuiTableFlags_SizingStretchSame))
+				{
+					DrawMouseRow("Orbit Mouse Button", GuiRenderSettings::camOrbitMouseButton);
+					DrawKeyRow("Forward", GuiRenderSettings::camKeyForward);
+					DrawKeyRow("Back", GuiRenderSettings::camKeyBack);
+					DrawKeyRow("Left", GuiRenderSettings::camKeyLeft);
+					DrawKeyRow("Right", GuiRenderSettings::camKeyRight);
+					DrawKeyRow("Up", GuiRenderSettings::camKeyUp);
+					DrawKeyRow("Down", GuiRenderSettings::camKeyDown);
+					DrawKeyRow("Sprint", GuiRenderSettings::camKeySprint);
+					ImGui::EndTable();
+				}
 				ImGui::TreePop();
 			}
-
-			ImGui::Text(
-				"Camera Controls:\n"
-				"\t* Right mouse button: drag to orbit\n"
-				"\t* Mouse wheel to zoom\n"
-				"\t* WASD to move on camera plane\n"
-				"\t* Q/E to move up/down\n"
-				"\t* Shift to sprint");
 
 			static size_t prevSelectedQuadblock = REND_NO_SELECTED_QUADBLOCK;
 			if (m_rendererSelectedQuadblockIndex != REND_NO_SELECTED_QUADBLOCK)
