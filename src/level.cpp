@@ -575,7 +575,7 @@ void Level::BuildRenderModels(std::vector<Model>& models)
 	if (GuiRenderSettings::showCheckpoints) { models.push_back(m_checkModel); }
 	if (GuiRenderSettings::showStartpoints) { models.push_back(m_spawnsModel); }
 	models.push_back(m_selectedBlockModel);
-	models.push_back(m_multipleSelectedQuads);
+	if (GuiRenderSettings::showVisTree) { models.push_back(m_multipleSelectedQuads); }
 }
 
 void Level::ManageTurbopad(Quadblock& quadblock)
