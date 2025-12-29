@@ -10,6 +10,7 @@
 #include <array>
 #include <filesystem>
 #include <limits>
+#include <functional>
 
 static constexpr size_t NUM_FACES_QUADBLOCK = 4;
 static constexpr size_t TURBO_PAD_INDEX_NONE = 0;
@@ -138,12 +139,15 @@ enum class QuadblockTrigger
 	NONE, TURBO_PAD, SUPER_TURBO_PAD
 };
 
+class Quadblock;
+typedef std::function<void(const Quadblock&)> UpdateFilterCallback;
+
 class Quadblock
 {
 public:
-	Quadblock(const std::string& name, Tri& t0, Tri& t1, Tri& t2, Tri& t3, const Vec3& normal, const std::string& material, bool hasUV);
-	Quadblock(const std::string& name, Quad& q0, Quad& q1, Quad& q2, Quad& q3, const Vec3& normal, const std::string& material, bool hasUV);
-	Quadblock(const PSX::Quadblock& quadblock, const std::vector<PSX::Vertex>& vertices);
+	Quadblock(const std::string& name, Tri& t0, Tri& t1, Tri& t2, Tri& t3, const Vec3& normal, const std::string& material, bool hasUV, UpdateFilterCallback filterCallback);
+	Quadblock(const std::string& name, Quad& q0, Quad& q1, Quad& q2, Quad& q3, const Vec3& normal, const std::string& material, bool hasUV, UpdateFilterCallback filterCallback);
+	Quadblock(const PSX::Quadblock& quadblock, const std::vector<PSX::Vertex>& vertices, UpdateFilterCallback filterCallback);
 	const std::string& GetName() const;
 	const Vec3& GetCenter() const;
 	Vec3 GetNormal() const;
@@ -155,6 +159,7 @@ public:
 	void SetBSPID(size_t id) const;
 	bool GetHide() const;
 	bool GetAnimated() const;
+	bool GetFilter() const;
 	bool GetCheckpointStatus() const;
 	const QuadUV& GetQuadUV(size_t quad) const;
 	const std::filesystem::path& GetTexPath() const;
@@ -165,7 +170,10 @@ public:
 	size_t GetRenderLowLodUVIndex() const;
 	size_t GetRenderHighLodOctoPointIndex() const;
 	size_t GetRenderLowLodOctoPointIndex() const;
+	size_t GetRenderFilterHighLodEdgeIndex() const;
+	size_t GetRenderFilterLowLodEdgeIndex() const;
 	void SetRenderIndices(size_t highPointIndex, size_t lowPointIndex, size_t highUvIndex, size_t lowUvIndex, size_t highOctoIndex, size_t lowOctoIndex);
+	void SetRenderFilterIndices(size_t highEdgeIndex, size_t lowEdgeIndex);
 	void SetTerrain(uint8_t terrain);
 	void SetFlag(uint16_t flag);
 	void SetCheckpoint(int index);
@@ -181,6 +189,7 @@ public:
 	void SetTrigger(QuadblockTrigger trigger);
 	void SetTexPath(const std::filesystem::path& path);
 	void SetAnimated(bool animated);
+	void SetFilter(bool filter);
 	void SetSpeedImpact(int speed);
 	void TranslateNormalVec(float ratio);
 	const BoundingBox& GetBoundingBox() const;
@@ -206,6 +215,7 @@ private:
 	*/
 	bool m_triblock;
 	bool m_animated;
+	bool m_filter;
 	bool m_checkpointStatus;
 	bool m_hide;
 	Vertex m_p[NUM_VERTICES_QUADBLOCK];
@@ -232,6 +242,9 @@ private:
 	size_t m_renderLowLodUVIndex = RENDER_INDEX_NONE;
 	size_t m_renderHighLodOctoPointIndex = RENDER_INDEX_NONE;
 	size_t m_renderLowLodOctoPointIndex = RENDER_INDEX_NONE;
+	size_t m_renderFilterHighLodEdgeIndex = RENDER_INDEX_NONE;
+	size_t m_renderFilterLowLodEdgeIndex = RENDER_INDEX_NONE;
+	UpdateFilterCallback m_filterCallback;
 };
 
 class QuadException : public std::exception

@@ -161,6 +161,18 @@ void App::InitUISettings()
 		if (bindings.contains("Sprint")) { GuiRenderSettings::camKeySprint = bindings["Sprint"]; }
 		if (bindings.contains("OrbitMouseButton")) { GuiRenderSettings::camOrbitMouseButton = bindings["OrbitMouseButton"]; }
 	}
+	if (json.contains("RendererSettings"))
+	{
+		const nlohmann::json& renderSettings = json["RendererSettings"];
+		if (renderSettings.contains("FilterColor"))
+		{
+			const nlohmann::json& color = renderSettings["FilterColor"];
+			if (color.is_array() && color.size() >= 3)
+			{
+				GuiRenderSettings::filterColor = Color(static_cast<unsigned char>(color[0]), static_cast<unsigned char>(color[1]), static_cast<unsigned char>(color[2]));
+			}
+		}
+	}
 }
 
 void App::SaveUISettings()
@@ -188,6 +200,9 @@ void App::SaveUISettings()
 		{"Down", GuiRenderSettings::camKeyDown},
 		{"Sprint", GuiRenderSettings::camKeySprint},
 		{"OrbitMouseButton", GuiRenderSettings::camOrbitMouseButton},
+	};
+	json["RendererSettings"] = {
+		{"FilterColor", {GuiRenderSettings::filterColor.r, GuiRenderSettings::filterColor.g, GuiRenderSettings::filterColor.b}}
 	};
 	std::ofstream file = std::ofstream(m_configFile);
 	file << std::setw(4) << json << std::endl;

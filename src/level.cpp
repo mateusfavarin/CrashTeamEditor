@@ -574,6 +574,12 @@ void Level::BuildRenderModels(std::vector<Model>& models)
 	if (GuiRenderSettings::showBspRectTree) { models.push_back(m_bspModel); }
 	if (GuiRenderSettings::showCheckpoints) { models.push_back(m_checkModel); }
 	if (GuiRenderSettings::showStartpoints) { models.push_back(m_spawnsModel); }
+	if (GuiRenderSettings::filterActive)
+	{
+		if (GuiRenderSettings::showLowLOD) { m_filterEdgeModel.SetMesh(&m_filterEdgeLowLODMesh); }
+		else { m_filterEdgeModel.SetMesh(&m_filterEdgeHighLODMesh); }
+		models.push_back(m_filterEdgeModel);
+	}
 	models.push_back(m_selectedBlockModel);
 	if (GuiRenderSettings::showVisTree) { models.push_back(m_multipleSelectedQuads); }
 }
@@ -673,7 +679,7 @@ bool Level::LoadLEV(const std::filesystem::path& levFile)
 	{
 		PSX::Quadblock quadblock = {};
 		Read(file, quadblock);
-		m_quadblocks.emplace_back(quadblock, vertices);
+		m_quadblocks.emplace_back(quadblock, vertices, [this](const Quadblock& qb) { UpdateFilterRenderData(qb); });
 		m_materialToQuadblocks["default"].push_back(i);
 	}
 
@@ -1437,7 +1443,7 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 					}
 					try
 					{
-						m_quadblocks.emplace_back(currQuadblockName, q0, q1, q2, q3, averageNormal, material, currQuadblockGoodUV);
+						m_quadblocks.emplace_back(currQuadblockName, q0, q1, q2, q3, averageNormal, material, currQuadblockGoodUV, [this](const Quadblock& qb) { UpdateFilterRenderData(qb); });
 						meshMap[currQuadblockName] = true;
 					}
 					catch (const QuadException& e)
@@ -1464,7 +1470,7 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 					}
 					try
 					{
-						m_quadblocks.emplace_back(currQuadblockName, t0, t1, t2, t3, averageNormal, material, currQuadblockGoodUV);
+						m_quadblocks.emplace_back(currQuadblockName, t0, t1, t2, t3, averageNormal, material, currQuadblockGoodUV, [this](const Quadblock& qb) { UpdateFilterRenderData(qb); });
 						meshMap[currQuadblockName] = true;
 					}
 					catch (const QuadException& e)
@@ -1895,10 +1901,13 @@ void Level::GenerateRenderLevData()
 		p6 -- p7 -- p8
 	*/
 	std::vector<float> highLODData, lowLODData, vertexHighLODData, vertexLowLODData;
+	std::vector<float> filterHighLODData, filterLowLODData;
 	size_t highLodVertexCount = 0;
 	size_t lowLodVertexCount = 0;
 	size_t vertexHighLodVertexCount = 0;
 	size_t vertexLowLodVertexCount = 0;
+	size_t filterHighLodVertexCount = 0;
+	size_t filterLowLodVertexCount = 0;
 
 	struct AnimRenderData
 	{
@@ -1941,7 +1950,19 @@ void Level::GenerateRenderLevData()
 			const size_t lowLodBaseIndex = lowLodVertexCount;
 			const size_t vertexHighLodBaseIndex = vertexHighLodVertexCount;
 			const size_t vertexLowLodBaseIndex = vertexLowLodVertexCount;
+			const size_t filterHighLodBaseIndex = filterHighLodVertexCount;
+			const size_t filterLowLodBaseIndex = filterLowLodVertexCount;
 			qb.SetRenderIndices(highLodBaseIndex, lowLodBaseIndex, highLodBaseIndex, lowLodBaseIndex, vertexHighLodBaseIndex, vertexLowLodBaseIndex);
+			qb.SetRenderFilterIndices(filterHighLodBaseIndex, filterLowLodBaseIndex);
+			const Color filterColor = qb.GetFilter() ? GuiRenderSettings::filterColor : Color(static_cast<unsigned char>(0u), static_cast<unsigned char>(0u), static_cast<unsigned char>(0u));
+			Vertex filterVerts[NUM_VERTICES_QUADBLOCK];
+			for (size_t i = 0; i < NUM_VERTICES_QUADBLOCK; i++)
+			{
+				const Vec3& pos = verts[i].m_pos;
+				Vertex v = Vertex(Point(pos.x, pos.y, pos.z, filterColor.r, filterColor.g, filterColor.b));
+				v.m_normal = verts[i].m_normal;
+				filterVerts[i] = v;
+			}
 
 			//clockwise point ordering
 			if (qb.IsQuadblock())
@@ -1994,6 +2015,22 @@ void Level::GenerateRenderLevData()
 					GeomUVs(uvs, 4, thirdPointIndex, lowLODData, texIndex);
 
 					lowLodVertexCount += 3;
+				}
+
+				for (int triIndex = 0; triIndex < 8; triIndex++)
+				{
+					GeomPoint(filterVerts, FaceIndexConstants::quadHLODVertArrangements[triIndex][0], filterHighLODData);
+					GeomPoint(filterVerts, FaceIndexConstants::quadHLODVertArrangements[triIndex][1], filterHighLODData);
+					GeomPoint(filterVerts, FaceIndexConstants::quadHLODVertArrangements[triIndex][2], filterHighLODData);
+					filterHighLodVertexCount += 3;
+				}
+
+				for (int triIndex = 0; triIndex < 2; triIndex++)
+				{
+					GeomPoint(filterVerts, FaceIndexConstants::quadLLODVertArrangements[triIndex][0], filterLowLODData);
+					GeomPoint(filterVerts, FaceIndexConstants::quadLLODVertArrangements[triIndex][1], filterLowLODData);
+					GeomPoint(filterVerts, FaceIndexConstants::quadLLODVertArrangements[triIndex][2], filterLowLODData);
+					filterLowLodVertexCount += 3;
 				}
 			}
 			else
@@ -2062,6 +2099,22 @@ void Level::GenerateRenderLevData()
 
 					lowLodVertexCount += 3;
 				}
+
+				for (int triIndex = 0; triIndex < 4; triIndex++)
+				{
+					GeomPoint(filterVerts, FaceIndexConstants::triHLODVertArrangements[triIndex][0], filterHighLODData);
+					GeomPoint(filterVerts, FaceIndexConstants::triHLODVertArrangements[triIndex][1], filterHighLODData);
+					GeomPoint(filterVerts, FaceIndexConstants::triHLODVertArrangements[triIndex][2], filterHighLODData);
+					filterHighLodVertexCount += 3;
+				}
+
+				for (int triIndex = 0; triIndex < 1; triIndex++)
+				{
+					GeomPoint(filterVerts, FaceIndexConstants::triLLODVertArrangements[triIndex][0], filterLowLODData);
+					GeomPoint(filterVerts, FaceIndexConstants::triLLODVertArrangements[triIndex][1], filterLowLODData);
+					GeomPoint(filterVerts, FaceIndexConstants::triLLODVertArrangements[triIndex][2], filterLowLODData);
+					filterLowLodVertexCount += 3;
+				}
 			}
 		}
 	}
@@ -2071,6 +2124,12 @@ void Level::GenerateRenderLevData()
 
 	m_vertexHighLODMesh.UpdateMesh(vertexHighLODData, (Mesh::VBufDataType::VertexColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
 	m_vertexLowLODMesh.UpdateMesh(vertexLowLODData, (Mesh::VBufDataType::VertexColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
+
+	const unsigned filterMeshFlags = (Mesh::VBufDataType::VertexColor | Mesh::VBufDataType::Normals);
+	const unsigned filterMeshShaderSettings = (Mesh::ShaderSettings::DrawWireframe | Mesh::ShaderSettings::DrawBackfaces | Mesh::ShaderSettings::ForceDrawOnTop |
+		Mesh::ShaderSettings::DrawLinesAA | Mesh::ShaderSettings::DontOverrideShaderSettings | Mesh::ShaderSettings::ThickLines | Mesh::ShaderSettings::DiscardZeroColor);
+	m_filterEdgeHighLODMesh.UpdateMesh(filterHighLODData, filterMeshFlags, filterMeshShaderSettings);
+	m_filterEdgeLowLODMesh.UpdateMesh(filterLowLODData, filterMeshFlags, filterMeshShaderSettings);
 }
 
 void Level::UpdateAnimationRenderData()
@@ -2177,6 +2236,57 @@ void Level::UpdateAnimationRenderData()
 					m_lowLODMesh.UpdateUV(GetUVForVertex(uvs, 4, thirdPointIndex), texIndex, lowLodBaseIndex + triIndex * 3 + 2);
 				}
 			}
+		}
+	}
+}
+
+void Level::UpdateFilterRenderData(const Quadblock& qb)
+{
+	const size_t highLodBaseIndex = qb.GetRenderFilterHighLodEdgeIndex();
+	const size_t lowLodBaseIndex = qb.GetRenderFilterLowLodEdgeIndex();
+	if (highLodBaseIndex == RENDER_INDEX_NONE || lowLodBaseIndex == RENDER_INDEX_NONE) { return; }
+
+	const Vertex* verts = qb.GetUnswizzledVertices();
+	const Color filterColor = qb.GetFilter() ? GuiRenderSettings::filterColor : Color(static_cast<unsigned char>(0u), static_cast<unsigned char>(0u), static_cast<unsigned char>(0u));
+	Vertex filterVerts[NUM_VERTICES_QUADBLOCK];
+	for (size_t i = 0; i < NUM_VERTICES_QUADBLOCK; i++)
+	{
+		const Vec3& pos = verts[i].m_pos;
+		Vertex v = Vertex(Point(pos.x, pos.y, pos.z, filterColor.r, filterColor.g, filterColor.b));
+		v.m_normal = verts[i].m_normal;
+		filterVerts[i] = v;
+	}
+
+	if (qb.IsQuadblock())
+	{
+		for (int triIndex = 0; triIndex < 8; triIndex++)
+		{
+			m_filterEdgeHighLODMesh.UpdatePoint(filterVerts[FaceIndexConstants::quadHLODVertArrangements[triIndex][0]], highLodBaseIndex + triIndex * 3);
+			m_filterEdgeHighLODMesh.UpdatePoint(filterVerts[FaceIndexConstants::quadHLODVertArrangements[triIndex][1]], highLodBaseIndex + triIndex * 3 + 1);
+			m_filterEdgeHighLODMesh.UpdatePoint(filterVerts[FaceIndexConstants::quadHLODVertArrangements[triIndex][2]], highLodBaseIndex + triIndex * 3 + 2);
+		}
+
+		for (int triIndex = 0; triIndex < 2; triIndex++)
+		{
+			m_filterEdgeLowLODMesh.UpdatePoint(filterVerts[FaceIndexConstants::quadLLODVertArrangements[triIndex][0]], lowLodBaseIndex + triIndex * 3);
+			m_filterEdgeLowLODMesh.UpdatePoint(filterVerts[FaceIndexConstants::quadLLODVertArrangements[triIndex][1]], lowLodBaseIndex + triIndex * 3 + 1);
+			m_filterEdgeLowLODMesh.UpdatePoint(filterVerts[FaceIndexConstants::quadLLODVertArrangements[triIndex][2]], lowLodBaseIndex + triIndex * 3 + 2);
+		}
+	}
+	else
+	{
+		for (int triIndex = 0; triIndex < 4; triIndex++)
+		{
+			m_filterEdgeHighLODMesh.UpdatePoint(filterVerts[FaceIndexConstants::triHLODVertArrangements[triIndex][0]], highLodBaseIndex + triIndex * 3);
+			m_filterEdgeHighLODMesh.UpdatePoint(filterVerts[FaceIndexConstants::triHLODVertArrangements[triIndex][1]], highLodBaseIndex + triIndex * 3 + 1);
+			m_filterEdgeHighLODMesh.UpdatePoint(filterVerts[FaceIndexConstants::triHLODVertArrangements[triIndex][2]], highLodBaseIndex + triIndex * 3 + 2);
+		}
+
+		for (int triIndex = 0; triIndex < 1; triIndex++)
+		{
+			m_filterEdgeLowLODMesh.UpdatePoint(filterVerts[FaceIndexConstants::triLLODVertArrangements[triIndex][0]], lowLodBaseIndex + triIndex * 3);
+			m_filterEdgeLowLODMesh.UpdatePoint(filterVerts[FaceIndexConstants::triLLODVertArrangements[triIndex][1]], lowLodBaseIndex + triIndex * 3 + 1);
+			m_filterEdgeLowLODMesh.UpdatePoint(filterVerts[FaceIndexConstants::triLLODVertArrangements[triIndex][2]], lowLodBaseIndex + triIndex * 3 + 2);
 		}
 	}
 }

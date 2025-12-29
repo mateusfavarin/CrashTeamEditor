@@ -860,6 +860,18 @@ void Level::RenderUI()
 				ImGui::Text("Shader:");
 				ImGui::SameLine();
 				ImGui::Combo("##Shader", &GuiRenderSettings::renderType, GuiRenderSettings::renderTypeLabels.data(), static_cast<int>(GuiRenderSettings::renderTypeLabels.size()));
+				ImGui::Text("Filter:");
+				ImGui::SameLine();
+				ImGui::Checkbox("##Filter", &GuiRenderSettings::filterActive);
+				ImGui::SameLine();
+				ImGui::Text("Color:");
+				ImGui::SameLine();
+				float filterColor[3] = { GuiRenderSettings::filterColor.Red(), GuiRenderSettings::filterColor.Green(), GuiRenderSettings::filterColor.Blue() };
+				if (ImGui::ColorEdit3("##FilterColor", filterColor, ImGuiColorEditFlags_NoInputs))
+				{
+					GuiRenderSettings::filterColor = Color(filterColor[0], filterColor[1], filterColor[2]);
+					for (Quadblock& quadblock : m_quadblocks) { UpdateFilterRenderData(quadblock); }
+				}
 				ImGui::Text("Flags:");
 				if (ImGui::BeginTable("Renderer Flags", 2, ImGuiTableFlags_SizingStretchSame))
 				{

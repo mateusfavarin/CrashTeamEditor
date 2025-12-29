@@ -58,6 +58,7 @@ private:
 	int GetTextureIndex(const std::filesystem::path& texPath);
 	void GenerateRenderLevData();
 	void UpdateAnimationRenderData();
+	void UpdateFilterRenderData(const Quadblock& qb);
 	void GenerateRenderBspData(const BSP& bsp);
 	void GenerateRenderCheckpointData(std::vector<Checkpoint>&);
 	void GenerateRenderStartpointData(std::array<Spawn, NUM_DRIVERS>&);
@@ -118,6 +119,8 @@ private:
 	Mesh m_highLODMesh;
 	Mesh m_vertexLowLODMesh;
 	Mesh m_vertexHighLODMesh;
+	Mesh m_filterEdgeLowLODMesh;
+	Mesh m_filterEdgeHighLODMesh;
 	std::unordered_map<std::filesystem::path, int> m_textureStorePaths;
 
 	Model m_levelModel;
@@ -126,6 +129,7 @@ private:
 	Model m_checkModel;
 	Model m_selectedBlockModel;
 	Model m_multipleSelectedQuads;
+	Model m_filterEdgeModel;
 
 	size_t m_rendererSelectedQuadblockIndex;
 	size_t m_lastAnimTextureCount = 0;

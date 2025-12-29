@@ -72,10 +72,12 @@ void Mesh::Bind() const
 	if (m_shaderSettings & Mesh::ShaderSettings::DrawWireframe)
 	{
 		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		glLineWidth((m_shaderSettings & Mesh::ShaderSettings::ThickLines) ? 2.5f : 1.0f);
 	}
 	else
 	{
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		glLineWidth(1.0f);
 	}
 	if (m_shaderSettings & Mesh::ShaderSettings::ForceDrawOnTop)
 	{

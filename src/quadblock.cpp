@@ -5,7 +5,7 @@
 #include <unordered_set>
 #include <cstring>
 
-Quadblock::Quadblock(const std::string& name, Tri& t0, Tri& t1, Tri& t2, Tri& t3, const Vec3& normal, const std::string& material, bool hasUV)
+Quadblock::Quadblock(const std::string& name, Tri& t0, Tri& t1, Tri& t2, Tri& t3, const Vec3& normal, const std::string& material, bool hasUV, UpdateFilterCallback filterCallback)
 {
 	std::unordered_map<Vec3, unsigned> vRefCount;
 	for (size_t i = 0; i < 3; i++)
@@ -161,10 +161,11 @@ Quadblock::Quadblock(const std::string& name, Tri& t0, Tri& t1, Tri& t2, Tri& t3
 	m_name = name;
 	m_material = material;
 	m_triblock = true;
+	m_filterCallback = filterCallback;
 	SetDefaultValues();
 }
 
-Quadblock::Quadblock(const std::string& name, Quad& q0, Quad& q1, Quad& q2, Quad& q3, const Vec3& normal, const std::string& material, bool hasUV)
+Quadblock::Quadblock(const std::string& name, Quad& q0, Quad& q1, Quad& q2, Quad& q3, const Vec3& normal, const std::string& material, bool hasUV, UpdateFilterCallback filterCallback)
 {
 	std::unordered_map<Vec3, unsigned> vRefCount;
 	for (size_t i = 0; i < 4; i++)
@@ -347,10 +348,11 @@ Quadblock::Quadblock(const std::string& name, Quad& q0, Quad& q1, Quad& q2, Quad
 	m_name = name;
 	m_material = material;
 	m_triblock = false;
+	m_filterCallback = filterCallback;
 	SetDefaultValues();
 }
 
-Quadblock::Quadblock(const PSX::Quadblock& quadblock, const std::vector<PSX::Vertex>& vertices)
+Quadblock::Quadblock(const PSX::Quadblock& quadblock, const std::vector<PSX::Vertex>& vertices, UpdateFilterCallback filterCallback)
 {
 	uint16_t reverseIndexMapping[NUM_VERTICES_QUADBLOCK] = { 0, 2, 6, 8, 1, 3, 4, 5, 7 };
 	for (size_t i = 0; i < NUM_VERTICES_QUADBLOCK; i++)
@@ -376,6 +378,7 @@ Quadblock::Quadblock(const PSX::Quadblock& quadblock, const std::vector<PSX::Ver
 	else { m_checkpointStatus = true; }
 	m_material = "default";
 	m_triblock = false;
+	m_filterCallback = filterCallback;
 }
 
 const std::string& Quadblock::GetName() const
@@ -440,6 +443,11 @@ bool Quadblock::GetAnimated() const
 	return m_animated;
 }
 
+bool Quadblock::GetFilter() const
+{
+	return m_filter;
+}
+
 bool Quadblock::GetCheckpointStatus() const
 {
 	return m_checkpointStatus;
@@ -490,6 +498,16 @@ size_t Quadblock::GetRenderLowLodOctoPointIndex() const
 	return m_renderLowLodOctoPointIndex;
 }
 
+size_t Quadblock::GetRenderFilterHighLodEdgeIndex() const
+{
+	return m_renderFilterHighLodEdgeIndex;
+}
+
+size_t Quadblock::GetRenderFilterLowLodEdgeIndex() const
+{
+	return m_renderFilterLowLodEdgeIndex;
+}
+
 void Quadblock::SetRenderIndices(size_t highPointIndex, size_t lowPointIndex, size_t highUvIndex, size_t lowUvIndex, size_t highOctoIndex, size_t lowOctoIndex)
 {
 	m_renderHighLodPointIndex = highPointIndex;
@@ -498,6 +516,12 @@ void Quadblock::SetRenderIndices(size_t highPointIndex, size_t lowPointIndex, si
 	m_renderLowLodUVIndex = lowUvIndex;
 	m_renderHighLodOctoPointIndex = highOctoIndex;
 	m_renderLowLodOctoPointIndex = lowOctoIndex;
+}
+
+void Quadblock::SetRenderFilterIndices(size_t highEdgeIndex, size_t lowEdgeIndex)
+{
+	m_renderFilterHighLodEdgeIndex = highEdgeIndex;
+	m_renderFilterLowLodEdgeIndex = lowEdgeIndex;
 }
 
 void Quadblock::SetTerrain(uint8_t terrain)
@@ -568,6 +592,12 @@ void Quadblock::SetTexPath(const std::filesystem::path& path)
 void Quadblock::SetAnimated(bool animated)
 {
 	m_animated = animated;
+}
+
+void Quadblock::SetFilter(bool filter)
+{
+	m_filter = filter;
+	m_filterCallback(*this);
 }
 
 void Quadblock::SetSpeedImpact(int speed)
@@ -706,6 +736,7 @@ void Quadblock::SetDefaultValues()
 	m_turboPadIndex = TURBO_PAD_INDEX_NONE;
 	m_hide = false;
 	m_animated = false;
+	m_filter = false;
 	m_downforce = 0;
 	m_renderHighLodPointIndex = RENDER_INDEX_NONE;
 	m_renderLowLodPointIndex = RENDER_INDEX_NONE;
@@ -713,6 +744,8 @@ void Quadblock::SetDefaultValues()
 	m_renderLowLodUVIndex = RENDER_INDEX_NONE;
 	m_renderHighLodOctoPointIndex = RENDER_INDEX_NONE;
 	m_renderLowLodOctoPointIndex = RENDER_INDEX_NONE;
+	m_renderFilterHighLodEdgeIndex = RENDER_INDEX_NONE;
+	m_renderFilterLowLodEdgeIndex = RENDER_INDEX_NONE;
 }
 
 Vec3 Quadblock::ComputeNormalVector(size_t id0, size_t id1, size_t id2) const

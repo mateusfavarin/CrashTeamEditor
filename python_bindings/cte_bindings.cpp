@@ -192,6 +192,7 @@ void init_crashteameditor(py::module_& m)
 		.def_property("bsp_id", &Quadblock::GetBSPID, &Quadblock::SetBSPID)
 		.def_property("hide", &Quadblock::GetHide, &Quadblock::SetHide)
 		.def_property("animated", &Quadblock::GetAnimated, &Quadblock::SetAnimated)
+		.def_property("filter", &Quadblock::GetFilter, &Quadblock::SetFilter)
 		.def_property("checkpoint_index", &Quadblock::GetCheckpoint, &Quadblock::SetCheckpoint)
 		.def_property("checkpoint_status", &Quadblock::GetCheckpointStatus, &Quadblock::SetCheckpointStatus)
 		.def_property("tex_path",

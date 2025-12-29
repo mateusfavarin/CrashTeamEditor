@@ -155,6 +155,7 @@ Properties:
 - `bsp_id: int`
 - `hide: bool`
 - `animated: bool`
+- `filter: bool`
 - `checkpoint_index: int`
 - `checkpoint_status: bool`
 - `tex_path: pathlib.Path`

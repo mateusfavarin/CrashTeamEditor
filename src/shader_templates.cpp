@@ -197,6 +197,14 @@ void main()
     FragColor = vertColor;
   }
 
+  if ((shaderSettings & 128) != 0) //128 == "DiscardZeroColor"
+  {
+    if (VertColor.r <= 0.0 && VertColor.g <= 0.0 && VertColor.b <= 0.0)
+    {
+      discard;
+    }
+  }
+
   if ((shaderSettings & 32) != 0) //32 == "Blinky"
   {
     if (mod(time * 1.5, 1.0) < 0.5)
@@ -253,6 +261,14 @@ void main()
   else
   {
     FragColor = vec4(VertColor.rgb, 1.0);
+  }
+
+  if ((shaderSettings & 128) != 0) //128 == "DiscardZeroColor"
+  {
+    if (VertColor.r <= 0.0 && VertColor.g <= 0.0 && VertColor.b <= 0.0)
+    {
+      discard;
+    }
   }
 
   if ((shaderSettings & 32) != 0) //32 == "Blinky"

@@ -24,6 +24,8 @@ public:
 		static constexpr unsigned DrawLinesAA = 8;
 		static constexpr unsigned DontOverrideShaderSettings = 16;
 		static constexpr unsigned Blinky = 32;
+		static constexpr unsigned ThickLines = 64;
+		static constexpr unsigned DiscardZeroColor = 128;
 	};
 
 	struct VBufDataType
