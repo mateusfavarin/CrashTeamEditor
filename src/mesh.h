@@ -6,7 +6,11 @@
 #include "gtc/type_ptr.hpp"
 
 #include <filesystem>
-#include <map>
+#include <unordered_map>
+#include <vector>
+
+class Vertex;
+struct Vec2;
 
 class Mesh
 {
@@ -26,7 +30,7 @@ public:
 	{ //all are assumed to have vertex data (otherwise, what the hell are we drawing?)
 		static constexpr unsigned VertexPos = 1; //implicitly always on
 		static constexpr unsigned Barycentric = 2;
-		static constexpr unsigned VColor = 4;
+		static constexpr unsigned VertexColor = 4;
 		static constexpr unsigned Normals = 8;
 		static constexpr unsigned STUV = 16; //tex coords
 		static constexpr unsigned TexIndex = 32;
@@ -35,13 +39,19 @@ public:
 public:
 	Mesh() {};
 	void UpdateMesh(const std::vector<float>& data, unsigned includedDataFlags, unsigned shadSettings, bool dataIsInterlaced = true);
+	void UpdatePoint(const Vertex& vert, size_t vertexIndex);
+	void UpdateOctoPoint(const Vertex& vert, size_t baseVertexIndex);
+	void UpdateUV(const Vec2& uv, int textureIndex, size_t vertexIndex);
 	int GetDatas() const;
 	int GetShaderSettings() const;
 	void SetShaderSettings(unsigned shadSettings);
-	void SetTextureStore(const std::map<int, std::filesystem::path>& texturePaths);
-	GLuint GetTextureStore();
+	void UpdateTextureStore(const std::filesystem::path& texturePath);
+	GLuint GetTextureStore() const;
 
 private:
+	void AppendTextureStore(const std::filesystem::path& texturePath);
+	std::vector<unsigned char> LoadTextureData(const std::filesystem::path& path);
+	void RebuildTextureData();
 	void Bind() const;
 	void Unbind() const;
 	void Draw() const;
@@ -52,8 +62,10 @@ private:
 	GLuint m_VBO = 0;
 	GLuint m_textures = 0;
 	int m_dataBufSize = 0;
+	int m_vertexCount = 0;
 	unsigned m_includedData = 0;
 	unsigned m_shaderSettings = 0;
-
+	std::vector<std::vector<unsigned char>> m_textureStoreData;
+	std::unordered_map<std::filesystem::path, size_t> m_textureStoreIndex;
 	friend class Model;
 };

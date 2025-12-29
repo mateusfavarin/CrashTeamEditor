@@ -39,6 +39,7 @@ public:
 	const std::filesystem::path& GetParentPath() const;
 	bool LoadPreset(const std::filesystem::path& filename);
 	bool SavePreset(const std::filesystem::path& path);
+	void BuildRenderModels(std::vector<Model>& models);
 	void RenderUI();
 
 private:
@@ -54,18 +55,22 @@ private:
 	bool GenerateCheckpoints();
 	bool GenerateBSP();
 
+	int GetTextureIndex(const std::filesystem::path& texPath);
 	void GenerateRenderLevData();
+	void UpdateAnimationRenderData();
 	void GenerateRenderBspData(const BSP& bsp);
 	void GenerateRenderCheckpointData(std::vector<Checkpoint>&);
 	void GenerateRenderStartpointData(std::array<Spawn, NUM_DRIVERS>&);
 	void GenerateRenderSelectedBlockData(const Quadblock& quadblock, const Vec3& queryPoint);
 	void GenerateRenderMultipleQuadsData(const std::vector<Quadblock*>& quads);
-	void RefreshTextureStores();
+	bool UpdateAnimTextures(float deltaTime);
 	void GeomPoint(const Vertex* verts, int ind, std::vector<float>& data);
 	void GeomOctopoint(const Vertex* verts, int ind, std::vector<float>& data);
 	void GeomBoundingRect(const BSP* b, int depth, std::vector<float>& data);
-	void GeomUVs(const Quadblock& qb, int quadInd, int vertInd, std::vector<float>& data, int textureIndex);
+	void GeomUVs(const std::array<QuadUV, NUM_FACES_QUADBLOCK + 1>& uvs, int quadInd, int vertInd, std::vector<float>& data, int textureIndex);
 	void ViewportClickHandleBlockSelection(int pixelX, int pixelY, const Renderer& rend);
+
+	friend class UI;
 
 private:
 	bool m_saveScript;
@@ -113,6 +118,7 @@ private:
 	Mesh m_highLODMesh;
 	Mesh m_vertexLowLODMesh;
 	Mesh m_vertexHighLODMesh;
+	std::unordered_map<std::filesystem::path, int> m_textureStorePaths;
 
 	Model m_levelModel;
 	Model m_bspModel;
@@ -122,4 +128,5 @@ private:
 	Model m_multipleSelectedQuads;
 
 	size_t m_rendererSelectedQuadblockIndex;
+	size_t m_lastAnimTextureCount = 0;
 };

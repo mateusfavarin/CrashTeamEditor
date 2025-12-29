@@ -6,7 +6,6 @@
 #include "quadblock.h"
 #include "vertex.h"
 #include "utils.h"
-#include "renderer.h"
 #include "gui_render_settings.h"
 #include "mesh.h"
 #include "texture.h"
@@ -20,7 +19,6 @@
 #include <string>
 #include <chrono>
 #include <functional>
-#include <cmath>
 #include <fstream>
 #include <sstream>
 
@@ -522,10 +520,7 @@ void Level::RenderUI()
 
 					if (m_materialToTexture.contains(material))
 					{
-						m_materialToTexture[material].RenderUI(quadblockIndexes, m_quadblocks, [&]() {
-							this->RefreshTextureStores();
-							this->GenerateRenderLevData();
-							});
+						m_materialToTexture[material].RenderUI(quadblockIndexes, m_quadblocks, [&]() { this->UpdateAnimationRenderData(); });
 					}
 
 					ImGui::TreePop();
@@ -841,223 +836,183 @@ void Level::RenderUI()
 
 	if (Windows::w_renderer)
 	{
-		static Renderer rend = Renderer(800.0f, 400.0f);
-		static bool initRend = true;
-		constexpr float bottomPaneHeight = 200.0f;
-
-		if (initRend) { ImGui::SetNextWindowSize({rend.GetWidth(), rend.GetHeight() + bottomPaneHeight}); initRend = false; }
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-		if (ImGui::Begin("Renderer", &Windows::w_renderer, ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse))
+		if (ImGui::Begin("Renderer", &Windows::w_renderer))
 		{
-			ImVec2 pos = ImGui::GetCursorScreenPos();
-			ImVec2 size = ImGui::GetWindowSize();
-			rend.RescaleFramebuffer(size.x, size.y - bottomPaneHeight);
-			ImTextureID tex = static_cast<ImTextureID>(rend.GetTexBuffer());
-			float rendWidth = rend.GetWidth();
-			float rendHeight = rend.GetHeight();
-
-			ImGui::GetWindowDrawList()->AddImage(tex,
-				ImVec2(pos.x, pos.y),
-				ImVec2(pos.x + rendWidth, pos.y + rendHeight),
-				ImVec2(0, 1),
-				ImVec2(1, 0));
-
-			ImVec2 mousePos = ImGui::GetMousePos();
-			struct {
-				int x, y;
-			} pixelCoord((int) (mousePos.x - pos.x), (int) (mousePos.y - pos.y));
-
-			if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+			static std::unordered_map<ImGuiKey, std::string> keyOptions;
+			if (keyOptions.empty())
 			{
-				if (pixelCoord.x >= 0 && pixelCoord.x < rendWidth && pixelCoord.y >= 0 && pixelCoord.y < rendHeight)
+				keyOptions.reserve(ImGuiKey_NamedKey_END - ImGuiKey_NamedKey_BEGIN);
+				for (int key = ImGuiKey_NamedKey_BEGIN; key < ImGuiKey_NamedKey_END; key++)
 				{
-					ViewportClickHandleBlockSelection(pixelCoord.x, pixelCoord.y, rend);
+					std::string label = ImGui::GetKeyName(static_cast<ImGuiKey>(key));
+					keyOptions.insert({static_cast<ImGuiKey>(key), label});
 				}
+				keyOptions.insert({static_cast<ImGuiKey>(ImGuiKey_ModShift), "Shift"});
+				keyOptions.insert({static_cast<ImGuiKey>(ImGuiKey_ModCtrl), "Ctrl"});
+				keyOptions.insert({static_cast<ImGuiKey>(ImGuiKey_ModAlt), "Alt"});
+				keyOptions.insert({static_cast<ImGuiKey>(ImGuiKey_ModSuper), "Super"});
 			}
 
-			std::vector<Model> modelsToRender;
-
-			if (GuiRenderSettings::showLevel)
+			if (ImGui::TreeNodeEx("Settings", ImGuiTreeNodeFlags_DefaultOpen))
 			{
-				modelsToRender.push_back(m_levelModel);
-				if (GuiRenderSettings::showLowLOD)
+				ImGui::Text("Shader:");
+				ImGui::SameLine();
+				ImGui::Combo("##Shader", &GuiRenderSettings::renderType, GuiRenderSettings::renderTypeLabels.data(), static_cast<int>(GuiRenderSettings::renderTypeLabels.size()));
+				ImGui::Text("Flags:");
+				if (ImGui::BeginTable("Renderer Flags", 2, ImGuiTableFlags_SizingStretchSame))
 				{
-					m_levelModel.SetMesh(&m_lowLODMesh);
-					if (GuiRenderSettings::showLevVerts)
+					auto checkboxPair = [](const char* leftLabel, bool* leftValue, const char* rightLabel, bool* rightValue)
+						{
+							ImGui::TableNextRow();
+							ImGui::TableSetColumnIndex(0);
+							ImGui::Checkbox(leftLabel, leftValue);
+							ImGui::TableSetColumnIndex(1);
+							ImGui::Checkbox(rightLabel, rightValue);
+						};
+
+					checkboxPair("Show Low LOD", &GuiRenderSettings::showLowLOD, "Show Wireframe", &GuiRenderSettings::showWireframe);
+					checkboxPair("Show Backfaces", &GuiRenderSettings::showBackfaces, "Show Level Verts", &GuiRenderSettings::showLevVerts);
+					checkboxPair("Show Checkpoints", &GuiRenderSettings::showCheckpoints, "Show Starting Positions", &GuiRenderSettings::showStartpoints);
+					checkboxPair("Show BSP", &GuiRenderSettings::showBspRectTree, "Show Vis Tree", &GuiRenderSettings::showVisTree);
+
+					ImGui::EndTable();
+				}
+
+				ImGui::Text("BSP Depth:");
+				ImGui::BeginDisabled(!GuiRenderSettings::showBspRectTree);
+				if (ImGui::BeginTable("BSP Depth", 2, ImGuiTableFlags_SizingStretchSame))
+				{
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					if (ImGui::SliderInt("Top", &GuiRenderSettings::bspTreeTopDepth, 0, GuiRenderSettings::bspTreeMaxDepth)) //top changed
 					{
-						m_levelModel.SetMesh(&m_vertexLowLODMesh);
+						GuiRenderSettings::bspTreeBottomDepth = std::max(GuiRenderSettings::bspTreeBottomDepth, GuiRenderSettings::bspTreeTopDepth);
+						GenerateRenderBspData(m_bsp);
 					}
-				}
-				else
-				{
-					m_levelModel.SetMesh(&m_highLODMesh);
-					if (GuiRenderSettings::showLevVerts)
+					ImGui::TableSetColumnIndex(1);
+					if (ImGui::SliderInt("Bottom", &GuiRenderSettings::bspTreeBottomDepth, 0, GuiRenderSettings::bspTreeMaxDepth)) //bottom changed
 					{
-						m_levelModel.SetMesh(&m_vertexHighLODMesh);
+						GuiRenderSettings::bspTreeTopDepth = std::min(GuiRenderSettings::bspTreeTopDepth, GuiRenderSettings::bspTreeBottomDepth);
+						GenerateRenderBspData(m_bsp);
 					}
+					ImGui::EndTable();
 				}
-			}
-			if (GuiRenderSettings::showBspRectTree)
-			{
-				modelsToRender.push_back(m_bspModel);
-			}
-			if (GuiRenderSettings::showCheckpoints)
-			{
-				modelsToRender.push_back(m_checkModel);
-			}
-			if (GuiRenderSettings::showStartpoints)
-			{
-				modelsToRender.push_back(m_spawnsModel);
-			}
-			modelsToRender.push_back(m_selectedBlockModel);
-			modelsToRender.push_back(m_multipleSelectedQuads);
+				ImGui::EndDisabled();
 
-			rend.Render(modelsToRender);
-
-			ImGui::SetNextWindowPos(ImVec2(pos.x, pos.y + rendHeight));
-			if (ImGui::BeginChild("Renderer Settings", ImVec2(rendWidth, bottomPaneHeight), ImGuiChildFlags_Border))
-			{
-				static float rollingOneSecond = 0;
-				static int FPS = -1;
-				float fm = fmod(rollingOneSecond, 1.f);
-				if (fm != rollingOneSecond && rollingOneSecond >= 1.f) //2nd condition prevents fps not updating if deltaTime exactly equals 1.f
+				ImGui::Text("Camera:");
+				if (ImGui::BeginTable("Renderer Inputs", 2, ImGuiTableFlags_SizingStretchSame))
 				{
-					FPS = static_cast<int>(1.f / rend.GetLastDeltaTime());
-					rollingOneSecond = fm;
+					auto inputPair = [](const char* leftLabel, float& leftValue, float leftMin, float leftMax,
+						const char* rightLabel, float& rightValue, float rightMin, float rightMax)
+						{
+							ImGui::TableNextRow();
+							ImGui::TableSetColumnIndex(0);
+							if (leftLabel) { if (ImGui::InputFloat(leftLabel, &leftValue)) { leftValue = Clamp(leftValue, leftMin, leftMax); } }
+							else { ImGui::Dummy(ImVec2(0.0f, 0.0f)); }
+							ImGui::TableSetColumnIndex(1);
+							if (rightLabel) { if (ImGui::InputFloat(rightLabel, &rightValue)) { rightValue = Clamp(rightValue, rightMin, rightMax); } }
+							else { ImGui::Dummy(ImVec2(0.0f, 0.0f)); }
+						};
+
+					inputPair("Move Mult", GuiRenderSettings::camMoveMult, 0.0f, std::numeric_limits<float>::max(),
+										"Rotate Mult", GuiRenderSettings::camRotateMult, 0.0f, std::numeric_limits<float>::max());
+					inputPair("Zoom Mult", GuiRenderSettings::camZoomMult, 0.0f, std::numeric_limits<float>::max(),
+										"Sprint Mult", GuiRenderSettings::camSprintMult, 0.0f, std::numeric_limits<float>::max());
+					float dummy;
+					inputPair("FOV", GuiRenderSettings::camFovDeg, 5.0f, 150.0f, nullptr, dummy, 0.0f, 0.0f);
+					ImGui::EndTable();
 				}
-				rollingOneSecond += rend.GetLastDeltaTime();
-				if (ImGui::TreeNode("Options"))
-				{
-					if (ImGui::BeginTable("Renderer Settings Table", 2))
+
+				ImGui::Text("Camera Bindings:");
+				auto DrawKeyRow = [](const char* label, int& keyValue)
 					{
-						/*
-							* *** Enable viewport resizing
-							* Filter by material (highlight all quads with a specified subset of materials)
-							* Filter by quad flags (higlight all quads with a specified subset of quadflags)
-							* Filter by draw flags ""
-							* Filter by terrain ""
-							*
-							* draw bsp as wireframe or as transparent objs
-							*
-							* draw (low lod) wireframe on top of the mesh as an option
-							*
-							* NOTE: resetBsp does not trigger when vertex color changes.
-							*
-							* Make mesh read live data.
-							*
-							* Editor features (edit in viewport blender style).
-							*/
-						static std::string camMoveMult = std::to_string(GuiRenderSettings::camMoveMult);
-						static std::string camRotateMult = std::to_string(GuiRenderSettings::camRotateMult);
-						static std::string camSprintMult = std::to_string(GuiRenderSettings::camSprintMult);
-						static std::string camFOV = std::to_string(GuiRenderSettings::camFovDeg);
+						ImGui::TableNextRow();
+						ImGui::TableSetColumnIndex(0);
+						ImGui::TextUnformatted(label);
+						ImGui::TableSetColumnIndex(1);
+						ImGuiKey currentKey = static_cast<ImGuiKey>(keyValue);
+						std::string preview = keyOptions[currentKey];
+						std::string comboId = std::string("##") + label;
+						if (ImGui::BeginCombo(comboId.c_str(), preview.c_str()))
+						{
+							for (const auto& entry : keyOptions)
+							{
+								bool selected = (entry.first == currentKey);
+								if (ImGui::Selectable(entry.second.c_str(), selected))
+								{
+									keyValue = entry.first;
+								}
+								if (selected) { ImGui::SetItemDefaultFocus(); }
+							}
+							ImGui::EndCombo();
+						}
+					};
 
-						static bool showCheckpoints = false;
-						static bool	showStartingPositions = false;
-						static bool	showBspRectTree = false;
-
-						float textFieldWidth = std::max(rendWidth / 6.0f, 50.0f);
+				auto DrawMouseRow = [](const char* label, int& buttonValue)
+					{
+						constexpr std::pair<int, const char*> mouseOptions[] = {
+							{ImGuiMouseButton_Left, "Left"},
+							{ImGuiMouseButton_Right, "Right"},
+							{ImGuiMouseButton_Middle, "Middle"},
+						};
 
 						ImGui::TableNextRow();
 						ImGui::TableSetColumnIndex(0);
-						ImGui::Text("FPS: %d", FPS);
-
-						ImGui::Text(""
-							"Camera Controls:\n"
-							"\t* WASD to move in/out & pan\n"
-							"\t* Arrow keys to rotate cam\n"
-							"\t* Spacebar to move up, Shift to move down\n"
-							"\t* Ctrl to \"Sprint\"");
-
-						ImGui::Combo("Render", &GuiRenderSettings::renderType, GuiRenderSettings::renderTypeLabels.data(), static_cast<int>(GuiRenderSettings::renderTypeLabels.size()));
-
-						ImGui::Checkbox("Show Low LOD", &GuiRenderSettings::showLowLOD);
-						ImGui::Checkbox("Show Wireframe", &GuiRenderSettings::showWireframe);
-						ImGui::Checkbox("Show Backfaces", &GuiRenderSettings::showBackfaces);
-						ImGui::Checkbox("Show Level Verts", &GuiRenderSettings::showLevVerts);
-						ImGui::Checkbox("Show Checkpoints", &GuiRenderSettings::showCheckpoints);
-						ImGui::Checkbox("Show Starting Positions", &GuiRenderSettings::showStartpoints);
-						ImGui::Checkbox("Show BSP Rect Tree", &GuiRenderSettings::showBspRectTree);
-						ImGui::Checkbox("Show Vis Tree", &GuiRenderSettings::showVisTree);
-
-						ImGui::PushItemWidth(textFieldWidth);
-						if (ImGui::SliderInt("BSP Rect Tree top depth", &GuiRenderSettings::bspTreeTopDepth, 0, GuiRenderSettings::bspTreeMaxDepth)) //top changed
-						{
-							GuiRenderSettings::bspTreeBottomDepth = std::max(GuiRenderSettings::bspTreeBottomDepth, GuiRenderSettings::bspTreeTopDepth);
-							GenerateRenderBspData(m_bsp);
-						}
-						if (ImGui::SliderInt("BSP Rect Tree bottom depth", &GuiRenderSettings::bspTreeBottomDepth, 0, GuiRenderSettings::bspTreeMaxDepth)) //bottom changed
-						{
-							GuiRenderSettings::bspTreeTopDepth = std::min(GuiRenderSettings::bspTreeTopDepth, GuiRenderSettings::bspTreeBottomDepth);
-							GenerateRenderBspData(m_bsp);
-						}
-
-						/* TODO
-						if (ImGui::BeginCombo("(NOT IMPL) Mask by Materials", "..."))
-						{
-							ImGui::Selectable("(NOT IMPL)");
-							ImGui::EndCombo();
-						}
-						if (ImGui::BeginCombo("(NOT IMPL) Mask by Quad flags", "..."))
-						{
-							ImGui::Selectable("(NOT IMPL)");
-							ImGui::EndCombo();
-						}
-						if (ImGui::BeginCombo("(NOT IMPL) Mask by Draw flags", "..."))
-						{
-							ImGui::Selectable("(NOT IMPL)");
-							ImGui::EndCombo();
-						}
-						if (ImGui::BeginCombo("(NOT IMPL) Mask by Terrain", "..."))
-						{
-							ImGui::Selectable("(NOT IMPL)");
-							ImGui::EndCombo();
-						}
-						*/
-
-						auto textUI = [](const std::string& label, std::string& uiValue, float& renderSetting, float minThres = -std::numeric_limits<float>::max(), float maxThres = std::numeric_limits<float>::max())
-							{
-								float val;
-								if (ImGui::InputText(label.c_str(), &uiValue) && ParseFloat(uiValue, val))
-								{
-									val = Clamp(val, minThres, maxThres);
-									uiValue = std::to_string(val);
-									renderSetting = val;
-								}
-							};
-
-						textUI("Camera Move Multiplier", camMoveMult, GuiRenderSettings::camMoveMult, 0.01f);
-						textUI("Camera Rotate Multiplier", camRotateMult, GuiRenderSettings::camRotateMult, 0.01f);
-						textUI("Camera Sprint Multiplier", camSprintMult, GuiRenderSettings::camSprintMult, 1.0f);
-						textUI("Camera FOV", camFOV, GuiRenderSettings::camFovDeg, 5.0f, 150.0f);
-						ImGui::PopItemWidth();
-
+						ImGui::TextUnformatted(label);
 						ImGui::TableSetColumnIndex(1);
-
-						if (m_rendererSelectedQuadblockIndex != REND_NO_SELECTED_QUADBLOCK)
+						std::string comboId = std::string("##") + label;
+						if (ImGui::BeginCombo(comboId.c_str(), mouseOptions[buttonValue].second))
 						{
-							Quadblock& quadblock = m_quadblocks[m_rendererSelectedQuadblockIndex];
-							bool resetBsp = false;
-							if (quadblock.RenderUI(m_checkpoints.size() - 1, resetBsp))
+							for (const auto& entry : mouseOptions)
 							{
-								ManageTurbopad(quadblock);
+								bool selected = (entry.first == buttonValue);
+								if (ImGui::Selectable(entry.second, selected))
+								{
+									buttonValue = entry.first;
+								}
+								if (selected) { ImGui::SetItemDefaultFocus(); }
 							}
-							if (resetBsp && m_bsp.IsValid())
-							{
-								m_bsp.Clear();
-								GenerateRenderBspData(m_bsp);
-							}
+							ImGui::EndCombo();
 						}
+					};
 
-						ImGui::EndTable();
-					}
-					ImGui::TreePop();
+				if (ImGui::BeginTable("Camera Bindings Table", 2, ImGuiTableFlags_SizingStretchSame))
+				{
+					DrawMouseRow("Orbit Mouse Button", GuiRenderSettings::camOrbitMouseButton);
+					DrawKeyRow("Forward", GuiRenderSettings::camKeyForward);
+					DrawKeyRow("Back", GuiRenderSettings::camKeyBack);
+					DrawKeyRow("Left", GuiRenderSettings::camKeyLeft);
+					DrawKeyRow("Right", GuiRenderSettings::camKeyRight);
+					DrawKeyRow("Up", GuiRenderSettings::camKeyUp);
+					DrawKeyRow("Down", GuiRenderSettings::camKeyDown);
+					DrawKeyRow("Sprint", GuiRenderSettings::camKeySprint);
+					ImGui::EndTable();
+				}
+				ImGui::TreePop();
+			}
+
+			static size_t prevSelectedQuadblock = REND_NO_SELECTED_QUADBLOCK;
+			if (m_rendererSelectedQuadblockIndex != REND_NO_SELECTED_QUADBLOCK)
+			{
+				Quadblock& quadblock = m_quadblocks[m_rendererSelectedQuadblockIndex];
+				bool resetBsp = false;
+				if (prevSelectedQuadblock != m_rendererSelectedQuadblockIndex)
+				{
+					prevSelectedQuadblock = m_rendererSelectedQuadblockIndex;
+					ImGui::SetNextItemOpen(true);
+				}
+				if (quadblock.RenderUI(m_checkpoints.size() - 1, resetBsp))
+				{
+					ManageTurbopad(quadblock);
+				}
+				if (resetBsp && m_bsp.IsValid())
+				{
+					m_bsp.Clear();
+					GenerateRenderBspData(m_bsp);
 				}
 			}
-			ImGui::EndChild();
 		}
 		ImGui::End();
-		ImGui::PopStyleVar();
 	}
 
 	if (Windows::w_python)
@@ -1326,8 +1281,8 @@ bool Quadblock::RenderUI(size_t checkpointCount, bool& resetBsp)
 		if (ImGui::TreeNode("Draw Flags"))
 		{
 			ImGui::Checkbox("Double Sided", &m_doubleSided);
-			const std::vector<std::string> s_rotateFlip = { "None", "Rotate 90", "Rotate 180", "Rotate -90", "Flip + Rotate 90", "Flip + Rotate 180", "Flip + Rotate -90", "Flip" };
-			const std::vector<std::string> s_faceDrawMode = { "Both", "Left", "Right", "None" };
+			const std::vector<std::string> s_rotateFlip = {"None", "Rotate 90", "Rotate 180", "Rotate -90", "Flip + Rotate 90", "Flip + Rotate 180", "Flip + Rotate -90", "Flip"};
+			const std::vector<std::string> s_faceDrawMode = {"Both", "Left", "Right", "None"};
 
 			auto UISelectable = [](size_t quadIndex, const std::string& label, const std::vector<std::string>& options, uint32_t* data)
 				{

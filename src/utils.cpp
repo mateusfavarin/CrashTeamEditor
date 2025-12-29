@@ -32,9 +32,3 @@ bool Matches(const std::string& a, const std::string& b)
 	std::string b_lower = Lower(b);
 	return a_lower.find(b_lower) != std::string::npos;
 }
-
-bool ParseFloat(const std::string& str, float& out)
-{
-	std::istringstream iss(str);
-	return iss >> out && iss.eof();
-}

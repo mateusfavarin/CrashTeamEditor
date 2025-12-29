@@ -1,291 +1,434 @@
 #include <map>
+#include <bit>
 
 #include "mesh.h"
+#include "vertex.h"
 #include "stb_image.h"
 #define STB_IMAGE_RESIZE_IMPLEMENTATION
 #include "stb_image_resize2.h"
 
+static int GetStrideFloats(unsigned includedDataFlags)
+{
+	int stride = 0;
+	if ((includedDataFlags & Mesh::VBufDataType::VertexPos) != 0) { stride += 3; }
+	if ((includedDataFlags & Mesh::VBufDataType::Barycentric) != 0) { stride += 3; }
+	if ((includedDataFlags & Mesh::VBufDataType::VertexColor) != 0) { stride += 3; }
+	if ((includedDataFlags & Mesh::VBufDataType::Normals) != 0) { stride += 3; }
+	if ((includedDataFlags & Mesh::VBufDataType::STUV) != 0) { stride += 2; }
+	if ((includedDataFlags & Mesh::VBufDataType::TexIndex) != 0) { stride += 1; }
+	return stride;
+}
+
+static int GetAttributeOffsetFloats(unsigned includedDataFlags, unsigned targetFlag)
+{
+	int offset = 0;
+	auto step = [&](unsigned flag, int size) -> bool
+		{
+			if ((includedDataFlags & flag) == 0) { return false; }
+			if (targetFlag == flag) { return true; }
+			offset += size;
+			return false;
+		};
+
+	if (step(Mesh::VBufDataType::VertexPos, 3)) { return offset; }
+	if (step(Mesh::VBufDataType::Barycentric, 3)) { return offset; }
+	if (step(Mesh::VBufDataType::VertexColor, 3)) { return offset; }
+	if (step(Mesh::VBufDataType::Normals, 3)) { return offset; }
+	if (step(Mesh::VBufDataType::STUV, 2)) { return offset; }
+	if (step(Mesh::VBufDataType::TexIndex, 1)) { return offset; }
+	return -1;
+}
+
 void Mesh::Bind() const
 {
-  if (m_VAO != 0)
-  {
-    glBindVertexArray(m_VAO);
-    glEnableVertexAttribArray(0);
-    glEnableVertexAttribArray(1);
-    glEnableVertexAttribArray(2);
-    if (m_textures)
-    {
-      glEnableVertexAttribArray(3);
-      glEnableVertexAttribArray(4);
-      glActiveTexture(GL_TEXTURE0);
-      glBindTexture(GL_TEXTURE_2D_ARRAY, m_textures);
-    }
-    {
-      GLenum err = glGetError();
+	if (m_VAO != 0)
+	{
+		glBindVertexArray(m_VAO);
+		glEnableVertexAttribArray(0);
+		glEnableVertexAttribArray(1);
+		glEnableVertexAttribArray(2);
+		if (m_textures)
+		{
+			glEnableVertexAttribArray(3);
+			glEnableVertexAttribArray(4);
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D_ARRAY, m_textures);
+		}
+		{
+			GLenum err = glGetError();
 			if (err != GL_NO_ERROR) { fprintf(stderr, "Error a! %d\n", err); }
-    }
-  }
+		}
+	}
 
-  if (m_shaderSettings & Mesh::ShaderSettings::DrawBackfaces)
-  {
-    glDisable(GL_CULL_FACE);
-  }
-  else
-  {
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_FRONT);
-  }
-  if (m_shaderSettings & Mesh::ShaderSettings::DrawWireframe)
-  {
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-  }
-  else
-  {
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-  }
-  if (m_shaderSettings & Mesh::ShaderSettings::ForceDrawOnTop)
-  {
-    glDisable(GL_DEPTH_TEST);
-  }
-  else
-  {
-    glEnable(GL_DEPTH_TEST);
-  }
-  if (m_shaderSettings & Mesh::ShaderSettings::DrawLinesAA)
-  {
-    glEnable(GL_LINE_SMOOTH);
-  }
-  else
-  {
-    glDisable(GL_LINE_SMOOTH);
-  }
+	if (m_shaderSettings & Mesh::ShaderSettings::DrawBackfaces)
+	{
+		glDisable(GL_CULL_FACE);
+	}
+	else
+	{
+		glEnable(GL_CULL_FACE);
+		glCullFace(GL_FRONT);
+	}
+	if (m_shaderSettings & Mesh::ShaderSettings::DrawWireframe)
+	{
+		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	}
+	else
+	{
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	}
+	if (m_shaderSettings & Mesh::ShaderSettings::ForceDrawOnTop)
+	{
+		glDisable(GL_DEPTH_TEST);
+	}
+	else
+	{
+		glEnable(GL_DEPTH_TEST);
+	}
+	if (m_shaderSettings & Mesh::ShaderSettings::DrawLinesAA)
+	{
+		glEnable(GL_LINE_SMOOTH);
+	}
+	else
+	{
+		glDisable(GL_LINE_SMOOTH);
+	}
 }
 
 void Mesh::Unbind() const
 {
-  glBindVertexArray(0);
-  glDisableVertexAttribArray(0);
-  glDisableVertexAttribArray(1);
-  glDisableVertexAttribArray(2);
-  glDisableVertexAttribArray(3);
-  glDisableVertexAttribArray(4);
-  glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
-  {
-    GLenum err = glGetError();
+	glBindVertexArray(0);
+	glDisableVertexAttribArray(0);
+	glDisableVertexAttribArray(1);
+	glDisableVertexAttribArray(2);
+	glDisableVertexAttribArray(3);
+	glDisableVertexAttribArray(4);
+	glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
+	{
+		GLenum err = glGetError();
 		if (err != GL_NO_ERROR) { fprintf(stderr, "Error b! %d\n", err); }
-  }
+	}
 }
 
 void Mesh::Draw() const
 {
-	if (m_VAO != 0)
-  {
-    glDrawArrays(GL_TRIANGLES, 0, m_dataBufSize / sizeof(float));
-  }
+	if (m_VAO == 0) { return; }
+	glDrawArrays(GL_TRIANGLES, 0, m_vertexCount);
 }
 
-/// <summary>
-/// When passing data[], any present data according to the "includedDataFlags" is expected to be in this order:
-///
-/// vertex/position data (always assumed to be present).
-/// barycentric (1, 0, 0), (0, 1, 0), (0, 0, 1).
-/// normal
-/// vcolor
-/// stuv_1
-/// </summary>
+/*
+When passing data[], any present data according to the "includedDataFlags" is expected to be in this order:
+* vertex/position data (always assumed to be present).
+* barycentric (1, 0, 0), (0, 1, 0), (0, 0, 1).
+* normal
+* vcolor
+* stuv_1
+*/
 void Mesh::UpdateMesh(const std::vector<float>& data, unsigned includedDataFlags, unsigned shadSettings, bool dataIsInterlaced)
 {
-  Dispose();
+	includedDataFlags |= VBufDataType::VertexPos;
+	const bool reuseBuffers = (m_VAO != 0 && m_VBO != 0 && m_includedData == includedDataFlags);
+	if (!reuseBuffers) { Dispose(); }
 
-  includedDataFlags |= VBufDataType::VertexPos;
+	m_dataBufSize = static_cast<unsigned>(data.size() * sizeof(float));
+	m_includedData = includedDataFlags;
+	m_shaderSettings = shadSettings;
+	m_vertexCount = 0;
 
-  m_dataBufSize = static_cast<unsigned>(data.size() * sizeof(float));
-  m_includedData = includedDataFlags;
-  m_shaderSettings = shadSettings;
+	int ultimateStrideSize = 0;
+	for (size_t i = 0; i < sizeof(int) * 8; i++)
+	{
+		switch ((includedDataFlags) & (1 << i))
+		{
+		case VBufDataType::VertexPos:
+			ultimateStrideSize += 3;
+			break;
+		case VBufDataType::Barycentric:
+			ultimateStrideSize += 3;
+			break;
+		case VBufDataType::VertexColor:
+			ultimateStrideSize += 3;
+			break;
+		case VBufDataType::Normals:
+			ultimateStrideSize += 3;
+			break;
+		case VBufDataType::STUV:
+			ultimateStrideSize += 2;
+			break;
+		case VBufDataType::TexIndex:
+			ultimateStrideSize += 1;
+			break;
+		}
+	}
 
-  glGenVertexArrays(1, &m_VAO);
-  glBindVertexArray(m_VAO);
+	if (ultimateStrideSize > 0)
+	{
+		m_vertexCount = static_cast<int>(data.size() / ultimateStrideSize);
+	}
 
-  glGenBuffers(1, &m_VBO);
-  glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
-  glBufferData(GL_ARRAY_BUFFER, m_dataBufSize, data.data(), GL_STATIC_DRAW);
+	if (reuseBuffers && dataIsInterlaced)
+	{
+		glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
+		glBufferData(GL_ARRAY_BUFFER, m_dataBufSize, data.data(), GL_STATIC_DRAW);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		return;
+	}
 
-  int ultimateStrideSize = 0;
-  for (size_t i = 0; i < sizeof(int) * 8; i++)
-  {
-    switch ((includedDataFlags) & (1 << i))
-    {
-    case VBufDataType::VertexPos: //dimension = 3
-      ultimateStrideSize += 3;
-      break;
-    case VBufDataType::Barycentric: //dimension = 3
-      ultimateStrideSize += 3;
-      break;
-    case VBufDataType::VColor: //dimension = 3
-      ultimateStrideSize += 3;
-      break;
-    case VBufDataType::Normals: //dimension = 3
-      ultimateStrideSize += 3;
-      break;
-    case VBufDataType::STUV: //dimension = 2
-      ultimateStrideSize += 2;
-      break;
-    case VBufDataType::TexIndex: //dimension = 1
-      ultimateStrideSize += 1;
-      break;
-    }
-  }
+	if (!dataIsInterlaced)
+	{
+		fprintf(stderr, "Unimplemented dataIsInterlaced=false in Mesh::UpdateMesh()");
+		throw 0;
+	}
 
-  if (dataIsInterlaced)
-  {
-    //although this works, it's possible that what I'm trying to do here can be done much more simply via some opengl feature(s).
-    for (int openglPositionCounter = 0, takenSize = 0, takenCount = 0; openglPositionCounter < 6 /*# of flags in VBufDataType*/; openglPositionCounter++)
-    {
-      switch (1 << openglPositionCounter)
-      {
-			case VBufDataType::VertexPos: //position
-        if ((includedDataFlags & VBufDataType::VertexPos) != 0)
-        {
-          constexpr int dim = 3;
-          glVertexAttribPointer(takenCount, dim, GL_FLOAT, GL_FALSE, ultimateStrideSize * sizeof(float), (void*)(takenSize * sizeof(float)));
-          glEnableVertexAttribArray(takenCount);
-          takenCount++;
-          takenSize += dim;
-        }
-        break;
-			case VBufDataType::Barycentric: //barycentric
-        if ((includedDataFlags & VBufDataType::Barycentric) != 0)
-        {
-          constexpr int dim = 3;
-          glVertexAttribPointer(takenCount, dim, GL_FLOAT, GL_FALSE, ultimateStrideSize * sizeof(float), (void*)(takenSize * sizeof(float)));
-          glEnableVertexAttribArray(takenCount);
-          takenCount++;
-          takenSize += dim;
-        }
-        break;
-      case VBufDataType::VColor:
-        if ((includedDataFlags & VBufDataType::VColor) != 0)
-        {
-          constexpr int dim = 3;
-          glVertexAttribPointer(takenCount, dim, GL_FLOAT, GL_FALSE, ultimateStrideSize * sizeof(float), (void*)(takenSize * sizeof(float)));
-          glEnableVertexAttribArray(takenCount);
-          takenCount++;
-          takenSize += dim;
-        }
-        break;
-      case VBufDataType::Normals:
-        if ((includedDataFlags & VBufDataType::Normals) != 0)
-        {
-          constexpr int dim = 3;
-          glVertexAttribPointer(takenCount, dim, GL_FLOAT, GL_FALSE, ultimateStrideSize * sizeof(float), (void*)(takenSize * sizeof(float)));
-          glEnableVertexAttribArray(takenCount);
-          takenCount++;
-          takenSize += dim;
-        }
-        break;
-      case VBufDataType::STUV:
-        if ((includedDataFlags & VBufDataType::STUV) != 0)
-        {
-          constexpr int dim = 2;
-          glVertexAttribPointer(takenCount, dim, GL_FLOAT, GL_FALSE, ultimateStrideSize * sizeof(float), (void*)(takenSize * sizeof(float)));
-          glEnableVertexAttribArray(takenCount);
-          takenCount++;
-          takenSize += dim;
-        }
-        break;
-      case VBufDataType::TexIndex:
-        if ((includedDataFlags & VBufDataType::TexIndex) != 0)
-        {
-          //this only works because sizeof(float) == sizeof(int)
-          constexpr int dim = 1;
-          glVertexAttribIPointer(takenCount, dim, GL_INT, ultimateStrideSize * sizeof(int), (void*)(takenSize * sizeof(int)));
-          glEnableVertexAttribArray(takenCount);
-          takenCount++;
-          takenSize += dim;
-        }
-        break;
-      }
-    }
-  }
-  else
-  {
-    fprintf(stderr, "Unimplemented dataIsInterlaced=false in Mesh::UpdateMesh()");
-    throw 0;
-  }
+	glGenVertexArrays(1, &m_VAO);
+	glBindVertexArray(m_VAO);
 
-  glBindBuffer(GL_ARRAY_BUFFER, 0);
-  glBindVertexArray(0);
+	glGenBuffers(1, &m_VBO);
+	glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
+	glBufferData(GL_ARRAY_BUFFER, m_dataBufSize, data.data(), GL_STATIC_DRAW);
+
+	//although this works, it's possible that what I'm trying to do here can be done much more simply via some opengl feature(s).
+	for (int openglPositionCounter = 0, takenSize = 0, takenCount = 0; openglPositionCounter < 6 /*# of flags in VBufDataType*/; openglPositionCounter++)
+	{
+		switch (1 << openglPositionCounter)
+		{
+		case VBufDataType::VertexPos:
+			if ((includedDataFlags & VBufDataType::VertexPos) != 0)
+			{
+				constexpr int dim = 3;
+				glVertexAttribPointer(takenCount, dim, GL_FLOAT, GL_FALSE, ultimateStrideSize * sizeof(float), (void*) (takenSize * sizeof(float)));
+				glEnableVertexAttribArray(takenCount);
+				takenCount++;
+				takenSize += dim;
+			}
+			break;
+		case VBufDataType::Barycentric:
+			if ((includedDataFlags & VBufDataType::Barycentric) != 0)
+			{
+				constexpr int dim = 3;
+				glVertexAttribPointer(takenCount, dim, GL_FLOAT, GL_FALSE, ultimateStrideSize * sizeof(float), (void*) (takenSize * sizeof(float)));
+				glEnableVertexAttribArray(takenCount);
+				takenCount++;
+				takenSize += dim;
+			}
+			break;
+		case VBufDataType::VertexColor:
+			if ((includedDataFlags & VBufDataType::VertexColor) != 0)
+			{
+				constexpr int dim = 3;
+				glVertexAttribPointer(takenCount, dim, GL_FLOAT, GL_FALSE, ultimateStrideSize * sizeof(float), (void*) (takenSize * sizeof(float)));
+				glEnableVertexAttribArray(takenCount);
+				takenCount++;
+				takenSize += dim;
+			}
+			break;
+		case VBufDataType::Normals:
+			if ((includedDataFlags & VBufDataType::Normals) != 0)
+			{
+				constexpr int dim = 3;
+				glVertexAttribPointer(takenCount, dim, GL_FLOAT, GL_FALSE, ultimateStrideSize * sizeof(float), (void*) (takenSize * sizeof(float)));
+				glEnableVertexAttribArray(takenCount);
+				takenCount++;
+				takenSize += dim;
+			}
+			break;
+		case VBufDataType::STUV:
+			if ((includedDataFlags & VBufDataType::STUV) != 0)
+			{
+				constexpr int dim = 2;
+				glVertexAttribPointer(takenCount, dim, GL_FLOAT, GL_FALSE, ultimateStrideSize * sizeof(float), (void*) (takenSize * sizeof(float)));
+				glEnableVertexAttribArray(takenCount);
+				takenCount++;
+				takenSize += dim;
+			}
+			break;
+		case VBufDataType::TexIndex:
+			if ((includedDataFlags & VBufDataType::TexIndex) != 0)
+			{
+				//this only works because sizeof(float) == sizeof(int)
+				constexpr int dim = 1;
+				glVertexAttribIPointer(takenCount, dim, GL_INT, ultimateStrideSize * sizeof(int), (void*) (takenSize * sizeof(int)));
+				glEnableVertexAttribArray(takenCount);
+				takenCount++;
+				takenSize += dim;
+			}
+			break;
+		}
+	}
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
+}
+
+void Mesh::UpdatePoint(const Vertex& vert, size_t vertexIndex)
+{
+	if (m_VBO == 0) { return; }
+	if ((m_includedData & VBufDataType::VertexPos) == 0) { return; }
+	if ((m_includedData & VBufDataType::VertexColor) == 0) { return; }
+	if ((m_includedData & VBufDataType::Normals) == 0) { return; }
+
+	const int stride = GetStrideFloats(m_includedData);
+	const int posOffset = GetAttributeOffsetFloats(m_includedData, VBufDataType::VertexPos);
+	const int colorOffset = GetAttributeOffsetFloats(m_includedData, VBufDataType::VertexColor);
+	const int normalOffset = GetAttributeOffsetFloats(m_includedData, VBufDataType::Normals);
+	if (stride <= 0 || posOffset < 0 || colorOffset < 0 || normalOffset < 0) { return; }
+
+	const float posData[3] = { vert.m_pos.x, vert.m_pos.y, vert.m_pos.z };
+	Color col = vert.GetColor(true);
+	const float colorData[3] = { col.Red(), col.Green(), col.Blue() };
+	const float normalData[3] = { vert.m_normal.x, vert.m_normal.y, vert.m_normal.z };
+
+	glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
+	glBufferSubData(GL_ARRAY_BUFFER, static_cast<GLintptr>((vertexIndex * stride + posOffset) * sizeof(float)), sizeof(posData), posData);
+	glBufferSubData(GL_ARRAY_BUFFER, static_cast<GLintptr>((vertexIndex * stride + colorOffset) * sizeof(float)), sizeof(colorData), colorData);
+	glBufferSubData(GL_ARRAY_BUFFER, static_cast<GLintptr>((vertexIndex * stride + normalOffset) * sizeof(float)), sizeof(normalData), normalData);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
+void Mesh::UpdateOctoPoint(const Vertex& vert, size_t baseVertexIndex)
+{
+	constexpr float radius = 0.5f;
+	constexpr float sqrtThree = 1.44224957031f;
+
+	Vertex v = Vertex(vert);
+	size_t vertexIndex = baseVertexIndex;
+
+	v.m_pos.x += radius; v.m_normal = Vec3(1.f / sqrtThree, 1.f / sqrtThree, 1.f / sqrtThree); UpdatePoint(v, vertexIndex++); v.m_pos.x -= radius;
+	v.m_pos.y += radius; UpdatePoint(v, vertexIndex++); v.m_pos.y -= radius;
+	v.m_pos.z += radius; UpdatePoint(v, vertexIndex++); v.m_pos.z -= radius;
+
+	v.m_pos.x -= radius; v.m_normal = Vec3(-1.f / sqrtThree, 1.f / sqrtThree, 1.f / sqrtThree); UpdatePoint(v, vertexIndex++); v.m_pos.x += radius;
+	v.m_pos.y += radius; UpdatePoint(v, vertexIndex++); v.m_pos.y -= radius;
+	v.m_pos.z += radius; UpdatePoint(v, vertexIndex++); v.m_pos.z -= radius;
+
+	v.m_pos.x += radius; v.m_normal = Vec3(1.f / sqrtThree, -1.f / sqrtThree, 1.f / sqrtThree); UpdatePoint(v, vertexIndex++); v.m_pos.x -= radius;
+	v.m_pos.y -= radius; UpdatePoint(v, vertexIndex++); v.m_pos.y += radius;
+	v.m_pos.z += radius; UpdatePoint(v, vertexIndex++); v.m_pos.z -= radius;
+
+	v.m_pos.x += radius; v.m_normal = Vec3(1.f / sqrtThree, 1.f / sqrtThree, -1.f / sqrtThree); UpdatePoint(v, vertexIndex++); v.m_pos.x -= radius;
+	v.m_pos.y += radius; UpdatePoint(v, vertexIndex++); v.m_pos.y -= radius;
+	v.m_pos.z -= radius; UpdatePoint(v, vertexIndex++); v.m_pos.z += radius;
+
+	v.m_pos.x -= radius; v.m_normal = Vec3(-1.f / sqrtThree, -1.f / sqrtThree, 1.f / sqrtThree); UpdatePoint(v, vertexIndex++); v.m_pos.x += radius;
+	v.m_pos.y -= radius; UpdatePoint(v, vertexIndex++); v.m_pos.y += radius;
+	v.m_pos.z += radius; UpdatePoint(v, vertexIndex++); v.m_pos.z -= radius;
+
+	v.m_pos.x += radius; v.m_normal = Vec3(1.f / sqrtThree, -1.f / sqrtThree, -1.f / sqrtThree); UpdatePoint(v, vertexIndex++); v.m_pos.x -= radius;
+	v.m_pos.y -= radius; UpdatePoint(v, vertexIndex++); v.m_pos.y += radius;
+	v.m_pos.z -= radius; UpdatePoint(v, vertexIndex++); v.m_pos.z += radius;
+
+	v.m_pos.x -= radius; v.m_normal = Vec3(-1.f / sqrtThree, 1.f / sqrtThree, -1.f / sqrtThree); UpdatePoint(v, vertexIndex++); v.m_pos.x += radius;
+	v.m_pos.y += radius; UpdatePoint(v, vertexIndex++); v.m_pos.y -= radius;
+	v.m_pos.z -= radius; UpdatePoint(v, vertexIndex++); v.m_pos.z += radius;
+
+	v.m_pos.x -= radius; v.m_normal = Vec3(-1.f / sqrtThree, -1.f / sqrtThree, -1.f / sqrtThree); UpdatePoint(v, vertexIndex++); v.m_pos.x += radius;
+	v.m_pos.y -= radius; UpdatePoint(v, vertexIndex++); v.m_pos.y += radius;
+	v.m_pos.z -= radius; UpdatePoint(v, vertexIndex++); v.m_pos.z += radius;
+}
+
+void Mesh::UpdateUV(const Vec2& uv, int textureIndex, size_t vertexIndex)
+{
+	if (m_VBO == 0) { return; }
+	if ((m_includedData & VBufDataType::STUV) == 0) { return; }
+	if ((m_includedData & VBufDataType::TexIndex) == 0) { return; }
+
+	const int stride = GetStrideFloats(m_includedData);
+	const int uvOffset = GetAttributeOffsetFloats(m_includedData, VBufDataType::STUV);
+	const int texOffset = GetAttributeOffsetFloats(m_includedData, VBufDataType::TexIndex);
+	if (stride <= 0 || uvOffset < 0 || texOffset < 0) { return; }
+
+	const float uvData[2] = { uv.x, uv.y };
+	const float texIndexData = std::bit_cast<float>(textureIndex);
+
+	glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
+	glBufferSubData(GL_ARRAY_BUFFER, static_cast<GLintptr>((vertexIndex * stride + uvOffset) * sizeof(float)), sizeof(uvData), uvData);
+	glBufferSubData(GL_ARRAY_BUFFER, static_cast<GLintptr>((vertexIndex * stride + texOffset) * sizeof(float)), sizeof(texIndexData), &texIndexData);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 int Mesh::GetDatas() const
 {
-  return m_includedData;
+	return m_includedData;
 }
 
 int Mesh::GetShaderSettings() const
 {
-  return m_shaderSettings;
+	return m_shaderSettings;
 }
 
 void Mesh::SetShaderSettings(unsigned shadSettings)
 {
-  m_shaderSettings = shadSettings;
+	m_shaderSettings = shadSettings;
 }
 
-void Mesh::SetTextureStore(const std::map<int, std::filesystem::path>& texturePaths)
+static constexpr int textureWidth = 256;
+static constexpr int textureHeight = 256;
+std::vector<unsigned char> Mesh::LoadTextureData(const std::filesystem::path& path)
 {
-  if (m_textures) { glDeleteTextures(1, &m_textures); m_textures = 0; }
+	constexpr int textureChannels = 4;
+	constexpr size_t textureLayerSize = static_cast<size_t>(textureWidth) * textureHeight * textureChannels;
+	std::vector<unsigned char> data(textureLayerSize);
+	int w = 0, h = 0, channels = 0;
+	stbi_uc* originalData = stbi_load(path.generic_string().c_str(), &w, &h, &channels, textureChannels);
 
-  glGenTextures(1, &m_textures);
-  glBindTexture(GL_TEXTURE_2D_ARRAY, m_textures);
-
-  glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-  glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA8, 256, 256, static_cast<GLsizei>(texturePaths.size()), 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-
-  for (int texIndex = 0; texIndex < static_cast<int>(texturePaths.size()); texIndex++)
-  {
-    const std::filesystem::path& path = texturePaths.at(texIndex);
-    int w, h, channels;
-    stbi_uc* originalData;
-    originalData = stbi_load(path.generic_string().c_str(), &w, &h, &channels, 4);
-
-    constexpr int ww = 256, hh = 256;
-    static unsigned char finalData[ww * hh * 4];
-
-    if (originalData == nullptr)
-    {
-      printf("Failed to load texture: \"%s\", defaulting to 50%% grey.\n", path.generic_string().c_str());
-
-      memset(finalData, 0x7F, ww * hh * 4);
-      for (size_t i = 0; i < ww * hh * 4; i += 4)
-        finalData[i + 3] = 0xFF;
-
-      glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, static_cast<GLint>(texIndex), 256, 256, 1, GL_RGBA, GL_UNSIGNED_BYTE, (const void*)finalData);
-    }
-    else
-    {
-      memset(finalData, 0xFF, ww * hh * 4);
-
-      stbir_resize(originalData, w, h, 4 * w, finalData, ww, hh, 4 * ww, stbir_pixel_layout::STBIR_RGBA, stbir_datatype::STBIR_TYPE_UINT8, stbir_edge::STBIR_EDGE_CLAMP, stbir_filter::STBIR_FILTER_POINT_SAMPLE);
-
-      glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, static_cast<GLint>(texIndex), 256, 256, 1, GL_RGBA, GL_UNSIGNED_BYTE, (const void*)finalData);
-      stbi_image_free(originalData);
-    }
-  }
+	if (originalData == nullptr)
+	{
+		memset(data.data(), 0x7F, data.size());
+		for (size_t i = 3; i < data.size(); i += textureChannels) { data[i] = static_cast<unsigned char>(0xFF); }
+	}
+	else
+	{
+		memset(data.data(), 0xFF, data.size());
+		stbir_resize(originalData, w, h, textureChannels * w, data.data(), textureWidth, textureHeight, textureChannels * textureWidth,
+			stbir_pixel_layout::STBIR_RGBA, stbir_datatype::STBIR_TYPE_UINT8, stbir_edge::STBIR_EDGE_CLAMP, stbir_filter::STBIR_FILTER_POINT_SAMPLE);
+		stbi_image_free(originalData);
+	}
+	return data;
 }
 
-GLuint Mesh::GetTextureStore()
+void Mesh::RebuildTextureData()
 {
-  return m_textures;
+	if (m_textures) { glDeleteTextures(1, &m_textures); m_textures = 0; }
+
+	glGenTextures(1, &m_textures);
+	glBindTexture(GL_TEXTURE_2D_ARRAY, m_textures);
+
+	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA8, textureWidth, textureHeight, static_cast<GLsizei>(m_textureStoreData.size()), 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+
+	for (size_t i = 0; i < m_textureStoreData.size(); i++)
+	{
+		glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, static_cast<GLint>(i), textureWidth, textureHeight, 1, GL_RGBA, GL_UNSIGNED_BYTE, m_textureStoreData[i].data());
+	}
+}
+
+void Mesh::UpdateTextureStore(const std::filesystem::path& texturePath)
+{
+	if (!m_textureStoreIndex.contains(texturePath)) { AppendTextureStore(texturePath); return; }
+	m_textureStoreData[m_textureStoreIndex[texturePath]] = LoadTextureData(texturePath);
+	RebuildTextureData();
+}
+
+void Mesh::AppendTextureStore(const std::filesystem::path& texturePath)
+{
+	m_textureStoreIndex[texturePath] = m_textureStoreData.size();
+	m_textureStoreData.push_back(LoadTextureData(texturePath));
+	RebuildTextureData();
+}
+
+GLuint Mesh::GetTextureStore() const
+{
+	return m_textures;
 }
 
 void Mesh::Dispose()
 {
 	if (m_VAO != 0) { glDeleteVertexArrays(1, &m_VAO); m_VAO = 0; }
 	if (m_VBO != 0) { glDeleteBuffers(1, &m_VBO); m_VBO = 0; }
-  m_dataBufSize = 0;
+	m_dataBufSize = 0;
+	m_vertexCount = 0;
 }

@@ -1,6 +1,7 @@
 #include "animtexture.h"
 #include "level.h"
 
+#include <algorithm>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -43,6 +44,74 @@ const std::vector<Texture>& AnimTexture::GetTextures() const
 	return m_textures;
 }
 
+bool AnimTexture::AdvanceRender(float deltaTime)
+{
+	deltaTime = std::max(deltaTime, 0.0f);
+	if (m_frames.empty())
+	{
+		ResetRenderState();
+		return false;
+	}
+
+	const size_t frameCount = m_frames.size();
+	bool reset = false;
+	if (m_startAtFrame != m_renderStartAtFrame || static_cast<unsigned int>(m_duration) != m_renderDuration)
+	{
+		ResetRenderState();
+	}
+
+	if (m_renderDirty)
+	{
+		m_renderDirty = false;
+		reset = true;
+	}
+
+	const float frameDuration = static_cast<float>(m_renderDuration) / 30.0f;
+	if (frameCount <= 1) { return reset; }
+	if (frameDuration <= 0.0f)
+	{
+		if (deltaTime <= 0.0f) { return reset; }
+		m_renderFrameIndex++;
+		if (m_renderFrameIndex >= frameCount)
+		{
+			m_renderFrameIndex = m_renderStartAtFrame;
+		}
+		return true;
+	}
+
+	m_renderFrameTimer += deltaTime;
+	bool advanced = false;
+	while (m_renderFrameTimer >= frameDuration)
+	{
+		m_renderFrameTimer -= frameDuration;
+		m_renderFrameIndex++;
+		if (m_renderFrameIndex >= frameCount)
+		{
+			m_renderFrameIndex = m_renderStartAtFrame;
+		}
+		advanced = true;
+	}
+
+	return reset || advanced;
+}
+
+const AnimTextureFrame& AnimTexture::GetRenderFrame() const
+{
+	const int frameCount = static_cast<int>(m_frames.size());
+	if (frameCount <= 0)
+	{
+		static AnimTextureFrame emptyFrame = {};
+		return emptyFrame;
+	}
+
+	size_t frameIndex = m_renderFrameIndex;
+	if (frameIndex >= frameCount)
+	{
+		frameIndex = static_cast<size_t>(std::clamp(m_startAtFrame, 0, static_cast<int>(frameCount - 1)));
+	}
+	return m_frames[frameIndex];
+}
+
 std::vector<uint8_t> AnimTexture::Serialize(size_t offsetFirstFrame, size_t offTextures) const
 {
 	std::vector<uint8_t> buffer(sizeof(PSX::AnimTex));
@@ -79,6 +148,7 @@ void AnimTexture::CopyParameters(const AnimTexture& animTex)
 	m_rotation = animTex.m_rotation;
 	m_textures = animTex.m_textures;
 	m_frames = animTex.m_frames;
+	m_renderDirty = true;
 }
 
 bool AnimTexture::IsEquivalent(const AnimTexture& animTex) const
@@ -150,6 +220,7 @@ void AnimTexture::SetDefaultParams()
 	m_verMirror = false;
 	m_previewQuadIndex = 0;
 	m_manualOrientation = false;
+	ResetRenderState();
 }
 
 void AnimTexture::MirrorQuadUV(bool horizontal, std::array<QuadUV, 5>& uvs)
@@ -228,6 +299,7 @@ void AnimTexture::MirrorFrames(bool horizontal)
 	{
 		MirrorQuadUV(horizontal, frame.uvs);
 	}
+	m_renderDirty = true;
 }
 
 void AnimTexture::RotateFrames(int targetRotation)
@@ -240,4 +312,14 @@ void AnimTexture::RotateFrames(int targetRotation)
 	{
 		for (int i = 0; i < rotTimes; i++) { RotateQuadUV(frame.uvs); }
 	}
+	m_renderDirty = true;
+}
+
+void AnimTexture::ResetRenderState()
+{
+	m_renderFrameTimer = 0.0f;
+	m_renderStartAtFrame = static_cast<size_t>(m_startAtFrame);
+	m_renderDuration = static_cast<unsigned int>(m_duration);
+	m_renderFrameIndex = m_renderStartAtFrame;
+	m_renderDirty = true;
 }

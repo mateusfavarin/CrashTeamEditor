@@ -9,10 +9,12 @@
 #include <cstdint>
 #include <array>
 #include <filesystem>
+#include <limits>
 
 static constexpr size_t NUM_FACES_QUADBLOCK = 4;
 static constexpr size_t TURBO_PAD_INDEX_NONE = 0;
 static constexpr float TURBO_PAD_QUADBLOCK_TRANSLATION = 0.5f;
+static constexpr size_t RENDER_INDEX_NONE = std::numeric_limits<size_t>::max();
 
 struct QuadFlags
 {
@@ -157,6 +159,13 @@ public:
 	const QuadUV& GetQuadUV(size_t quad) const;
 	const std::filesystem::path& GetTexPath() const;
 	const std::array<QuadUV, NUM_FACES_QUADBLOCK + 1>& GetUVs() const;
+	size_t GetRenderHighLodPointIndex() const;
+	size_t GetRenderLowLodPointIndex() const;
+	size_t GetRenderHighLodUVIndex() const;
+	size_t GetRenderLowLodUVIndex() const;
+	size_t GetRenderHighLodOctoPointIndex() const;
+	size_t GetRenderLowLodOctoPointIndex() const;
+	void SetRenderIndices(size_t highPointIndex, size_t lowPointIndex, size_t highUvIndex, size_t lowUvIndex, size_t highOctoIndex, size_t lowOctoIndex);
 	void SetTerrain(uint8_t terrain);
 	void SetFlag(uint16_t flag);
 	void SetCheckpoint(int index);
@@ -217,6 +226,12 @@ private:
 	std::array<size_t, NUM_FACES_QUADBLOCK + 1> m_textureIDs = { 0, 0, 0, 0, 0 };
 	std::array<size_t, NUM_FACES_QUADBLOCK + 1> m_animTexOffset = {0, 0, 0, 0, 0};
 	std::filesystem::path m_texPath;
+	size_t m_renderHighLodPointIndex = RENDER_INDEX_NONE;
+	size_t m_renderLowLodPointIndex = RENDER_INDEX_NONE;
+	size_t m_renderHighLodUVIndex = RENDER_INDEX_NONE;
+	size_t m_renderLowLodUVIndex = RENDER_INDEX_NONE;
+	size_t m_renderHighLodOctoPointIndex = RENDER_INDEX_NONE;
+	size_t m_renderLowLodOctoPointIndex = RENDER_INDEX_NONE;
 };
 
 class QuadException : public std::exception

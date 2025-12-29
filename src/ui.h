@@ -27,6 +27,7 @@ public:
 	void Render(int width, int height);
 private:
 	void MainMenu();
+	void RenderWorld();
 
 private:
 	Level m_lev;

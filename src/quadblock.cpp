@@ -460,6 +460,46 @@ const std::array<QuadUV, NUM_FACES_QUADBLOCK + 1>& Quadblock::GetUVs() const
 	return m_uvs;
 }
 
+size_t Quadblock::GetRenderHighLodPointIndex() const
+{
+	return m_renderHighLodPointIndex;
+}
+
+size_t Quadblock::GetRenderLowLodPointIndex() const
+{
+	return m_renderLowLodPointIndex;
+}
+
+size_t Quadblock::GetRenderHighLodUVIndex() const
+{
+	return m_renderHighLodUVIndex;
+}
+
+size_t Quadblock::GetRenderLowLodUVIndex() const
+{
+	return m_renderLowLodUVIndex;
+}
+
+size_t Quadblock::GetRenderHighLodOctoPointIndex() const
+{
+	return m_renderHighLodOctoPointIndex;
+}
+
+size_t Quadblock::GetRenderLowLodOctoPointIndex() const
+{
+	return m_renderLowLodOctoPointIndex;
+}
+
+void Quadblock::SetRenderIndices(size_t highPointIndex, size_t lowPointIndex, size_t highUvIndex, size_t lowUvIndex, size_t highOctoIndex, size_t lowOctoIndex)
+{
+	m_renderHighLodPointIndex = highPointIndex;
+	m_renderLowLodPointIndex = lowPointIndex;
+	m_renderHighLodUVIndex = highUvIndex;
+	m_renderLowLodUVIndex = lowUvIndex;
+	m_renderHighLodOctoPointIndex = highOctoIndex;
+	m_renderLowLodOctoPointIndex = lowOctoIndex;
+}
+
 void Quadblock::SetTerrain(uint8_t terrain)
 {
 	m_terrain = terrain;
@@ -667,6 +707,12 @@ void Quadblock::SetDefaultValues()
 	m_hide = false;
 	m_animated = false;
 	m_downforce = 0;
+	m_renderHighLodPointIndex = RENDER_INDEX_NONE;
+	m_renderLowLodPointIndex = RENDER_INDEX_NONE;
+	m_renderHighLodUVIndex = RENDER_INDEX_NONE;
+	m_renderLowLodUVIndex = RENDER_INDEX_NONE;
+	m_renderHighLodOctoPointIndex = RENDER_INDEX_NONE;
+	m_renderLowLodOctoPointIndex = RENDER_INDEX_NONE;
 }
 
 Vec3 Quadblock::ComputeNormalVector(size_t id0, size_t id1, size_t id2) const
