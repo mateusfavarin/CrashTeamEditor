@@ -254,7 +254,6 @@ Constructors:
 Methods:
 - `load(filename: pathlib.Path) -> bool`
 - `save(path: pathlib.Path) -> bool`
-- `open_hot_reload_window() -> None`
 - `clear(clear_errors: bool = True) -> None`
 - `load_preset(filename: pathlib.Path) -> bool`
 - `save_preset(path: pathlib.Path) -> bool`

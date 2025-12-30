@@ -29,7 +29,6 @@ public:
 	bool Load(const std::filesystem::path& filename);
 	bool Save(const std::filesystem::path& path);
 	bool IsLoaded() const;
-	void OpenHotReloadWindow();
 	void Clear(bool clearErrors);
 	const std::string& GetName() const;
 	std::vector<Quadblock>& GetQuadblocks();
@@ -39,8 +38,6 @@ public:
 	const std::filesystem::path& GetParentPath() const;
 	bool LoadPreset(const std::filesystem::path& filename);
 	bool SavePreset(const std::filesystem::path& path);
-	void BuildRenderModels(std::vector<Model>& models);
-	void RenderUI();
 
 private:
 	void ManageTurbopad(Quadblock& quadblock);
@@ -54,6 +51,10 @@ private:
 	bool UpdateVRM();
 	bool GenerateCheckpoints();
 	bool GenerateBSP();
+
+	void OpenHotReloadWindow();
+	void BuildRenderModels(std::vector<Model>& models);
+	void RenderUI();
 
 	int GetTextureIndex(const std::filesystem::path& texPath);
 	void GenerateRenderLevData();
