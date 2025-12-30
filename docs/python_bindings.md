@@ -156,6 +156,7 @@ Properties:
 - `hide: bool`
 - `animated: bool`
 - `filter: bool`
+- `filter_color: Color`
 - `checkpoint_index: int`
 - `checkpoint_status: bool`
 - `tex_path: pathlib.Path`
@@ -209,6 +210,11 @@ Constructors:
 - `Path(index: int)`
 - `Path(other: Path)` (copy constructor)
 
+Properties:
+- `startIndexes: list[int]` (live reference)
+- `endIndexes: list[int]` (live reference)
+- `ignoreIndexes: list[int]` (live reference)
+
 Methods:
 - `get_index() -> int`
 - `get_start() -> int`
@@ -255,6 +261,7 @@ Methods:
 - `load(filename: pathlib.Path) -> bool`
 - `save(path: pathlib.Path) -> bool`
 - `clear(clear_errors: bool = True) -> None`
+- `reset_filter() -> None`
 - `load_preset(filename: pathlib.Path) -> bool`
 - `save_preset(path: pathlib.Path) -> bool`
 

@@ -160,6 +160,7 @@ public:
 	bool GetHide() const;
 	bool GetAnimated() const;
 	bool GetFilter() const;
+	const Color& GetFilterColor() const;
 	bool GetCheckpointStatus() const;
 	const QuadUV& GetQuadUV(size_t quad) const;
 	const std::filesystem::path& GetTexPath() const;
@@ -190,6 +191,7 @@ public:
 	void SetTexPath(const std::filesystem::path& path);
 	void SetAnimated(bool animated);
 	void SetFilter(bool filter);
+	void SetFilterColor(const Color& color);
 	void SetSpeedImpact(int speed);
 	void TranslateNormalVec(float ratio);
 	const BoundingBox& GetBoundingBox() const;
@@ -231,6 +233,7 @@ private:
 	QuadblockTrigger m_trigger;
 	int m_downforce;
 	size_t m_turboPadIndex;
+	Color m_filterColor;
 	mutable size_t m_bspID;
 	std::array<QuadUV, NUM_FACES_QUADBLOCK + 1> m_uvs; /* Last id is reserved for low tex */
 	std::array<size_t, NUM_FACES_QUADBLOCK + 1> m_textureIDs = { 0, 0, 0, 0, 0 };

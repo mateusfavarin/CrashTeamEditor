@@ -38,6 +38,7 @@ public:
 	const std::filesystem::path& GetParentPath() const;
 	bool LoadPreset(const std::filesystem::path& filename);
 	bool SavePreset(const std::filesystem::path& path);
+	void ResetFilter();
 
 private:
 	void ManageTurbopad(Quadblock& quadblock);

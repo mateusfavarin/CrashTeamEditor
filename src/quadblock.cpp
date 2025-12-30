@@ -1,5 +1,6 @@
 #include "quadblock.h"
 #include "utils.h"
+#include "gui_render_settings.h"
 
 #include <unordered_map>
 #include <unordered_set>
@@ -448,6 +449,11 @@ bool Quadblock::GetFilter() const
 	return m_filter;
 }
 
+const Color& Quadblock::GetFilterColor() const
+{
+	return m_filterColor;
+}
+
 bool Quadblock::GetCheckpointStatus() const
 {
 	return m_checkpointStatus;
@@ -600,6 +606,12 @@ void Quadblock::SetFilter(bool filter)
 	m_filterCallback(*this);
 }
 
+void Quadblock::SetFilterColor(const Color& color)
+{
+	m_filterColor = color;
+	m_filterCallback(*this);
+}
+
 void Quadblock::SetSpeedImpact(int speed)
 {
 	m_downforce = speed;
@@ -738,6 +750,7 @@ void Quadblock::SetDefaultValues()
 	m_animated = false;
 	m_filter = false;
 	m_downforce = 0;
+	m_filterColor = GuiRenderSettings::defaultFilterColor;
 	m_renderHighLodPointIndex = RENDER_INDEX_NONE;
 	m_renderLowLodPointIndex = RENDER_INDEX_NONE;
 	m_renderHighLodUVIndex = RENDER_INDEX_NONE;

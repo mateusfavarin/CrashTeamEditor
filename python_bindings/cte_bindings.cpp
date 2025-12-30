@@ -20,6 +20,7 @@ namespace py = pybind11;
 PYBIND11_MAKE_OPAQUE(std::vector<Quadblock>);
 PYBIND11_MAKE_OPAQUE(std::vector<Checkpoint>);
 PYBIND11_MAKE_OPAQUE(std::vector<Path>);
+PYBIND11_MAKE_OPAQUE(std::vector<size_t>);
 
 namespace
 {
@@ -193,6 +194,7 @@ void init_crashteameditor(py::module_& m)
 		.def_property("hide", &Quadblock::GetHide, &Quadblock::SetHide)
 		.def_property("animated", &Quadblock::GetAnimated, &Quadblock::SetAnimated)
 		.def_property("filter", &Quadblock::GetFilter, &Quadblock::SetFilter)
+		.def_property("filter_color", &Quadblock::GetFilterColor, &Quadblock::SetFilterColor)
 		.def_property("checkpoint_index", &Quadblock::GetCheckpoint, &Quadblock::SetCheckpoint)
 		.def_property("checkpoint_status", &Quadblock::GetCheckpointStatus, &Quadblock::SetCheckpointStatus)
 		.def_property("tex_path",
@@ -259,6 +261,9 @@ void init_crashteameditor(py::module_& m)
 		.def("get_index", &Path::GetIndex)
 		.def("get_start", &Path::GetStart)
 		.def("get_end", &Path::GetEnd)
+		.def_property_readonly("startIndexes", &Path::GetStartIndexes, py::return_value_policy::reference_internal)
+		.def_property_readonly("endIndexes", &Path::GetEndIndexes, py::return_value_policy::reference_internal)
+		.def_property_readonly("ignoreIndexes", &Path::GetIgnoreIndexes, py::return_value_policy::reference_internal)
 		.def("is_ready", &Path::IsReady)
 		.def("set_index", &Path::SetIndex)
 		.def("update_dist", &Path::UpdateDist, py::arg("dist"), py::arg("ref_point"), py::arg("checkpoints"))
@@ -269,6 +274,7 @@ void init_crashteameditor(py::module_& m)
 	py::bind_vector<std::vector<Quadblock>>(m, "QuadblockList");
 	py::bind_vector<std::vector<Checkpoint>>(m, "CheckpointList");
 	py::bind_vector<std::vector<Path>>(m, "PathList");
+	py::bind_vector<std::vector<size_t>>(m, "IndexList");
 
 	py::enum_<BSPNode> bspNode(m, "BSPNode");
 	bspNode
@@ -331,6 +337,7 @@ void init_crashteameditor(py::module_& m)
 		.def("save", &Level::Save, py::arg("path"))
 		.def_property_readonly("is_loaded", &Level::IsLoaded)
 		.def("clear", &Level::Clear, py::arg("clear_errors") = true)
+		.def("reset_filter", &Level::ResetFilter)
 		.def_property_readonly("name", &Level::GetName, py::return_value_policy::copy)
 		.def_property_readonly("quadblocks", &Level::GetQuadblocks, py::return_value_policy::reference_internal)
 		.def_property_readonly("bsp", &Level::GetBSP, py::return_value_policy::reference_internal)

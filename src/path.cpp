@@ -66,6 +66,21 @@ size_t Path::GetEnd() const
 	return m_end;
 }
 
+std::vector<size_t>& Path::GetStartIndexes()
+{
+	return m_quadIndexesStart;
+}
+
+std::vector<size_t>& Path::GetEndIndexes()
+{
+	return m_quadIndexesEnd;
+}
+
+std::vector<size_t>& Path::GetIgnoreIndexes()
+{
+	return m_quadIndexesIgnore;
+}
+
 bool Path::IsReady() const
 {
 	bool left = true; if (m_left) { left = m_left->IsReady(); }

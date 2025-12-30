@@ -17,6 +17,9 @@ public:
 	size_t GetIndex() const;
 	size_t GetStart() const;
 	size_t GetEnd() const;
+	std::vector<size_t>& GetStartIndexes();
+	std::vector<size_t>& GetEndIndexes();
+	std::vector<size_t>& GetIgnoreIndexes();
 	bool IsReady() const;
 	void SetIndex(size_t index);
 	void UpdateDist(float dist, const Vec3& refPoint, std::vector<Checkpoint>& checkpoints);

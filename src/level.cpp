@@ -552,6 +552,15 @@ bool Level::SavePreset(const std::filesystem::path& path)
 	return true;
 }
 
+void Level::ResetFilter()
+{
+	for (Quadblock& qb : m_quadblocks)
+	{
+		qb.SetFilter(false);
+		qb.SetFilterColor(GuiRenderSettings::defaultFilterColor);
+	}
+}
+
 void Level::BuildRenderModels(std::vector<Model>& models)
 {
 	models.clear();
@@ -1954,7 +1963,7 @@ void Level::GenerateRenderLevData()
 			const size_t filterLowLodBaseIndex = filterLowLodVertexCount;
 			qb.SetRenderIndices(highLodBaseIndex, lowLodBaseIndex, highLodBaseIndex, lowLodBaseIndex, vertexHighLodBaseIndex, vertexLowLodBaseIndex);
 			qb.SetRenderFilterIndices(filterHighLodBaseIndex, filterLowLodBaseIndex);
-			const Color filterColor = qb.GetFilter() ? GuiRenderSettings::filterColor : Color(static_cast<unsigned char>(0u), static_cast<unsigned char>(0u), static_cast<unsigned char>(0u));
+			const Color& filterColor = qb.GetFilter() ? qb.GetFilterColor() : Color(static_cast<unsigned char>(0u), static_cast<unsigned char>(0u), static_cast<unsigned char>(0u));
 			Vertex filterVerts[NUM_VERTICES_QUADBLOCK];
 			for (size_t i = 0; i < NUM_VERTICES_QUADBLOCK; i++)
 			{
@@ -2247,7 +2256,7 @@ void Level::UpdateFilterRenderData(const Quadblock& qb)
 	if (highLodBaseIndex == RENDER_INDEX_NONE || lowLodBaseIndex == RENDER_INDEX_NONE) { return; }
 
 	const Vertex* verts = qb.GetUnswizzledVertices();
-	const Color filterColor = qb.GetFilter() ? GuiRenderSettings::filterColor : Color(static_cast<unsigned char>(0u), static_cast<unsigned char>(0u), static_cast<unsigned char>(0u));
+	const Color& filterColor = qb.GetFilter() ? qb.GetFilterColor() : Color(static_cast<unsigned char>(0u), static_cast<unsigned char>(0u), static_cast<unsigned char>(0u));
 	Vertex filterVerts[NUM_VERTICES_QUADBLOCK];
 	for (size_t i = 0; i < NUM_VERTICES_QUADBLOCK; i++)
 	{
