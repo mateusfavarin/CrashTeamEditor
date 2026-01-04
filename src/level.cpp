@@ -176,6 +176,57 @@ bool Level::GenerateCheckpoints()
 	}
 
 	int lastPathIndex = static_cast<int>(m_checkpointPaths.size()) - 1;
+	const int endCheckpointIndex = static_cast<int>(m_checkpointPaths[lastPathIndex].GetEnd());
+	const Vec3& endCheckpointPos = m_checkpoints[endCheckpointIndex].GetPos();
+	const Vec3& startCheckpointPos = m_checkpoints[m_checkpointPaths[0].GetStart()].GetPos();
+	BoundingBox bbox;
+	bbox.min = Vec3(std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
+	bbox.max = Vec3(-std::numeric_limits<float>::max(), -std::numeric_limits<float>::max(), -std::numeric_limits<float>::max());
+	bool hasFinishBBox = false;
+	for (const Quadblock& quadblock : m_quadblocks)
+	{
+		if (quadblock.GetCheckpoint() != endCheckpointIndex) { continue; }
+		hasFinishBBox = true;
+		const BoundingBox& quadBbox = quadblock.GetBoundingBox();
+		bbox.min.x = std::min(bbox.min.x, quadBbox.min.x); bbox.max.x = std::max(bbox.max.x, quadBbox.max.x);
+		bbox.min.y = std::min(bbox.min.y, quadBbox.min.y); bbox.max.y = std::max(bbox.max.y, quadBbox.max.y);
+		bbox.min.z = std::min(bbox.min.z, quadBbox.min.z); bbox.max.z = std::max(bbox.max.z, quadBbox.max.z);
+	}
+
+	const float epsilon = 1e-6f;
+	const Vec3 direction = startCheckpointPos - endCheckpointPos;
+	if (!hasFinishBBox || direction.LengthSquared() < epsilon) { m_checkpoints.clear(); return false; }
+
+	float tmin = -std::numeric_limits<float>::infinity();
+	float tmax = std::numeric_limits<float>::infinity();
+	bool hit = true;
+
+	auto UpdateSlab = [&](float origin, float dir, float minVal, float maxVal)
+		{
+			if (!hit) { return; }
+			if (std::abs(dir) < epsilon)
+			{
+				if (origin < minVal || origin > maxVal) { hit = false; }
+				return;
+			}
+			float t1 = (minVal - origin) / dir;
+			float t2 = (maxVal - origin) / dir;
+			if (t1 > t2) { std::swap(t1, t2); }
+			tmin = std::max(tmin, t1);
+			tmax = std::min(tmax, t2);
+			if (tmin > tmax) { hit = false; }
+		};
+
+	UpdateSlab(endCheckpointPos.x, direction.x, bbox.min.x, bbox.max.x);
+	UpdateSlab(endCheckpointPos.y, direction.y, bbox.min.y, bbox.max.y);
+	UpdateSlab(endCheckpointPos.z, direction.z, bbox.min.z, bbox.max.z);
+
+	if (hit && tmax >= 0.0f)
+	{
+		const Vec3 finishLinePos = endCheckpointPos + (direction * tmax);
+		m_checkpointPaths[lastPathIndex].UpdateDist(0.0f, finishLinePos, m_checkpoints);
+	}
+
 	const Checkpoint* currStartCheckpoint = &m_checkpoints[m_checkpointPaths[lastPathIndex].GetStart()];
 	for (int i = lastPathIndex - 1; i >= 0; i--)
 	{
@@ -199,150 +250,150 @@ bool Level::GenerateCheckpoints()
 	}
 
 	// Cap the number of checkpoints to 255
-    const size_t MAX_CHECKPOINTS = 255;
-    if (m_checkpoints.size() > MAX_CHECKPOINTS)
-    {
-        std::unordered_set<size_t> protectedIndices(linkNodeIndexes.begin(), linkNodeIndexes.end());
-        for (size_t i = 0; i < m_checkpoints.size(); ++i)
-        {
-            const Checkpoint& cp = m_checkpoints[i];
-            if (cp.GetRight() != NONE_CHECKPOINT_INDEX || cp.GetLeft() != NONE_CHECKPOINT_INDEX)
-            {
-                protectedIndices.insert(i);
-            }
-        }
+	const size_t MAX_CHECKPOINTS = 255;
+	if (m_checkpoints.size() > MAX_CHECKPOINTS)
+	{
+		std::unordered_set<size_t> protectedIndices(linkNodeIndexes.begin(), linkNodeIndexes.end());
+		for (size_t i = 0; i < m_checkpoints.size(); ++i)
+		{
+			const Checkpoint& cp = m_checkpoints[i];
+			if (cp.GetRight() != NONE_CHECKPOINT_INDEX || cp.GetLeft() != NONE_CHECKPOINT_INDEX)
+			{
+				protectedIndices.insert(i);
+			}
+		}
 
-        // Build dist->index map for candidates
-        std::multimap<float, size_t> distToNextMap;
-        std::unordered_map<size_t, float> currentDistances;
+		// Build dist->index map for candidates
+		std::multimap<float, size_t> distToNextMap;
+		std::unordered_map<size_t, float> currentDistances;
 
-        for (size_t i = 0; i < m_checkpoints.size(); ++i)
-        {
-            if (protectedIndices.find(i) != protectedIndices.end()) continue;
-            const Checkpoint& cp = m_checkpoints[i];
-            int downIndex = cp.GetDown();
-            if (downIndex != NONE_CHECKPOINT_INDEX)
-            {
-                float distToNext = (m_checkpoints[downIndex].GetPos() - cp.GetPos()).Length();
-                currentDistances[i] = distToNext;
-                distToNextMap.insert({ distToNext, i });
-            }
-        }
+		for (size_t i = 0; i < m_checkpoints.size(); ++i)
+		{
+			if (protectedIndices.find(i) != protectedIndices.end()) continue;
+			const Checkpoint& cp = m_checkpoints[i];
+			int downIndex = cp.GetDown();
+			if (downIndex != NONE_CHECKPOINT_INDEX)
+			{
+				float distToNext = (m_checkpoints[downIndex].GetPos() - cp.GetPos()).Length();
+				currentDistances[i] = distToNext;
+				distToNextMap.insert({distToNext, i});
+			}
+		}
 
-        size_t total = m_checkpoints.size();
-        size_t numToRemove = total - MAX_CHECKPOINTS;
-        size_t numRemovable = distToNextMap.size();
-        if (numToRemove > numRemovable)
-        {
-            numToRemove = numRemovable;
-        }
+		size_t total = m_checkpoints.size();
+		size_t numToRemove = total - MAX_CHECKPOINTS;
+		size_t numRemovable = distToNextMap.size();
+		if (numToRemove > numRemovable)
+		{
+			numToRemove = numRemovable;
+		}
 
-        // Heuristic: Pick smallest-dist-to-next checkpoint to remove
-        std::unordered_set<size_t> indexesToRemove;
-        auto it = distToNextMap.begin();
-        for (size_t i = 0; i < numToRemove && it != distToNextMap.end(); )
-        {
-            size_t candidateIndex = it->second;
-            indexesToRemove.insert(candidateIndex);
+		// Heuristic: Pick smallest-dist-to-next checkpoint to remove
+		std::unordered_set<size_t> indexesToRemove;
+		auto it = distToNextMap.begin();
+		for (size_t i = 0; i < numToRemove && it != distToNextMap.end(); )
+		{
+			size_t candidateIndex = it->second;
+			indexesToRemove.insert(candidateIndex);
 
-            // Update distance for previous checkpoint
-            const Checkpoint& removedCP = m_checkpoints[candidateIndex];
-            int upIndex = removedCP.GetUp();
-            int downIndex = removedCP.GetDown();
+			// Update distance for previous checkpoint
+			const Checkpoint& removedCP = m_checkpoints[candidateIndex];
+			int upIndex = removedCP.GetUp();
+			int downIndex = removedCP.GetDown();
 
-            if (upIndex != NONE_CHECKPOINT_INDEX &&
-                downIndex != NONE_CHECKPOINT_INDEX &&
-                protectedIndices.find(upIndex) == protectedIndices.end())
-            {
-                // Update the distance for the checkpoint before this one
-                float oldDist = currentDistances[upIndex];
-                float removedDist = currentDistances[candidateIndex];
-                float newDist = oldDist + removedDist;
+			if (upIndex != NONE_CHECKPOINT_INDEX &&
+				downIndex != NONE_CHECKPOINT_INDEX &&
+				protectedIndices.find(upIndex) == protectedIndices.end())
+			{
+				// Update the distance for the checkpoint before this one
+				float oldDist = currentDistances[upIndex];
+				float removedDist = currentDistances[candidateIndex];
+				float newDist = oldDist + removedDist;
 
-                auto range = distToNextMap.equal_range(oldDist);
-                for (auto mapIt = range.first; mapIt != range.second; ++mapIt)
-                {
-                    if (mapIt->second == upIndex)
-                    {
-                        distToNextMap.erase(mapIt);
-                        break;
-                    }
-                }
+				auto range = distToNextMap.equal_range(oldDist);
+				for (auto mapIt = range.first; mapIt != range.second; ++mapIt)
+				{
+					if (mapIt->second == upIndex)
+					{
+						distToNextMap.erase(mapIt);
+						break;
+					}
+				}
 
-                currentDistances[upIndex] = newDist;
-                distToNextMap.insert({ newDist, upIndex });
-            }
+				currentDistances[upIndex] = newDist;
+				distToNextMap.insert({newDist, upIndex});
+			}
 
-            ++it;
-            ++i;
-        }
+			++it;
+			++i;
+		}
 
-        // Build mapping oldIndex -> newIndex
-        std::vector<int> oldToNew(total, -1);
-        std::vector<Checkpoint> newCheckpoints;
-        newCheckpoints.reserve(MAX_CHECKPOINTS);
+		// Build mapping oldIndex -> newIndex
+		std::vector<int> oldToNew(total, -1);
+		std::vector<Checkpoint> newCheckpoints;
+		newCheckpoints.reserve(MAX_CHECKPOINTS);
 
-        for (size_t old = 0; old < total; ++old)
-        {
-            if (indexesToRemove.find(old) == indexesToRemove.end())
-            {
-                int newIdx = static_cast<int>(newCheckpoints.size());
-                oldToNew[old] = newIdx;
-                // copy original checkpoint
-                newCheckpoints.push_back(m_checkpoints[old]);
-            }
-        }
+		for (size_t old = 0; old < total; ++old)
+		{
+			if (indexesToRemove.find(old) == indexesToRemove.end())
+			{
+				int newIdx = static_cast<int>(newCheckpoints.size());
+				oldToNew[old] = newIdx;
+				// copy original checkpoint
+				newCheckpoints.push_back(m_checkpoints[old]);
+			}
+		}
 
-        // Update links
-        const int N = static_cast<int>(newCheckpoints.size());
+		// Update links
+		const int N = static_cast<int>(newCheckpoints.size());
 
-        for (int i = 0; i < N; ++i)
-        {
-            newCheckpoints[i].SetIndex(i);
+		for (int i = 0; i < N; ++i)
+		{
+			newCheckpoints[i].SetIndex(i);
 
-            int newUp   = (i + 1) % N;
-            int newDown = (i == 0) ? (N - 1) : (i - 1);
-            newCheckpoints[i].UpdateUp(newUp);
-            newCheckpoints[i].UpdateDown(newDown);
-        }
+			int newUp = (i + 1) % N;
+			int newDown = (i == 0) ? (N - 1) : (i - 1);
+			newCheckpoints[i].UpdateUp(newUp);
+			newCheckpoints[i].UpdateDown(newDown);
+		}
 
-        // Update quadblock checkpoint references
-        for (Quadblock& qb : m_quadblocks)
-        {
-            int oldCheckpoint = qb.GetCheckpoint();
-            if (oldCheckpoint >= 0 && oldCheckpoint < static_cast<int>(oldToNew.size()))
-            {
-                int newCheckpoint = oldToNew[oldCheckpoint];
-                if (newCheckpoint == -1)
-                {
-                    // This checkpoint was removed, find nearest valid checkpoint
-                    float minDist = std::numeric_limits<float>::max();
-                    int nearestCheckpoint = 0;
-                    Vec3 qbCenter = qb.GetBoundingBox().Midpoint();
+		// Update quadblock checkpoint references
+		for (Quadblock& qb : m_quadblocks)
+		{
+			int oldCheckpoint = qb.GetCheckpoint();
+			if (oldCheckpoint >= 0 && oldCheckpoint < static_cast<int>(oldToNew.size()))
+			{
+				int newCheckpoint = oldToNew[oldCheckpoint];
+				if (newCheckpoint == -1)
+				{
+					// This checkpoint was removed, find nearest valid checkpoint
+					float minDist = std::numeric_limits<float>::max();
+					int nearestCheckpoint = 0;
+					Vec3 qbCenter = qb.GetBoundingBox().Midpoint();
 
-                    for (int i = 0; i < N; ++i)
-                    {
-                        float dist = (newCheckpoints[i].GetPos() - qbCenter).Length();
-                        if (dist < minDist)
-                        {
-                            minDist = dist;
-                            nearestCheckpoint = i;
-                        }
-                    }
-                    qb.SetCheckpoint(nearestCheckpoint);
-                }
-                else
-                {
-                    qb.SetCheckpoint(newCheckpoint);
-                }
-            }
-        }
+					for (int i = 0; i < N; ++i)
+					{
+						float dist = (newCheckpoints[i].GetPos() - qbCenter).Length();
+						if (dist < minDist)
+						{
+							minDist = dist;
+							nearestCheckpoint = i;
+						}
+					}
+					qb.SetCheckpoint(nearestCheckpoint);
+				}
+				else
+				{
+					qb.SetCheckpoint(newCheckpoint);
+				}
+			}
+		}
 
-        m_checkpoints = std::move(newCheckpoints);
-    }
+		m_checkpoints = std::move(newCheckpoints);
+	}
 
-    GenerateRenderCheckpointData(m_checkpoints);
-    return true;
+	GenerateRenderCheckpointData(m_checkpoints);
+	return true;
 }
 
 
