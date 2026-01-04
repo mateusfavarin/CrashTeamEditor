@@ -37,6 +37,8 @@ public:
 	std::vector<Checkpoint>& GetCheckpoints();
 	std::vector<Path>& GetCheckpointPaths();
 	const std::filesystem::path& GetParentPath() const;
+	std::vector<std::string> GetMaterialNames() const;
+	std::vector<size_t> GetMaterialQuadblockIndexes(const std::string& material) const;
 	std::tuple<Quadblock*, Vec3> GetRendererSelectedData();
 	bool LoadPreset(const std::filesystem::path& filename);
 	bool SavePreset(const std::filesystem::path& path);

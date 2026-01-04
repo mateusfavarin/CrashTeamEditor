@@ -262,6 +262,8 @@ Methods:
 - `save(path: pathlib.Path) -> bool`
 - `clear(clear_errors: bool = True) -> None`
 - `reset_filter() -> None`
+- `get_material_names() -> list[str]` (copy)
+- `get_material_quadblock_indexes(material: str) -> list[int]` (copy)
 - `load_preset(filename: pathlib.Path) -> bool`
 - `save_preset(path: pathlib.Path) -> bool`
 - `get_renderer_selected_data() -> tuple[Quadblock | None, Vec3]` (returns `(quadblock, query_point)`; Quadblock is a live reference, Vec3 is a copy)

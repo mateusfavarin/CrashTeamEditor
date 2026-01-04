@@ -107,6 +107,20 @@ const std::filesystem::path& Level::GetParentPath() const
 	return m_parentPath;
 }
 
+std::vector<std::string> Level::GetMaterialNames() const
+{
+	std::vector<std::string> names;
+	names.reserve(m_materialToQuadblocks.size());
+	for (const auto& [key, value] : m_materialToQuadblocks) { names.push_back(key); }
+	return names;
+}
+
+std::vector<size_t> Level::GetMaterialQuadblockIndexes(const std::string& material) const
+{
+	if (!m_materialToQuadblocks.contains(material)) { return std::vector<size_t>(); }
+	return m_materialToQuadblocks.at(material);
+}
+
 std::tuple<Quadblock*, Vec3> Level::GetRendererSelectedData()
 {
 	Quadblock* quadblock = nullptr;
