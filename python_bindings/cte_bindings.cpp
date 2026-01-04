@@ -345,7 +345,17 @@ void init_crashteameditor(py::module_& m)
 		.def_property_readonly("checkpoint_paths", &Level::GetCheckpointPaths, py::return_value_policy::reference_internal)
 		.def_property_readonly("parent_path", &Level::GetParentPath, py::return_value_policy::copy)
 		.def("load_preset", &Level::LoadPreset, py::arg("filename"))
-		.def("save_preset", &Level::SavePreset, py::arg("path"));
+		.def("save_preset", &Level::SavePreset, py::arg("path"))
+		.def("get_renderer_selected_data", [](Level& level) {
+			auto selection = level.GetRendererSelectedData();
+			Quadblock* quadblock = std::get<0>(selection);
+			py::object quadblockObj = py::none();
+			if (quadblock)
+			{
+				quadblockObj = py::cast(quadblock, py::return_value_policy::reference_internal, py::cast(&level));
+			}
+			return py::make_tuple(quadblockObj, std::get<1>(selection));
+		});
 }
 
 #if defined(CTE_EXTENSION_BUILD)

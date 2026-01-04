@@ -66,6 +66,7 @@ void Level::Clear(bool clearErrors)
 	m_tropyGhost.clear();
 	m_oxideGhost.clear();
 	m_animTextures.clear();
+	m_rendererQueryPoint = Vec3();
 	m_rendererSelectedQuadblockIndex = REND_NO_SELECTED_QUADBLOCK;
 	m_genVisTree = false;
 	m_bspVis.Clear();
@@ -104,6 +105,17 @@ std::vector<Path>& Level::GetCheckpointPaths()
 const std::filesystem::path& Level::GetParentPath() const
 {
 	return m_parentPath;
+}
+
+std::tuple<Quadblock*, Vec3> Level::GetRendererSelectedData()
+{
+	Quadblock* quadblock = nullptr;
+	if (m_rendererSelectedQuadblockIndex != REND_NO_SELECTED_QUADBLOCK
+		&& m_rendererSelectedQuadblockIndex < m_quadblocks.size())
+	{
+		quadblock = &m_quadblocks[m_rendererSelectedQuadblockIndex];
+	}
+	return std::make_tuple(quadblock, m_rendererQueryPoint);
 }
 
 bool Level::GenerateBSP()
@@ -2347,6 +2359,7 @@ void Level::GenerateRenderStartpointData(std::array<Spawn, NUM_DRIVERS>& spawns)
 
 void Level::GenerateRenderSelectedBlockData(const Quadblock& quadblock, const Vec3& queryPoint)
 {
+	m_rendererQueryPoint = queryPoint;
 	/* TODO: Set index directly in the previous function */
 	for (size_t i = 0; i < m_quadblocks.size(); i++)
 	{

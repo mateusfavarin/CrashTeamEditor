@@ -264,6 +264,7 @@ Methods:
 - `reset_filter() -> None`
 - `load_preset(filename: pathlib.Path) -> bool`
 - `save_preset(path: pathlib.Path) -> bool`
+- `get_renderer_selected_data() -> tuple[Quadblock | None, Vec3]` (returns `(quadblock, query_point)`; Quadblock is a live reference, Vec3 is a copy)
 
 Properties:
 - `is_loaded: bool`

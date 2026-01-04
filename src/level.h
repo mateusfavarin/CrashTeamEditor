@@ -19,6 +19,7 @@
 #include <array>
 #include <unordered_map>
 #include <filesystem>
+#include <tuple>
 #include <cstdint>
 
 static constexpr size_t REND_NO_SELECTED_QUADBLOCK = std::numeric_limits<size_t>::max();
@@ -36,6 +37,7 @@ public:
 	std::vector<Checkpoint>& GetCheckpoints();
 	std::vector<Path>& GetCheckpointPaths();
 	const std::filesystem::path& GetParentPath() const;
+	std::tuple<Quadblock*, Vec3> GetRendererSelectedData();
 	bool LoadPreset(const std::filesystem::path& filename);
 	bool SavePreset(const std::filesystem::path& path);
 	void ResetFilter();
@@ -133,6 +135,7 @@ private:
 	Model m_multipleSelectedQuads;
 	Model m_filterEdgeModel;
 
+	Vec3 m_rendererQueryPoint;
 	size_t m_rendererSelectedQuadblockIndex;
 	size_t m_lastAnimTextureCount = 0;
 };
