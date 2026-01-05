@@ -71,6 +71,55 @@ Quadblock::Quadblock(const std::string& name, Tri& t0, Tri& t1, Tri& t2, Tri& t3
 			return Vertex(*p);
 		};
 
+	if (hasUV)
+	{
+		auto UvMatches = [](const Vec2& a, const Vec2& b) -> bool
+			{
+				constexpr float UV_EPS_SQ = 1.0e-10f;
+				const float dx = a.x - b.x;
+				const float dy = a.y - b.y;
+				return (dx * dx + dy * dy) <= UV_EPS_SQ;
+			};
+
+		auto GetCenterUV = [&](const Vec3& pos, Vec2& out) -> bool
+			{
+				for (size_t i = 0; i < 3; i++)
+				{
+					if (centerTri->p[i].pos == pos)
+					{
+						out = centerTri->p[i].uv;
+						return true;
+					}
+				}
+				return false;
+			};
+
+		size_t bestIndex = 0;
+		int bestMatches = -1;
+		for (size_t triIndex = 0; triIndex < adjTris.size(); triIndex++)
+		{
+			const Tri& tri = *adjTris[triIndex];
+			int matches = 0;
+			for (size_t i = 0; i < 3; i++)
+			{
+				const Vec3& pos = tri.p[i].pos;
+				if (vRefCount[pos] != 3) { continue; }
+				Vec2 centerUv;
+				if (GetCenterUV(pos, centerUv) && UvMatches(centerUv, tri.p[i].uv)) { matches++; }
+			}
+
+			if (matches > bestMatches)
+			{
+				bestMatches = matches;
+				bestIndex = triIndex;
+			}
+		}
+
+		if (bestMatches != 2) { throw QuadException("At least 2 triangles in the triblock must share 2 UV vertices."); }
+
+		if (bestIndex != 0) { Swap(adjTris[0], adjTris[bestIndex]); }
+	}
+
 	try
 	{
 		std::vector<const Point*> q0Adjs;
@@ -107,8 +156,8 @@ Quadblock::Quadblock(const std::string& name, Tri& t0, Tri& t1, Tri& t2, Tri& t3
 	Vec3 invertedQuadNormal = quadNormal * -1;
 	if ((normal - invertedQuadNormal).Length() < (normal - quadNormal).Length())
 	{
-		Swap(m_p[0], m_p[2]);
-		Swap(m_p[3], m_p[4]);
+		Swap(m_p[1], m_p[3]);
+		Swap(m_p[2], m_p[6]);
 	}
 
 	m_p[5] = m_p[4];
