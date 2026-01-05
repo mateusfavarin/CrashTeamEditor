@@ -141,5 +141,5 @@ private:
 
 	Vec3 m_rendererQueryPoint;
 	std::vector<size_t> m_rendererSelectedQuadblockIndexes;
-	size_t m_lastAnimTextureCount = 0;
+	size_t m_lastAnimTextureCount;
 };

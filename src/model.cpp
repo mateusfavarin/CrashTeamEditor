@@ -1,5 +1,10 @@
 #include "model.h"
 
+Model::Model()
+{
+	Clear();
+}
+
 Model::Model(Mesh* mesh, const glm::vec3& position, const glm::vec3& scale, const glm::quat& rotation)
 {
   m_mesh = mesh;
@@ -34,4 +39,12 @@ glm::mat4 Model::CalculateModelMatrix()
   model *= static_cast<glm::mat<4, 4, float, glm::packed_highp>>(m_rotation);
   model = glm::scale(model, m_scale);
   return model;
+}
+
+void Model::Clear()
+{
+	m_mesh = nullptr;
+	m_position = glm::vec3(0.f, 0.f, 0.f);
+	m_scale = glm::vec3(1.f, 1.f, 1.f);
+	m_rotation = glm::quat(1.f, 0.f, 0.f, 0.f);
 }

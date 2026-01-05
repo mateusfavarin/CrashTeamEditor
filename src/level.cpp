@@ -74,7 +74,17 @@ void Level::Clear(bool clearErrors)
 	m_distanceFarClip = 1000.0f;
 	m_pythonConsole.clear();
 	m_saveScript = false;
+	m_vrm.clear();
+	m_textureStorePaths.clear();
+	m_lastAnimTextureCount = 0;
 	DeleteMaterials(this);
+	m_levelModel.Clear();
+	m_bspModel.Clear();
+	m_spawnsModel.Clear();
+	m_checkModel.Clear();
+	m_selectedBlockModel.Clear();
+	m_multipleSelectedQuads.Clear();
+	m_filterEdgeModel.Clear();
 }
 
 const std::string& Level::GetName() const
