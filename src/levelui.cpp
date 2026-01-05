@@ -351,6 +351,105 @@ void Level::RenderUI(Renderer& renderer)
 		ImGui::End();
 	}
 
+	if (m_showExtractorLogWindow)
+	{
+		if (ImGui::Begin("Extractor Log", &m_showExtractorLogWindow))
+		{
+			if (!m_extractorLog.empty())
+			{
+				// Parse and render ANSI color codes line by line
+				const char* text = m_extractorLog.c_str();
+				const char* textEnd = text + m_extractorLog.size();
+
+				while (text < textEnd)
+				{
+					// Find the end of the current line
+					const char* lineEnd = text;
+					while (lineEnd < textEnd && *lineEnd != '\n')
+					{
+						lineEnd++;
+					}
+
+					// Process this line for color codes
+					const char* lineStart = text;
+					ImVec4 currentColor = ImGui::GetStyleColorVec4(ImGuiCol_Text);
+					bool hasColoredText = false;
+
+					while (lineStart < lineEnd)
+					{
+						// Look for ANSI escape sequence
+						const char* escapeStart = lineStart;
+						while (escapeStart < lineEnd && !(escapeStart[0] == '\x1b' && escapeStart + 1 < lineEnd && escapeStart[1] == '['))
+						{
+							escapeStart++;
+						}
+
+						// Print text before escape sequence
+						if (escapeStart > lineStart)
+						{
+							if (hasColoredText)
+							{
+								ImGui::SameLine(0, 0);
+							}
+							ImGui::PushStyleColor(ImGuiCol_Text, currentColor);
+							ImGui::TextUnformatted(lineStart, escapeStart);
+							ImGui::PopStyleColor();
+							hasColoredText = true;
+						}
+
+						if (escapeStart >= lineEnd)
+						{
+							break;
+						}
+
+						// Parse color code
+						const char* colorCode = escapeStart + 2; // Skip "\x1b["
+						if (colorCode < lineEnd)
+						{
+							if (strncmp(colorCode, "32m", 3) == 0) // Green
+							{
+								currentColor = ImVec4(0.0f, 1.0f, 0.0f, 1.0f);
+								lineStart = colorCode + 3;
+							}
+							else if (strncmp(colorCode, "33m", 3) == 0) // Yellow
+							{
+								currentColor = ImVec4(1.0f, 1.0f, 0.0f, 1.0f);
+								lineStart = colorCode + 3;
+							}
+							else if (strncmp(colorCode, "31m", 3) == 0) // Red
+							{
+								currentColor = ImVec4(1.0f, 0.0f, 0.0f, 1.0f);
+								lineStart = colorCode + 3;
+							}
+							else if (strncmp(colorCode, "0m", 2) == 0) // Reset
+							{
+								currentColor = ImGui::GetStyleColorVec4(ImGuiCol_Text);
+								lineStart = colorCode + 2;
+							}
+							else
+							{
+								// Unknown escape sequence, skip it
+								lineStart = escapeStart + 1;
+							}
+						}
+						else
+						{
+							break;
+						}
+					}
+
+					// Move to next line
+					text = lineEnd;
+					if (text < textEnd && *text == '\n')
+					{
+						text++;
+					}
+				}
+			}
+		}
+		ImGui::End();
+	}
+
 	if (m_showHotReloadWindow)
 	{
 		if (ImGui::Begin("Hot Reload", &m_showHotReloadWindow))
@@ -435,9 +534,200 @@ void Level::RenderUI(Renderer& renderer)
 			{
         LevDataExtractor extractor{ m_modelExtractorLevPath, m_modelExtractorVrmPath };
         extractor.ExtractModels();
+        m_extractorLog = extractor.GetLog();
+        m_showExtractorLogWindow = true;
 			}
 			ImGui::EndDisabled();
 			if (disabled) { ImGui::SetItemTooltip("You must select both lev and vrm files before extracting models."); }
+		}
+		ImGui::End();
+	}
+
+	if (m_showModelImporterWindow)
+	{
+		if (ImGui::Begin("Model Importer", &m_showModelImporterWindow))
+		{
+			std::string modelPath = m_modelImporterPath.string();
+			ImGui::Text("Model Path"); ImGui::SameLine();
+			ImGui::InputText("##modelpath_importer", &modelPath, ImGuiInputTextFlags_ReadOnly);
+			ImGui::SetItemTooltip(modelPath.c_str()); ImGui::SameLine();
+			if (ImGui::Button("...##modelimporter"))
+			{
+				auto selection = pfd::open_file("CTR Model File", m_parentPath.string(), {"CTR Model Files", "*.ctrmodel"}, pfd::opt::force_path).result();
+				if (!selection.empty()) { m_modelImporterPath = selection.front(); }
+			}
+
+			bool disabled = modelPath.empty();
+			ImGui::BeginDisabled(disabled);
+			if (ImGui::Button("Import Model"))
+			{
+				if (ImportModel(m_modelImporterPath))
+				{
+					m_logMessage = "Successfully imported model: " + m_modelImporterPath.filename().string();
+					m_showLogWindow = true;
+				}
+				else
+				{
+					m_logMessage = "Failed to import model: " + m_modelImporterPath.filename().string();
+					m_showLogWindow = true;
+				}
+			}
+			ImGui::EndDisabled();
+			if (disabled) { ImGui::SetItemTooltip("You must select a .ctrmodel file before importing."); }
+
+			// Show list of currently loaded models
+			ImGui::Separator();
+			ImGui::Text("Loaded Models (%zu)", m_importedModels.size());
+			ImGui::Separator();
+
+			if (!m_importedModels.empty())
+			{
+				std::string modelToDelete;
+				for (const auto& [modelName, modelData] : m_importedModels)
+				{
+					ImGui::PushID(modelName.c_str());
+					ImGui::Text("%s", modelName.c_str());
+					ImGui::SameLine();
+					ImGui::Text("(%zu bytes)", modelData.size());
+					ImGui::SameLine(ImGui::GetContentRegionAvail().x - 20);
+					if (ImGui::Button("X"))
+					{
+						modelToDelete = modelName;
+					}
+					ImGui::PopID();
+				}
+
+				// Delete the model after iteration to avoid iterator invalidation
+				if (!modelToDelete.empty())
+				{
+					m_importedModels.erase(modelToDelete);
+					m_logMessage = "Removed model: " + modelToDelete;
+					m_showLogWindow = true;
+				}
+			}
+			else
+			{
+				ImGui::TextDisabled("No models loaded");
+			}
+
+			// Model Instances section
+			ImGui::Separator();
+			ImGui::Text("Model Instances (%zu)", m_modelInstances.size());
+			ImGui::Separator();
+
+			// Add Instance button
+			bool hasModels = !m_importedModels.empty();
+			if (!hasModels)
+			{
+				ImGui::BeginDisabled();
+			}
+
+			if (ImGui::Button("+ Add Instance"))
+			{
+				PSX::InstDef newInst = {};
+				memcpy(&newInst.name, "NewInstance", 11);
+				newInst.scale.x = newInst.scale.y = newInst.scale.z = 0x1000; // Default scale = 1.0
+				newInst.flags = 0xB;
+				newInst.modelID = 0xFFFFFFFF;
+				newInst.offModel = 0;
+
+				m_modelInstances.push_back(newInst);
+				m_modelInstanceNames.push_back(m_importedModels.begin()->first); // Default to first model
+			}
+
+			if (!hasModels)
+			{
+				ImGui::EndDisabled();
+				if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+				{
+					ImGui::SetTooltip("Import a model first");
+				}
+			}
+
+			// Show instances
+			int instanceToDelete = -1;
+			for (size_t i = 0; i < m_modelInstances.size(); i++)
+			{
+				ImGui::PushID(static_cast<int>(i));
+
+				if (ImGui::CollapsingHeader(("Instance " + std::to_string(i + 1)).c_str()))
+				{
+					PSX::InstDef& inst = m_modelInstances[i];
+					std::string& modelName = m_modelInstanceNames[i];
+
+					// Model selection dropdown
+					if (ImGui::BeginCombo("Model", modelName.c_str()))
+					{
+						for (const auto& [name, _] : m_importedModels)
+						{
+							bool isSelected = (modelName == name);
+							if (ImGui::Selectable(name.c_str(), isSelected))
+							{
+								modelName = name;
+							}
+							if (isSelected)
+							{
+								ImGui::SetItemDefaultFocus();
+							}
+						}
+						ImGui::EndCombo();
+					}
+
+					// Instance name
+					char nameBuffer[16] = {};
+					memcpy(nameBuffer, inst.name, sizeof(inst.name));
+					if (ImGui::InputText("Name", nameBuffer, sizeof(nameBuffer)))
+					{
+						memcpy(inst.name, nameBuffer, sizeof(inst.name));
+					}
+
+					// Model ID
+					ImGui::InputScalar("Model ID", ImGuiDataType_U32, &inst.modelID, nullptr, nullptr, "%08X", ImGuiInputTextFlags_CharsHexadecimal);
+
+					// Position
+					ImGui::Text("Position"); ImGui::SameLine();
+					ImGui::InputScalarN("##pos", ImGuiDataType_S16, &inst.pos, 3);
+
+					// Rotation
+					ImGui::Text("Rotation"); ImGui::SameLine();
+					ImGui::InputScalarN("##rot", ImGuiDataType_S16, &inst.rot, 3);
+
+					// Scale
+					ImGui::Text("Scale"); ImGui::SameLine();
+					ImGui::InputScalarN("##scale", ImGuiDataType_S16, &inst.scale, 3);
+
+					// Advanced properties
+					if (ImGui::TreeNode("Advanced"))
+					{
+						ImGui::InputScalar("Flags", ImGuiDataType_U32, &inst.flags, nullptr, nullptr, "%08X", ImGuiInputTextFlags_CharsHexadecimal);
+						ImGui::InputScalar("Color RGBA", ImGuiDataType_U32, &inst.colorRGBA, nullptr, nullptr, "%08X", ImGuiInputTextFlags_CharsHexadecimal);
+						ImGui::InputScalar("Maybe Scale/Padding", ImGuiDataType_U16, &inst.maybeScaleMaybePadding);
+						ImGui::InputScalar("Unk24", ImGuiDataType_U32, &inst.unk24);
+						ImGui::InputScalar("Unk28", ImGuiDataType_U32, &inst.unk28);
+						ImGui::TreePop();
+					}
+
+					// Delete button
+					if (ImGui::Button("Delete Instance"))
+					{
+						instanceToDelete = static_cast<int>(i);
+					}
+				}
+
+				ImGui::PopID();
+			}
+
+			// Delete instance after iteration
+			if (instanceToDelete >= 0)
+			{
+				m_modelInstances.erase(m_modelInstances.begin() + instanceToDelete);
+				m_modelInstanceNames.erase(m_modelInstanceNames.begin() + instanceToDelete);
+			}
+
+			if (m_modelInstances.empty())
+			{
+				ImGui::TextDisabled("No instances created");
+			}
 		}
 		ImGui::End();
 	}
@@ -456,6 +746,7 @@ void Level::RenderUI(Renderer& renderer)
 		if (ImGui::MenuItem("Renderer")) { Windows::w_renderer = !Windows::w_renderer; }
 		if (ImGui::MenuItem("Ghosts")) { Windows::w_ghost = !Windows::w_ghost; }
 		if (ImGui::MenuItem("Python")) { Windows::w_python = !Windows::w_python; }
+		if (ImGui::MenuItem("Model Importer")) { m_showModelImporterWindow = !m_showModelImporterWindow; }
 		ImGui::EndMainMenuBar();
 	}
 

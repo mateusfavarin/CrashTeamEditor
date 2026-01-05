@@ -9,6 +9,7 @@
 #include "vistree.h"
 #include "text3d.h"
 #include "simple_level_instances.h"
+#include "levdataextractor.h"
 
 #include <fstream>
 #include <unordered_set>
@@ -45,11 +46,18 @@ void Level::OpenModelExtractorWindow()
 	m_showModelExtractorWindow = true;
 }
 
+void Level::OpenModelImporterWindow()
+{
+	m_showModelImporterWindow = true;
+}
+
 void Level::Clear(bool clearErrors)
 {
 	m_loaded = false;
 	m_showHotReloadWindow = false;
 	m_showModelExtractorWindow = false;
+	m_showModelImporterWindow = false;
+	m_showExtractorLogWindow = false;
 	for (size_t i = 0; i < NUM_DRIVERS; i++) { m_spawn[i] = Spawn(); }
 	for (size_t i = 0; i < NUM_GRADIENT; i++) { m_skyGradient[i] = ColorGradient(); }
 	if (clearErrors)
@@ -93,6 +101,28 @@ void Level::Clear(bool clearErrors)
 	{
 		if (model) { model->Clear(model != m_models[LevelModels::LEVEL]); }
 	}
+}
+
+bool Level::ImportModel(const std::filesystem::path& ctrmodelPath)
+{
+	// Read entire file into memory
+	std::ifstream file(ctrmodelPath, std::ios::binary);
+	if (!file) { return false; }
+	std::vector<uint8_t> ctrmodelData{
+		std::istreambuf_iterator<char>(file),
+		std::istreambuf_iterator<char>()
+	};
+	file.close();
+
+	// Parse model name from header
+	const SH::CtrModel* header = reinterpret_cast<const SH::CtrModel*>(ctrmodelData.data());
+	const PSX::Model* model = reinterpret_cast<const PSX::Model*>(ctrmodelData.data() + header->modelOffset);
+	std::string name(model->name, strnlen(model->name, sizeof(model->name)));
+
+	printf("Imported model: %s (%zu bytes)\n", name.c_str(), ctrmodelData.size());
+	m_importedModels[name] = std::move(ctrmodelData);
+
+	return true;
 }
 
 const std::string& Level::GetName() const
@@ -1306,29 +1336,37 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	header.offLevNavTable = static_cast<uint32_t>(offNavHeaders);
 
 
-	PSX::InstDef cactus = {};
-	const size_t offCactus = currOffset;
-	printf(nameof(offCactus) " = %zx\n", offCactus);
-  currOffset += sizeof(cactus);
+	// Count unique models referenced by instances
+	std::unordered_set<std::string> uniqueModelNames;
+	for (const std::string& modelName : m_modelInstanceNames)
+	{
+		uniqueModelNames.insert(modelName);
+	}
 
+	header.numInstances = static_cast<uint32_t>(m_modelInstances.size());
+	header.numModels = static_cast<uint32_t>(uniqueModelNames.size());
+
+	// Write InstDefs
+	std::vector<size_t> instDefOffsets;
+	for (size_t i = 0; i < m_modelInstances.size(); i++)
+	{
+		const size_t offInstDef = currOffset;
+		instDefOffsets.push_back(offInstDef);
+		printf("offInstDef[%zu] = %zx\n", i, offInstDef);
+		currOffset += sizeof(PSX::InstDef);
+	}
+
+	// Write InstDef pointer array (NULL-terminated)
 	const size_t offInstDefList_ptrArray = currOffset;
 	printf(nameof(offInstDefList_ptrArray) " = %zx\n", offInstDefList_ptrArray);
-	uint32_t instDefList_ptrArray[2] =
-	{
-		offCactus,
-		0x0, //NULL
-	};
-	currOffset += sizeof(instDefList_ptrArray);
+	currOffset += (m_modelInstances.size() + 1) * sizeof(uint32_t);
 
+	// Write second InstDef pointer array for visibility (NULL-terminated)
 	const size_t offInstDefList2_ptrArray = currOffset;
 	printf(nameof(offInstDefList2_ptrArray) " = %zx\n", offInstDefList2_ptrArray);
-	uint32_t instDefList2_ptrArray[2] =
-	{
-		offCactus,
-		0x0, //NULL
-	};
-	currOffset += sizeof(instDefList2_ptrArray);
+	currOffset += (m_modelInstances.size() + 1) * sizeof(uint32_t);
 
+	// Update visible sets to point to InstDef list
 	for (auto& set : visibleSets)
 	{
 		size_t index = visibleSetMap[set];
@@ -1337,192 +1375,32 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 		visibleSetMap[set] = index;
 	}
 
-	header.numInstances = 1;
-	header.offInstances = (uint32_t)offCactus;
-	header.numModels = 1;
-	//header.offModels taken care of a few lines below
-	header.offModelInstances = (uint32_t)offInstDefList_ptrArray;
+	header.offInstances = (instDefOffsets.size() > 0) ? static_cast<uint32_t>(instDefOffsets[0]) : 0;
+	header.offModelInstances = static_cast<uint32_t>(offInstDefList_ptrArray);
 
-  PSX::Model cactusModel = {};
-  const size_t offCactusModel = currOffset;
-	printf(nameof(offCactusModel) " = %zx\n", offCactusModel);
-  currOffset += sizeof(cactusModel);
+	// Write Model data for each unique model
+	std::unordered_map<std::string, size_t> modelOffsets;
+	std::vector<std::string> modelOrder(uniqueModelNames.begin(), uniqueModelNames.end());
 
+	for (const std::string& modelName : modelOrder)
+	{
+		const std::vector<uint8_t>& ctrmodelData = m_importedModels.at(modelName);
+
+		// Parse .ctrmodel to get model data size
+		const SH::CtrModel* ctrHeader = reinterpret_cast<const SH::CtrModel*>(ctrmodelData.data());
+		size_t modelDataSize = ctrHeader->modelPatchTableOffset - ctrHeader->modelOffset;
+
+		const size_t offModel = currOffset;
+		modelOffsets[modelName] = offModel;
+		printf("offModel[%s] = %zx (%zu bytes)\n", modelName.c_str(), offModel, modelDataSize);
+		currOffset += modelDataSize;
+	}
+
+	// Write Model pointer array (NULL-terminated)
 	const size_t offModelList_ptrArray = currOffset;
 	printf(nameof(offModelList_ptrArray) " = %zx\n", offModelList_ptrArray);
-	uint32_t modelList_ptrArray[2] =
-	{
-		offCactusModel,
-		0x0, //NULL
-	};
-	currOffset += sizeof(modelList_ptrArray);
-  header.offModels = (uint32_t)offModelList_ptrArray;
-
-  PSX::ModelHeader cactusModelHeader = {};
-  const size_t offCactusModelHeader = currOffset;
-	printf(nameof(offCactusModelHeader) " = %zx\n", offCactusModelHeader);
-  currOffset += sizeof(cactusModelHeader);
-
-	char commandList[] =
-	{
-		0x1C, 0x00, 0x00, 0x00, 0x01, 0x10, 0x0E, 0xB8, 0x01, 0x0E, 0x0F, 0x38, 0x01, 0x0C, 0x57, 0x38, 0x02, 0x04, 0x10, 0x18, 0x01, 0x00, 0x57, 0x38, 0x02, 0x2C, 0x11, 0x18, 0x01, 0x00, 0x57, 0x38, 0x02, 0x2C, 0x12, 0x18, 0x01, 0x2A, 0x57, 0x38, 0x02, 0x04, 0x13, 0x18, 0x01, 0x28, 0x57, 0x38, 0x02, 0x2C, 0x14, 0x18, 0x01, 0x10, 0x0E, 0x3C, 0x02, 0x0E, 0x0F, 0x1C, 0x03, 0x26, 0x0E, 0x58, 0x04, 0x24, 0x0F, 0x38, 0x01, 0x22, 0x15, 0x78, 0x05, 0x04, 0x10, 0x7C, 0x06, 0x20, 0x10, 0x18, 0x01, 0x2C, 0x11, 0x3C, 0x02, 0x00, 0x11, 0x18, 0x07, 0x1E, 0x16, 0x38, 0x08, 0x1C, 0x17, 0x78, 0x09, 0x2C, 0x12, 0x7C, 0x0A, 0x26, 0x12, 0x18, 0x09, 0x00, 0x18, 0x38, 0x01, 0x04, 0x13, 0x7C, 0x02, 0x04, 0x13, 0x18, 0x05, 0x2C, 0x14, 0x3C, 0x06, 0x1A, 0x14, 0x18, 0x0B, 0x18, 0x19, 0x38, 0x04, 0x26, 0x0E, 0x7C, 0x03, 0x16, 0x0E, 0x18, 0x04, 0x26, 0x1A, 0x38, 0x01, 0x24, 0x0F, 0x7C, 0x02, 0x14, 0x0F, 0x18, 0x01, 0x1E, 0x1B, 0x38, 0x0C, 0x22, 0x15, 0x7C, 0x0D, 0x1A, 0x14, 0x1C, 0x02, 0x18, 0x19, 0x5C, 0x03, 0x12, 0x19, 0x58, 0x04, 0x16, 0x0E, 0x3C, 0x09, 0x12, 0x57, 0x18, 0x0E, 0x26, 0x1A, 0x3C, 0x07, 0x14, 0x0F, 0x1C, 0x07, 0x12, 0x19, 0x5C, 0x0C, 0x1E, 0x1B, 0x3C, 0x01, 0x1A, 0x14, 0xBC, 0x01, 0x36, 0x0E, 0x38, 0x01, 0x22, 0x15, 0x3C, 0x02, 0x2E, 0x0F, 0x18, 0x01, 0x20, 0x10, 0x3C, 0x02, 0x20, 0x10, 0x18, 0x01, 0x00, 0x11, 0x3C, 0x02, 0x30, 0x11, 0x18, 0x01, 0x00, 0x18, 0x3C, 0x07, 0x0A, 0x15, 0x78, 0x08, 0x1E, 0x16, 0x7C, 0x0E, 0x16, 0x16, 0x18, 0x08, 0x08, 0x19, 0x38, 0x09, 0x1C, 0x17, 0x7C, 0x0A, 0x06, 0x17, 0x18, 0x09, 0x26, 0x12, 0x3C, 0x0A, 0x26, 0x12, 0x18, 0x09, 0x0A, 0x15, 0x3C, 0x0F, 0x00, 0x18, 0x7C, 0x10, 0x0A, 0x15, 0x9C, 0x10, 0x16, 0x16, 0x1C, 0x10, 0x26, 0x12, 0x1C, 0x11, 0x08, 0x57, 0x38, 0x12, 0x06, 0x17, 0x1C, 0x06, 0x08, 0x19, 0x3C, 0x06, 0x16, 0x16, 0x7C, 0x02, 0x30, 0x11, 0x9C, 0x02, 0x00, 0x18, 0x1C, 0x02, 0x32, 0x12, 0x18, 0x01, 0x04, 0x13, 0x3C, 0x02, 0x02, 0x57, 0x18, 0x01, 0x1A, 0x14, 0x3C, 0x02, 0x36, 0x0E, 0x1C, 0x09, 0x34, 0x57, 0x58, 0x12, 0x32, 0x12, 0x5C, 0x06, 0x30, 0x11, 0x3C, 0x06, 0x20, 0x10, 0x7C, 0x06, 0x2E, 0x0F, 0x7C, 0x06, 0x36, 0x0E, 0x7C, 0xFF, 0xFF, 0xFF, 0xFF
-	};
-  const size_t offCommandList = currOffset;
-	printf(nameof(offCommandList) " = %zx\n", offCommandList);
-  currOffset += sizeof(commandList);
-
-  PSX::ModelFrame cactusModelFrame = {};
-  const size_t offCactusModelFrame = currOffset;
-	printf(nameof(offCactusModelFrame) " = %zx\n", offCactusModelFrame);
-  currOffset += sizeof(cactusModelFrame);
-
-	char cactusVertexData[] =
-	{ //the beginning of this data is definitely cactus vertex data, but we don't know how long it is, so we copied an amount that was large enough that we were sure it was at least "all of it"
-		0xAE, 0xB3, 0x00, 0xA3, 0xB3, 0x70, 0x8F, 0xE4, 0x00, 0x83, 0xE9, 0x4E, 0x70, 0xB3, 0x00, 0x58, 0xA9, 0x4D, 0x70, 0x50, 0x00, 0x58, 0x5C, 0x4D, 0x8F, 0x1F, 0x00, 0x83, 0x13, 0x4E, 0xAE, 0x50, 0x00, 0xA4, 0x55, 0x68, 0xCA, 0x59, 0x6E, 0xC9, 0xB1, 0x70, 0xA2, 0xA7, 0x8E, 0x7D, 0xFE, 0x85, 0x52, 0xB1, 0x62, 0x3A, 0xA3, 0x66, 0x38, 0x9F, 0x53, 0x38, 0x67, 0x50, 0x53, 0x53, 0x68, 0x7A, 0x00, 0x99, 0xA3, 0x61, 0x97, 0xC4, 0x51, 0x8E, 0xDD, 0x47, 0xBA, 0xF6, 0x57, 0x8B, 0xF3, 0xB6, 0x92, 0xC4, 0xB4, 0x8C, 0xE0, 0xBB, 0xB4, 0xFE, 0x83, 0xAA, 0x9D, 0x51, 0xF1, 0x9D, 0xB3, 0xF1, 0x7D, 0xE4, 0xF2, 0x5E, 0xB3, 0xF2, 0x3B, 0x61, 0x6A, 0x20, 0x44, 0x98, 0x1B, 0xBF, 0x91, 0x05, 0xB7, 0x75, 0x00, 0x4F, 0x6E, 0x00, 0x6F, 0x8C, 0x5E, 0x51, 0xF2, 0x7D, 0x20, 0xF2, 0x7E, 0x82, 0xFF, 0x00, 0x00, 0x00, 0xF4, 0x47, 0x06, 0x00, 0x00, 0x48, 0x06, 0x00, 0x0C, 0x48, 0x06, 0x00, 0x18, 0x48, 0x06, 0x00, 0x24, 0x48, 0x06, 0x00, 0x30, 0x48, 0x06, 0x00, 0x3C, 0x48, 0x06, 0x00, 0x48, 0x48, 0x06, 0x00, 0x54, 0x48, 0x06, 0x00, 0x60, 0x48, 0x06, 0x00, 0x6C, 0x48, 0x06, 0x00, 0x78, 0x48, 0x06, 0x00, 0x84, 0x48, 0x06, 0x00, 0x90, 0x48, 0x06, 0x00, 0x9C, 0x48, 0x06, 0x00, 0xA8, 0x48, 0x06, 0x00, 0xB4, 0x48, 0x06, 0x00, 0xC0, 0x48, 0x06, 0x00, 0x5F, 0xE0, 0x38, 0x73, 0x5F, 0xFF, 0x7A, 0x00, 0x40, 0xE0, 0x40, 0xE0, 0x5F, 0xFF, 0x38, 0x73, 0x40, 0xE0, 0x7A, 0x00, 0x40, 0xFF, 0x40, 0xFF, 0x5F, 0xE0, 0x38, 0x73, 0x40, 0xE0, 0x7A, 0x00, 0x5F, 0xFF, 0x5F, 0xFF, 0x40, 0xE0, 0x38, 0x73, 0x5F, 0xFF, 0x7A, 0x00, 0x40, 0xFF, 0x40, 0xFF, 0x5F, 0xFF, 0x38, 0x73, 0x5F, 0xE0, 0x7A, 0x00, 0x40, 0xFF, 0x40, 0xFF, 0x5F, 0xE0, 0x38, 0x73, 0x40, 0xFF, 0x7A, 0x00, 0x40, 0xE0, 0x40, 0xE0, 0x5F, 0xE0, 0x38, 0x73, 0x40, 0xE0, 0x7A, 0x00, 0x40, 0xFF, 0x40, 0xFF, 0x5F, 0xE0, 0x38, 0x73, 0x40, 0xFF, 0x7A, 0x00, 0x5F, 0xFF, 0x5F, 0xFF, 0x40, 0xE0, 0x38, 0x73, 0x40, 0xFF, 0x7A, 0x00, 0x5F, 0xE0, 0x5F, 0xE0, 0x40, 0xFF, 0x38, 0x73, 0x5F, 0xE0, 0x7A, 0x00, 0x5F, 0xFF, 0x5F, 0xFF, 0x40, 0xE0, 0x38, 0x73, 0x5F, 0xE0, 0x7A, 0x00, 0x5F, 0xFF, 0x5F, 0xFF, 0x5F, 0xFF, 0x38, 0x73, 0x40, 0xFF, 0x7A, 0x00, 0x40, 0xE0, 0x40, 0xE0, 0x5F, 0xFF, 0x38, 0x73, 0x5F, 0xE0, 0x7A, 0x00, 0x40, 0xE0, 0x40, 0xE0, 0x40, 0xE0, 0x38, 0x73, 0x5F, 0xE0, 0x7A, 0x00, 0x40, 0xFF, 0x40, 0xFF, 0x40, 0xFF, 0x38, 0x73, 0x5F, 0xFF, 0x7A, 0x00, 0x5F, 0xE0, 0x5F, 0xE0, 0x5F, 0xE0, 0x38, 0x73, 0x5F, 0xFF, 0x7A, 0x00, 0x40, 0xFF, 0x40, 0xFF, 0x40, 0xFF, 0x38, 0x73, 0x40, 0xE0, 0x7A, 0x00, 0x5F, 0xE0, 0x5F, 0xE0, 0x40, 0xFF, 0x38, 0x73, 0x5F, 0xE0, 0x7A, 0x00, 0x00, 0x00, 0x00, 0x00
-	};
-	const size_t offCactusVertexData = currOffset; //not used
-	printf(nameof(offCactusVertexData) " = %zx\n", offCactusVertexData);
-  currOffset += sizeof(cactusVertexData);
-
-	PSX::TextureLayout cactusTextureLayouts[18] = {};
-	memcpy(&cactusTextureLayouts[0],  "\x5F\xE0\x38\x73\x5F\xFF\x7A\x00\x40\xE0\x40\xE0", sizeof(PSX::TextureLayout));
-	memcpy(&cactusTextureLayouts[1],  "\x5F\xFF\x38\x73\x40\xE0\x7A\x00\x40\xFF\x40\xFF", sizeof(PSX::TextureLayout));
-	memcpy(&cactusTextureLayouts[2],  "\x5F\xE0\x38\x73\x40\xE0\x7A\x00\x5F\xFF\x5F\xFF", sizeof(PSX::TextureLayout));
-	memcpy(&cactusTextureLayouts[3],  "\x40\xE0\x38\x73\x5F\xFF\x7A\x00\x40\xFF\x40\xFF", sizeof(PSX::TextureLayout));
-	memcpy(&cactusTextureLayouts[4],  "\x5F\xFF\x38\x73\x5F\xE0\x7A\x00\x40\xFF\x40\xFF", sizeof(PSX::TextureLayout));
-	memcpy(&cactusTextureLayouts[5],  "\x5F\xE0\x38\x73\x40\xFF\x7A\x00\x40\xE0\x40\xE0", sizeof(PSX::TextureLayout));
-	memcpy(&cactusTextureLayouts[6],  "\x5F\xE0\x38\x73\x40\xE0\x7A\x00\x40\xFF\x40\xFF", sizeof(PSX::TextureLayout));
-	memcpy(&cactusTextureLayouts[7],  "\x5F\xE0\x38\x73\x40\xFF\x7A\x00\x5F\xFF\x5F\xFF", sizeof(PSX::TextureLayout));
-	memcpy(&cactusTextureLayouts[8],  "\x40\xE0\x38\x73\x40\xFF\x7A\x00\x5F\xE0\x5F\xE0", sizeof(PSX::TextureLayout));
-	memcpy(&cactusTextureLayouts[9],  "\x40\xFF\x38\x73\x5F\xE0\x7A\x00\x5F\xFF\x5F\xFF", sizeof(PSX::TextureLayout));
-	memcpy(&cactusTextureLayouts[10], "\x40\xE0\x38\x73\x5F\xE0\x7A\x00\x5F\xFF\x5F\xFF", sizeof(PSX::TextureLayout));
-	memcpy(&cactusTextureLayouts[11], "\x5F\xFF\x38\x73\x40\xFF\x7A\x00\x40\xE0\x40\xE0", sizeof(PSX::TextureLayout));
-	memcpy(&cactusTextureLayouts[12], "\x5F\xFF\x38\x73\x5F\xE0\x7A\x00\x40\xE0\x40\xE0", sizeof(PSX::TextureLayout));
-	memcpy(&cactusTextureLayouts[13], "\x40\xE0\x38\x73\x5F\xE0\x7A\x00\x40\xFF\x40\xFF", sizeof(PSX::TextureLayout));
-	memcpy(&cactusTextureLayouts[14], "\x40\xFF\x38\x73\x5F\xFF\x7A\x00\x5F\xE0\x5F\xE0", sizeof(PSX::TextureLayout));
-	memcpy(&cactusTextureLayouts[15], "\x5F\xE0\x38\x73\x5F\xFF\x7A\x00\x40\xFF\x40\xFF", sizeof(PSX::TextureLayout));
-	memcpy(&cactusTextureLayouts[16], "\x40\xFF\x38\x73\x40\xE0\x7A\x00\x5F\xE0\x5F\xE0", sizeof(PSX::TextureLayout));
-	memcpy(&cactusTextureLayouts[17], "\x40\xFF\x38\x73\x5F\xE0\x7A\x00\x40\xE0\x40\xE0", sizeof(PSX::TextureLayout));
-	const size_t offCactusTextureLayouts = currOffset;
-	printf(nameof(offCactusTextureLayouts) " = %zx\n", offCactusTextureLayouts);
-  currOffset += sizeof(cactusTextureLayouts);
-
-	const size_t offCactusTextureLayout_ptrArray = currOffset;
-	printf(nameof(offCactusTextureLayout_ptrArray) " = %zx\n", offCactusTextureLayout_ptrArray);
-	uint32_t cactusTextureLayout_ptrArray[18] =
-	{
-		offCactusTextureLayouts + (sizeof(PSX::TextureLayout) * 0),
-		offCactusTextureLayouts + (sizeof(PSX::TextureLayout) * 1),
-		offCactusTextureLayouts + (sizeof(PSX::TextureLayout) * 2),
-		offCactusTextureLayouts + (sizeof(PSX::TextureLayout) * 3),
-		offCactusTextureLayouts + (sizeof(PSX::TextureLayout) * 4),
-		offCactusTextureLayouts + (sizeof(PSX::TextureLayout) * 5),
-		offCactusTextureLayouts + (sizeof(PSX::TextureLayout) * 6),
-		offCactusTextureLayouts + (sizeof(PSX::TextureLayout) * 7),
-		offCactusTextureLayouts + (sizeof(PSX::TextureLayout) * 8),
-		offCactusTextureLayouts + (sizeof(PSX::TextureLayout) * 9),
-		offCactusTextureLayouts + (sizeof(PSX::TextureLayout) * 10),
-		offCactusTextureLayouts + (sizeof(PSX::TextureLayout) * 11),
-		offCactusTextureLayouts + (sizeof(PSX::TextureLayout) * 12),
-		offCactusTextureLayouts + (sizeof(PSX::TextureLayout) * 13),
-		offCactusTextureLayouts + (sizeof(PSX::TextureLayout) * 14),
-		offCactusTextureLayouts + (sizeof(PSX::TextureLayout) * 15),
-		offCactusTextureLayouts + (sizeof(PSX::TextureLayout) * 16),
-		offCactusTextureLayouts + (sizeof(PSX::TextureLayout) * 17),
-	};
-  currOffset += sizeof(cactusTextureLayout_ptrArray);
-
-	//PSX::CLUT cactusColorsCLUT = {};
-	//memcpy(&cactusColorsCLUT, "\x2F\x33", sizeof(PSX::CLUT));
- // const size_t offCactusCLUT = currOffset;
-	//printf(nameof(offCactusCLUT) " = %zx\n", offCactusCLUT);
- // currOffset += sizeof(PSX::CLUT);
-
-	char cactusColorsCLUTData[256] = 
-	{
-		0x2F, 0x33, 0x19, 0x00, 0xCB, 0xB6, 0x2D, 0x00, 0x9E, 0x8F, 0x29, 0x00, 0x0E, 0x0C, 0x0E, 0x00, 0xD2, 0xBD, 0x2E, 0x00, 0x84, 0x79, 0x26, 0x00, 0x20, 0x22, 0x13, 0x00, 0x24, 0x24, 0x17, 0x00, 0x2F, 0x31, 0x19, 0x00, 0xD0, 0xB9, 0x2E, 0x00, 0x22, 0x22, 0x15, 0x00, 0xC5, 0xB2, 0x2C, 0x00, 0x65, 0x65, 0x29, 0x00, 0x3C, 0x42, 0x16, 0x00, 0x11, 0x0F, 0x11, 0x00, 0x81, 0x76, 0x26, 0x00, 0xFF, 0xE5, 0x38, 0x00, 0x42, 0x46, 0x20, 0x00, 0x12, 0x10, 0x12, 0x00, 0x25, 0x29, 0x2C, 0x00, 0x1A, 0x1C, 0x0C, 0x00, 0x4E, 0x48, 0x20, 0x00, 0x1B, 0x11, 0x2A, 0x00, 0x66, 0x6E, 0x29, 0x00, 0x41, 0x46, 0x1D, 0x00, 0x3D, 0x43, 0x17, 0x00, 0x80, 0x8C, 0x2F, 0x00, 0x62, 0x6B, 0x24, 0x00, 0x72, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x95, 0x00, 0x01, 0x00, 0x54, 0x49, 0x06, 0x00, 0x72, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0x4F, 0x07, 0x82, 0x07, 0x49, 0x03, 0x00, 0x00, 0xB4, 0x49, 0x06, 0x00, 0x74, 0x4B, 0x06, 0x00, 0xC4, 0x4C, 0x06, 0x00, 0x04, 0x51, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x04, 0x00, 0x00, 0xAE, 0xFF, 0xEE, 0xFF, 0xAE, 0xFF, 0x52, 0x00, 0x92, 0x00, 0x52, 0x00, 0x00, 0x00, 0x3F, 0x00, 0x00, 0x00, 0x52, 0x00, 0xDF, 0x1A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x13, 0x00, 0x00, 0x00, 0x01, 0x00, 0x57, 0xB8, 0x01, 0x00, 0x57, 0x38, 0x01, 0x00, 0x57, 0x38, 0x02, 0x00, 0x57, 0x18, 0x03, 0x22, 0x57, 0xB8
-	};
-	const size_t offCactusColorsCLUTData = currOffset;
-	printf(nameof(offCactusColorsCLUTData) " = %zx\n", offCactusColorsCLUTData);
-  currOffset += sizeof(cactusColorsCLUTData);
-
-	//set up InstDef
-	memcpy(&cactus.name, "cactus_saguro#2", 16);
-	cactus.offModel = offCactusModel;
-	cactus.scale.x = cactus.scale.y = cactus.scale.z = 0x1000;
-	cactus.maybeScaleMaybePadding = 0x0;
-	cactus.colorRGBA = 0x0;
-	//cactus.flags = 0xB;
-	//0xB = 1011 (cactus)
-	//0xF = 1111 (armadillo)
-	cactus.flags = 0xB;
-	cactus.unk24 = 0x0;
-	cactus.unk28 = 0x0;
-	cactus.offInstance = 0x0; //filled in at runtime (connect InstDef to Instance)
-	//cactus.pos.x = 0x0C2D;
-	//cactus.pos.y = 0x0900;
-	//cactus.pos.z = 0xED86;
-  //cactus.pos.x = 0x4000;
-	cactus.pos.x = 0x0000;
-	cactus.pos.y = 0x0000;
-	cactus.pos.z = 0x0000;
-	cactus.rot.x = 0x0000;
-	cactus.rot.y = 0xFF94;
-	cactus.rot.z = 0x0000;
-	cactus.modelID = 0xFFFFFFFF;
-
-	//set up Model
-	memcpy(&cactusModel.name, "cactus_saguro", 14);
-	cactusModel.id = 0xFFFF;
-	cactusModel.numHeaders = 0x0001;
-	cactusModel.offHeaders = offCactusModelHeader;
-
-  //set up ModelHeader
-	memcpy(&cactusModelHeader.name, "cactus_saguro_h", 16);
-	cactusModelHeader.unk1 = 0x0;
-	cactusModelHeader.maxDistanceLOD = 0x2000;
-	cactusModelHeader.flags = 0x0000;
-	cactusModelHeader.scale.x = 0x271E;
-	cactusModelHeader.scale.y = 0x2B3B;
-	cactusModelHeader.scale.z = 0x0E5E;
-  cactusModelHeader.maybeScaleMaybePadding = 0x0;
-	cactusModelHeader.offCommandList = offCommandList;
-  cactusModelHeader.offFrameData = offCactusModelFrame;
-	cactusModelHeader.offTexLayout = offCactusTextureLayout_ptrArray;
-	cactusModelHeader.offColors = offCactusColorsCLUTData;
-	cactusModelHeader.unk3 = 0x0;
-	cactusModelHeader.numAnimations = 0x0;
-	cactusModelHeader.offAnimations = 0x0;
-	cactusModelHeader.offAnimtex = 0x0;
-
-	//set up commandList
-	//already taken care of up top
-
-	//set up cactusModelFrame
-	cactusModelFrame.pos.x = 0xFF65;
-	cactusModelFrame.pos.y = 0x0000;
-	cactusModelFrame.pos.z = 0xFF7E;
-	cactusModelFrame.maybePosMaybePadding = 0x0;
-	memcpy(&cactusModelFrame.unk16, "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", 16);
-	cactusModelFrame.vertexOffset = 0x1C;
-	//TODO verts immediately following this??? not sure
-
-	//set up cactusColorsCLUT
-	//already taken care of up top
-
-	//char bunchOfFs[] =
-	//{
-	//	0xFF, 0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF, 0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF, 0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF, 0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF
-	//};
-	//const size_t offBunchOfFs = currOffset;
-	//printf(nameof(offBunchOfFs) " = %zx\n", offBunchOfFs);
-	//currOffset += sizeof(offBunchOfFs);
-
-	//header.offUnk_0x1C = offBunchOfFs;
-	//header.offUnk_0x20 = offBunchOfFs;
-	//header.offUnk_0xCC = offBunchOfFs;
-	//header.offUnk_0xD0 = offBunchOfFs;
-	//header.unk_0x170 = offBunchOfFs;
+	currOffset += (uniqueModelNames.size() + 1) * sizeof(uint32_t);
+	header.offModels = static_cast<uint32_t>(offModelList_ptrArray);
 
 #define CALCULATE_OFFSET(s, m, b) static_cast<uint32_t>(offsetof(s, m) + b)
 
@@ -1558,35 +1436,47 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 		CALCULATE_OFFSET(PSX::VisualMem, offNodes[0], offVisMem),
 		CALCULATE_OFFSET(PSX::VisualMem, offQuads[0], offVisMem),
 		CALCULATE_OFFSET(PSX::VisualMem, offBSP[0], offVisMem),
-
-		CALCULATE_OFFSET(PSX::InstDef, offModel, offCactus),
-		CALCULATE_OFFSET(PSX::Model, offHeaders, offCactusModel),
-		CALCULATE_OFFSET(PSX::ModelHeader, offCommandList, offCactusModelHeader),
-		CALCULATE_OFFSET(PSX::ModelHeader, offFrameData, offCactusModelHeader),
-		CALCULATE_OFFSET(PSX::ModelHeader, offTexLayout, offCactusModelHeader),
-		CALCULATE_OFFSET(PSX::ModelHeader, offColors, offCactusModelHeader),
-		(uint32_t)offInstDefList_ptrArray,
-		(uint32_t)offInstDefList2_ptrArray,
-		(uint32_t)offModelList_ptrArray,
-		(uint32_t)(offCactusTextureLayout_ptrArray + sizeof(uint32_t) * 0),
-		(uint32_t)(offCactusTextureLayout_ptrArray + sizeof(uint32_t) * 1),
-		(uint32_t)(offCactusTextureLayout_ptrArray + sizeof(uint32_t) * 2),
-		(uint32_t)(offCactusTextureLayout_ptrArray + sizeof(uint32_t) * 3),
-		(uint32_t)(offCactusTextureLayout_ptrArray + sizeof(uint32_t) * 4),
-		(uint32_t)(offCactusTextureLayout_ptrArray + sizeof(uint32_t) * 5),
-		(uint32_t)(offCactusTextureLayout_ptrArray + sizeof(uint32_t) * 6),
-		(uint32_t)(offCactusTextureLayout_ptrArray + sizeof(uint32_t) * 7),
-		(uint32_t)(offCactusTextureLayout_ptrArray + sizeof(uint32_t) * 8),
-		(uint32_t)(offCactusTextureLayout_ptrArray + sizeof(uint32_t) * 9),
-		(uint32_t)(offCactusTextureLayout_ptrArray + sizeof(uint32_t) * 10),
-		(uint32_t)(offCactusTextureLayout_ptrArray + sizeof(uint32_t) * 11),
-		(uint32_t)(offCactusTextureLayout_ptrArray + sizeof(uint32_t) * 12),
-		(uint32_t)(offCactusTextureLayout_ptrArray + sizeof(uint32_t) * 13),
-		(uint32_t)(offCactusTextureLayout_ptrArray + sizeof(uint32_t) * 14),
-		(uint32_t)(offCactusTextureLayout_ptrArray + sizeof(uint32_t) * 15),
-		(uint32_t)(offCactusTextureLayout_ptrArray + sizeof(uint32_t) * 16),
-		(uint32_t)(offCactusTextureLayout_ptrArray + sizeof(uint32_t) * 17),
 	};
+
+	// Add InstDef.offModel pointers
+	for (size_t i = 0; i < m_modelInstances.size(); i++)
+	{
+		pointerMap.push_back(CALCULATE_OFFSET(PSX::InstDef, offModel, instDefOffsets[i]));
+	}
+
+	// Add pointer array entries
+	for (size_t i = 0; i < instDefOffsets.size(); i++)
+	{
+		pointerMap.push_back(static_cast<uint32_t>(offInstDefList_ptrArray + (i * sizeof(uint32_t))));
+		pointerMap.push_back(static_cast<uint32_t>(offInstDefList2_ptrArray + (i * sizeof(uint32_t))));
+	}
+
+	for (size_t i = 0; i < modelOrder.size(); i++)
+	{
+		pointerMap.push_back(static_cast<uint32_t>(offModelList_ptrArray + (i * sizeof(uint32_t))));
+	}
+
+	// Add model internal pointers to .lev patch table
+	for (const std::string& modelName : modelOrder)
+	{
+		const std::vector<uint8_t>& ctrmodelData = m_importedModels.at(modelName);
+		size_t modelBaseOffset = modelOffsets[modelName];
+
+		// Parse .ctrmodel to get patch table
+		const SH::CtrModel* ctrHeader = reinterpret_cast<const SH::CtrModel*>(ctrmodelData.data());
+		const uint32_t* patchTablePtr = reinterpret_cast<const uint32_t*>(ctrmodelData.data() + ctrHeader->modelPatchTableOffset);
+		const uint32_t patchCount = *patchTablePtr;
+		const uint32_t* patchOffsets = patchTablePtr + 1;
+
+		// Add each pointer field location to .lev patch table
+		for (uint32_t i = 0; i < patchCount; i++)
+		{
+			uint32_t ctrPatchOffset = patchOffsets[i]; // Absolute offset in .ctrmodel where pointer field is
+			uint32_t relativeOffset = ctrPatchOffset - ctrHeader->modelOffset; // Relative to model data
+			uint32_t levPatchOffset = static_cast<uint32_t>(modelBaseOffset + relativeOffset); // Absolute in .lev
+			pointerMap.push_back(levPatchOffset);
+		}
+	}
 
 	if (offTropyGhost != 0) { pointerMap.push_back(CALCULATE_OFFSET(PSX::LevelExtraHeader, offsets[PSX::LevelExtra::N_TROPY_GHOST], offExtraHeader)); }
 	if (offOxideGhost != 0) { pointerMap.push_back(CALCULATE_OFFSET(PSX::LevelExtraHeader, offsets[PSX::LevelExtra::N_OXIDE_GHOST], offExtraHeader)); }
@@ -1665,23 +1555,196 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	Write(file, visMemQuadsP1.data(), visMemQuadsP1.size() * sizeof(uint32_t));
 	Write(file, visMemBSPP1.data(), visMemBSPP1.size() * sizeof(uint32_t));
 	Write(file, &visMem, sizeof(visMem));
-  Write(file, &cactus, sizeof(cactus));
-	Write(file, &instDefList_ptrArray[0], sizeof(instDefList_ptrArray));
-	Write(file, &instDefList2_ptrArray[0], sizeof(instDefList2_ptrArray));
-	Write(file, &cactusModel, sizeof(cactusModel));
-	Write(file, &modelList_ptrArray[0], sizeof(modelList_ptrArray));
-  Write(file, &cactusModelHeader, sizeof(cactusModelHeader));
-	Write(file, &commandList, sizeof(commandList));
-  Write(file, &cactusModelFrame, sizeof(cactusModelFrame));
-	Write(file, &cactusVertexData[0], sizeof(cactusVertexData));
-  Write(file, &cactusTextureLayouts[0], sizeof(cactusTextureLayouts));
-	Write(file, &cactusTextureLayout_ptrArray[0], sizeof(cactusTextureLayout_ptrArray));
-  Write(file, &cactusColorsCLUTData, sizeof(cactusColorsCLUTData));
-	//Write(file, &bunchOfFs[0], sizeof(bunchOfFs));
+
+	// Write InstDefs
+	for (size_t i = 0; i < m_modelInstances.size(); i++)
+	{
+		PSX::InstDef inst = {};  // Zero-initialize to clear any garbage in name[] trailing bytes
+		inst = m_modelInstances[i];
+		// Ensure name is null-padded (copy may leave garbage after null terminator)
+		size_t nameLen = strnlen(inst.name, sizeof(inst.name));
+		memset(inst.name + nameLen, 0, sizeof(inst.name) - nameLen);
+		// Patch offModel to point to the actual model (stored offset, game adds 4 to get actual position)
+		inst.offModel = static_cast<uint32_t>(modelOffsets[m_modelInstanceNames[i]]);
+		Write(file, &inst, sizeof(inst));
+	}
+
+	// Write InstDef pointer arrays (NULL-terminated, stored offsets - game adds 4 to get actual position)
+	for (size_t offset : instDefOffsets)
+	{
+		uint32_t ptr = static_cast<uint32_t>(offset);
+		Write(file, &ptr, sizeof(ptr));
+	}
+	uint32_t nullTerm = 0;
+	Write(file, &nullTerm, sizeof(nullTerm));
+
+	// Write second InstDef pointer array
+	for (size_t offset : instDefOffsets)
+	{
+		uint32_t ptr = static_cast<uint32_t>(offset);
+		Write(file, &ptr, sizeof(ptr));
+	}
+	Write(file, &nullTerm, sizeof(nullTerm));
+
+	// Write Model data with pointer conversion from .ctrmodel to .lev format
+	for (const std::string& modelName : modelOrder)
+	{
+		const std::vector<uint8_t>& ctrmodelData = m_importedModels.at(modelName);
+		size_t modelBaseOffset = modelOffsets[modelName];
+
+		// Parse .ctrmodel to get model data and patch table
+		const SH::CtrModel* ctrHeader = reinterpret_cast<const SH::CtrModel*>(ctrmodelData.data());
+		const uint8_t* modelDataSrc = ctrmodelData.data() + ctrHeader->modelOffset;
+		size_t modelDataSize = ctrHeader->modelPatchTableOffset - ctrHeader->modelOffset;
+
+		const uint32_t* patchTablePtr = reinterpret_cast<const uint32_t*>(ctrmodelData.data() + ctrHeader->modelPatchTableOffset);
+		const uint32_t patchCount = *patchTablePtr;
+		const uint32_t* patchOffsets = patchTablePtr + 1;
+
+		// Copy the model data
+		std::vector<uint8_t> modelData(modelDataSrc, modelDataSrc + modelDataSize);
+
+		// Patch TextureLayouts with new VRAM coordinates
+		// Parse Model and ModelHeaders to find TextureLayout arrays
+		const PSX::Model* model = reinterpret_cast<const PSX::Model*>(modelData.data());
+		const uint32_t modelHeadersOffset = model->offHeaders - ctrHeader->modelOffset;
+		const PSX::ModelHeader* modelHeaders = reinterpret_cast<const PSX::ModelHeader*>(modelData.data() + modelHeadersOffset);
+
+		for (uint8_t h = 0; h < model->numHeaders; h++)
+		{
+			const PSX::ModelHeader& modelHdr = modelHeaders[h];
+			if (modelHdr.offTexLayout == 0) { continue; }
+
+			// offTexLayout points to a pointer array, each entry points to a TextureLayout
+			uint32_t ptrArrayOffset = modelHdr.offTexLayout - ctrHeader->modelOffset;
+			const uint32_t* texLayoutPtrs = reinterpret_cast<const uint32_t*>(modelData.data() + ptrArrayOffset);
+
+			// Count TextureLayouts by finding the first null or out-of-range pointer
+			size_t numLayouts = 0;
+			while (texLayoutPtrs[numLayouts] != 0 &&
+			       texLayoutPtrs[numLayouts] >= ctrHeader->modelOffset &&
+			       texLayoutPtrs[numLayouts] < ctrHeader->modelPatchTableOffset)
+			{
+				numLayouts++;
+			}
+
+			for (size_t i = 0; i < numLayouts; i++)
+			{
+				uint32_t layoutOffset = texLayoutPtrs[i] - ctrHeader->modelOffset;
+				PSX::TextureLayout* layout = reinterpret_cast<PSX::TextureLayout*>(modelData.data() + layoutOffset);
+
+				// Extract original texpage/clut from layout
+				uint8_t origPageX = layout->texPage.x;
+				uint8_t origPageY = layout->texPage.y;
+				uint8_t origPalX = layout->clut.x;
+				uint16_t origPalY = layout->clut.y;
+
+				// Find matching ModelTextureForVRM
+				for (const ModelTextureForVRM& tex : m_modelTexturesInVRAM)
+				{
+					if (tex.modelName != modelName) { continue; }
+					if (!tex.placed) { continue; }
+					if (tex.origPageX != origPageX) { continue; }
+					if (tex.origPageY != origPageY) { continue; }
+					if (tex.origPalX != origPalX) { continue; }
+					if (tex.origPalY != origPalY) { continue; }
+
+					// Found matching texture! Update TextureLayout with new coordinates
+					// Internal buffer position → VRAM position: add 512 to X (VRM is placed at VRAM X=512)
+					size_t vramX = 512 + tex.imageX;
+					size_t vramY = tex.imageY;
+
+					// Calculate new texpage (64x256 pages)
+					layout->texPage.x = static_cast<uint16_t>(vramX / 64);
+					layout->texPage.y = static_cast<uint16_t>(vramY / 256);
+					layout->texPage.blendMode = tex.blendMode;
+					layout->texPage.texpageColors = tex.bpp;
+
+					// Calculate new CLUT coords (if indexed)
+					if (tex.bpp < 2)
+					{
+						size_t clutVramX = 512 + tex.clutX;
+						size_t clutVramY = tex.clutY;
+						layout->clut.x = static_cast<uint16_t>(clutVramX / 16);
+						layout->clut.y = static_cast<uint16_t>(clutVramY);
+					}
+
+					// Calculate UV adjustment
+					// The texture was extracted starting at UV (originU, originV)
+					// Now it's placed at position (vramX % 64, vramY % 256) within the new texpage
+					// UV coordinates are scaled by BPP: 4bpp=4x, 8bpp=2x, 16bpp=1x
+					int uvStretch = (tex.bpp == 0) ? 4 : (tex.bpp == 1) ? 2 : 1;
+					int newOriginU = static_cast<int>((vramX % 64) * uvStretch);
+					int newOriginV = static_cast<int>(vramY % 256);
+					int deltaU = newOriginU - tex.originU;
+					int deltaV = newOriginV - tex.originV;
+
+					printf("uvs stuff\n");
+
+					if (deltaU != 0 || deltaV != 0)
+					{
+						printf("UV adjust %s tex[%zu]: originU=%d originV=%d -> newOriginU=%d newOriginV=%d (deltaU=%d deltaV=%d)\n",
+						       modelName.c_str(), tex.textureIndex, tex.originU, tex.originV, newOriginU, newOriginV, deltaU, deltaV);
+						printf("  vramX=%zu vramY=%zu, texpage=(%d,%d), bpp=%d, stretch=%d\n",
+						       vramX, vramY, layout->texPage.x, layout->texPage.y, tex.bpp, uvStretch);
+					}
+
+					// Adjust all UV coordinates
+					layout->u0 = static_cast<uint8_t>(layout->u0 + deltaU);
+					layout->v0 = static_cast<uint8_t>(layout->v0 + deltaV);
+					layout->u1 = static_cast<uint8_t>(layout->u1 + deltaU);
+					layout->v1 = static_cast<uint8_t>(layout->v1 + deltaV);
+					layout->u2 = static_cast<uint8_t>(layout->u2 + deltaU);
+					layout->v2 = static_cast<uint8_t>(layout->v2 + deltaV);
+					layout->u3 = static_cast<uint8_t>(layout->u3 + deltaU);
+					layout->v3 = static_cast<uint8_t>(layout->v3 + deltaV);
+
+					break; // Found and patched
+				}
+			}
+		}
+
+		// Convert pointers from .ctrmodel format to .lev format
+		// .ctrmodel: absolute offsets pointing directly to targets
+		// .lev: stored offsets where (stored + 4) = actual file position
+		// Since modelBaseOffset is already a stored offset (actual - 4), we just compute:
+		// new_stored_offset = modelBaseOffset + relative_offset_within_model
+		for (uint32_t i = 0; i < patchCount; i++)
+		{
+			uint32_t ctrPatchOffset = patchOffsets[i]; // Absolute offset in .ctrmodel where pointer field is
+			uint32_t relativeOffset = ctrPatchOffset - ctrHeader->modelOffset; // Relative to model data
+
+			if (relativeOffset + sizeof(uint32_t) <= modelData.size())
+			{
+				uint32_t* ptrLocation = reinterpret_cast<uint32_t*>(&modelData[relativeOffset]);
+				uint32_t ctrPointerValue = *ptrLocation; // Absolute in .ctrmodel, points directly to target
+
+				// Transform to .lev stored offset format
+				// Target's relative position within model = ctrPointerValue - ctrModelOffset
+				// Target's stored offset in .lev = modelBaseOffset + relative_position
+				uint32_t levPointerValue = static_cast<uint32_t>(
+					modelBaseOffset + (ctrPointerValue - ctrHeader->modelOffset)
+				);
+				*ptrLocation = levPointerValue;
+			}
+		}
+
+		// Write the modified model data
+		Write(file, modelData.data(), modelData.size());
+	}
+
+	// Write Model pointer array (NULL-terminated, stored offsets - game adds 4 to get actual position)
+	for (const std::string& modelName : modelOrder)
+	{
+		uint32_t ptr = static_cast<uint32_t>(modelOffsets[modelName]);
+		Write(file, &ptr, sizeof(ptr));
+	}
+	Write(file, &nullTerm, sizeof(nullTerm));
+
 	uint32_t fourBytesOfZero = 0;
 	if (paddingSizeForMultOfFour > 0)
 	{
-		printf("WARNING: HAD TO PAD %d BYTES\n", paddingSizeForMultOfFour);
+		printf("WARNING: HAD TO PAD %zu BYTES\n", paddingSizeForMultOfFour);
 		Write(file, &fourBytesOfZero, paddingSizeForMultOfFour);
 	}
 	Write(file, &pointerMapBytes, sizeof(uint32_t));
@@ -2203,7 +2266,78 @@ bool Level::UpdateVRM()
 		}
 	}
 
-	m_vrm = PackVRM(textures);
+	// Extract textures from imported models
+	m_modelTexturesInVRAM.clear();
+	for (const auto& [modelName, ctrmodelData] : m_importedModels)
+	{
+		const SH::CtrModel* ctrHeader = reinterpret_cast<const SH::CtrModel*>(ctrmodelData.data());
+
+		// Skip if no texture section
+		if (ctrHeader->textureDataOffset == 0) { continue; }
+
+		// Parse texture section
+		const SH::TextureSectionHeader* texSection =
+			reinterpret_cast<const SH::TextureSectionHeader*>(ctrmodelData.data() + ctrHeader->textureDataOffset);
+
+		if (texSection->numTextures == 0) { continue; }
+
+		// Offset array follows header
+		const uint32_t* texOffsets = reinterpret_cast<const uint32_t*>(texSection + 1);
+
+		for (uint32_t i = 0; i < texSection->numTextures; i++)
+		{
+			const SH::TextureDataHeader* texData =
+				reinterpret_cast<const SH::TextureDataHeader*>(ctrmodelData.data() + texOffsets[i]);
+
+			ModelTextureForVRM modelTex;
+			modelTex.modelName = modelName;
+			modelTex.textureIndex = i;
+			modelTex.width = texData->width;
+			modelTex.height = texData->height;
+			modelTex.bpp = texData->bpp;
+			modelTex.blendMode = texData->blendMode;
+			modelTex.origPageX = texData->origPageX;
+			modelTex.origPageY = texData->origPageY;
+			modelTex.origPalX = texData->origPalX;
+			modelTex.origPalY = texData->origPalY_lo | (texData->origPalY_hi << 8);
+			modelTex.originU = texData->originU;
+			modelTex.originV = texData->originV;
+
+			// Calculate pixel data size
+			size_t pixelDataSize = 0;
+			size_t paletteSize = 0;
+			if (texData->bpp == 0) // 4-bit
+			{
+				pixelDataSize = ((texData->width + 1) / 2) * texData->height;
+				paletteSize = 16;
+			}
+			else if (texData->bpp == 1) // 8-bit
+			{
+				pixelDataSize = texData->width * texData->height;
+				paletteSize = 256;
+			}
+			else // 16-bit
+			{
+				pixelDataSize = texData->width * texData->height * 2;
+				paletteSize = 0;
+			}
+
+			// Copy pixel data
+			const uint8_t* pixelStart = reinterpret_cast<const uint8_t*>(texData + 1);
+			modelTex.pixelData.assign(pixelStart, pixelStart + pixelDataSize);
+
+			// Copy palette data (if indexed)
+			if (paletteSize > 0)
+			{
+				const uint16_t* paletteStart = reinterpret_cast<const uint16_t*>(pixelStart + pixelDataSize);
+				modelTex.palette.assign(paletteStart, paletteStart + paletteSize);
+			}
+
+			m_modelTexturesInVRAM.push_back(std::move(modelTex));
+		}
+	}
+
+	m_vrm = PackVRM(textures, m_modelTexturesInVRAM.empty() ? nullptr : &m_modelTexturesInVRAM);
 	if (m_vrm.empty()) { return false; }
 
 	for (auto& [from, to] : copyTextureAttributes)
