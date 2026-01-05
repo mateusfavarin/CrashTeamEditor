@@ -2710,7 +2710,7 @@ void Level::ViewportClickHandleBlockSelection(int pixelX, int pixelY, bool appen
 	static int lastClickedY = pixelY;
 	static int indenticalClickTimes = -1;
 
-	if (pixelX == lastClickedX && pixelY == lastClickedY)
+	if (!appendSelection && pixelX == lastClickedX && pixelY == lastClickedY)
 	{
 		indenticalClickTimes++;
 	}
@@ -2742,16 +2742,16 @@ void Level::ViewportClickHandleBlockSelection(int pixelX, int pixelY, bool appen
 		{
 			if (!appendSelection) { m_rendererSelectedQuadblockIndexes.clear(); }
 
-			bool alreadySelected = false;
-			for (size_t index : m_rendererSelectedQuadblockIndexes)
+			auto selectedIt = std::find(m_rendererSelectedQuadblockIndexes.begin(), m_rendererSelectedQuadblockIndexes.end(), clickedIndex);
+			bool alreadySelected = selectedIt != m_rendererSelectedQuadblockIndexes.end();
+			if (appendSelection && alreadySelected)
 			{
-				if (index == clickedIndex)
-				{
-					alreadySelected = true;
-					break;
-				}
+				m_rendererSelectedQuadblockIndexes.erase(selectedIt);
 			}
-			if (!alreadySelected) { m_rendererSelectedQuadblockIndexes.push_back(clickedIndex); }
+			else if (!alreadySelected)
+			{
+				m_rendererSelectedQuadblockIndexes.push_back(clickedIndex);
+			}
 		}
 
 		GenerateRenderSelectedBlockData(*clickedQuadblock, point);
