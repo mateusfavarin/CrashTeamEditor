@@ -115,7 +115,7 @@ Quadblock::Quadblock(const std::string& name, Tri& t0, Tri& t1, Tri& t2, Tri& t3
 			}
 		}
 
-		if (bestMatches != 2) { throw QuadException("At least 2 triangles in the triblock must share 2 UV vertices."); }
+		if (bestMatches < 2) { throw QuadException("At least 2 triangles in the triblock must share 2 UV vertices."); }
 
 		if (bestIndex != 0) { Swap(adjTris[0], adjTris[bestIndex]); }
 	}
