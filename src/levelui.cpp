@@ -676,7 +676,7 @@ void Level::RenderUI()
 				bool removePath = false;
 				Path& path = m_checkpointPaths[i];
 				const std::string pathTitle = "Path " + std::to_string(path.GetIndex());
-				path.RenderUI(pathTitle, m_quadblocks, checkpointQuery, true, insertAbove, removePath);
+				path.RenderUI(pathTitle, m_quadblocks, checkpointQuery, true, insertAbove, removePath, m_rendererSelectedQuadblockIndexes);
 				if (insertAbove)
 				{
 					m_checkpointPaths.insert(m_checkpointPaths.begin() + path.GetIndex(), Path());
@@ -1131,9 +1131,9 @@ void Level::RenderUI()
 	}
 }
 
-void Path::RenderUI(const std::string& title, const std::vector<Quadblock>& quadblocks, const std::string& searchQuery, bool drawPathBtn, bool& insertAbove, bool& removePath)
+void Path::RenderUI(const std::string& title, const std::vector<Quadblock>& quadblocks, const std::string& searchQuery, bool drawPathBtn, bool& insertAbove, bool& removePath, const std::vector<size_t>& selectedIndexes)
 {
-	auto QuadListUI = [this](std::vector<size_t>& indexes, size_t& value, std::string& label, const std::string& title, const std::vector<Quadblock>& quadblocks, const std::string& searchQuery, ButtonUI& button)
+	auto QuadListUI = [this, &selectedIndexes](std::vector<size_t>& indexes, size_t& value, std::string& label, const std::string& title, const std::vector<Quadblock>& quadblocks, const std::string& searchQuery, ButtonUI& button)
 		{
 			if (ImGui::BeginChild(title.c_str(), {0, 0}, ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_AutoResizeX))
 			{
@@ -1175,14 +1175,25 @@ void Path::RenderUI(const std::string& title, const std::vector<Quadblock>& quad
 					ImGui::EndCombo();
 				}
 
+				auto AppendIndex = [&indexes](size_t value)
+					{
+						bool found = false;
+						for (const size_t index : indexes)
+						{
+							if (index == value) { found = true; break; }
+						}
+						if (!found) { indexes.push_back(value); }
+					};
+
 				if (button.Show(("Add##" + title).c_str(), "Quadblock successfully\nadded to path.", false))
 				{
-					bool found = false;
-					for (const size_t index : indexes)
-					{
-						if (index == value) { found = true; break; }
-					}
-					if (!found) { indexes.push_back(value); }
+					AppendIndex(value);
+				}
+
+				ImGui::SameLine();
+				if (ImGui::Button(("Add Selected##" + title).c_str()))
+				{
+					for (size_t index : selectedIndexes) { AppendIndex(index); }
 				}
 			}
 			ImGui::EndChild();
@@ -1193,8 +1204,8 @@ void Path::RenderUI(const std::string& title, const std::vector<Quadblock>& quad
 		if (ImGui::BeginChild(("##" + title).c_str(), {0, 0}, ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_AutoResizeX))
 		{
 			bool dummyInsert, dummyRemove = false;
-			if (m_left) { m_left->RenderUI("Left Path", quadblocks, searchQuery, false, dummyInsert, dummyRemove); }
-			if (m_right) { m_right->RenderUI("Right Path", quadblocks, searchQuery, false, dummyInsert, dummyRemove); }
+			if (m_left) { m_left->RenderUI("Left Path", quadblocks, searchQuery, false, dummyInsert, dummyRemove, selectedIndexes); }
+			if (m_right) { m_right->RenderUI("Right Path", quadblocks, searchQuery, false, dummyInsert, dummyRemove, selectedIndexes); }
 
 			static ButtonUI startButton = ButtonUI();
 			static ButtonUI endButton = ButtonUI();
