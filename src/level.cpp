@@ -1395,12 +1395,21 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 		else if (command == "vt")
 		{
 			if (tokens.size() < 3) { continue; }
-			Vec2 uv = {std::stof(tokens[1]), 1.0f - std::stof(tokens[2])};
-			if (currQuadblockGoodUV && (uv.x < 0 || uv.x > 1 || uv.y < 0 || uv.y > 1))
+			Vec2 uv = {std::stof(tokens[1]), std::stof(tokens[2])};
+			if (uv.x < 0 || uv.x > 1 || uv.y < 0 || uv.y > 1)
 			{
-				currQuadblockGoodUV = false;
-				m_invalidQuadblocks.emplace_back(currQuadblockName, "UV outside of expect range [0.0f, 1.0f].");
+				m_invalidQuadblocks.emplace_back(currQuadblockName, "WARNING: UV outside of expect range [0.0f, 1.0f].");
 			}
+			auto Wrap = [](float x)
+				{
+					if (x >= 0.0f && x <= 1.0f) { return x; }
+					float r = fmodf(x, 1.0f);
+					if (r < 0.0f) { r += 1.0f; }
+					if (r == 0.0f && x > 0.0f) { r = 1.0f; }
+					return r;
+				};
+			uv.x = Wrap(uv.x);
+			uv.y = 1.0f - Wrap(uv.y);
 			uvs.emplace_back(uv);
 		}
 		else if (command == "o")
