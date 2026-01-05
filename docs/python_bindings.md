@@ -159,6 +159,7 @@ Properties:
 - `filter_color: Color`
 - `checkpoint_index: int`
 - `checkpoint_status: bool`
+- `checkpoint_pathable: bool`
 - `tex_path: pathlib.Path`
 - `bounding_box: BoundingBox` (copy)
 - `uvs: list` (copy of the UV array)
