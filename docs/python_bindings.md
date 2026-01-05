@@ -247,8 +247,8 @@ Methods:
 - `left_child() -> BSP | None`
 - `right_child() -> BSP | None`
 - `parent() -> BSP | None`
-- `tree() -> list[BSP]`
-- `leaves() -> list[BSP]`
+- `tree() -> list[BSP]` (live references)
+- `leaves() -> list[BSP]` (live references)
 - `set_quadblock_indexes(quadblock_indexes: list[int]) -> None`
 - `clear() -> None`
 - `generate(quadblocks: list[Quadblock], max_quads_per_leaf: int, max_axis_length: float) -> None`
