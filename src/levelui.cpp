@@ -1034,23 +1034,27 @@ void Level::RenderUI()
 			}
 
 			static size_t prevSelectedQuadblock = REND_NO_SELECTED_QUADBLOCK;
-			if (m_rendererSelectedQuadblockIndex != REND_NO_SELECTED_QUADBLOCK)
+			if (!m_rendererSelectedQuadblockIndexes.empty())
 			{
-				Quadblock& quadblock = m_quadblocks[m_rendererSelectedQuadblockIndex];
-				bool resetBsp = false;
-				if (prevSelectedQuadblock != m_rendererSelectedQuadblockIndex)
+				size_t currentIndex = m_rendererSelectedQuadblockIndexes.back();
+				if (currentIndex < m_quadblocks.size())
 				{
-					prevSelectedQuadblock = m_rendererSelectedQuadblockIndex;
-					ImGui::SetNextItemOpen(true);
-				}
-				if (quadblock.RenderUI(m_checkpoints.size() - 1, resetBsp))
-				{
-					ManageTurbopad(quadblock);
-				}
-				if (resetBsp && m_bsp.IsValid())
-				{
-					m_bsp.Clear();
-					GenerateRenderBspData(m_bsp);
+					Quadblock& quadblock = m_quadblocks[currentIndex];
+					bool resetBsp = false;
+					if (prevSelectedQuadblock != currentIndex)
+					{
+						prevSelectedQuadblock = currentIndex;
+						ImGui::SetNextItemOpen(true);
+					}
+					if (quadblock.RenderUI(m_checkpoints.size() - 1, resetBsp))
+					{
+						ManageTurbopad(quadblock);
+					}
+					if (resetBsp && m_bsp.IsValid())
+					{
+						m_bsp.Clear();
+						GenerateRenderBspData(m_bsp);
+					}
 				}
 			}
 		}

@@ -350,13 +350,14 @@ void init_crashteameditor(py::module_& m)
 		.def("save_preset", &Level::SavePreset, py::arg("path"))
 		.def("get_renderer_selected_data", [](Level& level) {
 			auto selection = level.GetRendererSelectedData();
-			Quadblock* quadblock = std::get<0>(selection);
-			py::object quadblockObj = py::none();
-			if (quadblock)
+			const auto& quadblocks = std::get<0>(selection);
+			py::list quadblockList;
+			for (Quadblock* quadblock : quadblocks)
 			{
-				quadblockObj = py::cast(quadblock, py::return_value_policy::reference_internal, py::cast(&level));
+				py::object quadblockObj = py::cast(quadblock, py::return_value_policy::reference_internal, py::cast(&level));
+				quadblockList.append(quadblockObj);
 			}
-			return py::make_tuple(quadblockObj, std::get<1>(selection));
+			return py::make_tuple(quadblockList, std::get<1>(selection));
 		});
 }
 

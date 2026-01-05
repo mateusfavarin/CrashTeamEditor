@@ -39,10 +39,11 @@ public:
 	const std::filesystem::path& GetParentPath() const;
 	std::vector<std::string> GetMaterialNames() const;
 	std::vector<size_t> GetMaterialQuadblockIndexes(const std::string& material) const;
-	std::tuple<Quadblock*, Vec3> GetRendererSelectedData();
+	std::tuple<std::vector<Quadblock*>, Vec3> GetRendererSelectedData();
 	bool LoadPreset(const std::filesystem::path& filename);
 	bool SavePreset(const std::filesystem::path& path);
 	void ResetFilter();
+	void ResetRendererSelection();
 
 private:
 	void ManageTurbopad(Quadblock& quadblock);
@@ -75,7 +76,7 @@ private:
 	void GeomOctopoint(const Vertex* verts, int ind, std::vector<float>& data);
 	void GeomBoundingRect(const BSP* b, int depth, std::vector<float>& data);
 	void GeomUVs(const std::array<QuadUV, NUM_FACES_QUADBLOCK + 1>& uvs, int quadInd, int vertInd, std::vector<float>& data, int textureIndex);
-	void ViewportClickHandleBlockSelection(int pixelX, int pixelY, const Renderer& rend);
+	void ViewportClickHandleBlockSelection(int pixelX, int pixelY, bool appendSelection, const Renderer& rend);
 
 	friend class UI;
 
@@ -139,6 +140,6 @@ private:
 	Model m_filterEdgeModel;
 
 	Vec3 m_rendererQueryPoint;
-	size_t m_rendererSelectedQuadblockIndex;
+	std::vector<size_t> m_rendererSelectedQuadblockIndexes;
 	size_t m_lastAnimTextureCount = 0;
 };

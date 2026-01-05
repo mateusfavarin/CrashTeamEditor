@@ -67,7 +67,7 @@ void Level::Clear(bool clearErrors)
 	m_oxideGhost.clear();
 	m_animTextures.clear();
 	m_rendererQueryPoint = Vec3();
-	m_rendererSelectedQuadblockIndex = REND_NO_SELECTED_QUADBLOCK;
+	m_rendererSelectedQuadblockIndexes.clear();
 	m_genVisTree = false;
 	m_bspVis.Clear();
 	m_maxLeafAxisLength = 64.0f;
@@ -121,15 +121,15 @@ std::vector<size_t> Level::GetMaterialQuadblockIndexes(const std::string& materi
 	return m_materialToQuadblocks.at(material);
 }
 
-std::tuple<Quadblock*, Vec3> Level::GetRendererSelectedData()
+std::tuple<std::vector<Quadblock*>, Vec3> Level::GetRendererSelectedData()
 {
-	Quadblock* quadblock = nullptr;
-	if (m_rendererSelectedQuadblockIndex != REND_NO_SELECTED_QUADBLOCK
-		&& m_rendererSelectedQuadblockIndex < m_quadblocks.size())
+	std::vector<Quadblock*> quadblocks;
+	quadblocks.reserve(m_rendererSelectedQuadblockIndexes.size());
+	for (size_t index : m_rendererSelectedQuadblockIndexes)
 	{
-		quadblock = &m_quadblocks[m_rendererSelectedQuadblockIndex];
+		if (index < m_quadblocks.size()) { quadblocks.push_back(&m_quadblocks[index]); }
 	}
-	return std::make_tuple(quadblock, m_rendererQueryPoint);
+	return std::make_tuple(std::move(quadblocks), m_rendererQueryPoint);
 }
 
 bool Level::GenerateBSP()
@@ -642,6 +642,13 @@ void Level::ResetFilter()
 		qb.SetFilter(false);
 		qb.SetFilterColor(GuiRenderSettings::defaultFilterColor);
 	}
+}
+
+void Level::ResetRendererSelection()
+{
+	m_rendererQueryPoint = Vec3();
+	m_rendererSelectedQuadblockIndexes.clear();
+	m_selectedBlockModel.SetMesh();
 }
 
 void Level::BuildRenderModels(std::vector<Model>& models)
@@ -2433,61 +2440,67 @@ void Level::GenerateRenderStartpointData(std::array<Spawn, NUM_DRIVERS>& spawns)
 void Level::GenerateRenderSelectedBlockData(const Quadblock& quadblock, const Vec3& queryPoint)
 {
 	m_rendererQueryPoint = queryPoint;
-	/* TODO: Set index directly in the previous function */
-	for (size_t i = 0; i < m_quadblocks.size(); i++)
-	{
-		if (quadblock.GetName() == m_quadblocks[i].GetName()) { m_rendererSelectedQuadblockIndex = i; break; }
-	}
 
 	static Mesh quadblockMesh;
 	std::vector<float> data;
-	const Vertex* verts = quadblock.GetUnswizzledVertices();
-	bool isQuadblock = quadblock.IsQuadblock();
-	Vertex recoloredVerts[9];
-	for (int i = 0; i < (isQuadblock ? 9 : 7); i++) //7 not 6 bc index correction
-	{
-		Color negated = verts[i].GetColor(true).Negated();
-		recoloredVerts[i] = Point(0, 0, 0, negated.r, negated.g, negated.b); //pos reassigned in next line
-		recoloredVerts[i].m_pos = verts[i].m_pos;
-		recoloredVerts[i].m_normal = verts[i].m_normal;
-		if (!isQuadblock && i == 4)
-		{ //index correction for tris, since tris use 01234-6
-			i++;
-		}
-	}
+	auto AppendSelectedQuadblock = [&](const Quadblock& selected)
+		{
+			const Vertex* verts = selected.GetUnswizzledVertices();
+			bool isQuadblock = selected.IsQuadblock();
+			Vertex recoloredVerts[9];
+			for (int i = 0; i < (isQuadblock ? 9 : 7); i++) //7 not 6 bc index correction
+			{
+				Color negated = verts[i].GetColor(true).Negated();
+				recoloredVerts[i] = Point(0, 0, 0, negated.r, negated.g, negated.b); //pos reassigned in next line
+				recoloredVerts[i].m_pos = verts[i].m_pos;
+				recoloredVerts[i].m_normal = verts[i].m_normal;
+				if (!isQuadblock && i == 4)
+				{ //index correction for tris, since tris use 01234-6
+					i++;
+				}
+			}
 
-	if (quadblock.IsQuadblock())
+			if (isQuadblock)
+			{
+				//LLOD
+				/*for (int triIndex = 0; triIndex < 2; triIndex++)
+				{
+					GeomPoint(recoloredVerts, FaceIndexConstants::quadLLODVertArrangements[triIndex][0], data);
+					GeomPoint(recoloredVerts, FaceIndexConstants::quadLLODVertArrangements[triIndex][1], data);
+					GeomPoint(recoloredVerts, FaceIndexConstants::quadLLODVertArrangements[triIndex][2], data);
+				}*/
+				//HLOD
+				for (int triIndex = 0; triIndex < 8; triIndex++)
+				{
+					GeomPoint(recoloredVerts, FaceIndexConstants::quadHLODVertArrangements[triIndex][0], data);
+					GeomPoint(recoloredVerts, FaceIndexConstants::quadHLODVertArrangements[triIndex][1], data);
+					GeomPoint(recoloredVerts, FaceIndexConstants::quadHLODVertArrangements[triIndex][2], data);
+				}
+			}
+			else
+			{
+				//LLOD
+				/*for (int triIndex = 0; triIndex < 1; triIndex++)
+				{
+					GeomPoint(recoloredVerts, FaceIndexConstants::triLLODVertArrangements[triIndex][0], data);
+					GeomPoint(recoloredVerts, FaceIndexConstants::triLLODVertArrangements[triIndex][1], data);
+					GeomPoint(recoloredVerts, FaceIndexConstants::triLLODVertArrangements[triIndex][2], data);
+				}*/
+				//HLOD
+				for (int triIndex = 0; triIndex < 4; triIndex++)
+				{
+					GeomPoint(recoloredVerts, FaceIndexConstants::triHLODVertArrangements[triIndex][0], data);
+					GeomPoint(recoloredVerts, FaceIndexConstants::triHLODVertArrangements[triIndex][1], data);
+					GeomPoint(recoloredVerts, FaceIndexConstants::triHLODVertArrangements[triIndex][2], data);
+				}
+			}
+		};
+
+	for (size_t index : m_rendererSelectedQuadblockIndexes)
 	{
-		//LLOD
-		/*for (int triIndex = 0; triIndex < 2; triIndex++)
+		if (index < m_quadblocks.size())
 		{
-			GeomPoint(recoloredVerts, FaceIndexConstants::quadLLODVertArrangements[triIndex][0], data);
-			GeomPoint(recoloredVerts, FaceIndexConstants::quadLLODVertArrangements[triIndex][1], data);
-			GeomPoint(recoloredVerts, FaceIndexConstants::quadLLODVertArrangements[triIndex][2], data);
-		}*/
-		//HLOD
-		for (int triIndex = 0; triIndex < 8; triIndex++)
-		{
-			GeomPoint(recoloredVerts, FaceIndexConstants::quadHLODVertArrangements[triIndex][0], data);
-			GeomPoint(recoloredVerts, FaceIndexConstants::quadHLODVertArrangements[triIndex][1], data);
-			GeomPoint(recoloredVerts, FaceIndexConstants::quadHLODVertArrangements[triIndex][2], data);
-		}
-	}
-	else
-	{
-		//LLOD
-		/*for (int triIndex = 0; triIndex < 1; triIndex++)
-		{
-			GeomPoint(recoloredVerts, FaceIndexConstants::triLLODVertArrangements[triIndex][0], data);
-			GeomPoint(recoloredVerts, FaceIndexConstants::triLLODVertArrangements[triIndex][1], data);
-			GeomPoint(recoloredVerts, FaceIndexConstants::triLLODVertArrangements[triIndex][2], data);
-		}*/
-		//HLOD
-		for (int triIndex = 0; triIndex < 4; triIndex++)
-		{
-			GeomPoint(recoloredVerts, FaceIndexConstants::triHLODVertArrangements[triIndex][0], data);
-			GeomPoint(recoloredVerts, FaceIndexConstants::triHLODVertArrangements[triIndex][1], data);
-			GeomPoint(recoloredVerts, FaceIndexConstants::triHLODVertArrangements[triIndex][2], data);
+			AppendSelectedQuadblock(m_quadblocks[index]);
 		}
 	}
 
@@ -2594,7 +2607,7 @@ void Level::GenerateRenderMultipleQuadsData(const std::vector<Quadblock*>& quads
 	m_multipleSelectedQuads.SetMesh(&quadblockMesh);
 }
 
-void Level::ViewportClickHandleBlockSelection(int pixelX, int pixelY, const Renderer& rend)
+void Level::ViewportClickHandleBlockSelection(int pixelX, int pixelY, bool appendSelection, const Renderer& rend)
 {
 	std::function<std::optional<std::tuple<const Quadblock*, const glm::vec3>>(int, int, std::vector<Quadblock>&, unsigned)> check = [&rend](int pixelCoordX, int pixelCoordY, const std::vector<Quadblock>& qbs, unsigned index)
 		{
@@ -2702,9 +2715,36 @@ void Level::ViewportClickHandleBlockSelection(int pixelX, int pixelY, const Rend
 
 	if (collidedQB.has_value())
 	{
+		const Quadblock* clickedQuadblock = std::get<0>(collidedQB.value());
 		glm::vec3 p = std::get<1>(collidedQB.value());
 		Vec3 point = Vec3(p.x, p.y, p.z);
-		GenerateRenderSelectedBlockData(*std::get<0>(collidedQB.value()), point);
+		size_t clickedIndex = REND_NO_SELECTED_QUADBLOCK;
+		for (size_t i = 0; i < m_quadblocks.size(); i++)
+		{
+			if (&m_quadblocks[i] == clickedQuadblock)
+			{
+				clickedIndex = i;
+				break;
+			}
+		}
+
+		if (clickedIndex != REND_NO_SELECTED_QUADBLOCK)
+		{
+			if (!appendSelection) { m_rendererSelectedQuadblockIndexes.clear(); }
+
+			bool alreadySelected = false;
+			for (size_t index : m_rendererSelectedQuadblockIndexes)
+			{
+				if (index == clickedIndex)
+				{
+					alreadySelected = true;
+					break;
+				}
+			}
+			if (!alreadySelected) { m_rendererSelectedQuadblockIndexes.push_back(clickedIndex); }
+		}
+
+		GenerateRenderSelectedBlockData(*clickedQuadblock, point);
 	}
 	else
 	{

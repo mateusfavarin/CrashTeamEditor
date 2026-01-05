@@ -266,7 +266,7 @@ Methods:
 - `get_material_quadblock_indexes(material: str) -> list[int]` (copy)
 - `load_preset(filename: pathlib.Path) -> bool`
 - `save_preset(path: pathlib.Path) -> bool`
-- `get_renderer_selected_data() -> tuple[Quadblock | None, Vec3]` (returns `(quadblock, query_point)`; Quadblock is a live reference, Vec3 is a copy)
+- `get_renderer_selected_data() -> tuple[list[Quadblock], Vec3]` (returns `(quadblocks, query_point)`; Quadblock entries are live references, Vec3 is a copy)
 
 Properties:
 - `is_loaded: bool`

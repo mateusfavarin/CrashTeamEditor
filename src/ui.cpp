@@ -92,8 +92,8 @@ void UI::RenderWorld()
 {
 	if (!m_lev.IsLoaded()) { return; }
 
-	static Renderer rend = Renderer(800.0f, 400.0f);
 	ImGuiIO& io = ImGui::GetIO();
+	static Renderer rend = Renderer(io.DisplaySize.x, io.DisplaySize.y);
 	rend.SetViewportSize(io.DisplaySize.x, io.DisplaySize.y);
 
 	if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !io.WantCaptureMouse)
@@ -102,9 +102,11 @@ void UI::RenderWorld()
 		int pixelY = static_cast<int>(io.MousePos.y);
 		if (pixelX >= 0 && pixelY >= 0 && pixelX < static_cast<int>(rend.GetWidth()) && pixelY < static_cast<int>(rend.GetHeight()))
 		{
-			m_lev.ViewportClickHandleBlockSelection(pixelX, pixelY, rend);
+			m_lev.ViewportClickHandleBlockSelection(pixelX, pixelY, ImGui::IsKeyDown(ImGuiKey_ModCtrl), rend);
 		}
 	}
+
+	if (ImGui::IsKeyDown(ImGuiKey_Escape)) { m_lev.ResetRendererSelection(); }
 
 	if (m_lev.UpdateAnimTextures(rend.GetLastDeltaTime())) { m_lev.UpdateAnimationRenderData(); }
 
