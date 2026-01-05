@@ -39,7 +39,7 @@ public:
 	};
 
 public:
-	Mesh() {};
+	Mesh();
 	void UpdateMesh(const std::vector<float>& data, unsigned includedDataFlags, unsigned shadSettings, bool dataIsInterlaced = true);
 	void UpdatePoint(const Vertex& vert, size_t vertexIndex);
 	void UpdateOctoPoint(const Vertex& vert, size_t baseVertexIndex);
@@ -49,6 +49,7 @@ public:
 	void SetShaderSettings(unsigned shadSettings);
 	void UpdateTextureStore(const std::filesystem::path& texturePath);
 	GLuint GetTextureStore() const;
+	void Clear();
 
 private:
 	void AppendTextureStore(const std::filesystem::path& texturePath);
@@ -58,6 +59,7 @@ private:
 	void Unbind() const;
 	void Draw() const;
 	void Dispose();
+	void DeleteTextures();
 
 private:
 	GLuint m_VAO = 0;

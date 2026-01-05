@@ -78,6 +78,7 @@ void Level::Clear(bool clearErrors)
 	m_textureStorePaths.clear();
 	m_lastAnimTextureCount = 0;
 	DeleteMaterials(this);
+
 	m_levelModel.Clear();
 	m_bspModel.Clear();
 	m_spawnsModel.Clear();
@@ -85,6 +86,13 @@ void Level::Clear(bool clearErrors)
 	m_selectedBlockModel.Clear();
 	m_multipleSelectedQuads.Clear();
 	m_filterEdgeModel.Clear();
+
+	m_lowLODMesh.Clear();
+	m_highLODMesh.Clear();
+	m_vertexLowLODMesh.Clear();
+	m_vertexHighLODMesh.Clear();
+	m_filterEdgeLowLODMesh.Clear();
+	m_filterEdgeHighLODMesh.Clear();
 }
 
 const std::string& Level::GetName() const

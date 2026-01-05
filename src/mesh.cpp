@@ -39,6 +39,11 @@ static int GetAttributeOffsetFloats(unsigned includedDataFlags, unsigned targetF
 	return -1;
 }
 
+Mesh::Mesh()
+{
+	Clear();
+}
+
 void Mesh::Bind() const
 {
 	if (m_VAO != 0)
@@ -390,7 +395,7 @@ std::vector<unsigned char> Mesh::LoadTextureData(const std::filesystem::path& pa
 
 void Mesh::RebuildTextureData()
 {
-	if (m_textures) { glDeleteTextures(1, &m_textures); m_textures = 0; }
+	DeleteTextures();
 
 	glGenTextures(1, &m_textures);
 	glBindTexture(GL_TEXTURE_2D_ARRAY, m_textures);
@@ -427,10 +432,27 @@ GLuint Mesh::GetTextureStore() const
 	return m_textures;
 }
 
+void Mesh::Clear()
+{
+	Dispose();
+	DeleteTextures();
+	m_includedData = 0;
+	m_shaderSettings = 0;
+	m_textureStoreData.clear();
+	m_textureStoreIndex.clear();
+}
+
 void Mesh::Dispose()
 {
 	if (m_VAO != 0) { glDeleteVertexArrays(1, &m_VAO); m_VAO = 0; }
 	if (m_VBO != 0) { glDeleteBuffers(1, &m_VBO); m_VBO = 0; }
 	m_dataBufSize = 0;
 	m_vertexCount = 0;
+}
+
+void Mesh::DeleteTextures()
+{
+	if (m_textures == 0) { return; }
+	glDeleteTextures(1, &m_textures);
+	m_textures = 0;
 }
