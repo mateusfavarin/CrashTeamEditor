@@ -295,6 +295,19 @@ bool MaterialProperty<T, M>::RenderUI(const std::string& material, const std::ve
 			return true;
 		}
 	}
+	else if constexpr (M == MaterialType::CHECKPOINT_PATHABLE)
+	{
+		T& preview = GetPreview(material);
+		ImGui::Checkbox("Checkpoint Pathable", &preview);
+		ImGui::SameLine();
+
+		static ButtonUI pathableApplyButton = ButtonUI();
+		if (pathableApplyButton.Show(("Apply##pathable" + material).c_str(), "Checkpoint pathable status successfully updated.", UnsavedChanges(material)))
+		{
+			Apply(material, quadblockIndexes, quadblocks);
+			return true;
+		}
+	}
 	return false;
 }
 
@@ -509,6 +522,7 @@ void Level::RenderUI()
 					m_propQuadFlags.RenderUI(material, quadblockIndexes, m_quadblocks);
 					m_propDoubleSided.RenderUI(material, quadblockIndexes, m_quadblocks);
 					m_propCheckpoints.RenderUI(material, quadblockIndexes, m_quadblocks);
+					m_propCheckpointPathable.RenderUI(material, quadblockIndexes, m_quadblocks);
 					if (m_propTurboPads.RenderUI(material, quadblockIndexes, m_quadblocks))
 					{
 						for (size_t index : quadblockIndexes) { ManageTurbopad(m_quadblocks[index]); }
@@ -1339,6 +1353,8 @@ bool Quadblock::RenderUI(size_t checkpointCount, bool& resetBsp)
 		ImGui::SameLine();
 		if (ImGui::InputInt("##downforceQuad", &m_downforce)) { m_downforce = Clamp(m_downforce, static_cast<int>(INT8_MIN), static_cast<int>(INT8_MAX)); }
 		ImGui::Checkbox("Checkpoint", &m_checkpointStatus);
+		ImGui::SameLine();
+		ImGui::Checkbox("Checkpoint Pathable", &m_checkpointPathable);
 		ImGui::Text("Checkpoint Index: ");
 		ImGui::SameLine();
 		if (ImGui::InputInt("##cp", &m_checkpointIndex)) { m_checkpointIndex = Clamp(m_checkpointIndex, -1, static_cast<int>(checkpointCount)); }

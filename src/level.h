@@ -120,6 +120,7 @@ private:
 	MaterialProperty<bool, MaterialType::CHECKPOINT> m_propCheckpoints;
 	MaterialProperty<QuadblockTrigger, MaterialType::TURBO_PAD> m_propTurboPads;
 	MaterialProperty<int, MaterialType::SPEED_IMPACT> m_propSpeedImpact;
+	MaterialProperty<bool, MaterialType::CHECKPOINT_PATHABLE> m_propCheckpointPathable;
 
 	Mesh m_lowLODMesh;
 	Mesh m_highLODMesh;

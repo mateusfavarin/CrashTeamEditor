@@ -173,7 +173,9 @@ std::vector<Checkpoint> Path::GeneratePath(size_t pathStartIndex, std::vector<Qu
 		bbox.max = Vec3(-std::numeric_limits<float>::max(), -std::numeric_limits<float>::max(), -std::numeric_limits<float>::max());
 		for (const size_t index : quadIndexSet)
 		{
-			const BoundingBox& quadBbox = quadblocks[index].GetBoundingBox();
+			Quadblock& quadblock = quadblocks[index];
+			if (!quadblock.GetCheckpointPathable()) { continue; }
+			const BoundingBox& quadBbox = quadblock.GetBoundingBox();
 			bbox.min.x = std::min(bbox.min.x, quadBbox.min.x); bbox.max.x = std::max(bbox.max.x, quadBbox.max.x);
 			bbox.min.y = std::min(bbox.min.y, quadBbox.min.y); bbox.max.y = std::max(bbox.max.y, quadBbox.max.y);
 			bbox.min.z = std::min(bbox.min.z, quadBbox.min.z); bbox.max.z = std::max(bbox.max.z, quadBbox.max.z);
@@ -186,14 +188,18 @@ std::vector<Checkpoint> Path::GeneratePath(size_t pathStartIndex, std::vector<Qu
 		for (const size_t index : quadIndexSet)
 		{
 			Vec3 closestVertex;
-			float dist = quadblocks[index].DistanceClosestVertex(closestVertex, chunkCenter);
-			if (dist < closestDist)
+			Quadblock& quadblock = quadblocks[index];
+			if (quadblock.GetCheckpointPathable())
 			{
-				closestDist = dist;
-				chunkVertex = closestVertex;
-				chunkQuadIndex = index;
+				float dist = quadblock.DistanceClosestVertex(closestVertex, chunkCenter);
+				if (dist < closestDist)
+				{
+					closestDist = dist;
+					chunkVertex = closestVertex;
+					chunkQuadIndex = index;
+				}
 			}
-			quadblocks[index].SetCheckpoint(currCheckpointIndex);
+			quadblock.SetCheckpoint(currCheckpointIndex);
 		}
 		if (!checkpoints.empty()) { distFinish += (lastChunkVertex - chunkVertex).Length(); }
 		distFinishes.push_back(distFinish);

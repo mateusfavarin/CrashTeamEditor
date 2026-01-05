@@ -459,6 +459,11 @@ bool Quadblock::GetCheckpointStatus() const
 	return m_checkpointStatus;
 }
 
+bool Quadblock::GetCheckpointPathable() const
+{
+	return m_checkpointPathable;
+}
+
 const QuadUV& Quadblock::GetQuadUV(size_t quad) const
 {
 	return m_uvs[quad];
@@ -558,6 +563,11 @@ void Quadblock::SetDrawDoubleSided(bool active)
 void Quadblock::SetCheckpointStatus(bool active)
 {
 	m_checkpointStatus = active;
+}
+
+void Quadblock::SetCheckpointPathable(bool pathable)
+{
+	m_checkpointPathable = pathable;
 }
 
 void Quadblock::SetName(const std::string& name)
@@ -743,6 +753,7 @@ void Quadblock::SetDefaultValues()
 		m_faceRotateFlip[i] = FaceRotateFlip::NONE;
 	}
 	m_doubleSided = false;
+	m_checkpointPathable = true;
 	m_checkpointStatus = false;
 	m_trigger = QuadblockTrigger::NONE;
 	m_turboPadIndex = TURBO_PAD_INDEX_NONE;
