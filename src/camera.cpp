@@ -51,7 +51,7 @@ void Camera::Update(bool allowShortcuts, float deltaTime)
 			float orbitSpeed = 0.2f * GuiRenderSettings::camRotateMult;
 			m_yaw -= io.MouseDelta.x * orbitSpeed;
 			m_pitch -= io.MouseDelta.y * orbitSpeed;
-			m_pitch = Clamp(m_pitch, -90.0f, 90.0f);
+			m_pitch = Clamp(m_pitch, -89.9f, 89.9f);
 		}
 
 		if (io.MouseWheel != 0.0f)
