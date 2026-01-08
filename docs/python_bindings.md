@@ -168,7 +168,7 @@ Methods:
 - `is_quadblock() -> bool`
 - `set_double_sided(active: bool) -> None`
 - `set_speed_impact(speed: int) -> None`
-- `translate_normal(ratio: float) -> None`
+- `translate(ratio: float, direction: Vec3) -> None`
 - `distance_closest_vertex(point: Vec3) -> tuple[Vec3, float]` (returns `(closest_point, distance)`)
 - `neighbours(other: Quadblock, threshold: float = 0.1) -> bool`
 - `get_vertices() -> list[Vertex]` (copy)

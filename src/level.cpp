@@ -712,15 +712,12 @@ void Level::ManageTurbopad(Quadblock& quadblock)
 	case QuadblockTrigger::SUPER_TURBO_PAD:
 	{
 		Quadblock turboPad = quadblock;
-		Vec3 normal = turboPad.GetNormal();
-		Vec3 up(0.0f, 1.0f, 0.0f);
-		const float normalLen = normal.Length();
-		const float cos = normalLen > 0.0f ? Clamp(normal.Dot(up) / normalLen, -1.0f, 1.0f) : 0.0f;
-		turboPad.TranslateNormalVec(TURBO_PAD_QUADBLOCK_TRANSLATION * cos);
+		const Vec3 up(0.0f, 1.0f, 0.0f);
+		turboPad.Translate(TURBO_PAD_QUADBLOCK_TRANSLATION, up);
 		turboPad.SetCheckpoint(-1);
 		turboPad.SetCheckpointStatus(false);
 		turboPad.SetName(quadblock.GetName() + (stp ? "_stp" : "_tp"));
-		turboPad.SetFlag(QuadFlags::TRIGGER_SCRIPT | QuadFlags::INVISIBLE_TRIGGER | QuadFlags::WALL | QuadFlags::DEFAULT);
+		turboPad.SetFlag(QuadFlags::TRIGGER_SCRIPT | QuadFlags::INVISIBLE_TRIGGER | QuadFlags::WALL);
 		turboPad.SetTerrain(stp ? TerrainType::SUPER_TURBO_PAD : TerrainType::TURBO_PAD);
 		turboPad.SetTurboPadIndex(TURBO_PAD_INDEX_NONE);
 		turboPad.SetHide(true);

@@ -14,7 +14,7 @@
 
 static constexpr size_t NUM_FACES_QUADBLOCK = 4;
 static constexpr size_t TURBO_PAD_INDEX_NONE = 0;
-static constexpr float TURBO_PAD_QUADBLOCK_TRANSLATION = 1.0f;
+static constexpr float TURBO_PAD_QUADBLOCK_TRANSLATION = 0.5f;
 static constexpr size_t RENDER_INDEX_NONE = std::numeric_limits<size_t>::max();
 
 struct QuadFlags
@@ -195,7 +195,7 @@ public:
 	void SetFilter(bool filter);
 	void SetFilterColor(const Color& color);
 	void SetSpeedImpact(int speed);
-	void TranslateNormalVec(float ratio);
+	void Translate(float ratio, const Vec3& direction);
 	const BoundingBox& GetBoundingBox() const;
 	std::vector<Vertex> GetVertices() const;
 	const Vertex* const GetUnswizzledVertices() const;

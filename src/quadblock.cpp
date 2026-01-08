@@ -676,10 +676,9 @@ void Quadblock::SetSpeedImpact(int speed)
 	m_downforce = speed;
 }
 
-void Quadblock::TranslateNormalVec(float ratio)
+void Quadblock::Translate(float ratio, const Vec3& direction)
 {
-	Vec3 quadNormal = GetNormal();
-	for (size_t i = 0; i < NUM_VERTICES_QUADBLOCK; i++) { m_p[i].m_pos += quadNormal * ratio; }
+	for (size_t i = 0; i < NUM_VERTICES_QUADBLOCK; i++) { m_p[i].m_pos += direction * ratio; }
 }
 
 const BoundingBox& Quadblock::GetBoundingBox() const

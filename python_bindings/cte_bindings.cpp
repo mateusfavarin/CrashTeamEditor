@@ -206,7 +206,7 @@ void init_crashteameditor(py::module_& m)
 		.def("is_quadblock", &Quadblock::IsQuadblock)
 		.def("set_double_sided", &Quadblock::SetDrawDoubleSided)
 		.def("set_speed_impact", &Quadblock::SetSpeedImpact)
-		.def("translate_normal", &Quadblock::TranslateNormalVec, py::arg("ratio"))
+		.def("translate", &Quadblock::Translate, py::arg("ratio"), py::arg("direction"))
 		.def("distance_closest_vertex", [](const Quadblock& qb, const Vec3& point) {
 			Vec3 closest;
 			float distance = qb.DistanceClosestVertex(closest, point);
