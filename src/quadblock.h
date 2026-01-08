@@ -206,6 +206,7 @@ public:
 	Vec3 ComputeNormalVector(size_t id0, size_t id1, size_t id2) const;
 
 private:
+	void ResetUVs();
 	void SetDefaultValues();
 	void ComputeBoundingBox();
 

@@ -115,7 +115,7 @@ Quadblock::Quadblock(const std::string& name, Tri& t0, Tri& t1, Tri& t2, Tri& t3
 			}
 		}
 
-		if (bestMatches < 2) { throw QuadException("At least 2 triangles in the triblock must share 2 UV vertices."); }
+		if (bestMatches != 2) { throw QuadException("At least 2 triangles in the triblock must share 2 UV vertices."); }
 
 		if (bestIndex != 0) { Swap(adjTris[0], adjTris[bestIndex]); }
 	}
@@ -199,14 +199,7 @@ Quadblock::Quadblock(const std::string& name, Tri& t0, Tri& t1, Tri& t2, Tri& t3
 		m_uvs[3] = { Vec2(), Vec2(), Vec2(), Vec2() };
 		m_uvs[4] = { GetUV(m_p[0].m_pos, *uvt0), GetUV(m_p[2].m_pos, *uvt1), GetUV(m_p[6].m_pos, *uvt2), Vec2() };
 	}
-	else
-	{
-		m_uvs[0] = { Vec2(0.0f, 0.0f), Vec2(0.5f, 0.0f), Vec2(0.0f, 0.5f), Vec2(0.5f, 0.5f) };
-		m_uvs[1] = { Vec2(0.5f, 0.0f), Vec2(1.0f, 0.0f), Vec2(0.5f, 0.5f), Vec2(1.0f, 0.5f) };
-		m_uvs[2] = { Vec2(0.0f, 0.5f), Vec2(0.5f, 0.5f), Vec2(0.0f, 1.0f), Vec2(0.5f, 1.0f) };
-		m_uvs[3] = { Vec2(0.5f, 0.5f), Vec2(1.0f, 0.5f), Vec2(0.5f, 1.0f), Vec2(1.0f, 1.0f) };
-		m_uvs[4] = { Vec2(0.0f, 0.0f), Vec2(1.0f, 0.0f), Vec2(0.0f, 1.0f), Vec2(1.0f, 1.0f) };
-	}
+	else { ResetUVs(); }
 
 	m_name = name;
 	m_material = material;
@@ -386,14 +379,7 @@ Quadblock::Quadblock(const std::string& name, Quad& q0, Quad& q1, Quad& q2, Quad
 			m_uvs[4][bestIndex] = uvBounds[bestBound];
 		}
 	}
-	else
-	{
-		m_uvs[0] = { Vec2(0.0f, 0.0f), Vec2(0.5f, 0.0f), Vec2(0.0f, 0.5f), Vec2(0.5f, 0.5f) };
-		m_uvs[1] = { Vec2(0.5f, 0.0f), Vec2(1.0f, 0.0f), Vec2(0.5f, 0.5f), Vec2(1.0f, 0.5f) };
-		m_uvs[2] = { Vec2(0.0f, 0.5f), Vec2(0.5f, 0.5f), Vec2(0.0f, 1.0f), Vec2(0.5f, 1.0f) };
-		m_uvs[3] = { Vec2(0.5f, 0.5f), Vec2(1.0f, 0.5f), Vec2(0.5f, 1.0f), Vec2(1.0f, 1.0f) };
-		m_uvs[4] = { Vec2(0.0f, 0.0f), Vec2(1.0f, 0.0f), Vec2(0.0f, 1.0f), Vec2(1.0f, 1.0f) };
-	}
+	else { ResetUVs(); }
 
 	m_name = name;
 	m_material = material;
@@ -679,6 +665,7 @@ void Quadblock::SetSpeedImpact(int speed)
 void Quadblock::Translate(float ratio, const Vec3& direction)
 {
 	for (size_t i = 0; i < NUM_VERTICES_QUADBLOCK; i++) { m_p[i].m_pos += direction * ratio; }
+	ComputeBoundingBox();
 }
 
 const BoundingBox& Quadblock::GetBoundingBox() const
@@ -825,6 +812,15 @@ Vec3 Quadblock::ComputeNormalVector(size_t id0, size_t id1, size_t id2) const
 	Vec3 a = m_p[id0].m_pos - m_p[id1].m_pos;
 	Vec3 b = m_p[id2].m_pos - m_p[id0].m_pos;
 	return a.Cross(b);
+}
+
+void Quadblock::ResetUVs()
+{
+	m_uvs[0] = {Vec2(0.0f, 0.0f), Vec2(0.5f, 0.0f), Vec2(0.0f, 0.5f), Vec2(0.5f, 0.5f)};
+	m_uvs[1] = {Vec2(0.5f, 0.0f), Vec2(1.0f, 0.0f), Vec2(0.5f, 0.5f), Vec2(1.0f, 0.5f)};
+	m_uvs[2] = {Vec2(0.0f, 0.5f), Vec2(0.5f, 0.5f), Vec2(0.0f, 1.0f), Vec2(0.5f, 1.0f)};
+	m_uvs[3] = {Vec2(0.5f, 0.5f), Vec2(1.0f, 0.5f), Vec2(0.5f, 1.0f), Vec2(1.0f, 1.0f)};
+	m_uvs[4] = {Vec2(0.0f, 0.0f), Vec2(1.0f, 0.0f), Vec2(0.0f, 1.0f), Vec2(1.0f, 1.0f)};
 }
 
 void Quadblock::ComputeBoundingBox()

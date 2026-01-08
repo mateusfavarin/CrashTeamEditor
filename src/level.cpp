@@ -721,6 +721,7 @@ void Level::ManageTurbopad(Quadblock& quadblock)
 		turboPad.SetTerrain(stp ? TerrainType::SUPER_TURBO_PAD : TerrainType::TURBO_PAD);
 		turboPad.SetTurboPadIndex(TURBO_PAD_INDEX_NONE);
 		turboPad.SetHide(true);
+		turboPad.SetAnimated(false);
 
 		size_t index = m_quadblocks.size();
 		turboPadIndex = quadblock.GetTurboPadIndex();
