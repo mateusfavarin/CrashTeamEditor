@@ -147,10 +147,22 @@ void UI::RenderWorld()
 			if (idx < m_lev.m_quadblocks.size())
 			{
 				const Quadblock& qb = m_lev.m_quadblocks[idx];
-				ImGui::Text("Selected Quadblock:");
-				ImGui::Text("ID: %zu", idx);
+
+				ImGui::Text("Selected Quadblock: ID %zu", idx);
 				ImGui::Text("Name: %s", qb.GetName().c_str());
 				ImGui::Text("Material: %s", qb.GetMaterial().c_str());
+
+				uint8_t terrain = qb.GetTerrain();
+				std::string terrainName = "Unknown";
+				for (const auto& pair : TerrainType::LABELS)
+				{
+					if (pair.second == terrain)
+					{
+						terrainName = pair.first;
+						break;
+					}
+				}
+				ImGui::Text("Terrain: %s", terrainName.c_str());
 
 				uint16_t flags = qb.GetFlags();
 				std::string flagList = "[";
