@@ -42,6 +42,7 @@ COMMON_CXXFLAGS := -Isrc \
 	-Ithird_party/pybind11/include \
 	-I"$(PYTHON_INCLUDE_DIR)" \
 	-Ithird_party/glm/glm \
+	-Ithird_party/stb \
 	-Isrc/manual_third_party
 
 COMMON_LINKER_FLAGS := -Lglfw-build-unix/src -lGL -lglfw3 -L"$(PYTHON_LIBRARY_DIR)" "$(PYTHON_LIBRARY_PATH)"

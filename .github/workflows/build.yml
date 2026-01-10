@@ -3,6 +3,8 @@ on:
     push:
         tags:
             - '*'
+env:
+    PYTHON_VERSION: "3.12.8"
 jobs:
     build-windows:
         permissions: write-all
@@ -14,10 +16,21 @@ jobs:
                 submodules: true
             - name: Set up MSBuild
               uses: microsoft/setup-msbuild@v2
-            # - name: Restore Nuget
-            #   run: nuget restore CrashTeamEditor.sln
+            - name: Set up Python
+              uses: actions/setup-python@v5
+              id: setup-python
+              with:
+                python-version: ${{ env.PYTHON_VERSION }}
             - name: build
-              run: msbuild CrashTeamEditor.vcxproj /p:configuration=release /p:Platform=x64 /p:DebugSymbols=false /p:DebugType=None
+              run: |
+                $pythonHome = Split-Path -Parent "${{ steps.setup-python.outputs.python-path }}"
+                msbuild CrashTeamEditor.vcxproj /p:configuration=release /p:Platform=x64 /p:DebugSymbols=false /p:DebugType=None /p:PYTHON_HOME="$pythonHome"
+            - name: Download Python embeddable package
+              run: |
+                $url = "https://www.python.org/ftp/python/${{ env.PYTHON_VERSION }}/python-${{ env.PYTHON_VERSION }}-embed-amd64.zip"
+                Invoke-WebRequest -Uri $url -OutFile python-embed.zip
+                Expand-Archive -Path python-embed.zip -DestinationPath x64\release\python
+                Copy-Item x64\release\python\python*.dll x64\release\
             - name: zip
               run: Compress-Archive x64\release\ CrashTeamEditor-windows-x64.zip
             - name: Release
@@ -32,8 +45,16 @@ jobs:
               with:
                 fetch-depth: 0
                 submodules: true
-            # - name: install sdl
-            #   run: sudo apt install libsdl2-dev
+            - name: Set up Python
+              uses: actions/setup-python@v5
+              with:
+                python-version: ${{ env.PYTHON_VERSION }}
+            - name: Install dependencies
+              run: |
+                sudo apt-get update
+                sudo apt-get install -y libwayland-dev wayland-protocols libxkbcommon-dev \
+                  libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev \
+                  libgl1-mesa-dev
             - name: build
               run: make release
             - name: compress
