@@ -3,6 +3,8 @@ on:
     push:
         tags:
             - '*'
+env:
+    PYTHON_VERSION: "3.12.8"
 jobs:
     build-windows:
         permissions: write-all
@@ -18,6 +20,12 @@ jobs:
             #   run: nuget restore CrashTeamEditor.sln
             - name: build
               run: msbuild CrashTeamEditor.vcxproj /p:configuration=release /p:Platform=x64 /p:DebugSymbols=false /p:DebugType=None
+            - name: Download Python embeddable package
+              run: |
+                $url = "https://www.python.org/ftp/python/${{ env.PYTHON_VERSION }}/python-${{ env.PYTHON_VERSION }}-embed-amd64.zip"
+                Invoke-WebRequest -Uri $url -OutFile python-embed.zip
+                Expand-Archive -Path python-embed.zip -DestinationPath x64\release\python
+                Copy-Item x64\release\python\python*.dll x64\release\
             - name: zip
               run: Compress-Archive x64\release\ CrashTeamEditor-windows-x64.zip
             - name: Release
