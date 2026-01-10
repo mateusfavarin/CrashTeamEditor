@@ -554,6 +554,11 @@ size_t Quadblock::GetRenderFilterLowLodEdgeIndex() const
 	return m_renderFilterLowLodEdgeIndex;
 }
 
+const std::string& Quadblock::GetMaterial() const
+{
+	return m_material;
+}
+
 void Quadblock::SetRenderIndices(size_t highPointIndex, size_t lowPointIndex, size_t highUvIndex, size_t lowUvIndex, size_t highOctoIndex, size_t lowOctoIndex)
 {
 	m_renderHighLodPointIndex = highPointIndex;

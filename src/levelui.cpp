@@ -1020,7 +1020,7 @@ void Level::RenderUI()
 
 				if (ImGui::BeginTable("Camera Bindings Table", 2, ImGuiTableFlags_SizingStretchSame))
 				{
-					DrawMouseRow("Orbit Mouse Button", GuiRenderSettings::camOrbitMouseButton);
+					DrawMouseRow("Orbit/Drag Mouse Button", GuiRenderSettings::camOrbitMouseButton);
 					DrawKeyRow("Forward", GuiRenderSettings::camKeyForward);
 					DrawKeyRow("Back", GuiRenderSettings::camKeyBack);
 					DrawKeyRow("Left", GuiRenderSettings::camKeyLeft);
@@ -1033,8 +1033,13 @@ void Level::RenderUI()
 				ImGui::TreePop();
 			}
 
+			ImGui::Separator();
+			ImGui::Checkbox("Show Selected Quadblock Info", &rendererUIState.showSelectedQuadblockInfo);
+			ImGui::Separator();
+			ImGui::NewLine();
+
 			static size_t prevSelectedQuadblock = REND_NO_SELECTED_QUADBLOCK;
-			if (!m_rendererSelectedQuadblockIndexes.empty())
+			if (!m_rendererSelectedQuadblockIndexes.empty() && rendererUIState.showSelectedQuadblockInfo)
 			{
 				size_t currentIndex = m_rendererSelectedQuadblockIndexes.back();
 				if (currentIndex < m_quadblocks.size())
