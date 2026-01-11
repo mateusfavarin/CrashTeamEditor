@@ -45,20 +45,151 @@ Renderer::Renderer(float width, float height)
   glBindRenderbuffer(GL_RENDERBUFFER, 0);
 }
 
-void Renderer::Render(const std::vector<Model>& models)
+void Renderer::Render(const std::vector<Model>& models, bool SkyGradientEnabled, const std::array<ColorGradient, NUM_GRADIENT>& skyGradients)
 {
   if (m_width <= 0 || m_height <= 0) { return; }
 
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-  //clear screen with dark blue
+  //clear screen with sky gradient or dark blue
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
   glViewport(0, 0, m_width, m_height);
-  glClearColor(0.0f, 0.05f, 0.1f, 1.0f);
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  
+  if (SkyGradientEnabled) {
+    // Clear with black background first
+    // TODO: should use level "clear color" but it doesnt work on the editor atm
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    GLboolean depthTestEnabled = glIsEnabled(GL_DEPTH_TEST);
+    GLboolean blendEnabled = glIsEnabled(GL_BLEND);
+    GLboolean cullFaceEnabled = glIsEnabled(GL_CULL_FACE);
+    GLint polygonMode[2];
+    glGetIntegerv(GL_POLYGON_MODE, polygonMode);
+    
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_BLEND);
+    glDisable(GL_CULL_FACE);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    
+    static GLuint gradientProgram = 0;
+    static GLuint gradientVAO = 0;
+    static GLuint gradientVBO = 0;
+    
+    if (gradientProgram == 0) {
+      const char* vertSrc = 
+        "#version 330 core\n"
+        "layout (location = 0) in vec2 aPos;\n"
+        "layout (location = 1) in vec3 aColor;\n"
+        "out vec3 vColor;\n"
+        "void main() {\n"
+        "  gl_Position = vec4(aPos, 0.999, 1.0);\n"
+        "  vColor = aColor;\n"
+        "}\n";
+      
+      const char* fragSrc = 
+        "#version 330 core\n"
+        "in vec3 vColor;\n"
+        "out vec4 FragColor;\n"
+        "void main() {\n"
+        "  FragColor = vec4(vColor, 1.0);\n"
+        "}\n";
+      
+      GLuint vs = glCreateShader(GL_VERTEX_SHADER);
+      glShaderSource(vs, 1, &vertSrc, NULL);
+      glCompileShader(vs);
+      
+      GLuint fs = glCreateShader(GL_FRAGMENT_SHADER);
+      glShaderSource(fs, 1, &fragSrc, NULL);
+      glCompileShader(fs);
+      
+      gradientProgram = glCreateProgram();
+      glAttachShader(gradientProgram, vs);
+      glAttachShader(gradientProgram, fs);
+      glLinkProgram(gradientProgram);
+      
+      glDeleteShader(vs);
+      glDeleteShader(fs);
+      
+      glGenVertexArrays(1, &gradientVAO);
+      glGenBuffers(1, &gradientVBO);
+    }
+    
+    // screen top = 100, middle = 0, bottom = -100
+    constexpr float SKY_COORD_MAX = 100.0f;
+    constexpr float SKY_COORD_MIN = -100.0f;
+    constexpr float SKY_COORD_RANGE = SKY_COORD_MAX - SKY_COORD_MIN;
+    
+    auto coordToNDC = [](float coord) -> float {
+      float clamped = std::max(std::min(coord, SKY_COORD_MAX), SKY_COORD_MIN);
+      return clamped / SKY_COORD_MAX;
+    };
+    
+    std::vector<float> quadData;
+    quadData.reserve(18 * 5);
+    
+    for (size_t i = 0; i < NUM_GRADIENT; i++) {
+      const ColorGradient& grad = skyGradients[i];
+      
+      float yTop = coordToNDC(grad.posTo);
+      float yBottom = coordToNDC(grad.posFrom);
+      
+      const Color& topColor = grad.colorTo;
+      const Color& bottomColor = grad.colorFrom;
+      
+      // Triangle 1: bottom-left, bottom-right, top-right
+      quadData.push_back(-1.0f); quadData.push_back(yBottom);
+      quadData.push_back(bottomColor.Red()); quadData.push_back(bottomColor.Green()); quadData.push_back(bottomColor.Blue());
+      
+      quadData.push_back(1.0f); quadData.push_back(yBottom);
+      quadData.push_back(bottomColor.Red()); quadData.push_back(bottomColor.Green()); quadData.push_back(bottomColor.Blue());
+      
+      quadData.push_back(1.0f); quadData.push_back(yTop);
+      quadData.push_back(topColor.Red()); quadData.push_back(topColor.Green()); quadData.push_back(topColor.Blue());
+      
+      // Triangle 2: bottom-left, top-right, top-left
+      quadData.push_back(-1.0f); quadData.push_back(yBottom);
+      quadData.push_back(bottomColor.Red()); quadData.push_back(bottomColor.Green()); quadData.push_back(bottomColor.Blue());
+      
+      quadData.push_back(1.0f); quadData.push_back(yTop);
+      quadData.push_back(topColor.Red()); quadData.push_back(topColor.Green()); quadData.push_back(topColor.Blue());
+      
+      quadData.push_back(-1.0f); quadData.push_back(yTop);
+      quadData.push_back(topColor.Red()); quadData.push_back(topColor.Green()); quadData.push_back(topColor.Blue());
+    }
+    
+    glBindVertexArray(gradientVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, gradientVBO);
+    glBufferData(GL_ARRAY_BUFFER, quadData.size() * sizeof(float), quadData.data(), GL_DYNAMIC_DRAW);
+    
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(2 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+    
+    glUseProgram(gradientProgram);
+    glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(quadData.size() / 5));
+    
+    glBindVertexArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glUseProgram(0);
+    
+    // Restore state
+    if (depthTestEnabled) glEnable(GL_DEPTH_TEST);
+    if (blendEnabled) glEnable(GL_BLEND);
+    if (cullFaceEnabled) glEnable(GL_CULL_FACE);
+    glPolygonMode(GL_FRONT_AND_BACK, polygonMode[0]);  // Restore polygon mode
+    
+    glClear(GL_DEPTH_BUFFER_BIT);
+  } else {
+    // Default dark blue background
+    glClearColor(0.0f, 0.05f, 0.1f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  }
+  
   //time
 	m_time = clock() / static_cast<float>(CLOCKS_PER_SEC);
 	if (m_deltaTime == -1.0f) { m_deltaTime = 0.016f; } // fake ~60fps deltaTime

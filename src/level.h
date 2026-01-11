@@ -24,6 +24,10 @@
 
 static constexpr size_t REND_NO_SELECTED_QUADBLOCK = std::numeric_limits<size_t>::max();
 
+struct RendererUIState {
+	bool showSelectedQuadblockInfo = true;
+};
+
 class Level
 {
 public:
@@ -44,6 +48,8 @@ public:
 	bool SavePreset(const std::filesystem::path& path);
 	void ResetFilter();
 	void ResetRendererSelection();
+
+	RendererUIState rendererUIState;
 
 private:
 	void ManageTurbopad(Quadblock& quadblock);

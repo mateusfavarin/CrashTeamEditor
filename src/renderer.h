@@ -13,7 +13,10 @@
 #include "mesh.h"
 #include "model.h"
 #include "camera.h"
+#include "geo.h"
+#include "lev.h"
 #include <vector>
+#include <array>
 #include <map>
 
 class Renderer
@@ -21,7 +24,7 @@ class Renderer
 public:
   Renderer(float width, float height);
   void RescaleFramebuffer(float width, float height);
-  void Render(const std::vector<Model>& models);
+  void Render(const std::vector<Model>& models, bool SkyGradientEnabled = false, const std::array<ColorGradient, NUM_GRADIENT>& skyGradients = {});
   void SetViewportSize(float width, float height);
   float GetLastDeltaTime() const;
   float GetLastTime() const;

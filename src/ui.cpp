@@ -102,7 +102,7 @@ void UI::RenderWorld()
 		int pixelY = static_cast<int>(io.MousePos.y);
 		if (pixelX >= 0 && pixelY >= 0 && pixelX < static_cast<int>(rend.GetWidth()) && pixelY < static_cast<int>(rend.GetHeight()))
 		{
-			m_lev.ViewportClickHandleBlockSelection(pixelX, pixelY, ImGui::IsKeyDown(ImGuiKey_ModCtrl), rend);
+			m_lev.ViewportClickHandleBlockSelection(pixelX, pixelY, ImGui::IsKeyDown(ImGuiKey_ModShift), rend);
 		}
 	}
 
@@ -112,7 +112,10 @@ void UI::RenderWorld()
 
 	std::vector<Model> modelsToRender;
 	m_lev.BuildRenderModels(modelsToRender);
-	rend.Render(modelsToRender);
+	
+	// Get sky gradient from level
+	bool SkyGradientEnabled = (m_lev.m_configFlags & LevConfigFlags::ENABLE_SKYBOX_GRADIENT) != 0;
+	rend.Render(modelsToRender, SkyGradientEnabled, m_lev.m_skyGradient);
 
 	static float rollingOneSecond = 0;
 	static int FPS = -1;
@@ -130,4 +133,64 @@ void UI::RenderWorld()
 		ImVec2 pos = ImVec2(io.DisplaySize.x - textSize.x - 10.0f, 10.0f);
 		ImGui::GetForegroundDrawList()->AddText(pos, ImGui::GetColorU32(ImGuiCol_Text), fpsLabel.c_str());
 	}
+
+	if(m_lev.rendererUIState.showSelectedQuadblockInfo){
+
+		bool oneSelected = (m_lev.m_rendererSelectedQuadblockIndexes.size() == 1);
+
+		ImVec2 window_pos = ImVec2(5, io.DisplaySize.y - 5);
+		ImVec2 window_pos_pivot = ImVec2(0.0f, 1.0f);
+		ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always, window_pos_pivot);
+		ImGui::SetNextWindowBgAlpha(0.5f);
+		ImGui::Begin("##RendererQueryPointerInfo", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_AlwaysAutoResize);
+
+		if (oneSelected)
+		{
+			size_t idx = m_lev.m_rendererSelectedQuadblockIndexes[0];
+			if (idx < m_lev.m_quadblocks.size())
+			{
+				const Quadblock& qb = m_lev.m_quadblocks[idx];
+
+				ImGui::Text("Selected Quadblock: ID %zu", idx);
+				ImGui::Text("Name: %s", qb.GetName().c_str());
+				ImGui::Text("Material: %s", qb.GetMaterial().c_str());
+
+				uint8_t terrain = qb.GetTerrain();
+				std::string terrainName = "Unknown";
+				for (const auto& pair : TerrainType::LABELS)
+				{
+					if (pair.second == terrain)
+					{
+						terrainName = pair.first;
+						break;
+					}
+				}
+				ImGui::Text("Terrain: %s", terrainName.c_str());
+
+				uint16_t flags = qb.GetFlags();
+				std::string flagList = "[";
+				bool first = true;
+				for (const auto& pair : QuadFlags::LABELS)
+				{
+					if (flags & pair.second)
+					{
+						if (!first) flagList += ", ";
+						flagList += pair.first;
+						first = false;
+					}
+				}
+				flagList += "]";
+				ImGui::Text("Quadflags: %s", flagList.c_str());
+				ImGui::Text("Checkpoint Index: %d", qb.GetCheckpoint());
+
+				ImGui::Separator();
+			}
+		}
+
+		const Vec3& queryPointer = m_lev.m_rendererQueryPoint;
+		ImGui::Text("Query Pointer: (%.2f, %.2f, %.2f)", queryPointer.x, queryPointer.y, queryPointer.z);
+
+		ImGui::End();
+	}
+
 }
