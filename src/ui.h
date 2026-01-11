@@ -31,4 +31,5 @@ private:
 
 private:
 	Level m_lev;
+	bool m_levelJustLoaded = false;
 };

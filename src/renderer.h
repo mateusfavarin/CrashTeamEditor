@@ -24,8 +24,11 @@ class Renderer
 public:
 	Renderer(float width, float height);
 	void RescaleFramebuffer(float width, float height);
-	void Render(const std::vector<Model>& models, bool skyGradientEnabled = false, const std::array<ColorGradient, NUM_GRADIENT>& skyGradients = {});
+	void Render(const std::vector<Model>& models);
 	void SetViewportSize(float width, float height);
+	void SetSkyGradient(bool enabled, const std::array<ColorGradient, NUM_GRADIENT>& gradients);
+	void InitializeCameraFromSpawn(const Vec3& pos, const Vec3& rot);
+	void ResetCamera();
 	float GetLastDeltaTime() const;
 	float GetLastTime() const;
 	float GetWidth() const;
@@ -47,4 +50,6 @@ private:
 	float m_deltaTime = -1.0f;
 	glm::mat4 m_perspective;
 	Camera m_camera;
+	bool m_skyGradientEnabled = false;
+	std::array<ColorGradient, NUM_GRADIENT> m_skyGradients;
 };

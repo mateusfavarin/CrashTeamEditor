@@ -44,6 +44,7 @@ void UI::MainMenu()
 					const std::filesystem::path levPath = selection.front();
 					Windows::lastOpenedFolder = levPath.string();
 					if (!m_lev.Load(levPath)) { m_lev.Clear(false); }
+					else { m_levelJustLoaded = true; }
 				}
 			}
 			if (ImGui::MenuItem("Save", nullptr, nullptr, m_lev.IsLoaded()))
@@ -69,6 +70,7 @@ void UI::MainMenu()
 					for (const std::string& filename : selection)
 					{
 						m_lev.LoadPreset(filename);
+						m_levelJustLoaded = true;
 					}
 				}
 				if (ImGui::MenuItem("Save"))
@@ -97,6 +99,13 @@ void UI::RenderWorld()
 	static Renderer rend = Renderer(io.DisplaySize.x, io.DisplaySize.y);
 	rend.SetViewportSize(io.DisplaySize.x, io.DisplaySize.y);
 
+	// Reset camera when a new level is loaded
+	if (m_levelJustLoaded)
+	{
+		rend.ResetCamera();
+		m_levelJustLoaded = false;
+	}
+
 	if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !io.WantCaptureMouse)
 	{
 		int pixelX = static_cast<int>(io.MousePos.x);
@@ -111,12 +120,18 @@ void UI::RenderWorld()
 
 	if (m_lev.UpdateAnimTextures(rend.GetLastDeltaTime())) { m_lev.UpdateAnimationRenderData(); }
 
+	if (m_lev.m_spawn.size() > 1)
+	{
+		rend.InitializeCameraFromSpawn(m_lev.m_spawn[1].pos, m_lev.m_spawn[1].rot);
+	}
+
+	bool skyGradientEnabled = (m_lev.m_configFlags & LevConfigFlags::ENABLE_SKYBOX_GRADIENT) != 0;
+	rend.SetSkyGradient(skyGradientEnabled, m_lev.m_skyGradient);
+
 	std::vector<Model> modelsToRender;
 	m_lev.BuildRenderModels(modelsToRender);
-	
-	// Get sky gradient from level
-	bool skyGradientEnabled = (m_lev.m_configFlags & LevConfigFlags::ENABLE_SKYBOX_GRADIENT) != 0;
-	rend.Render(modelsToRender, skyGradientEnabled, m_lev.m_skyGradient);
+
+	rend.Render(modelsToRender);
 
 	static float rollingOneSecond = 0;
 	static int FPS = -1;
