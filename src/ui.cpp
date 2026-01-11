@@ -1,6 +1,7 @@
 #include "ui.h"
 
 #include "renderer.h"
+#include "gui_render_settings.h"
 
 #include <imgui.h>
 #include <portable-file-dialogs.h>
@@ -114,8 +115,8 @@ void UI::RenderWorld()
 	m_lev.BuildRenderModels(modelsToRender);
 	
 	// Get sky gradient from level
-	bool SkyGradientEnabled = (m_lev.m_configFlags & LevConfigFlags::ENABLE_SKYBOX_GRADIENT) != 0;
-	rend.Render(modelsToRender, SkyGradientEnabled, m_lev.m_skyGradient);
+	bool skyGradientEnabled = (m_lev.m_configFlags & LevConfigFlags::ENABLE_SKYBOX_GRADIENT) != 0;
+	rend.Render(modelsToRender, skyGradientEnabled, m_lev.m_skyGradient);
 
 	static float rollingOneSecond = 0;
 	static int FPS = -1;
@@ -134,9 +135,9 @@ void UI::RenderWorld()
 		ImGui::GetForegroundDrawList()->AddText(pos, ImGui::GetColorU32(ImGuiCol_Text), fpsLabel.c_str());
 	}
 
-	if(m_lev.rendererUIState.showSelectedQuadblockInfo){
+	if(GuiRenderSettings::showSelectedQuadblockInfo){
 
-		bool oneSelected = (m_lev.m_rendererSelectedQuadblockIndexes.size() == 1);
+		bool atLeastOneSelected = (!m_lev.m_rendererSelectedQuadblockIndexes.empty());
 
 		ImVec2 window_pos = ImVec2(5, io.DisplaySize.y - 5);
 		ImVec2 window_pos_pivot = ImVec2(0.0f, 1.0f);
@@ -144,9 +145,9 @@ void UI::RenderWorld()
 		ImGui::SetNextWindowBgAlpha(0.5f);
 		ImGui::Begin("##RendererQueryPointerInfo", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_AlwaysAutoResize);
 
-		if (oneSelected)
+		if (atLeastOneSelected)
 		{
-			size_t idx = m_lev.m_rendererSelectedQuadblockIndexes[0];
+			size_t idx = m_lev.m_rendererSelectedQuadblockIndexes.back();
 			if (idx < m_lev.m_quadblocks.size())
 			{
 				const Quadblock& qb = m_lev.m_quadblocks[idx];

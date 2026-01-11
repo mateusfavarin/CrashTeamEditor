@@ -1034,12 +1034,12 @@ void Level::RenderUI()
 			}
 
 			ImGui::Separator();
-			ImGui::Checkbox("Show Selected Quadblock Info", &rendererUIState.showSelectedQuadblockInfo);
+			ImGui::Checkbox("Show Selected Quadblock Info", &GuiRenderSettings::showSelectedQuadblockInfo);
 			ImGui::Separator();
 			ImGui::NewLine();
 
 			static size_t prevSelectedQuadblock = REND_NO_SELECTED_QUADBLOCK;
-			if (!m_rendererSelectedQuadblockIndexes.empty() && rendererUIState.showSelectedQuadblockInfo)
+			if (!m_rendererSelectedQuadblockIndexes.empty() && GuiRenderSettings::showSelectedQuadblockInfo)
 			{
 				size_t currentIndex = m_rendererSelectedQuadblockIndexes.back();
 				if (currentIndex < m_quadblocks.size())

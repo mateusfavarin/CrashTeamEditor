@@ -24,6 +24,7 @@ bool GuiRenderSettings::showCheckpoints = false;
 bool GuiRenderSettings::showStartpoints = false;
 bool GuiRenderSettings::showVisTree = false;
 bool GuiRenderSettings::filterActive = true;
+bool GuiRenderSettings::showSelectedQuadblockInfo = true;
 Color GuiRenderSettings::defaultFilterColor = Color(static_cast<unsigned char>(255), static_cast<unsigned char>(128), static_cast<unsigned char>(0));
 int GuiRenderSettings::renderType = 0;
 int GuiRenderSettings::bspTreeTopDepth = 0;
