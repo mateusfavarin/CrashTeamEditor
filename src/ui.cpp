@@ -112,7 +112,10 @@ void UI::RenderWorld()
 
 	std::vector<Model> modelsToRender;
 	m_lev.BuildRenderModels(modelsToRender);
-	rend.Render(modelsToRender);
+	
+	// Get sky gradient from level
+	bool SkyGradientEnabled = (m_lev.m_configFlags & LevConfigFlags::ENABLE_SKYBOX_GRADIENT) != 0;
+	rend.Render(modelsToRender, SkyGradientEnabled, m_lev.m_skyGradient);
 
 	static float rollingOneSecond = 0;
 	static int FPS = -1;
