@@ -415,8 +415,14 @@ void Level::RenderUI()
 			{
 				if (ImGui::TreeNode(("Driver " + std::to_string(i)).c_str()))
 				{
+					if (ImGui::Button(("Set from selection##" + std::to_string(i)).c_str()))
+					{
+						m_spawn[i].pos = m_rendererQueryPoint;
+						GenerateRenderStartpointData(m_spawn);
+					}
 					ImGui::Text("Pos:"); ImGui::SameLine();
 					bool changed = ImGui::InputFloat3("##pos", m_spawn[i].pos.Data());
+		
 					ImGui::Text("Rot:"); ImGui::SameLine();
 					if (ImGui::InputFloat3("##rot", m_spawn[i].rot.Data()))
 					{
