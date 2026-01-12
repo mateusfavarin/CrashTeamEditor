@@ -39,7 +39,7 @@ void App::Run()
 		ImGui::NewFrame();
 		glViewport(0, 0, static_cast<int>(io.DisplaySize.x), static_cast<int>(io.DisplaySize.y));
 		glfwGetWindowSize(m_window, &Windows::w_width, &Windows::w_height);
-		ui.Render(Windows::w_width, Windows::w_height);
+		ui.Render();
 		ImGui::Render();
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 		glfwSwapBuffers(m_window);

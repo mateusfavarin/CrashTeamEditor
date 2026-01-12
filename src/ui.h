@@ -25,7 +25,7 @@ class UI
 {
 public:
 	UI();
-	void Render(int width, int height);
+	void Render();
 private:
 	void MainMenu();
 	void RenderWorld();

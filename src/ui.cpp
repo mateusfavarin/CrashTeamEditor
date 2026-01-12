@@ -25,7 +25,7 @@ std::string Windows::lastOpenedFolder = ".";
 
 UI::UI() : m_rend(Windows::w_width, Windows::w_height) {}
 
-void UI::Render(int width, int height)
+void UI::Render()
 {
 	MainMenu();
 	m_lev.RenderUI();

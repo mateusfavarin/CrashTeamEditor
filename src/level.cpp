@@ -1129,8 +1129,7 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	std::vector<PSX::VisibleSet> visibleSets;
 	const size_t offVisibleSet = currOffset;
 
-	size_t quadCount = 0;
-	for (const Quadblock* quad : orderedQuads)
+	for (size_t quadCount = 0; quadCount < orderedQuads.size(); quadCount++)
 	{
 		PSX::VisibleSet set = {};
 		if (validVisTree) { set.offVisibleBSPNodes = static_cast<uint32_t>(std::get<size_t>(visibleNodes[quadCount])); }
@@ -1148,7 +1147,7 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 			visibleSetMap[set] = visibleSetIndex;
 		}
 
-		PSX::Quadblock* serializedQuad = reinterpret_cast<PSX::Quadblock*>(serializedQuads[quadCount++].data());
+		PSX::Quadblock* serializedQuad = reinterpret_cast<PSX::Quadblock*>(serializedQuads[quadCount].data());
 		serializedQuad->offVisibleSet = static_cast<uint32_t>(offVisibleSet + sizeof(PSX::VisibleSet) * visibleSetIndex);
 	}
 
@@ -2050,7 +2049,6 @@ void Level::GenerateRenderLevData()
 	for (const AnimTexture& animTex : m_animTextures)
 	{
 		if (!animTex.IsPopulated()) { continue; }
-		const std::vector<AnimTextureFrame>& frames = animTex.GetFrames();
 		const std::vector<Texture>& textures = animTex.GetTextures();
 		const AnimTextureFrame& frame = animTex.GetRenderFrame();
 		int animTexIndex = GetTextureIndex(textures[frame.textureIndex].GetPath());
