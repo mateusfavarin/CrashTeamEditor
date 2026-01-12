@@ -422,7 +422,7 @@ void Level::RenderUI()
 					}
 					ImGui::Text("Pos:"); ImGui::SameLine();
 					bool changed = ImGui::InputFloat3("##pos", m_spawn[i].pos.Data());
-		
+
 					ImGui::Text("Rot:"); ImGui::SameLine();
 					if (ImGui::InputFloat3("##rot", m_spawn[i].rot.Data()))
 					{
@@ -886,7 +886,7 @@ void Level::RenderUI()
 				ImGui::SameLine();
 				ImGui::Text("Default Color:");
 				ImGui::SameLine();
-				float filterColor[3] = { GuiRenderSettings::defaultFilterColor.Red(), GuiRenderSettings::defaultFilterColor.Green(), GuiRenderSettings::defaultFilterColor.Blue() };
+				float filterColor[3] = {GuiRenderSettings::defaultFilterColor.Red(), GuiRenderSettings::defaultFilterColor.Green(), GuiRenderSettings::defaultFilterColor.Blue()};
 				if (ImGui::ColorEdit3("##FilterColor", filterColor, ImGuiColorEditFlags_NoInputs))
 				{
 					Color newFilterColor = Color(filterColor[0], filterColor[1], filterColor[2]);
@@ -963,9 +963,9 @@ void Level::RenderUI()
 						};
 
 					inputPair("Move Mult", GuiRenderSettings::camMoveMult, 0.0f, std::numeric_limits<float>::max(),
-										"Rotate Mult", GuiRenderSettings::camRotateMult, 0.0f, std::numeric_limits<float>::max());
+						"Rotate Mult", GuiRenderSettings::camRotateMult, 0.0f, std::numeric_limits<float>::max());
 					inputPair("Zoom Mult", GuiRenderSettings::camZoomMult, 0.0f, std::numeric_limits<float>::max(),
-										"Sprint Mult", GuiRenderSettings::camSprintMult, 0.0f, std::numeric_limits<float>::max());
+						"Sprint Mult", GuiRenderSettings::camSprintMult, 0.0f, std::numeric_limits<float>::max());
 					float dummy;
 					inputPair("FOV", GuiRenderSettings::camFovDeg, 5.0f, 150.0f, nullptr, dummy, 0.0f, 0.0f);
 					ImGui::EndTable();

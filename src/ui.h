@@ -33,5 +33,4 @@ private:
 private:
 	Level m_lev;
 	Renderer m_rend;
-	ImGuiIO& m_io;
 };

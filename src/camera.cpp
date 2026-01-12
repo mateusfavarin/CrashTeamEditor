@@ -17,8 +17,8 @@ Camera::Camera()
 	, m_distance(3.0f)
 	, m_pitch(0.f)
 	, m_yaw(-90.f)
-	, m_initialized(false)
 {
+	Initialize();
 }
 
 void Camera::Initialize()
@@ -33,13 +33,10 @@ void Camera::Initialize()
 		m_distance = len;
 		m_front = dir;
 	}
-	m_initialized = true;
 }
 
 void Camera::Update(bool allowShortcuts, float deltaTime)
 {
-	if (!m_initialized) { Initialize(); }
-
 	if (allowShortcuts)
 	{
 		ImGuiIO& io = ImGui::GetIO();

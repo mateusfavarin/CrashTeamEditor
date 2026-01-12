@@ -23,11 +23,7 @@ bool Windows::w_ghost = false;
 bool Windows::w_python = false;
 std::string Windows::lastOpenedFolder = ".";
 
-UI::UI()
-    : m_io(ImGui::GetIO()),
-	// m_rend(m_io.DisplaySize.x, m_io.DisplaySize.y)
-	m_rend(Windows::w_width, Windows::w_height)
-{ }
+UI::UI() : m_rend(Windows::w_width, Windows::w_height) {}
 
 void UI::Render(int width, int height)
 {
@@ -50,12 +46,7 @@ void UI::MainMenu()
 					const std::filesystem::path levPath = selection.front();
 					Windows::lastOpenedFolder = levPath.string();
 					if (!m_lev.Load(levPath)) { m_lev.Clear(false); }
-					else{
-						if (m_lev.m_spawn.size() > 1)
-						{
-							m_rend.SetCameraToLevelSpawn(m_lev.m_spawn[1].pos, m_lev.m_spawn[1].rot);
-						} 
-					}
+					else { m_rend.SetCameraToLevelSpawn(m_lev.m_spawn[1].pos, m_lev.m_spawn[1].rot); }
 				}
 			}
 			if (ImGui::MenuItem("Save", nullptr, nullptr, m_lev.IsLoaded()))
@@ -105,12 +96,13 @@ void UI::RenderWorld()
 {
 	if (!m_lev.IsLoaded()) { return; }
 
-	m_rend.SetViewportSize(m_io.DisplaySize.x, m_io.DisplaySize.y);
+	ImGuiIO& io = ImGui::GetIO();
+	m_rend.SetViewportSize(io.DisplaySize.x, io.DisplaySize.y);
 
-	if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !m_io.WantCaptureMouse)
+	if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !io.WantCaptureMouse)
 	{
-		int pixelX = static_cast<int>(m_io.MousePos.x);
-		int pixelY = static_cast<int>(m_io.MousePos.y);
+		int pixelX = static_cast<int>(io.MousePos.x);
+		int pixelY = static_cast<int>(io.MousePos.y);
 		if (pixelX >= 0 && pixelY >= 0 && pixelX < static_cast<int>(m_rend.GetWidth()) && pixelY < static_cast<int>(m_rend.GetHeight()))
 		{
 			m_lev.ViewportClickHandleBlockSelection(pixelX, pixelY, ImGui::IsKeyDown(ImGuiKey_ModShift), m_rend);
@@ -123,7 +115,7 @@ void UI::RenderWorld()
 
 	std::vector<Model> modelsToRender;
 	m_lev.BuildRenderModels(modelsToRender);
-	
+
 	bool skyGradientEnabled = (m_lev.m_configFlags & LevConfigFlags::ENABLE_SKYBOX_GRADIENT) != 0;
 	m_rend.Render(modelsToRender, skyGradientEnabled, m_lev.m_skyGradient);
 
@@ -140,15 +132,15 @@ void UI::RenderWorld()
 	{
 		std::string fpsLabel = "FPS: " + std::to_string(FPS);
 		ImVec2 textSize = ImGui::CalcTextSize(fpsLabel.c_str());
-		ImVec2 pos = ImVec2(m_io.DisplaySize.x - textSize.x - 10.0f, 10.0f);
+		ImVec2 pos = ImVec2(io.DisplaySize.x - textSize.x - 10.0f, 10.0f);
 		ImGui::GetForegroundDrawList()->AddText(pos, ImGui::GetColorU32(ImGuiCol_Text), fpsLabel.c_str());
 	}
 
-	if(GuiRenderSettings::showSelectedQuadblockInfo){
-
+	if (GuiRenderSettings::showSelectedQuadblockInfo)
+	{
 		bool atLeastOneSelected = (!m_lev.m_rendererSelectedQuadblockIndexes.empty());
 
-		ImVec2 window_pos = ImVec2(5, m_io.DisplaySize.y - 5);
+		ImVec2 window_pos = ImVec2(5, io.DisplaySize.y - 5);
 		ImVec2 window_pos_pivot = ImVec2(0.0f, 1.0f);
 		ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always, window_pos_pivot);
 		ImGui::SetNextWindowBgAlpha(0.5f);
@@ -169,11 +161,7 @@ void UI::RenderWorld()
 				std::string terrainName = "Unknown";
 				for (const auto& pair : TerrainType::LABELS)
 				{
-					if (pair.second == terrain)
-					{
-						terrainName = pair.first;
-						break;
-					}
+					if (pair.second == terrain) { terrainName = pair.first; break; }
 				}
 				ImGui::Text("Terrain: %s", terrainName.c_str());
 
@@ -184,7 +172,7 @@ void UI::RenderWorld()
 				{
 					if (flags & pair.second)
 					{
-						if (!first) flagList += ", ";
+						if (!first) { flagList += ", "; }
 						flagList += pair.first;
 						first = false;
 					}

@@ -14,7 +14,7 @@ public:
 	const glm::vec3& GetTarget() const;
 	const glm::mat4& GetViewMatrix() const;
 	float GetDistance() const;
-	
+
 	void SetPosition(const glm::vec3& pos) { m_position = pos; }
 	void SetTarget(const glm::vec3& target) { m_target = target; }
 	void SetPitch(float pitch) { m_pitch = pitch; }
@@ -31,5 +31,4 @@ private:
 	float m_distance;
 	float m_pitch;
 	float m_yaw;
-	bool m_initialized;
 };
