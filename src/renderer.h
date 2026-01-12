@@ -24,11 +24,9 @@ class Renderer
 public:
 	Renderer(float width, float height);
 	void RescaleFramebuffer(float width, float height);
-	void Render(const std::vector<Model>& models);
+	void Render(const std::vector<Model>& models, bool skyGradientEnabled, const std::array<ColorGradient, NUM_GRADIENT>& skyGradients);
 	void SetViewportSize(float width, float height);
-	void SetSkyGradient(bool enabled, const std::array<ColorGradient, NUM_GRADIENT>& gradients);
-	void InitializeCameraFromSpawn(const Vec3& pos, const Vec3& rot);
-	void ResetCamera();
+	void SetCameraToLevelSpawn(const Vec3& pos, const Vec3& rot);
 	float GetLastDeltaTime() const;
 	float GetLastTime() const;
 	float GetWidth() const;
@@ -36,9 +34,8 @@ public:
 	GLuint GetTexBuffer() const;
 	std::tuple<glm::vec3, float> WorldspaceRayTriIntersection(glm::vec3 worldSpaceRay, const glm::vec3 tri[3]) const;
 	glm::vec3 ScreenspaceToWorldRay(int pixelX, int pixelY) const;
-	void RenderSkyGradient(const std::array<ColorGradient, NUM_GRADIENT>& skyGradients);
-
-private:
+	
+	private:
 	int m_width;
 	int m_height;
 	GLuint m_texturebuffer;
@@ -52,4 +49,5 @@ private:
 	Camera m_camera;
 	bool m_skyGradientEnabled = false;
 	std::array<ColorGradient, NUM_GRADIENT> m_skyGradients;
+	void RenderSkyGradient(const std::array<ColorGradient, NUM_GRADIENT>& skyGradients);
 };

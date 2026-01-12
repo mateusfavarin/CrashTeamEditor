@@ -23,6 +23,12 @@ bool Windows::w_ghost = false;
 bool Windows::w_python = false;
 std::string Windows::lastOpenedFolder = ".";
 
+UI::UI()
+    : m_io(ImGui::GetIO()),
+	// m_rend(m_io.DisplaySize.x, m_io.DisplaySize.y)
+	m_rend(Windows::w_width, Windows::w_height)
+{ }
+
 void UI::Render(int width, int height)
 {
 	MainMenu();
@@ -44,7 +50,12 @@ void UI::MainMenu()
 					const std::filesystem::path levPath = selection.front();
 					Windows::lastOpenedFolder = levPath.string();
 					if (!m_lev.Load(levPath)) { m_lev.Clear(false); }
-					else { m_levelJustLoaded = true; }
+					else{
+						if (m_lev.m_spawn.size() > 1)
+						{
+							m_rend.SetCameraToLevelSpawn(m_lev.m_spawn[1].pos, m_lev.m_spawn[1].rot);
+						} 
+					}
 				}
 			}
 			if (ImGui::MenuItem("Save", nullptr, nullptr, m_lev.IsLoaded()))
@@ -70,7 +81,6 @@ void UI::MainMenu()
 					for (const std::string& filename : selection)
 					{
 						m_lev.LoadPreset(filename);
-						m_levelJustLoaded = true;
 					}
 				}
 				if (ImGui::MenuItem("Save"))
@@ -95,58 +105,42 @@ void UI::RenderWorld()
 {
 	if (!m_lev.IsLoaded()) { return; }
 
-	ImGuiIO& io = ImGui::GetIO();
-	static Renderer rend = Renderer(io.DisplaySize.x, io.DisplaySize.y);
-	rend.SetViewportSize(io.DisplaySize.x, io.DisplaySize.y);
+	m_rend.SetViewportSize(m_io.DisplaySize.x, m_io.DisplaySize.y);
 
-	// Reset camera when a new level is loaded
-	if (m_levelJustLoaded)
+	if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !m_io.WantCaptureMouse)
 	{
-		rend.ResetCamera();
-		m_levelJustLoaded = false;
-	}
-
-	if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !io.WantCaptureMouse)
-	{
-		int pixelX = static_cast<int>(io.MousePos.x);
-		int pixelY = static_cast<int>(io.MousePos.y);
-		if (pixelX >= 0 && pixelY >= 0 && pixelX < static_cast<int>(rend.GetWidth()) && pixelY < static_cast<int>(rend.GetHeight()))
+		int pixelX = static_cast<int>(m_io.MousePos.x);
+		int pixelY = static_cast<int>(m_io.MousePos.y);
+		if (pixelX >= 0 && pixelY >= 0 && pixelX < static_cast<int>(m_rend.GetWidth()) && pixelY < static_cast<int>(m_rend.GetHeight()))
 		{
-			m_lev.ViewportClickHandleBlockSelection(pixelX, pixelY, ImGui::IsKeyDown(ImGuiKey_ModShift), rend);
+			m_lev.ViewportClickHandleBlockSelection(pixelX, pixelY, ImGui::IsKeyDown(ImGuiKey_ModShift), m_rend);
 		}
 	}
 
 	if (ImGui::IsKeyDown(ImGuiKey_Escape)) { m_lev.ResetRendererSelection(); }
 
-	if (m_lev.UpdateAnimTextures(rend.GetLastDeltaTime())) { m_lev.UpdateAnimationRenderData(); }
-
-	if (m_lev.m_spawn.size() > 1)
-	{
-		rend.InitializeCameraFromSpawn(m_lev.m_spawn[1].pos, m_lev.m_spawn[1].rot);
-	}
-
-	bool skyGradientEnabled = (m_lev.m_configFlags & LevConfigFlags::ENABLE_SKYBOX_GRADIENT) != 0;
-	rend.SetSkyGradient(skyGradientEnabled, m_lev.m_skyGradient);
+	if (m_lev.UpdateAnimTextures(m_rend.GetLastDeltaTime())) { m_lev.UpdateAnimationRenderData(); }
 
 	std::vector<Model> modelsToRender;
 	m_lev.BuildRenderModels(modelsToRender);
-
-	rend.Render(modelsToRender);
+	
+	bool skyGradientEnabled = (m_lev.m_configFlags & LevConfigFlags::ENABLE_SKYBOX_GRADIENT) != 0;
+	m_rend.Render(modelsToRender, skyGradientEnabled, m_lev.m_skyGradient);
 
 	static float rollingOneSecond = 0;
 	static int FPS = -1;
 	float fm = fmod(rollingOneSecond, 1.f);
 	if (fm != rollingOneSecond && rollingOneSecond >= 1.f) //2nd condition prevents fps not updating if deltaTime exactly equals 1.f
 	{
-		FPS = static_cast<int>(1.f / rend.GetLastDeltaTime());
+		FPS = static_cast<int>(1.f / m_rend.GetLastDeltaTime());
 		rollingOneSecond = fm;
 	}
-	rollingOneSecond += rend.GetLastDeltaTime();
+	rollingOneSecond += m_rend.GetLastDeltaTime();
 	if (FPS >= 0)
 	{
 		std::string fpsLabel = "FPS: " + std::to_string(FPS);
 		ImVec2 textSize = ImGui::CalcTextSize(fpsLabel.c_str());
-		ImVec2 pos = ImVec2(io.DisplaySize.x - textSize.x - 10.0f, 10.0f);
+		ImVec2 pos = ImVec2(m_io.DisplaySize.x - textSize.x - 10.0f, 10.0f);
 		ImGui::GetForegroundDrawList()->AddText(pos, ImGui::GetColorU32(ImGuiCol_Text), fpsLabel.c_str());
 	}
 
@@ -154,7 +148,7 @@ void UI::RenderWorld()
 
 		bool atLeastOneSelected = (!m_lev.m_rendererSelectedQuadblockIndexes.empty());
 
-		ImVec2 window_pos = ImVec2(5, io.DisplaySize.y - 5);
+		ImVec2 window_pos = ImVec2(5, m_io.DisplaySize.y - 5);
 		ImVec2 window_pos_pivot = ImVec2(0.0f, 1.0f);
 		ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always, window_pos_pivot);
 		ImGui::SetNextWindowBgAlpha(0.5f);

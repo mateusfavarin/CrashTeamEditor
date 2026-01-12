@@ -45,7 +45,7 @@ Renderer::Renderer(float width, float height)
   glBindRenderbuffer(GL_RENDERBUFFER, 0);
 }
 
-void Renderer::Render(const std::vector<Model>& models)
+void Renderer::Render(const std::vector<Model>& models, bool skyGradientEnabled, const std::array<ColorGradient, NUM_GRADIENT>& skyGradients)
 {
   if (m_width <= 0 || m_height <= 0) { return; }
 
@@ -58,8 +58,8 @@ void Renderer::Render(const std::vector<Model>& models)
 
   glViewport(0, 0, m_width, m_height);
 
-  if (m_skyGradientEnabled) {
-    RenderSkyGradient(m_skyGradients);
+  if (skyGradientEnabled) {
+    RenderSkyGradient(skyGradients);
   } else {
     // Default dark blue background
     glClearColor(0.0f, 0.05f, 0.1f, 1.0f);
@@ -141,34 +141,25 @@ void Renderer::Render(const std::vector<Model>& models)
 
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
-void Renderer::SetSkyGradient(bool enabled, const std::array<ColorGradient, NUM_GRADIENT>& gradients)
+
+void Renderer::SetCameraToLevelSpawn(const Vec3& pos, const Vec3& rot)
 {
-	m_skyGradientEnabled = enabled;
-	m_skyGradients = gradients;
+	// m_camera.SetInitialized(false);
+
+  glm::vec3 position(pos.x, pos.y, pos.z);
+	glm::vec3 rotation(rot.x, rot.y, rot.z);
+
+  position.y += 1.0f;
+	m_camera.SetPosition(position);
+
+	m_camera.SetPitch(rotation.x);
+	m_camera.SetYaw(rotation.y + 180.0f);
+	m_camera.SetTarget(position + glm::vec3(0.0f, 0.0f, 0.0f));
+
+	m_camera.SetDistance(10.0f);
+
 }
 
-void Renderer::InitializeCameraFromSpawn(const Vec3& pos, const Vec3& rot)
-{
-	if (!m_camera.IsInitialized())
-	{
-		glm::vec3 position(pos.x, pos.y, pos.z);
-		glm::vec3 rotation(rot.x, rot.y, rot.z);
-
-    position.y += 1.0f;
-		m_camera.SetPosition(position);
-
-		m_camera.SetPitch(rotation.x);
-		m_camera.SetYaw(rotation.y + 180.0f);
-    m_camera.SetTarget(position + glm::vec3(0.0f, 0.0f, 0.0f));
-
-    m_camera.SetDistance(10.0f);
-	}
-}
-
-void Renderer::ResetCamera()
-{
-	m_camera.SetInitialized(false);
-}
 float Renderer::GetLastDeltaTime() const
 {
   return m_deltaTime;
