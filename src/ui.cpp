@@ -1,6 +1,7 @@
 #include "ui.h"
 
 #include "renderer.h"
+#include "gui_render_settings.h"
 
 #include <imgui.h>
 #include <portable-file-dialogs.h>
@@ -21,6 +22,12 @@ bool Windows::w_renderer = false;
 bool Windows::w_ghost = false;
 bool Windows::w_python = false;
 std::string Windows::lastOpenedFolder = ".";
+
+UI::UI()
+    : m_io(ImGui::GetIO()),
+	// m_rend(m_io.DisplaySize.x, m_io.DisplaySize.y)
+	m_rend(Windows::w_width, Windows::w_height)
+{ }
 
 void UI::Render(int width, int height)
 {
@@ -43,6 +50,12 @@ void UI::MainMenu()
 					const std::filesystem::path levPath = selection.front();
 					Windows::lastOpenedFolder = levPath.string();
 					if (!m_lev.Load(levPath)) { m_lev.Clear(false); }
+					else{
+						if (m_lev.m_spawn.size() > 1)
+						{
+							m_rend.SetCameraToLevelSpawn(m_lev.m_spawn[1].pos, m_lev.m_spawn[1].rot);
+						} 
+					}
 				}
 			}
 			if (ImGui::MenuItem("Save", nullptr, nullptr, m_lev.IsLoaded()))
@@ -92,42 +105,102 @@ void UI::RenderWorld()
 {
 	if (!m_lev.IsLoaded()) { return; }
 
-	ImGuiIO& io = ImGui::GetIO();
-	static Renderer rend = Renderer(io.DisplaySize.x, io.DisplaySize.y);
-	rend.SetViewportSize(io.DisplaySize.x, io.DisplaySize.y);
+	m_rend.SetViewportSize(m_io.DisplaySize.x, m_io.DisplaySize.y);
 
-	if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !io.WantCaptureMouse)
+	if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !m_io.WantCaptureMouse)
 	{
-		int pixelX = static_cast<int>(io.MousePos.x);
-		int pixelY = static_cast<int>(io.MousePos.y);
-		if (pixelX >= 0 && pixelY >= 0 && pixelX < static_cast<int>(rend.GetWidth()) && pixelY < static_cast<int>(rend.GetHeight()))
+		int pixelX = static_cast<int>(m_io.MousePos.x);
+		int pixelY = static_cast<int>(m_io.MousePos.y);
+		if (pixelX >= 0 && pixelY >= 0 && pixelX < static_cast<int>(m_rend.GetWidth()) && pixelY < static_cast<int>(m_rend.GetHeight()))
 		{
-			m_lev.ViewportClickHandleBlockSelection(pixelX, pixelY, ImGui::IsKeyDown(ImGuiKey_ModCtrl), rend);
+			m_lev.ViewportClickHandleBlockSelection(pixelX, pixelY, ImGui::IsKeyDown(ImGuiKey_ModShift), m_rend);
 		}
 	}
 
 	if (ImGui::IsKeyDown(ImGuiKey_Escape)) { m_lev.ResetRendererSelection(); }
 
-	if (m_lev.UpdateAnimTextures(rend.GetLastDeltaTime())) { m_lev.UpdateAnimationRenderData(); }
+	if (m_lev.UpdateAnimTextures(m_rend.GetLastDeltaTime())) { m_lev.UpdateAnimationRenderData(); }
 
 	std::vector<Model> modelsToRender;
 	m_lev.BuildRenderModels(modelsToRender);
-	rend.Render(modelsToRender);
+	
+	bool skyGradientEnabled = (m_lev.m_configFlags & LevConfigFlags::ENABLE_SKYBOX_GRADIENT) != 0;
+	m_rend.Render(modelsToRender, skyGradientEnabled, m_lev.m_skyGradient);
 
 	static float rollingOneSecond = 0;
 	static int FPS = -1;
 	float fm = fmod(rollingOneSecond, 1.f);
 	if (fm != rollingOneSecond && rollingOneSecond >= 1.f) //2nd condition prevents fps not updating if deltaTime exactly equals 1.f
 	{
-		FPS = static_cast<int>(1.f / rend.GetLastDeltaTime());
+		FPS = static_cast<int>(1.f / m_rend.GetLastDeltaTime());
 		rollingOneSecond = fm;
 	}
-	rollingOneSecond += rend.GetLastDeltaTime();
+	rollingOneSecond += m_rend.GetLastDeltaTime();
 	if (FPS >= 0)
 	{
 		std::string fpsLabel = "FPS: " + std::to_string(FPS);
 		ImVec2 textSize = ImGui::CalcTextSize(fpsLabel.c_str());
-		ImVec2 pos = ImVec2(io.DisplaySize.x - textSize.x - 10.0f, 10.0f);
+		ImVec2 pos = ImVec2(m_io.DisplaySize.x - textSize.x - 10.0f, 10.0f);
 		ImGui::GetForegroundDrawList()->AddText(pos, ImGui::GetColorU32(ImGuiCol_Text), fpsLabel.c_str());
 	}
+
+	if(GuiRenderSettings::showSelectedQuadblockInfo){
+
+		bool atLeastOneSelected = (!m_lev.m_rendererSelectedQuadblockIndexes.empty());
+
+		ImVec2 window_pos = ImVec2(5, m_io.DisplaySize.y - 5);
+		ImVec2 window_pos_pivot = ImVec2(0.0f, 1.0f);
+		ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always, window_pos_pivot);
+		ImGui::SetNextWindowBgAlpha(0.5f);
+		ImGui::Begin("##RendererQueryPointerInfo", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_AlwaysAutoResize);
+
+		if (atLeastOneSelected)
+		{
+			size_t idx = m_lev.m_rendererSelectedQuadblockIndexes.back();
+			if (idx < m_lev.m_quadblocks.size())
+			{
+				const Quadblock& qb = m_lev.m_quadblocks[idx];
+
+				ImGui::Text("Selected Quadblock: ID %zu", idx);
+				ImGui::Text("Name: %s", qb.GetName().c_str());
+				ImGui::Text("Material: %s", qb.GetMaterial().c_str());
+
+				uint8_t terrain = qb.GetTerrain();
+				std::string terrainName = "Unknown";
+				for (const auto& pair : TerrainType::LABELS)
+				{
+					if (pair.second == terrain)
+					{
+						terrainName = pair.first;
+						break;
+					}
+				}
+				ImGui::Text("Terrain: %s", terrainName.c_str());
+
+				uint16_t flags = qb.GetFlags();
+				std::string flagList = "[";
+				bool first = true;
+				for (const auto& pair : QuadFlags::LABELS)
+				{
+					if (flags & pair.second)
+					{
+						if (!first) flagList += ", ";
+						flagList += pair.first;
+						first = false;
+					}
+				}
+				flagList += "]";
+				ImGui::Text("Quadflags: %s", flagList.c_str());
+				ImGui::Text("Checkpoint Index: %d", qb.GetCheckpoint());
+
+				ImGui::Separator();
+			}
+		}
+
+		const Vec3& queryPointer = m_lev.m_rendererQueryPoint;
+		ImGui::Text("Query Pointer: (%.2f, %.2f, %.2f)", queryPointer.x, queryPointer.y, queryPointer.z);
+
+		ImGui::End();
+	}
+
 }

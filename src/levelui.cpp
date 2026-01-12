@@ -415,8 +415,14 @@ void Level::RenderUI()
 			{
 				if (ImGui::TreeNode(("Driver " + std::to_string(i)).c_str()))
 				{
+					if (ImGui::Button(("Set from selection##" + std::to_string(i)).c_str()))
+					{
+						m_spawn[i].pos = m_rendererQueryPoint;
+						GenerateRenderStartpointData(m_spawn);
+					}
 					ImGui::Text("Pos:"); ImGui::SameLine();
 					bool changed = ImGui::InputFloat3("##pos", m_spawn[i].pos.Data());
+		
 					ImGui::Text("Rot:"); ImGui::SameLine();
 					if (ImGui::InputFloat3("##rot", m_spawn[i].rot.Data()))
 					{
@@ -1020,7 +1026,7 @@ void Level::RenderUI()
 
 				if (ImGui::BeginTable("Camera Bindings Table", 2, ImGuiTableFlags_SizingStretchSame))
 				{
-					DrawMouseRow("Orbit Mouse Button", GuiRenderSettings::camOrbitMouseButton);
+					DrawMouseRow("Orbit/Drag Mouse Button", GuiRenderSettings::camOrbitMouseButton);
 					DrawKeyRow("Forward", GuiRenderSettings::camKeyForward);
 					DrawKeyRow("Back", GuiRenderSettings::camKeyBack);
 					DrawKeyRow("Left", GuiRenderSettings::camKeyLeft);
@@ -1033,8 +1039,13 @@ void Level::RenderUI()
 				ImGui::TreePop();
 			}
 
+			ImGui::Separator();
+			ImGui::Checkbox("Show Selected Quadblock Info", &GuiRenderSettings::showSelectedQuadblockInfo);
+			ImGui::Separator();
+			ImGui::NewLine();
+
 			static size_t prevSelectedQuadblock = REND_NO_SELECTED_QUADBLOCK;
-			if (!m_rendererSelectedQuadblockIndexes.empty())
+			if (!m_rendererSelectedQuadblockIndexes.empty() && GuiRenderSettings::showSelectedQuadblockInfo)
 			{
 				size_t currentIndex = m_rendererSelectedQuadblockIndexes.back();
 				if (currentIndex < m_quadblocks.size())

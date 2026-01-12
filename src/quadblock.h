@@ -174,6 +174,7 @@ public:
 	size_t GetRenderLowLodOctoPointIndex() const;
 	size_t GetRenderFilterHighLodEdgeIndex() const;
 	size_t GetRenderFilterLowLodEdgeIndex() const;
+	const std::string& GetMaterial() const;
 	void SetRenderIndices(size_t highPointIndex, size_t lowPointIndex, size_t highUvIndex, size_t lowUvIndex, size_t highOctoIndex, size_t lowOctoIndex);
 	void SetRenderFilterIndices(size_t highEdgeIndex, size_t lowEdgeIndex);
 	void SetTerrain(uint8_t terrain);

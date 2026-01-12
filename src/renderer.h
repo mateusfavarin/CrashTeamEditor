@@ -13,25 +13,29 @@
 #include "mesh.h"
 #include "model.h"
 #include "camera.h"
+#include "geo.h"
+#include "lev.h"
 #include <vector>
+#include <array>
 #include <map>
 
 class Renderer
 {
 public:
-  Renderer(float width, float height);
-  void RescaleFramebuffer(float width, float height);
-  void Render(const std::vector<Model>& models);
-  void SetViewportSize(float width, float height);
-  float GetLastDeltaTime() const;
-  float GetLastTime() const;
+	Renderer(float width, float height);
+	void RescaleFramebuffer(float width, float height);
+	void Render(const std::vector<Model>& models, bool skyGradientEnabled, const std::array<ColorGradient, NUM_GRADIENT>& skyGradients);
+	void SetViewportSize(float width, float height);
+	void SetCameraToLevelSpawn(const Vec3& pos, const Vec3& rot);
+	float GetLastDeltaTime() const;
+	float GetLastTime() const;
 	float GetWidth() const;
 	float GetHeight() const;
 	GLuint GetTexBuffer() const;
 	std::tuple<glm::vec3, float> WorldspaceRayTriIntersection(glm::vec3 worldSpaceRay, const glm::vec3 tri[3]) const;
 	glm::vec3 ScreenspaceToWorldRay(int pixelX, int pixelY) const;
-
-private:
+	
+	private:
 	int m_width;
 	int m_height;
 	GLuint m_texturebuffer;
@@ -43,4 +47,7 @@ private:
 	float m_deltaTime = -1.0f;
 	glm::mat4 m_perspective;
 	Camera m_camera;
+	bool m_skyGradientEnabled = false;
+	std::array<ColorGradient, NUM_GRADIENT> m_skyGradients;
+	void RenderSkyGradient(const std::array<ColorGradient, NUM_GRADIENT>& skyGradients);
 };

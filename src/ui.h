@@ -24,6 +24,7 @@ struct Windows
 class UI
 {
 public:
+	UI();
 	void Render(int width, int height);
 private:
 	void MainMenu();
@@ -31,4 +32,6 @@ private:
 
 private:
 	Level m_lev;
+	Renderer m_rend;
+	ImGuiIO& m_io;
 };

@@ -44,14 +44,25 @@ void Camera::Update(bool allowShortcuts, float deltaTime)
 	{
 		ImGuiIO& io = ImGui::GetIO();
 		const ImGuiKey sprintKey = static_cast<ImGuiKey>(GuiRenderSettings::camKeySprint);
-		const bool shiftDown = ImGui::IsKeyDown(sprintKey);
+		const bool cameraSprintDown = ImGui::IsKeyDown(sprintKey);
 
 		if (ImGui::IsMouseDown(GuiRenderSettings::camOrbitMouseButton) && (io.MouseDelta.x != 0.0f || io.MouseDelta.y != 0.0f))
 		{
-			float orbitSpeed = 0.2f * GuiRenderSettings::camRotateMult;
-			m_yaw -= io.MouseDelta.x * orbitSpeed;
-			m_pitch -= io.MouseDelta.y * orbitSpeed;
-			m_pitch = Clamp(m_pitch, -89.9f, 89.9f);
+			if (cameraSprintDown)
+			{
+				float panSpeed = 0.001f * m_distance * GuiRenderSettings::camMoveMult;
+				glm::vec3 right = glm::normalize(glm::cross(m_front, glm::vec3(0.f, 1.f, 0.f)));
+				glm::vec3 up = glm::normalize(glm::cross(right, m_front));
+				m_target -= right * io.MouseDelta.x * panSpeed;
+				m_target += up * io.MouseDelta.y * panSpeed;
+			}
+			else
+			{
+				float orbitSpeed = 0.2f * GuiRenderSettings::camRotateMult;
+				m_yaw += io.MouseDelta.x * orbitSpeed;
+				m_pitch += io.MouseDelta.y * orbitSpeed;
+				m_pitch = Clamp(m_pitch, -89.9f, 89.9f);
+			}
 		}
 
 		if (io.MouseWheel != 0.0f)
@@ -61,7 +72,7 @@ void Camera::Update(bool allowShortcuts, float deltaTime)
 		}
 
 		float moveSpeed = 15.f * deltaTime * GuiRenderSettings::camMoveMult;
-		if (shiftDown) { moveSpeed *= GuiRenderSettings::camSprintMult; }
+		if (cameraSprintDown) { moveSpeed *= GuiRenderSettings::camSprintMult; }
 
 		glm::vec3 forwardPlanar = glm::normalize(glm::vec3(cos(glm::radians(m_yaw)), 0.0f, sin(glm::radians(m_yaw))));
 		glm::vec3 right = glm::normalize(glm::cross(forwardPlanar, glm::vec3(0.f, 1.f, 0.f)));
