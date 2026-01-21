@@ -242,14 +242,17 @@ bool Level::GenerateCheckpoints()
 	if (hit && tmax >= 0.0f)
 	{
 		const Vec3 finishLinePos = endCheckpointPos + (direction * tmax);
-		m_checkpointPaths[lastPathIndex].UpdateDist(0.0f, finishLinePos, m_checkpoints);
+		//m_checkpointPaths[lastPathIndex].UpdateDist(0.0f, finishLinePos, m_checkpoints);
+		// Not sure what it does, but removing it seems necessary to make everything work.
 	}
 
-	const Checkpoint* currStartCheckpoint = &m_checkpoints[m_checkpointPaths[lastPathIndex].GetStart()];
-	for (int i = lastPathIndex - 1; i >= 0; i--)
+	const Checkpoint* currStartCheckpoint = &m_checkpoints[0];
+	float distFinish = 0.0f;
+	for (int i = lastPathIndex; i >= 0; i--)
 	{
-		m_checkpointPaths[i].UpdateDist(currStartCheckpoint->GetDistFinish(), currStartCheckpoint->GetPos(), m_checkpoints);
+		m_checkpointPaths[i].UpdateDist(distFinish, currStartCheckpoint->GetPos(), m_checkpoints);
 		currStartCheckpoint = &m_checkpoints[m_checkpointPaths[i].GetStart()];
+		distFinish = currStartCheckpoint->GetDistFinish();
 	}
 
 	for (size_t i = 0; i < linkNodeIndexes.size(); i++)
