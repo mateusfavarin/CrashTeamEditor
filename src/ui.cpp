@@ -13,6 +13,7 @@ int Windows::w_width = 1024;
 int Windows::w_height = 768;
 int Windows::w_x = 50;
 int Windows::w_y = 50;
+bool Windows::w_maximized = false;
 bool Windows::w_spawn = false;
 bool Windows::w_level = false;
 bool Windows::w_material = false;

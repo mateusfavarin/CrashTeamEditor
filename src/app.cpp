@@ -99,6 +99,7 @@ bool App::InitGLFW()
 	if (m_window == nullptr) { return false; }
 	glfwSetWindowSize(m_window, Windows::w_width, Windows::w_height);
 	glfwSetWindowPos(m_window, Windows::w_x, Windows::w_y);
+	if (Windows::w_maximized) { glfwMaximizeWindow(m_window); }
 	glfwMakeContextCurrent(m_window);
 	glfwSwapInterval(1); // Enable vsync
 
@@ -142,6 +143,7 @@ void App::InitUISettings()
 	if (json.contains("Height")) { Windows::w_height = json["Height"]; }
 	if (json.contains("WindowX")) { Windows::w_x = json["WindowX"]; }
 	if (json.contains("WindowY")) { Windows::w_y = json["WindowY"]; }
+	if (json.contains("Maximized")) { Windows::w_maximized = json["Maximized"]; }
 	if (json.contains("AnimTex")) { Windows::w_animtex = json["AnimTex"]; }
 	if (json.contains("BSP")) { Windows::w_bsp = json["BSP"]; }
 	if (json.contains("Checkpoints")) { Windows::w_checkpoints = json["Checkpoints"]; }
@@ -185,11 +187,13 @@ void App::SaveUISettings()
 	int width, height, xpos, ypos;
 	glfwGetWindowSize(m_window, &width, &height);
 	glfwGetWindowPos(m_window, &xpos, &ypos);
+	bool maximized = glfwGetWindowAttrib(m_window, GLFW_MAXIMIZED);
 	nlohmann::json json;
 	json["Width"] = width;
 	json["Height"] = height;
 	json["WindowX"] = xpos;
 	json["WindowY"] = ypos;
+	json["Maximized"] = maximized;
 	json["AnimTex"] = Windows::w_animtex;
 	json["BSP"] = Windows::w_bsp;
 	json["Checkpoints"] = Windows::w_checkpoints;
