@@ -8,6 +8,9 @@ struct Windows
 {
 	static int w_width;
 	static int w_height;
+	static int w_x;
+	static int w_y;
+	static bool w_maximized;
 	static bool w_spawn;
 	static bool w_level;
 	static bool w_material;
