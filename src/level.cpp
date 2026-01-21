@@ -672,6 +672,11 @@ void Level::ResetRendererSelection()
 	m_selectedBlockModel.SetMesh();
 }
 
+void Level::UpdateRendererCheckpoints()
+{
+	GenerateRenderCheckpointData(m_checkpoints);
+}
+
 void Level::BuildRenderModels(std::vector<Model>& models)
 {
 	models.clear();

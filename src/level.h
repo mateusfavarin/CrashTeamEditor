@@ -44,6 +44,7 @@ public:
 	bool SavePreset(const std::filesystem::path& path);
 	void ResetFilter();
 	void ResetRendererSelection();
+	void UpdateRendererCheckpoints();
 
 private:
 	void ManageTurbopad(Quadblock& quadblock);
