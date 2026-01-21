@@ -97,6 +97,8 @@ bool App::InitGLFW()
 	glfwWindowHint(GLFW_SCALE_TO_MONITOR, GLFW_TRUE); //high dpi
 	m_window = glfwCreateWindow(Windows::w_width, Windows::w_height, title.c_str(), nullptr, nullptr);
 	if (m_window == nullptr) { return false; }
+	glfwSetWindowSize(m_window, Windows::w_width, Windows::w_height);
+	glfwSetWindowPos(m_window, Windows::w_x, Windows::w_y);
 	glfwMakeContextCurrent(m_window);
 	glfwSwapInterval(1); // Enable vsync
 
@@ -138,6 +140,8 @@ void App::InitUISettings()
 	nlohmann::json json = nlohmann::json::parse(std::ifstream(m_configFile));
 	if (json.contains("Width")) { Windows::w_width = json["Width"]; }
 	if (json.contains("Height")) { Windows::w_height = json["Height"]; }
+	if (json.contains("WindowX")) { Windows::w_x = json["WindowX"]; }
+	if (json.contains("WindowY")) { Windows::w_y = json["WindowY"]; }
 	if (json.contains("AnimTex")) { Windows::w_animtex = json["AnimTex"]; }
 	if (json.contains("BSP")) { Windows::w_bsp = json["BSP"]; }
 	if (json.contains("Checkpoints")) { Windows::w_checkpoints = json["Checkpoints"]; }
@@ -175,12 +179,17 @@ void App::InitUISettings()
 		}
 	}
 }
-
+	
 void App::SaveUISettings()
 {
+	int width, height, xpos, ypos;
+	glfwGetWindowSize(m_window, &width, &height);
+	glfwGetWindowPos(m_window, &xpos, &ypos);
 	nlohmann::json json;
-	json["Width"] = Windows::w_width;
-	json["Height"] = Windows::w_height;
+	json["Width"] = width;
+	json["Height"] = height;
+	json["WindowX"] = xpos;
+	json["WindowY"] = ypos;
 	json["AnimTex"] = Windows::w_animtex;
 	json["BSP"] = Windows::w_bsp;
 	json["Checkpoints"] = Windows::w_checkpoints;
