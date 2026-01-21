@@ -2441,11 +2441,27 @@ void Level::GenerateRenderCheckpointData(std::vector<Checkpoint>& checkpoints)
 
 	static Mesh checkMesh;
 	std::vector<float> checkData;
+	std::vector<int> selectedCheckpointIndexes; // Contain the ID of the checkpoints from selected quads
+	for (size_t index : m_rendererSelectedQuadblockIndexes)
+	{
+		int checkpointIndex = m_quadblocks[index].GetCheckpoint();
+		bool notAddedYet = std::find(selectedCheckpointIndexes.begin(), selectedCheckpointIndexes.end(), checkpointIndex) == selectedCheckpointIndexes.end(); 
+		if (notAddedYet) { selectedCheckpointIndexes.push_back(checkpointIndex); }
+	}
 
 	for (Checkpoint& e : checkpoints)
 	{
-		Vertex v = Vertex(Point(e.GetPos().x, e.GetPos().y, e.GetPos().z, 255, 0, 128));
-		GeomOctopoint(&v, 0, checkData);
+		bool notSelected = std::find(selectedCheckpointIndexes.begin(), selectedCheckpointIndexes.end(), e.GetIndex()) == selectedCheckpointIndexes.end();
+		if (notSelected)
+		{
+			Vertex v = Vertex(Point(e.GetPos().x, e.GetPos().y, e.GetPos().z, 255, 0, 128)); //Pink for not selected
+			GeomOctopoint(&v, 0, checkData);
+		}
+		else
+		{
+			Vertex v = Vertex(Point(e.GetPos().x, e.GetPos().y, e.GetPos().z, 0, 255, 255)); // Cyan for selected
+			GeomOctopoint(&v, 0, checkData);
+		}
 	}
 
 	checkMesh.UpdateMesh(checkData, (Mesh::VBufDataType::VertexColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);
@@ -2780,4 +2796,5 @@ void Level::ViewportClickHandleBlockSelection(int pixelX, int pixelY, bool appen
 	{
 		m_selectedBlockModel.SetMesh();
 	}
+	GenerateRenderCheckpointData(m_checkpoints);
 }
