@@ -194,58 +194,6 @@ bool Level::GenerateCheckpoints()
 	}
 
 	int lastPathIndex = static_cast<int>(m_checkpointPaths.size()) - 1;
-	const int endCheckpointIndex = static_cast<int>(m_checkpointPaths[lastPathIndex].GetEnd());
-	const Vec3& endCheckpointPos = m_checkpoints[endCheckpointIndex].GetPos();
-	const Vec3& startCheckpointPos = m_checkpoints[m_checkpointPaths[0].GetStart()].GetPos();
-	BoundingBox bbox;
-	bbox.min = Vec3(std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
-	bbox.max = Vec3(-std::numeric_limits<float>::max(), -std::numeric_limits<float>::max(), -std::numeric_limits<float>::max());
-	bool hasFinishBBox = false;
-	for (const Quadblock& quadblock : m_quadblocks)
-	{
-		if (quadblock.GetCheckpoint() != endCheckpointIndex) { continue; }
-		hasFinishBBox = true;
-		const BoundingBox& quadBbox = quadblock.GetBoundingBox();
-		bbox.min.x = std::min(bbox.min.x, quadBbox.min.x); bbox.max.x = std::max(bbox.max.x, quadBbox.max.x);
-		bbox.min.y = std::min(bbox.min.y, quadBbox.min.y); bbox.max.y = std::max(bbox.max.y, quadBbox.max.y);
-		bbox.min.z = std::min(bbox.min.z, quadBbox.min.z); bbox.max.z = std::max(bbox.max.z, quadBbox.max.z);
-	}
-
-	const float epsilon = 1e-6f;
-	const Vec3 direction = startCheckpointPos - endCheckpointPos;
-	if (!hasFinishBBox || direction.LengthSquared() < epsilon) { m_checkpoints.clear(); return false; }
-
-	float tmin = -std::numeric_limits<float>::infinity();
-	float tmax = std::numeric_limits<float>::infinity();
-	bool hit = true;
-
-	auto UpdateSlab = [&](float origin, float dir, float minVal, float maxVal)
-		{
-			if (!hit) { return; }
-			if (std::abs(dir) < epsilon)
-			{
-				if (origin < minVal || origin > maxVal) { hit = false; }
-				return;
-			}
-			float t1 = (minVal - origin) / dir;
-			float t2 = (maxVal - origin) / dir;
-			if (t1 > t2) { std::swap(t1, t2); }
-			tmin = std::max(tmin, t1);
-			tmax = std::min(tmax, t2);
-			if (tmin > tmax) { hit = false; }
-		};
-
-	UpdateSlab(endCheckpointPos.x, direction.x, bbox.min.x, bbox.max.x);
-	UpdateSlab(endCheckpointPos.y, direction.y, bbox.min.y, bbox.max.y);
-	UpdateSlab(endCheckpointPos.z, direction.z, bbox.min.z, bbox.max.z);
-
-	if (hit && tmax >= 0.0f)
-	{
-		const Vec3 finishLinePos = endCheckpointPos + (direction * tmax);
-		//m_checkpointPaths[lastPathIndex].UpdateDist(0.0f, finishLinePos, m_checkpoints);
-		// Not sure what it does, but removing it seems necessary to make everything work.
-	}
-
 	const Checkpoint* currStartCheckpoint = &m_checkpoints[0];
 	float distFinish = 0.0f;
 	for (int i = lastPathIndex; i >= 0; i--)
@@ -2447,18 +2395,16 @@ void Level::GenerateRenderCheckpointData(std::vector<Checkpoint>& checkpoints)
 	static Mesh checkMesh;
 	std::vector<float> checkData;
 	std::unordered_set<int> selectedCheckpointIndexes; // Contain the ID of the checkpoints from selected quads
-	for (size_t index : m_rendererSelectedQuadblockIndexes) 
+	for (size_t index : m_rendererSelectedQuadblockIndexes)
 	{
 		int checkpointIndex = m_quadblocks[index].GetCheckpoint();
 		selectedCheckpointIndexes.insert(checkpointIndex);
 	}
 
-	Color c;
 	for (Checkpoint& e : checkpoints)
 	{
 		bool selected = selectedCheckpointIndexes.contains(e.GetIndex());
-		if (!selected) { c = m_checkpointDefaultColor; }
-		else { c = m_checkpointSelectedColor; }
+		const Color& c = selected ? GuiRenderSettings::selectedCheckpointColor : GuiRenderSettings::defaultCheckpointColor;
 		Vertex v = Vertex(Point(e.GetPos().x, e.GetPos().y, e.GetPos().z, c.r, c.g, c.b));
 		GeomOctopoint(&v, 0, checkData);
 	}
