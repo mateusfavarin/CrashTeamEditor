@@ -50,52 +50,30 @@ static bool OpenMemoryMapWindows(const std::string& name, size_t size)
 #include <cctype>
 #include <filesystem>
 #include <fcntl.h>
-#include <vector>
-#include <algorithm>
 #include <sys/mman.h>
 #include <unistd.h>
 
 static int GetPIDLinux(const std::string& name)
 {
-	std::vector<std::string> tags;
-	auto AddTag = [&tags](const std::string& tag)
-		{
-			if (tag.empty()) { return; }
-			if (std::find(tags.begin(), tags.end(), tag) == tags.end())
-			{
-				tags.push_back(tag);
-			}
-		};
-
-	if (!name.empty()) { AddTag(name + "_"); }
-#if defined(_DEBUG)
-	AddTag("pcsx-redux-wram-");
-#else
-	AddTag("duckstation_");
-#endif
-
+	if (name.empty()) { return Process::INVALID_PID; }
 	try
 	{
 		for (const auto& entry : std::filesystem::directory_iterator("/dev/shm/"))
 		{
 			const std::string filename = entry.path().filename().string();
-			for (const std::string& tag : tags)
-			{
-				const size_t matchPos = filename.find(tag);
-				if (matchPos == std::string::npos) { continue; }
-				size_t pos = matchPos + tag.size();
-				if (pos >= filename.size() || !std::isdigit(static_cast<unsigned char>(filename[pos]))) { continue; }
+			if (filename.rfind(name, 0) != 0) { continue; }
+			size_t pos = name.size();
+			if (pos >= filename.size() || !std::isdigit(static_cast<unsigned char>(filename[pos]))) { continue; }
 
-				std::string pidStr;
-				while (pos < filename.size() && std::isdigit(static_cast<unsigned char>(filename[pos])))
-				{
-					pidStr.push_back(filename[pos]);
-					++pos;
-				}
-				if (!pidStr.empty())
-				{
-					return std::stoi(pidStr);
-				}
+			std::string pidStr;
+			while (pos < filename.size() && std::isdigit(static_cast<unsigned char>(filename[pos])))
+			{
+				pidStr.push_back(filename[pos]);
+				++pos;
+			}
+			if (!pidStr.empty())
+			{
+				return std::stoi(pidStr);
 			}
 		}
 	}
@@ -108,43 +86,15 @@ static int GetPIDLinux(const std::string& name)
 
 static bool OpenMemoryMapLinux(const std::string& name, size_t size)
 {
-	auto TryOpenMap = [size](const std::string& rawName) -> uint8_t*
-		{
-			std::string mapName = rawName;
-			if (mapName.empty()) { return nullptr; }
-			if (mapName.front() != '/') { mapName.insert(mapName.begin(), '/'); }
-			int fd = shm_open(mapName.c_str(), O_RDWR, 0600);
-			if (fd == -1) { return nullptr; }
-			void* addr = mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-			close(fd);
-			if (addr == MAP_FAILED) { return nullptr; }
-			return static_cast<uint8_t*>(addr);
-		};
-
-	Process::gEmuRAM = TryOpenMap(name);
-	if (Process::gEmuRAM) { return true; }
-
-	std::string trimmed = name;
-	if (!trimmed.empty() && trimmed.front() == '/') { trimmed.erase(trimmed.begin()); }
-
-	size_t digitPos = trimmed.size();
-	while (digitPos > 0 && std::isdigit(static_cast<unsigned char>(trimmed[digitPos - 1])))
-	{
-		--digitPos;
-	}
-	if (digitPos == trimmed.size()) { return false; }
-	const std::string pidStr = trimmed.substr(digitPos);
-
-#if defined(_DEBUG)
-	const std::string altName = "pcsx-redux-wram-" + pidStr;
-#else
-	const std::string altName = "duckstation_" + pidStr;
-#endif
-
-	if (altName != trimmed)
-	{
-		Process::gEmuRAM = TryOpenMap(altName);
-	}
+	std::string mapName = name;
+	if (mapName.empty()) { return false; }
+	if (mapName.front() != '/') { mapName.insert(mapName.begin(), '/'); }
+	int fd = shm_open(mapName.c_str(), O_RDWR, 0600);
+	if (fd == -1) { return false; }
+	void* addr = mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+	close(fd);
+	if (addr == MAP_FAILED) { return false; }
+	Process::gEmuRAM = static_cast<uint8_t*>(addr);
 	return Process::gEmuRAM != nullptr;
 }
 
