@@ -2446,27 +2446,21 @@ void Level::GenerateRenderCheckpointData(std::vector<Checkpoint>& checkpoints)
 
 	static Mesh checkMesh;
 	std::vector<float> checkData;
-	std::vector<int> selectedCheckpointIndexes; // Contain the ID of the checkpoints from selected quads
-	for (size_t index : m_rendererSelectedQuadblockIndexes)
+	std::unordered_set<int> selectedCheckpointIndexes; // Contain the ID of the checkpoints from selected quads
+	for (size_t index : m_rendererSelectedQuadblockIndexes) 
 	{
 		int checkpointIndex = m_quadblocks[index].GetCheckpoint();
-		bool notAddedYet = std::find(selectedCheckpointIndexes.begin(), selectedCheckpointIndexes.end(), checkpointIndex) == selectedCheckpointIndexes.end(); 
-		if (notAddedYet) { selectedCheckpointIndexes.push_back(checkpointIndex); }
+		selectedCheckpointIndexes.insert(checkpointIndex);
 	}
 
+	Color c;
 	for (Checkpoint& e : checkpoints)
 	{
-		bool notSelected = std::find(selectedCheckpointIndexes.begin(), selectedCheckpointIndexes.end(), e.GetIndex()) == selectedCheckpointIndexes.end();
-		if (notSelected)
-		{
-			Vertex v = Vertex(Point(e.GetPos().x, e.GetPos().y, e.GetPos().z, 255, 0, 128)); //Pink for not selected
-			GeomOctopoint(&v, 0, checkData);
-		}
-		else
-		{
-			Vertex v = Vertex(Point(e.GetPos().x, e.GetPos().y, e.GetPos().z, 0, 255, 255)); // Cyan for selected
-			GeomOctopoint(&v, 0, checkData);
-		}
+		bool selected = selectedCheckpointIndexes.contains(e.GetIndex());
+		if (!selected) { c = m_checkpointDefaultColor; }
+		else { c = m_checkpointSelectedColor; }
+		Vertex v = Vertex(Point(e.GetPos().x, e.GetPos().y, e.GetPos().z, c.r, c.g, c.b));
+		GeomOctopoint(&v, 0, checkData);
 	}
 
 	checkMesh.UpdateMesh(checkData, (Mesh::VBufDataType::VertexColor | Mesh::VBufDataType::Normals), Mesh::ShaderSettings::None);

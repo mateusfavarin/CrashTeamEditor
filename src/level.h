@@ -101,6 +101,8 @@ private:
 	uint32_t m_configFlags;
 	std::array<ColorGradient, NUM_GRADIENT> m_skyGradient;
 	Color m_clearColor;
+	Color m_checkpointDefaultColor = Color(static_cast<unsigned char>(255), 0, 128) ; //Pink
+	Color m_checkpointSelectedColor = Color(static_cast<unsigned char>(0), 255, 255); //Cyan
 	Stars m_stars;
 	std::vector<uint8_t> m_tropyGhost;
 	std::vector<uint8_t> m_oxideGhost;
