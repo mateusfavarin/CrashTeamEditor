@@ -672,6 +672,11 @@ void Level::ResetRendererSelection()
 	m_selectedBlockModel.SetMesh();
 }
 
+void Level::UpdateRendererCheckpoints()
+{
+	GenerateRenderCheckpointData(m_checkpoints);
+}
+
 void Level::BuildRenderModels(std::vector<Model>& models)
 {
 	models.clear();
@@ -2441,10 +2446,20 @@ void Level::GenerateRenderCheckpointData(std::vector<Checkpoint>& checkpoints)
 
 	static Mesh checkMesh;
 	std::vector<float> checkData;
+	std::unordered_set<int> selectedCheckpointIndexes; // Contain the ID of the checkpoints from selected quads
+	for (size_t index : m_rendererSelectedQuadblockIndexes) 
+	{
+		int checkpointIndex = m_quadblocks[index].GetCheckpoint();
+		selectedCheckpointIndexes.insert(checkpointIndex);
+	}
 
+	Color c;
 	for (Checkpoint& e : checkpoints)
 	{
-		Vertex v = Vertex(Point(e.GetPos().x, e.GetPos().y, e.GetPos().z, 255, 0, 128));
+		bool selected = selectedCheckpointIndexes.contains(e.GetIndex());
+		if (!selected) { c = m_checkpointDefaultColor; }
+		else { c = m_checkpointSelectedColor; }
+		Vertex v = Vertex(Point(e.GetPos().x, e.GetPos().y, e.GetPos().z, c.r, c.g, c.b));
 		GeomOctopoint(&v, 0, checkData);
 	}
 
@@ -2780,4 +2795,5 @@ void Level::ViewportClickHandleBlockSelection(int pixelX, int pixelY, bool appen
 	{
 		m_selectedBlockModel.SetMesh();
 	}
+	GenerateRenderCheckpointData(m_checkpoints);
 }
