@@ -47,6 +47,7 @@ jobs:
                 submodules: true
             - name: Set up Python
               uses: actions/setup-python@v5
+              id: setup-python
               with:
                 python-version: ${{ env.PYTHON_VERSION }}
             - name: Install dependencies
@@ -56,9 +57,9 @@ jobs:
                   libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev \
                   libgl1-mesa-dev
             - name: build
-              run: make release
+              run: make release PYTHON_EXECUTABLE="${{ steps.setup-python.outputs.python-path }}"
             - name: compress
-              run: tar -f CrashTeamEditor-linux-x64.tar.gz -c CrashTeamEditor.out
+              run: tar -f CrashTeamEditor-linux-x64.tar.gz -c CrashTeamEditor.out python
             - name: Release
               uses: softprops/action-gh-release@v2
               with:

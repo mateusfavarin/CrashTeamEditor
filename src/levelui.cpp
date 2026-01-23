@@ -763,7 +763,7 @@ void Level::RenderUI()
 				saveGhostFeedback = "Failed retrieving ghost data from the emulator.\nMake sure that you have saved your ghost in-game\nbefore clicking this button.";
 
 				std::string filename = "ghost";
-				auto selection = pfd::save_file::save_file("CTR Ghost File", filename.c_str(), {"Ghost File (*.ctrghost)", "*.ctrghost"}).result();
+				auto selection = pfd::save_file("CTR Ghost File", filename.c_str(), {"Ghost File (*.ctrghost)", "*.ctrghost"}).result();
 				if (!selection.empty())
 				{
 					const std::filesystem::path path = selection + ".ctrghost";

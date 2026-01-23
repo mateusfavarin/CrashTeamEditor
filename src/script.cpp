@@ -9,9 +9,13 @@
 #include <filesystem>
 #include <memory>
 #include <mutex>
+#include <vector>
 
 #if defined(_WIN32)
 #include <windows.h>
+#else
+#include <unistd.h>
+#include <climits>
 #endif
 
 namespace py = pybind11;
@@ -74,21 +78,6 @@ namespace
 	static std::once_flag g_moduleInitFlag;
 	static std::string g_moduleInitError;
 
-#if defined(_WIN32)
-	static std::filesystem::path GetExecutableDir(std::string& error)
-	{
-		std::wstring buffer(32768, L'\0');
-		DWORD length = GetModuleFileNameW(nullptr, buffer.data(), static_cast<DWORD>(buffer.size()));
-		if (length == 0 || length >= buffer.size())
-		{
-			error = "Failed to resolve executable path for bundled Python";
-			return {};
-		}
-
-		buffer.resize(length);
-		return std::filesystem::path(buffer).parent_path();
-	}
-
 	static bool AppendPythonPath(PyConfig& config, const std::filesystem::path& path, std::string& error)
 	{
 		std::error_code ec;
@@ -105,6 +94,21 @@ namespace
 			return false;
 		}
 		return true;
+	}
+
+#if defined(_WIN32)
+	static std::filesystem::path GetExecutableDir(std::string& error)
+	{
+		std::wstring buffer(32768, L'\0');
+		DWORD length = GetModuleFileNameW(nullptr, buffer.data(), static_cast<DWORD>(buffer.size()));
+		if (length == 0 || length >= buffer.size())
+		{
+			error = "Failed to resolve executable path for bundled Python";
+			return {};
+		}
+
+		buffer.resize(length);
+		return std::filesystem::path(buffer).parent_path();
 	}
 
 	static bool ConfigureBundledPython(PyConfig& config, std::string& error)
@@ -156,6 +160,66 @@ namespace
 
 		return true;
 	}
+#else
+	static std::filesystem::path GetExecutableDir(std::string& error)
+	{
+		std::vector<char> buffer(1024, '\0');
+		while (true)
+		{
+			ssize_t length = readlink("/proc/self/exe", buffer.data(), buffer.size() - 1);
+			if (length < 0)
+			{
+				error = "Failed to resolve executable path for bundled Python";
+				return {};
+			}
+			if (length < static_cast<ssize_t>(buffer.size() - 1))
+			{
+				buffer[static_cast<size_t>(length)] = '\0';
+				return std::filesystem::path(buffer.data()).parent_path();
+			}
+			buffer.resize(buffer.size() * 2, '\0');
+		}
+	}
+
+	static bool ConfigureBundledPython(PyConfig& config, std::string& error, bool& configured)
+	{
+		configured = false;
+		std::filesystem::path exeDir = GetExecutableDir(error);
+		if (exeDir.empty())
+		{
+			return false;
+		}
+
+		std::filesystem::path pythonRoot = exeDir / "python";
+		std::error_code ec;
+		if (!std::filesystem::exists(pythonRoot, ec))
+		{
+			return true;
+		}
+
+		std::wstring pythonHome = pythonRoot.wstring();
+		PyStatus status = PyConfig_SetString(&config, &config.home, pythonHome.c_str());
+		if (PyStatus_Exception(status))
+		{
+			error = status.err_msg ? status.err_msg : "Failed to configure Python home";
+			return false;
+		}
+
+		config.module_search_paths_set = 1;
+		configured = true;
+
+		if (!AppendPythonPath(config, pythonRoot, error)) { return false; }
+		if (!AppendPythonPath(config, pythonRoot / "lib", error)) { return false; }
+
+		const std::string version = std::to_string(PY_MAJOR_VERSION) + "." + std::to_string(PY_MINOR_VERSION);
+		const std::filesystem::path versionRoot = pythonRoot / "lib" / ("python" + version);
+		if (!AppendPythonPath(config, versionRoot, error)) { return false; }
+		if (!AppendPythonPath(config, versionRoot / "lib-dynload", error)) { return false; }
+		if (!AppendPythonPath(config, versionRoot / "site-packages", error)) { return false; }
+		if (!AppendPythonPath(config, versionRoot / "dist-packages", error)) { return false; }
+
+		return true;
+	}
 #endif
 
 	static bool EnsurePythonInterpreter(std::string& error)
@@ -181,7 +245,29 @@ namespace
 
 					g_pythonInterpreter = std::make_unique<py::scoped_interpreter>(&config, 0, nullptr, false);
 #else
-					g_pythonInterpreter = std::make_unique<py::scoped_interpreter>();
+					PyConfig config;
+					PyConfig_InitIsolatedConfig(&config);
+					config.parse_argv = 0;
+					config.use_environment = 0;
+					config.site_import = 1;
+					config.user_site_directory = 0;
+
+					bool configured = false;
+					if (!ConfigureBundledPython(config, g_pythonInitError, configured))
+					{
+						PyConfig_Clear(&config);
+						return;
+					}
+
+					if (configured)
+					{
+						g_pythonInterpreter = std::make_unique<py::scoped_interpreter>(&config, 0, nullptr, false);
+					}
+					else
+					{
+						PyConfig_Clear(&config);
+						g_pythonInterpreter = std::make_unique<py::scoped_interpreter>();
+					}
 #endif
 				}
 				catch (const std::exception& ex)

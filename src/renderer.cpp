@@ -344,7 +344,7 @@ void Renderer::RenderSkyGradient(const std::array<ColorGradient, NUM_GRADIENT>& 
 		glGenBuffers(1, &gradientVBO);
 	}
 
-	auto coordToNDC = [](float coord) -> float {
+	auto coordToNDC = [SKY_GRADIENT_COORD_MAX, SKY_GRADIENT_COORD_MIN](float coord) -> float {
 		float clamped = std::max(std::min(coord, SKY_GRADIENT_COORD_MAX), SKY_GRADIENT_COORD_MIN);
 		return clamped / SKY_GRADIENT_COORD_MAX;
 		};
