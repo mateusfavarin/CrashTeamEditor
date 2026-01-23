@@ -20,6 +20,6 @@ struct GuiRenderSettings
   static int camKeyForward, camKeyBack, camKeyLeft, camKeyRight, camKeyUp, camKeyDown, camKeySprint;
   static int camOrbitMouseButton;
   static bool showLowLOD, showWireframe, showLevVerts, showBackfaces, showBspRectTree, showLevel, showCheckpoints, showStartpoints, showVisTree, filterActive, showSelectedQuadblockInfo;
-  static Color defaultFilterColor, defaultCheckpointColor, selectedCheckpointColor;
+  static Color defaultFilterColor, selectedCheckpointColor;
   static const std::vector<const char*> renderTypeLabels;
 };

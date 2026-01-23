@@ -99,6 +99,7 @@ void Path::ToJson(nlohmann::json& json, const std::vector<Quadblock>& quadblocks
 	json["quadStart"] = quadStart;
 	json["quadEnd"] = quadEnd;
 	json["quadIgnore"] = quadIgnore;
+	json["color"] = m_color;
 
 	if (m_left) { json["left"] = nlohmann::json(); m_left->ToJson(json["left"], quadblocks); }
 	if (m_right) { json["right"] = nlohmann::json(); m_right->ToJson(json["right"], quadblocks); }
@@ -107,6 +108,7 @@ void Path::ToJson(nlohmann::json& json, const std::vector<Quadblock>& quadblocks
 void Path::FromJson(const nlohmann::json& json, const std::vector<Quadblock>& quadblocks)
 {
 	std::vector<std::string> quadStart, quadEnd, quadIgnore;
+	if (json.contains("color")) { json.at("color").get_to(m_color); }
 	if (json.contains("index")) { json.at("index").get_to(m_index); }
 	if (json.contains("hasLeft") && json.contains("left"))
 	{

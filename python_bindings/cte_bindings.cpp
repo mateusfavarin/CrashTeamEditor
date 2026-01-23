@@ -243,6 +243,9 @@ void init_crashteameditor(py::module_& m)
 		.def("get_down", &Checkpoint::GetDown)
 		.def("get_left", &Checkpoint::GetLeft)
 		.def("get_right", &Checkpoint::GetRight)
+		.def_property("color",
+			[](const Checkpoint& cp) { return cp.GetColor(); },
+			[](Checkpoint& cp, const Color& color) { cp.SetColor(color); })
 		.def("update_dist_finish", &Checkpoint::UpdateDistFinish)
 		.def("update_up", &Checkpoint::UpdateUp)
 		.def("update_down", &Checkpoint::UpdateDown)
@@ -269,6 +272,9 @@ void init_crashteameditor(py::module_& m)
 		.def("set_index", &Path::SetIndex)
 		.def("update_dist", &Path::UpdateDist, py::arg("dist"), py::arg("ref_point"), py::arg("checkpoints"))
 		.def("generate_path", &Path::GeneratePath, py::arg("path_start_index"), py::arg("quadblocks"))
+		.def_property("color",
+			[](const Path& p) { return p.GetColor(); },
+			[](Path& p, const Color& color) { p.SetColor(color); })
 		.def("__copy__", [](const Path& p) { return Path(p); })
 		.def("__deepcopy__", [](const Path& p, py::dict) { return Path(p); }, py::arg("memo"));
 

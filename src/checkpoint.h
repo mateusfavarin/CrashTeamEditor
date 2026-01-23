@@ -24,6 +24,8 @@ public:
 	int GetDown() const;
 	int GetLeft() const;
 	int GetRight() const;
+	const Color& GetColor() const;
+	void SetColor(const Color& color);
 	void UpdateDistFinish(float dist);
 	void UpdateUp(int up);
 	void UpdateDown(int down);
@@ -49,4 +51,5 @@ private:
 	std::string m_uiLinkDown;
 	std::string m_uiLinkLeft;
 	std::string m_uiLinkRight;
+	Color m_color;
 };

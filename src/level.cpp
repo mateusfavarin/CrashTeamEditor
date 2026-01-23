@@ -2404,7 +2404,7 @@ void Level::GenerateRenderCheckpointData(std::vector<Checkpoint>& checkpoints)
 	for (Checkpoint& e : checkpoints)
 	{
 		bool selected = selectedCheckpointIndexes.contains(e.GetIndex());
-		const Color& c = selected ? GuiRenderSettings::selectedCheckpointColor : GuiRenderSettings::defaultCheckpointColor;
+		const Color& c = selected ? GuiRenderSettings::selectedCheckpointColor : e.GetColor();
 		Vertex v = Vertex(Point(e.GetPos().x, e.GetPos().y, e.GetPos().z, c.r, c.g, c.b));
 		GeomOctopoint(&v, 0, checkData);
 	}

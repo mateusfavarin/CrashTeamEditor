@@ -1,6 +1,26 @@
 #include "path.h"
+#include "gui_render_settings.h"
+#include <array>
 
-#include <algorithm>
+static const std::array<Color, 9> PrimitiveColors = {
+	Color(1.0f, 0.0f, 0.0f),
+	Color(0.0f, 1.0f, 0.0f),
+	Color(0.0f, 0.0f, 1.0f),
+	Color(1.0f, 1.0f, 0.0f),
+	Color(1.0f, 0.0f, 1.0f),
+	Color(0.0f, 0.5f, 1.0f),
+	Color(1.0f, 0.5f, 0.0f),
+	Color(0.5f, 1.0f, 0.0f),
+	Color(1.0f, 0.5f, 0.5f),
+};
+
+static Color GetNextPrimitiveColor()
+{
+	static size_t primitiveColorIndex = 0;
+	const Color color = PrimitiveColors[primitiveColorIndex];
+	primitiveColorIndex = (primitiveColorIndex + 1) % PrimitiveColors.size();
+	return color;
+}
 
 Path::Path()
 {
@@ -18,6 +38,7 @@ Path::Path()
 	m_previewValueIgnore = 0;
 	m_previewLabelIgnore = std::string();
 	m_quadIndexesIgnore = std::vector<size_t>();
+	m_color = GetNextPrimitiveColor();
 }
 
 Path::Path(size_t index)
@@ -36,6 +57,7 @@ Path::Path(size_t index)
 	m_previewValueIgnore = 0;
 	m_previewLabelIgnore = std::string();
 	m_quadIndexesIgnore = std::vector<size_t>();
+	m_color = GetNextPrimitiveColor();
 }
 
 Path::Path(const Path& path)
@@ -204,6 +226,7 @@ std::vector<Checkpoint> Path::GeneratePath(size_t pathStartIndex, std::vector<Qu
 		if (!checkpoints.empty()) { distStart += (lastChunkVertex - chunkVertex).Length(); }
 		distStarts.push_back(distStart);
 		checkpoints.emplace_back(currCheckpointIndex, chunkVertex, quadblocks[chunkQuadIndex].GetName());
+		checkpoints.back().SetColor(m_color);
 		checkpoints.back().UpdateUp(currCheckpointIndex + 1);
 		checkpoints.back().UpdateDown(currCheckpointIndex - 1);
 		currCheckpointIndex++;
@@ -277,5 +300,16 @@ Path& Path::operator=(const Path& path)
 	m_previewValueIgnore = path.m_previewValueIgnore;
 	m_previewLabelIgnore = path.m_previewLabelIgnore;
 	m_quadIndexesIgnore = path.m_quadIndexesIgnore;
+	m_color = path.m_color;
 	return *this;
+}
+
+const Color& Path::GetColor() const
+{
+	return m_color;
+}
+
+void Path::SetColor(const Color& color)
+{
+	m_color = color;
 }

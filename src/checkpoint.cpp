@@ -1,7 +1,8 @@
 #include "checkpoint.h"
 #include "psx_types.h"
-
 #include <cstring>
+
+static const Color DEFAULT_CHECKPOINT_COLOR = Color(static_cast<unsigned char>(255), static_cast<unsigned char>(0), static_cast<unsigned char>(128));
 
 Checkpoint::Checkpoint(int index)
 {
@@ -18,6 +19,7 @@ Checkpoint::Checkpoint(int index)
 	m_uiLinkDown = DEFAULT_UI_CHECKBOX_LABEL;
 	m_uiLinkLeft = DEFAULT_UI_CHECKBOX_LABEL;
 	m_uiLinkRight = DEFAULT_UI_CHECKBOX_LABEL;
+	m_color = DEFAULT_CHECKPOINT_COLOR;
 }
 
 Checkpoint::Checkpoint(int index, const Vec3& pos, const std::string& quadName)
@@ -35,6 +37,7 @@ Checkpoint::Checkpoint(int index, const Vec3& pos, const std::string& quadName)
 	m_uiLinkDown = DEFAULT_UI_CHECKBOX_LABEL;
 	m_uiLinkLeft = DEFAULT_UI_CHECKBOX_LABEL;
 	m_uiLinkRight = DEFAULT_UI_CHECKBOX_LABEL;
+	m_color = DEFAULT_CHECKPOINT_COLOR;
 }
 
 Checkpoint::Checkpoint(const PSX::Checkpoint& checkpoint, int index)
@@ -61,6 +64,7 @@ Checkpoint::Checkpoint(const PSX::Checkpoint& checkpoint, int index)
 	UpdateLink(m_left, m_uiLinkLeft, checkpoint.linkLeft);
 	UpdateLink(m_right, m_uiLinkRight, checkpoint.linkRight);
 	m_delete = false;
+	m_color = DEFAULT_CHECKPOINT_COLOR;
 }
 
 int Checkpoint::GetIndex() const
@@ -135,6 +139,16 @@ void Checkpoint::UpdateRight(int right)
 bool Checkpoint::GetDelete() const
 {
 	return m_delete;
+}
+
+const Color& Checkpoint::GetColor() const
+{
+	return m_color;
+}
+
+void Checkpoint::SetColor(const Color& color)
+{
+	m_color = color;
 }
 
 void Checkpoint::RemoveInvalidCheckpoints(const std::vector<int>& invalidIndexes)

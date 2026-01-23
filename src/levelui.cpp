@@ -21,6 +21,7 @@
 #include <functional>
 #include <fstream>
 #include <sstream>
+#include <cstdint>
 
 class ButtonUI
 {
@@ -682,7 +683,7 @@ void Level::RenderUI()
 				bool removePath = false;
 				Path& path = m_checkpointPaths[i];
 				const std::string pathTitle = "Path " + std::to_string(path.GetIndex());
-				path.RenderUI(pathTitle, m_quadblocks, checkpointQuery, true, insertAbove, removePath, m_rendererSelectedQuadblockIndexes);
+				path.RenderUI(pathTitle, m_quadblocks, checkpointQuery, insertAbove, removePath, m_rendererSelectedQuadblockIndexes, true);
 				if (insertAbove)
 				{
 					m_checkpointPaths.insert(m_checkpointPaths.begin() + path.GetIndex(), Path());
@@ -1142,7 +1143,7 @@ void Level::RenderUI()
 	}
 }
 
-void Path::RenderUI(const std::string& title, const std::vector<Quadblock>& quadblocks, const std::string& searchQuery, bool drawPathBtn, bool& insertAbove, bool& removePath, const std::vector<size_t>& selectedIndexes)
+void Path::RenderUI(const std::string& title, const std::vector<Quadblock>& quadblocks, const std::string& searchQuery, bool& insertAbove, bool& removePath, const std::vector<size_t>& selectedIndexes, bool mainPath)
 {
 	auto QuadListUI = [this, &selectedIndexes](std::vector<size_t>& indexes, size_t& value, std::string& label, const std::string& title, const std::vector<Quadblock>& quadblocks, const std::string& searchQuery, ButtonUI& button)
 		{
@@ -1210,13 +1211,32 @@ void Path::RenderUI(const std::string& title, const std::vector<Quadblock>& quad
 			ImGui::EndChild();
 		};
 
+	bool popColor = false;
+	if (mainPath)
+	{
+		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(m_color.Red(), m_color.Green(), m_color.Blue(), 1.0f));
+		popColor = true;
+	}
 	if (ImGui::TreeNode(title.c_str()))
 	{
+		if (mainPath)
+		{
+			ImGui::Text("Color:"); ImGui::SameLine();
+			float color[3] = {m_color.Red(), m_color.Green(), m_color.Blue()};
+			if (ImGui::ColorEdit3(("##color" + title).c_str(), color))
+			{
+				m_color = Color(color[0], color[1], color[2]);
+				if (m_left) { m_left->SetColor(m_color); }
+				if (m_right) { m_right->SetColor(m_color); }
+			}
+			ImGui::PopStyleColor();
+			popColor = false;
+		}
 		if (ImGui::BeginChild(("##" + title).c_str(), {0, 0}, ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_AutoResizeX))
 		{
 			bool dummyInsert, dummyRemove = false;
-			if (m_left) { m_left->RenderUI("Left Path", quadblocks, searchQuery, false, dummyInsert, dummyRemove, selectedIndexes); }
-			if (m_right) { m_right->RenderUI("Right Path", quadblocks, searchQuery, false, dummyInsert, dummyRemove, selectedIndexes); }
+			if (m_left) { m_left->RenderUI("Left Path", quadblocks, searchQuery, dummyInsert, dummyRemove, selectedIndexes, false); }
+			if (m_right) { m_right->RenderUI("Right Path", quadblocks, searchQuery, dummyInsert, dummyRemove, selectedIndexes, false); }
 
 			static ButtonUI startButton = ButtonUI();
 			static ButtonUI endButton = ButtonUI();
@@ -1229,7 +1249,11 @@ void Path::RenderUI(const std::string& title, const std::vector<Quadblock>& quad
 
 			if (ImGui::Button("Add Left Path"))
 			{
-				if (!m_left) { m_left = new Path(m_index + 1); }
+				if (!m_left)
+				{
+					m_left = new Path(m_index + 1);
+					m_left->SetColor(m_color);
+				}
 			} ImGui::SameLine();
 			ImGui::BeginDisabled(m_left == nullptr);
 			if (ImGui::Button("Delete Left Path"))
@@ -1244,7 +1268,11 @@ void Path::RenderUI(const std::string& title, const std::vector<Quadblock>& quad
 
 			if (ImGui::Button("Add Right Path"))
 			{
-				if (!m_right) { m_right = new Path(m_index + 2); }
+				if (!m_right)
+				{
+					m_right = new Path(m_index + 2);
+					m_right->SetColor(m_color);
+				}
 			}
 			ImGui::SameLine();
 			ImGui::BeginDisabled(m_right == nullptr);
@@ -1260,7 +1288,7 @@ void Path::RenderUI(const std::string& title, const std::vector<Quadblock>& quad
 		}
 		ImGui::EndChild();
 
-		if (drawPathBtn)
+		if (mainPath)
 		{
 			static ButtonUI insertAboveButton;
 			static ButtonUI removePathButton;
@@ -1270,6 +1298,7 @@ void Path::RenderUI(const std::string& title, const std::vector<Quadblock>& quad
 
 		ImGui::TreePop();
 	}
+	if (popColor) { ImGui::PopStyleColor(); }
 }
 
 bool Quadblock::RenderUI(size_t checkpointCount, bool& resetBsp)
