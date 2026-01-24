@@ -95,6 +95,7 @@ struct std::hash<Vec3>
 	}
 };
 
+struct Tri;
 struct BoundingBox
 {
 	Vec3 min;
@@ -104,6 +105,7 @@ struct BoundingBox
 	float SemiPerimeter() const;
 	Vec3 AxisLength() const;
 	Vec3 Midpoint() const;
+	std::vector<Tri> ToGeometry() const;
 	void RenderUI() const;
 };
 

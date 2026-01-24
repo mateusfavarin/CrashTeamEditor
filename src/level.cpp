@@ -2356,13 +2356,53 @@ void Level::GenerateRenderBspData(const BSP& bsp)
 	if (!m_models[LevelModels::BSP]) { return; }
 
 	static Mesh bspMesh;
-	std::vector<float> bspData;
+	std::vector<Tri> triangles;
 
 	GuiRenderSettings::bspTreeMaxDepth = 0;
-	GeomBoundingRect(&bsp, 0, bspData);
+	struct NodeDepth
+	{
+		const BSP* node;
+		int depth;
+	};
+	std::vector<NodeDepth> stack;
+	stack.push_back({&bsp, 0});
+	while (!stack.empty())
+	{
+		const NodeDepth entry = stack.back();
+		stack.pop_back();
+		if (!entry.node) { continue; }
 
-	bspMesh.UpdateMesh(bspData, Mesh::VBufDataType::None,
-		(Mesh::ShaderSettings::DrawWireframe | Mesh::ShaderSettings::DontOverrideShaderSettings));
+		if (GuiRenderSettings::bspTreeMaxDepth < entry.depth)
+		{
+			GuiRenderSettings::bspTreeMaxDepth = entry.depth;
+		}
+
+		const bool drawDepth = (GuiRenderSettings::bspTreeTopDepth <= entry.depth && GuiRenderSettings::bspTreeBottomDepth >= entry.depth);
+		if (drawDepth)
+		{
+			const Color c = Color(entry.depth * 30.0, 1.0, 1.0);
+			std::vector<Tri> nodeTriangles = entry.node->GetBoundingBox().ToGeometry();
+			for (Tri& tri : nodeTriangles)
+			{
+				for (Point& point : tri.p)
+				{
+					point.color = c;
+				}
+				triangles.push_back(tri);
+			}
+		}
+
+		if (entry.node->GetLeftChildren() != nullptr)
+		{
+			stack.push_back({entry.node->GetLeftChildren(), entry.depth + 1});
+		}
+		if (entry.node->GetRightChildren() != nullptr)
+		{
+			stack.push_back({entry.node->GetRightChildren(), entry.depth + 1});
+		}
+	}
+
+	bspMesh.SetGeometry(triangles, Mesh::ShaderSettings::DrawWireframe | Mesh::ShaderSettings::DontOverrideShaderSettings);
 	m_models[LevelModels::BSP]->SetMesh(&bspMesh);
 }
 

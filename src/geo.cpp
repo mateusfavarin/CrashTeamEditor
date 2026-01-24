@@ -32,6 +32,66 @@ Vec3 BoundingBox::Midpoint() const
 	return (max + min) / 2;
 }
 
+std::vector<Tri> BoundingBox::ToGeometry() const
+{
+	constexpr size_t numCorners = 8;
+	constexpr size_t numEdges = 12;
+	constexpr float sqrtThree = 1.44224957031f;
+	const Vec3 corners[numCorners] =
+	{
+		Vec3(min.x, min.y, min.z),
+		Vec3(min.x, min.y, max.z),
+		Vec3(min.x, max.y, min.z),
+		Vec3(max.x, min.y, min.z),
+		Vec3(max.x, max.y, min.z),
+		Vec3(min.x, max.y, max.z),
+		Vec3(max.x, min.y, max.z),
+		Vec3(max.x, max.y, max.z),
+	};
+	const Vec3 cornerNormals[numCorners] =
+	{
+		Vec3(-1.f / sqrtThree, -1.f / sqrtThree, -1.f / sqrtThree),
+		Vec3(-1.f / sqrtThree, -1.f / sqrtThree, 1.f / sqrtThree),
+		Vec3(-1.f / sqrtThree, 1.f / sqrtThree, -1.f / sqrtThree),
+		Vec3(1.f / sqrtThree, -1.f / sqrtThree, -1.f / sqrtThree),
+		Vec3(1.f / sqrtThree, 1.f / sqrtThree, -1.f / sqrtThree),
+		Vec3(-1.f / sqrtThree, 1.f / sqrtThree, 1.f / sqrtThree),
+		Vec3(1.f / sqrtThree, -1.f / sqrtThree, 1.f / sqrtThree),
+		Vec3(1.f / sqrtThree, 1.f / sqrtThree, 1.f / sqrtThree),
+	};
+	const int edgeIndices[numEdges][2] =
+	{
+		{0, 1}, {2, 5}, {3, 6}, {4, 7},
+		{0, 2}, {1, 5}, {3, 4}, {6, 7},
+		{0, 3}, {1, 6}, {2, 4}, {5, 7},
+	};
+
+	std::vector<Tri> triangles;
+	triangles.reserve(numEdges);
+	for (int edgeIndex = 0; edgeIndex < 12; edgeIndex++)
+	{
+		const int a = edgeIndices[edgeIndex][0];
+		const int b = edgeIndices[edgeIndex][1];
+		Tri tri;
+		tri.texture = std::string();
+		tri.p[0].pos = corners[a];
+		tri.p[0].normal = cornerNormals[a];
+		tri.p[0].color = Color();
+		tri.p[0].uv = Vec2();
+		tri.p[1].pos = corners[b];
+		tri.p[1].normal = cornerNormals[b];
+		tri.p[1].color = Color();
+		tri.p[1].uv = Vec2();
+		tri.p[2].pos = corners[b];
+		tri.p[2].normal = cornerNormals[b];
+		tri.p[2].color = Color();
+		tri.p[2].uv = Vec2();
+		triangles.push_back(tri);
+	}
+
+	return triangles;
+}
+
 Color::Color(double hue, double sat, double value)
 {
 	a = false;
