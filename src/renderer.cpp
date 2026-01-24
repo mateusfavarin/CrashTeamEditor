@@ -100,31 +100,22 @@ void Renderer::Render(bool skyGradientEnabled, const std::array<ColorGradient, N
 	const glm::vec3& camFront = m_camera.GetFront();
 
 	m_perspective = glm::perspective<float>(glm::radians(GuiRenderSettings::camFovDeg), (static_cast<float>(m_width) / static_cast<float>(m_height)), 0.1f, 1000.0f);
-	static Shader* lastUsedShader = nullptr;
+	static int lastUsedShader = -1;
 	for (Model* m : m_modelList)
 	{
 		if (m->GetMesh() == nullptr || !m->m_renderCondition()) { continue; }
 
-		Shader* shad = nullptr;
 		int datas = m->GetMesh()->GetDatas();
 
-		if (m_shaderCache.contains(datas)) { shad = &m_shaderCache[datas]; }
-		else
-		{ //JIT shader compilation.
-			m_shaderCache[datas] = Shader(std::get<0>(ShaderTemplates::datasToShaderSourceMap[datas]).c_str(), std::get<1>(ShaderTemplates::datasToShaderSourceMap[datas]).c_str(), std::get<2>(ShaderTemplates::datasToShaderSourceMap[datas]).c_str());
-			shad = &m_shaderCache[datas];
-			lastUsedShader = &m_shaderCache[datas];
-			shad->Use();
-		}
+		if (!m_shaderCache.contains(datas)) { m_shaderCache[datas] = Shader(std::get<0>(ShaderTemplates::datasToShaderSourceMap[datas]).c_str(), std::get<1>(ShaderTemplates::datasToShaderSourceMap[datas]).c_str(), std::get<2>(ShaderTemplates::datasToShaderSourceMap[datas]).c_str()); }
 
-		if (lastUsedShader != shad) //ptr comparison
-		{ //need to swap shaders
-			lastUsedShader->Unuse();
-			shad->Use();
-			lastUsedShader = shad;
+		Shader& shad = m_shaderCache[datas];
+		if (lastUsedShader != datas)
+		{
+			if (lastUsedShader != -1) { m_shaderCache[lastUsedShader].Unuse(); }
+			shad.Use();
+			lastUsedShader = datas;
 		}
-
-		//m.Setup();
 
 		if ((m->GetMesh()->GetShaderSettings() & Mesh::ShaderSettings::DontOverrideShaderSettings) == 0)
 		{
@@ -137,19 +128,19 @@ void Renderer::Render(bool skyGradientEnabled, const std::array<ColorGradient, N
 		glm::mat4 model = m->CalculateModelMatrix();
 		glm::mat4 mvp = m_perspective * m_camera.GetViewMatrix() * model;
 		//world
-		shad->SetUniform("mvp", mvp);
-		shad->SetUniform("model", model);
-		shad->SetUniform("camViewDir", camFront);
-		shad->SetUniform("camWorldPos", camPos);
+		shad.SetUniform("mvp", mvp);
+		shad.SetUniform("model", model);
+		shad.SetUniform("camViewDir", camFront);
+		shad.SetUniform("camWorldPos", camPos);
 		//draw variations
-		shad->SetUniform("drawType", GuiRenderSettings::renderType);
-		shad->SetUniform("shaderSettings", m->GetMesh()->GetShaderSettings());
+		shad.SetUniform("drawType", GuiRenderSettings::renderType);
+		shad.SetUniform("shaderSettings", m->GetMesh()->GetShaderSettings());
 		//misc
-		shad->SetUniform("time", m_time);
-		shad->SetUniform("lightDir", glm::normalize(glm::vec3(0.2f, -3.f, -1.f)));
-		shad->SetUniform("wireframeWireThickness", .02f);
+		shad.SetUniform("time", m_time);
+		shad.SetUniform("lightDir", glm::normalize(glm::vec3(0.2f, -3.f, -1.f)));
+		shad.SetUniform("wireframeWireThickness", .02f);
 		GLuint tex = m->GetMesh()->GetTextureStore();
-		if (tex) { shad->SetUniform("tex", 0); } // "0" represents texture unit 0
+		if (tex) { shad.SetUniform("tex", 0); } // "0" represents texture unit 0
 		m->Draw();
 	}
 

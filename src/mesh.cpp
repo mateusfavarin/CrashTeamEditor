@@ -124,10 +124,10 @@ void Mesh::Draw() const
 /*
 When passing data[], any present data according to the "includedDataFlags" is expected to be in this order:
 * vertex/position data (always assumed to be present).
-* barycentric (1, 0, 0), (0, 1, 0), (0, 0, 1).
 * normal
 * vcolor
-* stuv_1
+* uv
+* texindex
 */
 void Mesh::UpdateMesh(const std::vector<float>& data, unsigned includedDataFlags, unsigned shadSettings)
 {
