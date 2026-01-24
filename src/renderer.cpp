@@ -44,15 +44,14 @@ Renderer::Renderer(int width, int height)
 	glBindRenderbuffer(GL_RENDERBUFFER, 0);
 }
 
+Renderer::~Renderer()
+{
+	for (Model* model : m_modelList) { delete model; }
+}
+
 Model* Renderer::CreateModel()
 {
 	m_modelList.push_back(new Model());
-	return m_modelList.back();
-}
-
-Model* Renderer::CreateModel(Mesh* mesh, const glm::vec3& position, const glm::vec3& scale, const glm::quat& rotation)
-{
-	m_modelList.push_back(new Model(mesh, position, scale, rotation));
 	return m_modelList.back();
 }
 
@@ -64,7 +63,7 @@ bool Renderer::DeleteModel(Model* model)
 	return true;
 }
 
-void Renderer::Render(const std::vector<Model>& models, bool skyGradientEnabled, const std::array<ColorGradient, NUM_GRADIENT>& skyGradients)
+void Renderer::Render(bool skyGradientEnabled, const std::array<ColorGradient, NUM_GRADIENT>& skyGradients)
 {
 	if (m_width <= 0 || m_height <= 0) { return; }
 
@@ -102,12 +101,12 @@ void Renderer::Render(const std::vector<Model>& models, bool skyGradientEnabled,
 
 	m_perspective = glm::perspective<float>(glm::radians(GuiRenderSettings::camFovDeg), (static_cast<float>(m_width) / static_cast<float>(m_height)), 0.1f, 1000.0f);
 	static Shader* lastUsedShader = nullptr;
-	for (Model m : models)
+	for (Model* m : m_modelList)
 	{
-		if (m.GetMesh() == nullptr) { continue; }
+		if (m->GetMesh() == nullptr || !m->m_renderCondition()) { continue; }
 
 		Shader* shad = nullptr;
-		int datas = m.GetMesh()->GetDatas();
+		int datas = m->GetMesh()->GetDatas();
 
 		if (m_shaderCache.contains(datas)) { shad = &m_shaderCache[datas]; }
 		else
@@ -127,15 +126,15 @@ void Renderer::Render(const std::vector<Model>& models, bool skyGradientEnabled,
 
 		//m.Setup();
 
-		if ((m.GetMesh()->GetShaderSettings() & Mesh::ShaderSettings::DontOverrideShaderSettings) == 0)
+		if ((m->GetMesh()->GetShaderSettings() & Mesh::ShaderSettings::DontOverrideShaderSettings) == 0)
 		{
 			int newShadSettings = Mesh::ShaderSettings::None;
 			if (GuiRenderSettings::showWireframe) { newShadSettings |= Mesh::ShaderSettings::DrawWireframe; }
 			if (GuiRenderSettings::showBackfaces) { newShadSettings |= Mesh::ShaderSettings::DrawBackfaces; }
-			m.GetMesh()->SetShaderSettings(newShadSettings);
+			m->GetMesh()->SetShaderSettings(newShadSettings);
 		}
 
-		glm::mat4 model = m.CalculateModelMatrix();
+		glm::mat4 model = m->CalculateModelMatrix();
 		glm::mat4 mvp = m_perspective * m_camera.GetViewMatrix() * model;
 		//world
 		shad->SetUniform("mvp", mvp);
@@ -144,14 +143,14 @@ void Renderer::Render(const std::vector<Model>& models, bool skyGradientEnabled,
 		shad->SetUniform("camWorldPos", camPos);
 		//draw variations
 		shad->SetUniform("drawType", GuiRenderSettings::renderType);
-		shad->SetUniform("shaderSettings", m.GetMesh()->GetShaderSettings());
+		shad->SetUniform("shaderSettings", m->GetMesh()->GetShaderSettings());
 		//misc
 		shad->SetUniform("time", m_time);
 		shad->SetUniform("lightDir", glm::normalize(glm::vec3(0.2f, -3.f, -1.f)));
 		shad->SetUniform("wireframeWireThickness", .02f);
-		GLuint tex = m.GetMesh()->GetTextureStore();
+		GLuint tex = m->GetMesh()->GetTextureStore();
 		if (tex) { shad->SetUniform("tex", 0); } // "0" represents texture unit 0
-		m.Draw();
+		m->Draw();
 	}
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);

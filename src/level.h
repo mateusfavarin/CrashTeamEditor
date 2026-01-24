@@ -24,6 +24,18 @@
 
 static constexpr size_t REND_NO_SELECTED_QUADBLOCK = std::numeric_limits<size_t>::max();
 
+namespace LevelModels
+{
+	static constexpr size_t LEVEL = 0;
+	static constexpr size_t BSP = 1;
+	static constexpr size_t SPAWN = 2;
+	static constexpr size_t CHECKPOINT = 3;
+	static constexpr size_t SELECTED = 4;
+	static constexpr size_t MULTI_SELECTED = 5;
+	static constexpr size_t FILTER = 6;
+	static constexpr size_t COUNT = 7;
+};
+
 class Level
 {
 public:
@@ -63,6 +75,7 @@ private:
 	void BuildRenderModels(std::vector<Model>& models);
 	void RenderUI();
 
+	void InitModels(Renderer& renderer);
 	int GetTextureIndex(const std::filesystem::path& texPath);
 	void GenerateRenderLevData();
 	void UpdateAnimationRenderData();
@@ -132,13 +145,7 @@ private:
 	Mesh m_filterEdgeHighLODMesh;
 	std::unordered_map<std::filesystem::path, int> m_textureStorePaths;
 
-	Model m_levelModel;
-	Model m_bspModel;
-	Model m_spawnsModel;
-	Model m_checkModel;
-	Model m_selectedBlockModel;
-	Model m_multipleSelectedQuads;
-	Model m_filterEdgeModel;
+	std::array<Model*, LevelModels::COUNT> m_models;
 
 	Vec3 m_rendererQueryPoint;
 	std::vector<size_t> m_rendererSelectedQuadblockIndexes;

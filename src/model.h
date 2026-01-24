@@ -7,14 +7,16 @@
 #include "gtc/quaternion.hpp"
 #include "mesh.h"
 
+#include <functional>
+
 class Model
 {
 public:
 	Model();
-  Model(Mesh* mesh, const glm::vec3& position, const glm::vec3& scale, const glm::quat& rotation);
   glm::mat4 CalculateModelMatrix();
   Mesh* GetMesh();
   void SetMesh(Mesh* newMesh = nullptr);
+	void SetRenderCondition(const std::function<bool()>& renderCondition);
   void Draw();
 	void Clear();
 
@@ -23,4 +25,7 @@ private:
 	glm::vec3 m_position;
 	glm::vec3 m_scale;
 	glm::quat m_rotation;
+	std::function<bool()> m_renderCondition;
+
+	friend class Renderer;
 };

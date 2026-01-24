@@ -24,12 +24,12 @@ class Renderer
 {
 public:
 	Renderer(int width, int height);
+	~Renderer();
 	Model* CreateModel();
-	Model* CreateModel(Mesh* mesh, const glm::vec3& position = glm::vec3(0.f, 0.f, 0.f), const glm::vec3& scale = glm::vec3(1.f, 1.f, 1.f), const glm::quat& rotation = glm::quat(1.f, 0.f, 0.f, 0.f));
 	bool DeleteModel(Model* model);
 
 	void RescaleFramebuffer(float width, float height);
-	void Render(const std::vector<Model>& models, bool skyGradientEnabled, const std::array<ColorGradient, NUM_GRADIENT>& skyGradients);
+	void Render(bool skyGradientEnabled, const std::array<ColorGradient, NUM_GRADIENT>& skyGradients);
 	void SetViewportSize(float width, float height);
 	void SetCameraToLevelSpawn(const Vec3& pos, const Vec3& rot);
 	float GetLastDeltaTime() const;

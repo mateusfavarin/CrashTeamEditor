@@ -79,13 +79,7 @@ void Level::Clear(bool clearErrors)
 	m_lastAnimTextureCount = 0;
 	DeleteMaterials(this);
 
-	m_levelModel.Clear();
-	m_bspModel.Clear();
-	m_spawnsModel.Clear();
-	m_checkModel.Clear();
-	m_selectedBlockModel.Clear();
-	m_multipleSelectedQuads.Clear();
-	m_filterEdgeModel.Clear();
+	for (Model* model : m_models) { if (model) { model->Clear(); } }
 
 	m_lowLODMesh.Clear();
 	m_highLODMesh.Clear();
@@ -617,7 +611,7 @@ void Level::ResetRendererSelection()
 {
 	m_rendererQueryPoint = Vec3();
 	m_rendererSelectedQuadblockIndexes.clear();
-	m_selectedBlockModel.SetMesh();
+	m_models[LevelModels::SELECTED]->SetMesh();
 }
 
 void Level::UpdateRendererCheckpoints()
@@ -627,22 +621,25 @@ void Level::UpdateRendererCheckpoints()
 
 void Level::BuildRenderModels(std::vector<Model>& models)
 {
+	/*
 	models.clear();
 	if (!m_loaded) { return; }
+
+		if (GuiRenderSettings::showLowLOD)
+	{
+		if (GuiRenderSettings::showLevVerts) { m_levelModel.SetMesh(&m_vertexLowLODMesh); }
+		else { m_levelModel.SetMesh(&m_lowLODMesh); }
+	}
+	else
+	{
+		if (GuiRenderSettings::showLevVerts) {  }
+		else {  }
+	}
 
 	if (GuiRenderSettings::showLevel)
 	{
 		models.push_back(m_levelModel);
-		if (GuiRenderSettings::showLowLOD)
-		{
-			if (GuiRenderSettings::showLevVerts) { m_levelModel.SetMesh(&m_vertexLowLODMesh); }
-			else { m_levelModel.SetMesh(&m_lowLODMesh); }
-		}
-		else
-		{
-			if (GuiRenderSettings::showLevVerts) { m_levelModel.SetMesh(&m_vertexHighLODMesh); }
-			else { m_levelModel.SetMesh(&m_highLODMesh); }
-		}
+
 	}
 	if (GuiRenderSettings::showBspRectTree) { models.push_back(m_bspModel); }
 	if (GuiRenderSettings::showCheckpoints) { models.push_back(m_checkModel); }
@@ -655,6 +652,7 @@ void Level::BuildRenderModels(std::vector<Model>& models)
 	}
 	models.push_back(m_selectedBlockModel);
 	if (GuiRenderSettings::showVisTree) { models.push_back(m_multipleSelectedQuads); }
+	*/
 }
 
 void Level::ManageTurbopad(Quadblock& quadblock)
@@ -1965,6 +1963,17 @@ void Level::GeomBoundingRect(const BSP* bsp, int depth, std::vector<float>& data
 	}
 }
 
+void Level::InitModels(Renderer& renderer)
+{
+	for (auto& m : m_models) { m = renderer.CreateModel(); }
+	m_models[LevelModels::LEVEL]->SetRenderCondition([]() { return GuiRenderSettings::showLevel; });
+	m_models[LevelModels::BSP]->SetRenderCondition([]() { return GuiRenderSettings::showBspRectTree; });
+	m_models[LevelModels::SPAWN]->SetRenderCondition([]() { return GuiRenderSettings::showStartpoints; });
+	m_models[LevelModels::CHECKPOINT]->SetRenderCondition([]() { return GuiRenderSettings::showCheckpoints; });
+	m_models[LevelModels::MULTI_SELECTED]->SetRenderCondition([]() { return GuiRenderSettings::showVisTree; });
+	m_models[LevelModels::FILTER]->SetRenderCondition([]() { return GuiRenderSettings::filterActive; });
+}
+
 int Level::GetTextureIndex(const std::filesystem::path& texPath)
 {
 	auto findResult = m_textureStorePaths.find(texPath);
@@ -1978,6 +1987,7 @@ int Level::GetTextureIndex(const std::filesystem::path& texPath)
 
 void Level::GenerateRenderLevData()
 {
+	if (!m_models[LevelModels::LEVEL]) { return; }
 	/* 062 is triblock
 		p0 -- p1 -- p2
 		|  q0 |  q1 |
@@ -2214,6 +2224,8 @@ void Level::GenerateRenderLevData()
 		Mesh::ShaderSettings::DrawLinesAA | Mesh::ShaderSettings::DontOverrideShaderSettings | Mesh::ShaderSettings::ThickLines | Mesh::ShaderSettings::DiscardZeroColor);
 	m_filterEdgeHighLODMesh.UpdateMesh(filterHighLODData, filterMeshFlags, filterMeshShaderSettings);
 	m_filterEdgeLowLODMesh.UpdateMesh(filterLowLODData, filterMeshFlags, filterMeshShaderSettings);
+
+	m_models[LevelModels::LEVEL]->SetMesh(&m_highLODMesh);
 }
 
 void Level::UpdateAnimationRenderData()
@@ -2377,6 +2389,8 @@ void Level::UpdateFilterRenderData(const Quadblock& qb)
 
 void Level::GenerateRenderBspData(const BSP& bsp)
 {
+	if (!m_models[LevelModels::BSP]) { return; }
+
 	static Mesh bspMesh;
 	std::vector<float> bspData;
 
@@ -2385,12 +2399,12 @@ void Level::GenerateRenderBspData(const BSP& bsp)
 
 	bspMesh.UpdateMesh(bspData, (Mesh::VBufDataType::Color | Mesh::VBufDataType::Normal),
 		(Mesh::ShaderSettings::DrawWireframe | Mesh::ShaderSettings::DontOverrideShaderSettings));
-	m_bspModel.SetMesh(&bspMesh);
+	m_models[LevelModels::BSP]->SetMesh(&bspMesh);
 }
 
 void Level::GenerateRenderCheckpointData(std::vector<Checkpoint>& checkpoints)
 {
-	if (checkpoints.empty()) { return; }
+	if (!m_models[LevelModels::CHECKPOINT] || checkpoints.empty()) { return; }
 
 	static Mesh checkMesh;
 	std::vector<float> checkData;
@@ -2410,11 +2424,13 @@ void Level::GenerateRenderCheckpointData(std::vector<Checkpoint>& checkpoints)
 	}
 
 	checkMesh.UpdateMesh(checkData, (Mesh::VBufDataType::Color | Mesh::VBufDataType::Normal), Mesh::ShaderSettings::None);
-	m_checkModel.SetMesh(&checkMesh);
+	m_models[LevelModels::CHECKPOINT]->SetMesh(&checkMesh);
 }
 
 void Level::GenerateRenderStartpointData(std::array<Spawn, NUM_DRIVERS>& spawns)
 {
+	if (!m_models[LevelModels::SPAWN]) { return; }
+
 	static Mesh spawnsMesh;
 	std::vector<float> spawnsData;
 
@@ -2425,11 +2441,13 @@ void Level::GenerateRenderStartpointData(std::array<Spawn, NUM_DRIVERS>& spawns)
 	}
 
 	spawnsMesh.UpdateMesh(spawnsData, (Mesh::VBufDataType::Color | Mesh::VBufDataType::Normal), Mesh::ShaderSettings::None);
-	m_spawnsModel.SetMesh(&spawnsMesh);
+	m_models[LevelModels::SPAWN]->SetMesh(&spawnsMesh);
 }
 
 void Level::GenerateRenderSelectedBlockData(const Quadblock& quadblock, const Vec3& queryPoint)
 {
+	if (!m_models[LevelModels::SELECTED]) { return; }
+
 	m_rendererQueryPoint = queryPoint;
 
 	static Mesh quadblockMesh;
@@ -2499,7 +2517,7 @@ void Level::GenerateRenderSelectedBlockData(const Quadblock& quadblock, const Ve
 	GeomOctopoint(&v, 0, data);
 
 	quadblockMesh.UpdateMesh(data, (Mesh::VBufDataType::Color | Mesh::VBufDataType::Normal), (Mesh::ShaderSettings::DrawWireframe | Mesh::ShaderSettings::DrawBackfaces | Mesh::ShaderSettings::ForceDrawOnTop | Mesh::ShaderSettings::DrawLinesAA | Mesh::ShaderSettings::DontOverrideShaderSettings | Mesh::ShaderSettings::Blinky));
-	m_selectedBlockModel.SetMesh(&quadblockMesh);
+	m_models[LevelModels::SELECTED]->SetMesh(&quadblockMesh);
 
 	if (GuiRenderSettings::showVisTree)
 	{
@@ -2532,9 +2550,11 @@ void Level::GenerateRenderSelectedBlockData(const Quadblock& quadblock, const Ve
 
 void Level::GenerateRenderMultipleQuadsData(const std::vector<Quadblock*>& quads)
 {
+	if (!m_models[LevelModels::MULTI_SELECTED]) { return; }
+
 	if (quads.size() == 0)
 	{
-		m_multipleSelectedQuads.SetMesh(nullptr);
+		m_models[LevelModels::MULTI_SELECTED]->SetMesh(nullptr);
 		return;
 	}
 
@@ -2595,7 +2615,7 @@ void Level::GenerateRenderMultipleQuadsData(const std::vector<Quadblock*>& quads
 	}
 
 	quadblockMesh.UpdateMesh(data, (Mesh::VBufDataType::Color | Mesh::VBufDataType::Normal), (Mesh::ShaderSettings::DrawWireframe | Mesh::ShaderSettings::DrawBackfaces | Mesh::ShaderSettings::ForceDrawOnTop | Mesh::ShaderSettings::DrawLinesAA | Mesh::ShaderSettings::DontOverrideShaderSettings | Mesh::ShaderSettings::Blinky));
-	m_multipleSelectedQuads.SetMesh(&quadblockMesh);
+	m_models[LevelModels::MULTI_SELECTED]->SetMesh(&quadblockMesh);
 }
 
 void Level::ViewportClickHandleBlockSelection(int pixelX, int pixelY, bool appendSelection, const Renderer& rend)
@@ -2739,7 +2759,7 @@ void Level::ViewportClickHandleBlockSelection(int pixelX, int pixelY, bool appen
 	}
 	else
 	{
-		m_selectedBlockModel.SetMesh();
+		m_models[LevelModels::SELECTED]->SetMesh();
 	}
 	GenerateRenderCheckpointData(m_checkpoints);
 }

@@ -3,14 +3,7 @@
 Model::Model()
 {
 	Clear();
-}
-
-Model::Model(Mesh* mesh, const glm::vec3& position, const glm::vec3& scale, const glm::quat& rotation)
-{
-  m_mesh = mesh;
-  m_position = position;
-  m_scale = scale;
-  m_rotation = rotation;
+	m_renderCondition = []() { return true; };
 }
 
 void Model::Draw()
@@ -30,6 +23,11 @@ Mesh* Model::GetMesh()
 void Model::SetMesh(Mesh* newMesh)
 {
   m_mesh = newMesh;
+}
+
+void Model::SetRenderCondition(const std::function<bool()>& renderCondition)
+{
+	m_renderCondition = renderCondition;
 }
 
 glm::mat4 Model::CalculateModelMatrix()
