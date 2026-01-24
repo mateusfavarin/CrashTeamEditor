@@ -129,13 +129,13 @@ When passing data[], any present data according to the "includedDataFlags" is ex
 * vcolor
 * stuv_1
 */
-void Mesh::UpdateMesh(const std::vector<float>& data, unsigned includedDataFlags, unsigned shadSettings, bool dataIsInterlaced)
+void Mesh::UpdateMesh(const std::vector<float>& data, unsigned includedDataFlags, unsigned shadSettings)
 {
 	includedDataFlags |= VBufDataType::Position;
 	const bool reuseBuffers = (m_VAO != 0 && m_VBO != 0 && m_includedData == includedDataFlags);
 	if (!reuseBuffers) { Dispose(); }
 
-	m_dataBufSize = static_cast<unsigned>(data.size() * sizeof(float));
+	const unsigned buffSize = static_cast<unsigned>(data.size() * sizeof(float));
 	m_includedData = includedDataFlags;
 	m_shaderSettings = shadSettings;
 	m_vertexCount = 0;
@@ -146,18 +146,12 @@ void Mesh::UpdateMesh(const std::vector<float>& data, unsigned includedDataFlags
 		m_vertexCount = static_cast<int>(data.size() / ultimateStrideSize);
 	}
 
-	if (reuseBuffers && dataIsInterlaced)
+	if (reuseBuffers)
 	{
 		glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
-		glBufferData(GL_ARRAY_BUFFER, m_dataBufSize, data.data(), GL_STATIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, buffSize, data.data(), GL_STATIC_DRAW);
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 		return;
-	}
-
-	if (!dataIsInterlaced)
-	{
-		fprintf(stderr, "Unimplemented dataIsInterlaced=false in Mesh::UpdateMesh()");
-		throw 0;
 	}
 
 	glGenVertexArrays(1, &m_VAO);
@@ -165,7 +159,7 @@ void Mesh::UpdateMesh(const std::vector<float>& data, unsigned includedDataFlags
 
 	glGenBuffers(1, &m_VBO);
 	glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
-	glBufferData(GL_ARRAY_BUFFER, m_dataBufSize, data.data(), GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, buffSize, data.data(), GL_STATIC_DRAW);
 
 	//although this works, it's possible that what I'm trying to do here can be done much more simply via some opengl feature(s).
 	for (int openglPositionCounter = 0, takenSize = 0, takenCount = 0; openglPositionCounter < 6 /*# of flags in VBufDataType*/; openglPositionCounter++)
@@ -409,7 +403,6 @@ void Mesh::Dispose()
 {
 	if (m_VAO != 0) { glDeleteVertexArrays(1, &m_VAO); m_VAO = 0; }
 	if (m_VBO != 0) { glDeleteBuffers(1, &m_VBO); m_VBO = 0; }
-	m_dataBufSize = 0;
 	m_vertexCount = 0;
 }
 

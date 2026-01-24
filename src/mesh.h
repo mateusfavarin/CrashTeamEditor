@@ -39,7 +39,7 @@ public:
 
 public:
 	Mesh();
-	void UpdateMesh(const std::vector<float>& data, unsigned includedDataFlags, unsigned shadSettings, bool dataIsInterlaced = true);
+	void UpdateMesh(const std::vector<float>& data, unsigned includedDataFlags, unsigned shadSettings);
 	void UpdatePoint(const Vertex& vert, size_t vertexIndex);
 	void UpdateOctoPoint(const Vertex& vert, size_t baseVertexIndex);
 	void UpdateUV(const Vec2& uv, int textureIndex, size_t vertexIndex);
@@ -64,7 +64,6 @@ private:
 	GLuint m_VAO = 0;
 	GLuint m_VBO = 0;
 	GLuint m_textures = 0;
-	int m_dataBufSize = 0;
 	int m_vertexCount = 0;
 	unsigned m_includedData = 0;
 	unsigned m_shaderSettings = 0;
