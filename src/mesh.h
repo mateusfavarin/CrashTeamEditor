@@ -18,24 +18,23 @@ public:
 	struct ShaderSettings //note: updating this also requires updating all shader source.
 	{
 		static constexpr unsigned None = 0;
-		static constexpr unsigned DrawWireframe = 1;
-		static constexpr unsigned ForceDrawOnTop = 2;
-		static constexpr unsigned DrawBackfaces = 4;
-		static constexpr unsigned DrawLinesAA = 8;
-		static constexpr unsigned DontOverrideShaderSettings = 16;
-		static constexpr unsigned Blinky = 32;
-		static constexpr unsigned ThickLines = 64;
-		static constexpr unsigned DiscardZeroColor = 128;
+		static constexpr unsigned DrawWireframe = 1 << 0;
+		static constexpr unsigned ForceDrawOnTop = 1 << 1;
+		static constexpr unsigned DrawBackfaces = 1 << 2;
+		static constexpr unsigned DrawLinesAA = 1 << 3;
+		static constexpr unsigned DontOverrideShaderSettings = 1 << 4;
+		static constexpr unsigned Blinky = 1 << 5;
+		static constexpr unsigned ThickLines = 1 << 6;
+		static constexpr unsigned DiscardZeroColor = 1 << 7;
 	};
 
 	struct VBufDataType
-	{ //all are assumed to have vertex data (otherwise, what the hell are we drawing?)
-		static constexpr unsigned VertexPos = 1; //implicitly always on
-		static constexpr unsigned Barycentric = 2;
-		static constexpr unsigned VertexColor = 4;
-		static constexpr unsigned Normals = 8;
-		static constexpr unsigned STUV = 16; //tex coords
-		static constexpr unsigned TexIndex = 32;
+	{
+		static constexpr unsigned Position = 1 << 0;
+		static constexpr unsigned Color = 1 << 1;
+		static constexpr unsigned Normal = 1 << 2;
+		static constexpr unsigned UV = 1 << 3; //tex coords
+		static constexpr unsigned TexIndex = 1 << 4;
 	};
 
 public:

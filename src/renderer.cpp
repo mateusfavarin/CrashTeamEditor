@@ -9,7 +9,6 @@
 #include "gtc/matrix_transform.hpp"
 #include "gtc/type_ptr.hpp"
 
-#include <map>
 #include <tuple>
 
 Renderer::Renderer(int width, int height)
@@ -43,6 +42,26 @@ Renderer::Renderer(int width, int height)
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glBindTexture(GL_TEXTURE_2D, 0);
 	glBindRenderbuffer(GL_RENDERBUFFER, 0);
+}
+
+Model* Renderer::CreateModel()
+{
+	m_modelList.push_back(new Model());
+	return m_modelList.back();
+}
+
+Model* Renderer::CreateModel(Mesh* mesh, const glm::vec3& position, const glm::vec3& scale, const glm::quat& rotation)
+{
+	m_modelList.push_back(new Model(mesh, position, scale, rotation));
+	return m_modelList.back();
+}
+
+bool Renderer::DeleteModel(Model* model)
+{
+	if (!model) { return false; }
+	m_modelList.remove(model);
+	delete model;
+	return true;
 }
 
 void Renderer::Render(const std::vector<Model>& models, bool skyGradientEnabled, const std::array<ColorGradient, NUM_GRADIENT>& skyGradients)

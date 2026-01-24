@@ -15,14 +15,19 @@
 #include "camera.h"
 #include "geo.h"
 #include "lev.h"
-#include <vector>
+
+#include <list>
 #include <array>
-#include <map>
+#include <unordered_map>
 
 class Renderer
 {
 public:
 	Renderer(int width, int height);
+	Model* CreateModel();
+	Model* CreateModel(Mesh* mesh, const glm::vec3& position = glm::vec3(0.f, 0.f, 0.f), const glm::vec3& scale = glm::vec3(1.f, 1.f, 1.f), const glm::quat& rotation = glm::quat(1.f, 0.f, 0.f, 0.f));
+	bool DeleteModel(Model* model);
+
 	void RescaleFramebuffer(float width, float height);
 	void Render(const std::vector<Model>& models, bool skyGradientEnabled, const std::array<ColorGradient, NUM_GRADIENT>& skyGradients);
 	void SetViewportSize(float width, float height);
@@ -44,7 +49,7 @@ private:
 	GLuint m_texturebuffer;
 	GLuint m_renderbuffer;
 	GLuint m_framebuffer;
-	std::map<int, Shader> m_shaderCache;
+	std::unordered_map<int, Shader> m_shaderCache;
 	float m_time = 0.0f;
 	float m_lastFrameTime = 0.0f;
 	float m_deltaTime = -1.0f;
@@ -52,4 +57,5 @@ private:
 	Camera m_camera;
 	bool m_skyGradientEnabled = false;
 	std::array<ColorGradient, NUM_GRADIENT> m_skyGradients;
+	std::list<Model*> m_modelList;
 };

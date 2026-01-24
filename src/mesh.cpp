@@ -10,11 +10,10 @@
 static int GetStrideFloats(unsigned includedDataFlags)
 {
 	int stride = 0;
-	if ((includedDataFlags & Mesh::VBufDataType::VertexPos) != 0) { stride += 3; }
-	if ((includedDataFlags & Mesh::VBufDataType::Barycentric) != 0) { stride += 3; }
-	if ((includedDataFlags & Mesh::VBufDataType::VertexColor) != 0) { stride += 3; }
-	if ((includedDataFlags & Mesh::VBufDataType::Normals) != 0) { stride += 3; }
-	if ((includedDataFlags & Mesh::VBufDataType::STUV) != 0) { stride += 2; }
+	if ((includedDataFlags & Mesh::VBufDataType::Position) != 0) { stride += 3; }
+	if ((includedDataFlags & Mesh::VBufDataType::Color) != 0) { stride += 3; }
+	if ((includedDataFlags & Mesh::VBufDataType::Normal) != 0) { stride += 3; }
+	if ((includedDataFlags & Mesh::VBufDataType::UV) != 0) { stride += 2; }
 	if ((includedDataFlags & Mesh::VBufDataType::TexIndex) != 0) { stride += 1; }
 	return stride;
 }
@@ -30,11 +29,10 @@ static int GetAttributeOffsetFloats(unsigned includedDataFlags, unsigned targetF
 			return false;
 		};
 
-	if (step(Mesh::VBufDataType::VertexPos, 3)) { return offset; }
-	if (step(Mesh::VBufDataType::Barycentric, 3)) { return offset; }
-	if (step(Mesh::VBufDataType::VertexColor, 3)) { return offset; }
-	if (step(Mesh::VBufDataType::Normals, 3)) { return offset; }
-	if (step(Mesh::VBufDataType::STUV, 2)) { return offset; }
+	if (step(Mesh::VBufDataType::Position, 3)) { return offset; }
+	if (step(Mesh::VBufDataType::Color, 3)) { return offset; }
+	if (step(Mesh::VBufDataType::Normal, 3)) { return offset; }
+	if (step(Mesh::VBufDataType::UV, 2)) { return offset; }
 	if (step(Mesh::VBufDataType::TexIndex, 1)) { return offset; }
 	return -1;
 }
@@ -133,7 +131,7 @@ When passing data[], any present data according to the "includedDataFlags" is ex
 */
 void Mesh::UpdateMesh(const std::vector<float>& data, unsigned includedDataFlags, unsigned shadSettings, bool dataIsInterlaced)
 {
-	includedDataFlags |= VBufDataType::VertexPos;
+	includedDataFlags |= VBufDataType::Position;
 	const bool reuseBuffers = (m_VAO != 0 && m_VBO != 0 && m_includedData == includedDataFlags);
 	if (!reuseBuffers) { Dispose(); }
 
@@ -142,32 +140,7 @@ void Mesh::UpdateMesh(const std::vector<float>& data, unsigned includedDataFlags
 	m_shaderSettings = shadSettings;
 	m_vertexCount = 0;
 
-	int ultimateStrideSize = 0;
-	for (size_t i = 0; i < sizeof(int) * 8; i++)
-	{
-		switch ((includedDataFlags) & (1 << i))
-		{
-		case VBufDataType::VertexPos:
-			ultimateStrideSize += 3;
-			break;
-		case VBufDataType::Barycentric:
-			ultimateStrideSize += 3;
-			break;
-		case VBufDataType::VertexColor:
-			ultimateStrideSize += 3;
-			break;
-		case VBufDataType::Normals:
-			ultimateStrideSize += 3;
-			break;
-		case VBufDataType::STUV:
-			ultimateStrideSize += 2;
-			break;
-		case VBufDataType::TexIndex:
-			ultimateStrideSize += 1;
-			break;
-		}
-	}
-
+	int ultimateStrideSize = GetStrideFloats(includedDataFlags);
 	if (ultimateStrideSize > 0)
 	{
 		m_vertexCount = static_cast<int>(data.size() / ultimateStrideSize);
@@ -199,8 +172,8 @@ void Mesh::UpdateMesh(const std::vector<float>& data, unsigned includedDataFlags
 	{
 		switch (1 << openglPositionCounter)
 		{
-		case VBufDataType::VertexPos:
-			if ((includedDataFlags & VBufDataType::VertexPos) != 0)
+		case VBufDataType::Position:
+			if ((includedDataFlags & VBufDataType::Position) != 0)
 			{
 				constexpr int dim = 3;
 				glVertexAttribPointer(takenCount, dim, GL_FLOAT, GL_FALSE, ultimateStrideSize * sizeof(float), (void*) (takenSize * sizeof(float)));
@@ -209,8 +182,8 @@ void Mesh::UpdateMesh(const std::vector<float>& data, unsigned includedDataFlags
 				takenSize += dim;
 			}
 			break;
-		case VBufDataType::Barycentric:
-			if ((includedDataFlags & VBufDataType::Barycentric) != 0)
+		case VBufDataType::Color:
+			if ((includedDataFlags & VBufDataType::Color) != 0)
 			{
 				constexpr int dim = 3;
 				glVertexAttribPointer(takenCount, dim, GL_FLOAT, GL_FALSE, ultimateStrideSize * sizeof(float), (void*) (takenSize * sizeof(float)));
@@ -219,8 +192,8 @@ void Mesh::UpdateMesh(const std::vector<float>& data, unsigned includedDataFlags
 				takenSize += dim;
 			}
 			break;
-		case VBufDataType::VertexColor:
-			if ((includedDataFlags & VBufDataType::VertexColor) != 0)
+		case VBufDataType::Normal:
+			if ((includedDataFlags & VBufDataType::Normal) != 0)
 			{
 				constexpr int dim = 3;
 				glVertexAttribPointer(takenCount, dim, GL_FLOAT, GL_FALSE, ultimateStrideSize * sizeof(float), (void*) (takenSize * sizeof(float)));
@@ -229,18 +202,8 @@ void Mesh::UpdateMesh(const std::vector<float>& data, unsigned includedDataFlags
 				takenSize += dim;
 			}
 			break;
-		case VBufDataType::Normals:
-			if ((includedDataFlags & VBufDataType::Normals) != 0)
-			{
-				constexpr int dim = 3;
-				glVertexAttribPointer(takenCount, dim, GL_FLOAT, GL_FALSE, ultimateStrideSize * sizeof(float), (void*) (takenSize * sizeof(float)));
-				glEnableVertexAttribArray(takenCount);
-				takenCount++;
-				takenSize += dim;
-			}
-			break;
-		case VBufDataType::STUV:
-			if ((includedDataFlags & VBufDataType::STUV) != 0)
+		case VBufDataType::UV:
+			if ((includedDataFlags & VBufDataType::UV) != 0)
 			{
 				constexpr int dim = 2;
 				glVertexAttribPointer(takenCount, dim, GL_FLOAT, GL_FALSE, ultimateStrideSize * sizeof(float), (void*) (takenSize * sizeof(float)));
@@ -270,14 +233,14 @@ void Mesh::UpdateMesh(const std::vector<float>& data, unsigned includedDataFlags
 void Mesh::UpdatePoint(const Vertex& vert, size_t vertexIndex)
 {
 	if (m_VBO == 0) { return; }
-	if ((m_includedData & VBufDataType::VertexPos) == 0) { return; }
-	if ((m_includedData & VBufDataType::VertexColor) == 0) { return; }
-	if ((m_includedData & VBufDataType::Normals) == 0) { return; }
+	if ((m_includedData & VBufDataType::Position) == 0) { return; }
+	if ((m_includedData & VBufDataType::Color) == 0) { return; }
+	if ((m_includedData & VBufDataType::Normal) == 0) { return; }
 
 	const int stride = GetStrideFloats(m_includedData);
-	const int posOffset = GetAttributeOffsetFloats(m_includedData, VBufDataType::VertexPos);
-	const int colorOffset = GetAttributeOffsetFloats(m_includedData, VBufDataType::VertexColor);
-	const int normalOffset = GetAttributeOffsetFloats(m_includedData, VBufDataType::Normals);
+	const int posOffset = GetAttributeOffsetFloats(m_includedData, VBufDataType::Position);
+	const int colorOffset = GetAttributeOffsetFloats(m_includedData, VBufDataType::Color);
+	const int normalOffset = GetAttributeOffsetFloats(m_includedData, VBufDataType::Normal);
 	if (stride <= 0 || posOffset < 0 || colorOffset < 0 || normalOffset < 0) { return; }
 
 	const float posData[3] = { vert.m_pos.x, vert.m_pos.y, vert.m_pos.z };
@@ -336,11 +299,11 @@ void Mesh::UpdateOctoPoint(const Vertex& vert, size_t baseVertexIndex)
 void Mesh::UpdateUV(const Vec2& uv, int textureIndex, size_t vertexIndex)
 {
 	if (m_VBO == 0) { return; }
-	if ((m_includedData & VBufDataType::STUV) == 0) { return; }
+	if ((m_includedData & VBufDataType::UV) == 0) { return; }
 	if ((m_includedData & VBufDataType::TexIndex) == 0) { return; }
 
 	const int stride = GetStrideFloats(m_includedData);
-	const int uvOffset = GetAttributeOffsetFloats(m_includedData, VBufDataType::STUV);
+	const int uvOffset = GetAttributeOffsetFloats(m_includedData, VBufDataType::UV);
 	const int texOffset = GetAttributeOffsetFloats(m_includedData, VBufDataType::TexIndex);
 	if (stride <= 0 || uvOffset < 0 || texOffset < 0) { return; }
 

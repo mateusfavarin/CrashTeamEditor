@@ -11,7 +11,7 @@ class Model
 {
 public:
 	Model();
-  Model(Mesh* mesh, const glm::vec3& position = glm::vec3(0.f, 0.f, 0.f), const glm::vec3& scale = glm::vec3(1.f, 1.f, 1.f), const glm::quat& rotation = glm::quat(1.f, 0.f, 0.f, 0.f));
+  Model(Mesh* mesh, const glm::vec3& position, const glm::vec3& scale, const glm::quat& rotation);
   glm::mat4 CalculateModelMatrix();
   Mesh* GetMesh();
   void SetMesh(Mesh* newMesh = nullptr);
