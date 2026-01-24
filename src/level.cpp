@@ -619,42 +619,6 @@ void Level::UpdateRendererCheckpoints()
 	GenerateRenderCheckpointData(m_checkpoints);
 }
 
-void Level::BuildRenderModels(std::vector<Model>& models)
-{
-	/*
-	models.clear();
-	if (!m_loaded) { return; }
-
-		if (GuiRenderSettings::showLowLOD)
-	{
-		if (GuiRenderSettings::showLevVerts) { m_levelModel.SetMesh(&m_vertexLowLODMesh); }
-		else { m_levelModel.SetMesh(&m_lowLODMesh); }
-	}
-	else
-	{
-		if (GuiRenderSettings::showLevVerts) {  }
-		else {  }
-	}
-
-	if (GuiRenderSettings::showLevel)
-	{
-		models.push_back(m_levelModel);
-
-	}
-	if (GuiRenderSettings::showBspRectTree) { models.push_back(m_bspModel); }
-	if (GuiRenderSettings::showCheckpoints) { models.push_back(m_checkModel); }
-	if (GuiRenderSettings::showStartpoints) { models.push_back(m_spawnsModel); }
-	if (GuiRenderSettings::filterActive)
-	{
-		if (GuiRenderSettings::showLowLOD) { m_filterEdgeModel.SetMesh(&m_filterEdgeLowLODMesh); }
-		else { m_filterEdgeModel.SetMesh(&m_filterEdgeHighLODMesh); }
-		models.push_back(m_filterEdgeModel);
-	}
-	models.push_back(m_selectedBlockModel);
-	if (GuiRenderSettings::showVisTree) { models.push_back(m_multipleSelectedQuads); }
-	*/
-}
-
 void Level::ManageTurbopad(Quadblock& quadblock)
 {
 	bool stp = true;

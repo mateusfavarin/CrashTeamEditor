@@ -72,7 +72,6 @@ private:
 	bool GenerateBSP();
 
 	void OpenHotReloadWindow();
-	void BuildRenderModels(std::vector<Model>& models);
 	void RenderUI();
 
 	void InitModels(Renderer& renderer);

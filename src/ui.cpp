@@ -119,8 +119,6 @@ void UI::RenderWorld()
 
 	if (m_lev.UpdateAnimTextures(m_rend.GetLastDeltaTime())) { m_lev.UpdateAnimationRenderData(); }
 
-	std::vector<Model> modelsToRender;
-	m_lev.BuildRenderModels(modelsToRender);
 	m_rend.Render(m_lev.m_configFlags & LevConfigFlags::ENABLE_SKYBOX_GRADIENT, m_lev.m_skyGradient);
 
 	static float rollingOneSecond = 0;
