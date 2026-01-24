@@ -5,6 +5,7 @@
 #include <vector>
 #include <cstdint>
 #include <cmath>
+#include <string>
 
 struct Color
 {
@@ -15,18 +16,16 @@ struct Color
 	Color(unsigned char r, unsigned char g, unsigned char b, bool a) : r(r), g(g), b(b), a(a) {};
 	Color(double hue, double sat, double value);
  	inline bool operator==(const Color& color) const { return (r == color.r) && (g == color.g) && (b == color.b) && (a == color.a); }
-
- 	unsigned char r, g, b;
- 	bool a;
-
- 	float Red() const { return static_cast<float>(r) / 255.0f; }
- 	float Green() const { return static_cast<float>(g) / 255.0f; }
- 	float Blue() const { return static_cast<float>(b) / 255.0f; }
-
- 	Color Negated() const
+ 	inline float Red() const { return static_cast<float>(r) / 255.0f; }
+ 	inline float Green() const { return static_cast<float>(g) / 255.0f; }
+ 	inline float Blue() const { return static_cast<float>(b) / 255.0f; }
+ 	inline Color Negated() const
  	{
  		return Color(static_cast<unsigned char>(255 - r), static_cast<unsigned char>(255 - g), static_cast<unsigned char>(255 - b));
  	}
+
+ 	unsigned char r, g, b;
+ 	bool a;
 };
 
 template<>
@@ -42,6 +41,8 @@ struct Vec2
 {
 	Vec2() : x(0.0f), y(0.0f) {};
 	Vec2(float x, float y) : x(x), y(y) {};
+	inline float* Data() { return &x; }
+	inline const float* Data() const { return &x; }
 
 	inline bool operator==(const Vec2& v) const { return (x == v.x) && (y == v.y); }
 	inline bool operator!=(const Vec2& v) const { return !(*this == v); }
@@ -56,7 +57,8 @@ struct Vec3
 {
 	Vec3() : x(0.0f), y(0.0f), z(0.0f) {};
 	Vec3(float x, float y, float z) : x(x), y(y), z(z) {};
-	float* Data() { return &x; }
+	inline float* Data() { return &x; }
+	inline const float* Data() const { return &x; }
 	inline float Length() const { return static_cast<float>(std::sqrt((x * x) + (y * y) + (z * z))); }
 	inline float LengthSquared() const { return (x * x) + (y * y) + (z * z); }
 	inline Vec3 Cross(const Vec3& v) const { return { y * v.z - z * v.y, z * v.x - x * v.z, x * v.y - v.x * y }; }
@@ -135,6 +137,7 @@ struct Tri
 	Tri(const Point& p0, const Point& p1, const Point& p2);
 
 	Point p[3];
+	std::string texture;
 };
 
 struct Quad
@@ -143,4 +146,5 @@ struct Quad
 	Quad(const Point& p0, const Point& p1, const Point& p2, const Point& p3);
 
 	Point p[4];
+	std::string texture;
 };

@@ -9,37 +9,71 @@
 
 static int GetStrideFloats(unsigned includedDataFlags)
 {
-	int stride = 0;
-	if ((includedDataFlags & Mesh::VBufDataType::Position) != 0) { stride += 3; }
-	if ((includedDataFlags & Mesh::VBufDataType::Color) != 0) { stride += 3; }
-	if ((includedDataFlags & Mesh::VBufDataType::Normal) != 0) { stride += 3; }
-	if ((includedDataFlags & Mesh::VBufDataType::UV) != 0) { stride += 2; }
-	if ((includedDataFlags & Mesh::VBufDataType::TexIndex) != 0) { stride += 1; }
+	int stride = 9; // position + color + normal
+	if ((includedDataFlags & Mesh::VBufDataType::UV) != 0) { stride += 3; }
 	return stride;
-}
-
-static int GetAttributeOffsetFloats(unsigned includedDataFlags, unsigned targetFlag)
-{
-	int offset = 0;
-	auto step = [&](unsigned flag, int size) -> bool
-		{
-			if ((includedDataFlags & flag) == 0) { return false; }
-			if (targetFlag == flag) { return true; }
-			offset += size;
-			return false;
-		};
-
-	if (step(Mesh::VBufDataType::Position, 3)) { return offset; }
-	if (step(Mesh::VBufDataType::Color, 3)) { return offset; }
-	if (step(Mesh::VBufDataType::Normal, 3)) { return offset; }
-	if (step(Mesh::VBufDataType::UV, 2)) { return offset; }
-	if (step(Mesh::VBufDataType::TexIndex, 1)) { return offset; }
-	return -1;
 }
 
 Mesh::Mesh()
 {
 	Clear();
+}
+
+void Mesh::SetGeometry(const std::vector<Tri>& triangles, unsigned shaderSettings)
+{
+	m_triCount = triangles.size();
+	m_textureStoreData.clear();
+	m_textureStoreIndex.clear();
+	DeleteTextures();
+
+	bool hasUVs = false;
+	for (const Tri& tri : triangles)
+	{
+		if (!tri.texture.empty()) { hasUVs = true; break; }
+	}
+
+	std::vector<float> data;
+	for (const Tri& tri : triangles)
+	{
+		if (hasUVs && !tri.texture.empty())
+		{
+			if (!m_textureStoreIndex.contains(tri.texture))
+			{
+				m_textureStoreIndex[tri.texture] = m_textureStoreData.size();
+				m_textureStoreData.push_back(LoadTextureData(tri.texture));
+			}
+		}
+
+		for (const Point& point : tri.p)
+		{
+			data.push_back(point.pos.x);
+			data.push_back(point.pos.y);
+			data.push_back(point.pos.z);
+
+			data.push_back(point.color.Red());
+			data.push_back(point.color.Green());
+			data.push_back(point.color.Blue());
+
+			data.push_back(point.normal.x);
+			data.push_back(point.normal.y);
+			data.push_back(point.normal.z);
+
+			if (hasUVs)
+			{
+				data.push_back(point.uv.x);
+				data.push_back(point.uv.y);
+				data.push_back(std::bit_cast<float>(static_cast<int>(m_textureStoreIndex[tri.texture])));
+			}
+		}
+	}
+
+	if (!m_textureStoreData.empty())
+	{
+		RebuildTextureData();
+	}
+
+	const unsigned includedDataFlags = hasUVs ? VBufDataType::UV : VBufDataType::None;
+	UpdateMesh(data, includedDataFlags, shaderSettings);
 }
 
 void Mesh::Bind() const
@@ -50,10 +84,13 @@ void Mesh::Bind() const
 		glEnableVertexAttribArray(0);
 		glEnableVertexAttribArray(1);
 		glEnableVertexAttribArray(2);
-		if (m_textures)
+		if (m_includedData & VBufDataType::UV)
 		{
 			glEnableVertexAttribArray(3);
 			glEnableVertexAttribArray(4);
+		}
+		if (m_textures)
+		{
 			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_2D_ARRAY, m_textures);
 		}
@@ -124,14 +161,15 @@ void Mesh::Draw() const
 /*
 When passing data[], any present data according to the "includedDataFlags" is expected to be in this order:
 * vertex/position data (always assumed to be present).
-* normal
 * vcolor
-* uv
+* normal
+* uv (if present)
 * texindex
 */
 void Mesh::UpdateMesh(const std::vector<float>& data, unsigned includedDataFlags, unsigned shadSettings)
 {
-	includedDataFlags |= VBufDataType::Position;
+	includedDataFlags &= VBufDataType::UV;
+	const bool hasUV = (includedDataFlags & VBufDataType::UV) != 0;
 	const bool reuseBuffers = (m_VAO != 0 && m_VBO != 0 && m_includedData == includedDataFlags);
 	if (!reuseBuffers) { Dispose(); }
 
@@ -161,63 +199,18 @@ void Mesh::UpdateMesh(const std::vector<float>& data, unsigned includedDataFlags
 	glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
 	glBufferData(GL_ARRAY_BUFFER, buffSize, data.data(), GL_STATIC_DRAW);
 
-	//although this works, it's possible that what I'm trying to do here can be done much more simply via some opengl feature(s).
-	for (int openglPositionCounter = 0, takenSize = 0, takenCount = 0; openglPositionCounter < 6 /*# of flags in VBufDataType*/; openglPositionCounter++)
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, ultimateStrideSize * sizeof(float), (void*) (0 * sizeof(float)));
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, ultimateStrideSize * sizeof(float), (void*) (3 * sizeof(float)));
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, ultimateStrideSize * sizeof(float), (void*) (6 * sizeof(float)));
+	glEnableVertexAttribArray(2);
+	if (hasUV)
 	{
-		switch (1 << openglPositionCounter)
-		{
-		case VBufDataType::Position:
-			if ((includedDataFlags & VBufDataType::Position) != 0)
-			{
-				constexpr int dim = 3;
-				glVertexAttribPointer(takenCount, dim, GL_FLOAT, GL_FALSE, ultimateStrideSize * sizeof(float), (void*) (takenSize * sizeof(float)));
-				glEnableVertexAttribArray(takenCount);
-				takenCount++;
-				takenSize += dim;
-			}
-			break;
-		case VBufDataType::Color:
-			if ((includedDataFlags & VBufDataType::Color) != 0)
-			{
-				constexpr int dim = 3;
-				glVertexAttribPointer(takenCount, dim, GL_FLOAT, GL_FALSE, ultimateStrideSize * sizeof(float), (void*) (takenSize * sizeof(float)));
-				glEnableVertexAttribArray(takenCount);
-				takenCount++;
-				takenSize += dim;
-			}
-			break;
-		case VBufDataType::Normal:
-			if ((includedDataFlags & VBufDataType::Normal) != 0)
-			{
-				constexpr int dim = 3;
-				glVertexAttribPointer(takenCount, dim, GL_FLOAT, GL_FALSE, ultimateStrideSize * sizeof(float), (void*) (takenSize * sizeof(float)));
-				glEnableVertexAttribArray(takenCount);
-				takenCount++;
-				takenSize += dim;
-			}
-			break;
-		case VBufDataType::UV:
-			if ((includedDataFlags & VBufDataType::UV) != 0)
-			{
-				constexpr int dim = 2;
-				glVertexAttribPointer(takenCount, dim, GL_FLOAT, GL_FALSE, ultimateStrideSize * sizeof(float), (void*) (takenSize * sizeof(float)));
-				glEnableVertexAttribArray(takenCount);
-				takenCount++;
-				takenSize += dim;
-			}
-			break;
-		case VBufDataType::TexIndex:
-			if ((includedDataFlags & VBufDataType::TexIndex) != 0)
-			{
-				//this only works because sizeof(float) == sizeof(int)
-				constexpr int dim = 1;
-				glVertexAttribIPointer(takenCount, dim, GL_INT, ultimateStrideSize * sizeof(int), (void*) (takenSize * sizeof(int)));
-				glEnableVertexAttribArray(takenCount);
-				takenCount++;
-				takenSize += dim;
-			}
-			break;
-		}
+		glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, ultimateStrideSize * sizeof(float), (void*) (9 * sizeof(float)));
+		glEnableVertexAttribArray(3);
+		glVertexAttribIPointer(4, 1, GL_INT, ultimateStrideSize * sizeof(float), (void*) (11 * sizeof(float)));
+		glEnableVertexAttribArray(4);
 	}
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -227,15 +220,11 @@ void Mesh::UpdateMesh(const std::vector<float>& data, unsigned includedDataFlags
 void Mesh::UpdatePoint(const Vertex& vert, size_t vertexIndex)
 {
 	if (m_VBO == 0) { return; }
-	if ((m_includedData & VBufDataType::Position) == 0) { return; }
-	if ((m_includedData & VBufDataType::Color) == 0) { return; }
-	if ((m_includedData & VBufDataType::Normal) == 0) { return; }
-
 	const int stride = GetStrideFloats(m_includedData);
-	const int posOffset = GetAttributeOffsetFloats(m_includedData, VBufDataType::Position);
-	const int colorOffset = GetAttributeOffsetFloats(m_includedData, VBufDataType::Color);
-	const int normalOffset = GetAttributeOffsetFloats(m_includedData, VBufDataType::Normal);
-	if (stride <= 0 || posOffset < 0 || colorOffset < 0 || normalOffset < 0) { return; }
+	if (stride <= 0) { return; }
+	constexpr int posOffset = 0;
+	constexpr int colorOffset = 3;
+	constexpr int normalOffset = 6;
 
 	const float posData[3] = { vert.m_pos.x, vert.m_pos.y, vert.m_pos.z };
 	Color col = vert.GetColor(true);
@@ -290,16 +279,55 @@ void Mesh::UpdateOctoPoint(const Vertex& vert, size_t baseVertexIndex)
 	v.m_pos.z -= radius; UpdatePoint(v, vertexIndex++); v.m_pos.z += radius;
 }
 
+void Mesh::UpdateTriangle(const Tri& tri, size_t triangleIndex)
+{
+	if (m_VBO == 0) { return; }
+	if (triangleIndex >= m_triCount) { return; }
+
+	const int stride = GetStrideFloats(m_includedData);
+	if (stride <= 0) { return; }
+
+	int texIndex = 0;
+	const bool hasUV = (m_includedData & VBufDataType::UV) != 0;
+	if (hasUV)
+	{
+		const std::filesystem::path texturePath = tri.texture;
+		if (!texturePath.empty() && !m_textureStoreIndex.contains(texturePath))
+		{
+			AppendTextureStore(texturePath);
+		}
+		texIndex = static_cast<int>(m_textureStoreIndex[texturePath]);
+	}
+
+	glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
+	for (size_t i = 0; i < 3; i++)
+	{
+		const Point& point = tri.p[i];
+		const size_t vertexIndex = triangleIndex * 3 + i;
+
+		const float colorData[3] = { point.color.Red(), point.color.Green(), point.color.Blue() };
+		glBufferSubData(GL_ARRAY_BUFFER, static_cast<GLintptr>((vertexIndex * stride + 0) * sizeof(float)), sizeof(point.pos), point.pos.Data());
+		glBufferSubData(GL_ARRAY_BUFFER, static_cast<GLintptr>((vertexIndex * stride + 3) * sizeof(float)), sizeof(colorData), colorData);
+		glBufferSubData(GL_ARRAY_BUFFER, static_cast<GLintptr>((vertexIndex * stride + 6) * sizeof(float)), sizeof(point.normal), point.normal.Data());
+
+		if (hasUV)
+		{
+			const float texIndexData = std::bit_cast<float>(texIndex);
+			glBufferSubData(GL_ARRAY_BUFFER, static_cast<GLintptr>((vertexIndex * stride + 9) * sizeof(float)), sizeof(point.uv), point.uv.Data());
+			glBufferSubData(GL_ARRAY_BUFFER, static_cast<GLintptr>((vertexIndex * stride + 11) * sizeof(float)), sizeof(texIndexData), &texIndexData);
+		}
+	}
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
 void Mesh::UpdateUV(const Vec2& uv, int textureIndex, size_t vertexIndex)
 {
 	if (m_VBO == 0) { return; }
 	if ((m_includedData & VBufDataType::UV) == 0) { return; }
-	if ((m_includedData & VBufDataType::TexIndex) == 0) { return; }
-
 	const int stride = GetStrideFloats(m_includedData);
-	const int uvOffset = GetAttributeOffsetFloats(m_includedData, VBufDataType::UV);
-	const int texOffset = GetAttributeOffsetFloats(m_includedData, VBufDataType::TexIndex);
-	if (stride <= 0 || uvOffset < 0 || texOffset < 0) { return; }
+	if (stride <= 0) { return; }
+	constexpr int uvOffset = 9;
+	constexpr int texOffset = 11;
 
 	const float uvData[2] = { uv.x, uv.y };
 	const float texIndexData = std::bit_cast<float>(textureIndex);

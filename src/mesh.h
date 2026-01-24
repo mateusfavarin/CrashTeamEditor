@@ -1,5 +1,7 @@
 #pragma once
 
+#include "geo.h"
+
 #include "globalimguiglglfw.h"
 #include "glm.hpp"
 #include "gtc/matrix_transform.hpp"
@@ -30,18 +32,17 @@ public:
 
 	struct VBufDataType
 	{
-		static constexpr unsigned Position = 1 << 0;
-		static constexpr unsigned Color = 1 << 1;
-		static constexpr unsigned Normal = 1 << 2;
-		static constexpr unsigned UV = 1 << 3; //tex coords
-		static constexpr unsigned TexIndex = 1 << 4;
+		static constexpr unsigned None = 0;
+		static constexpr unsigned UV = 1 << 0;
 	};
 
 public:
 	Mesh();
+	void SetGeometry(const std::vector<Tri>& triangles, unsigned shaderSettings);
 	void UpdateMesh(const std::vector<float>& data, unsigned includedDataFlags, unsigned shadSettings);
 	void UpdatePoint(const Vertex& vert, size_t vertexIndex);
 	void UpdateOctoPoint(const Vertex& vert, size_t baseVertexIndex);
+	void UpdateTriangle(const Tri& tri, size_t triangleIndex);
 	void UpdateUV(const Vec2& uv, int textureIndex, size_t vertexIndex);
 	int GetDatas() const;
 	int GetShaderSettings() const;
@@ -67,6 +68,7 @@ private:
 	int m_vertexCount = 0;
 	unsigned m_includedData = 0;
 	unsigned m_shaderSettings = 0;
+	size_t m_triCount = 0;
 	std::vector<std::vector<unsigned char>> m_textureStoreData;
 	std::unordered_map<std::filesystem::path, size_t> m_textureStoreIndex;
 	friend class Model;

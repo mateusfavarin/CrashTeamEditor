@@ -1783,7 +1783,7 @@ bool Level::UpdateAnimTextures(float deltaTime)
 
 void Level::GeomPoint(const Vertex* verts, int ind, std::vector<float>& data)
 {
-	//for present info, data needs to be pushed in the same order as it appears in VBufDataType
+	//data order: position, color, normal, uv (if present), texindex
 	data.push_back(verts[ind].m_pos.x);
 	data.push_back(verts[ind].m_pos.y);
 	data.push_back(verts[ind].m_pos.z);
@@ -2177,13 +2177,13 @@ void Level::GenerateRenderLevData()
 		}
 	}
 
-	m_highLODMesh.UpdateMesh(highLODData, (Mesh::VBufDataType::Color | Mesh::VBufDataType::Normal | Mesh::VBufDataType::UV | Mesh::VBufDataType::TexIndex), Mesh::ShaderSettings::None);
-	m_lowLODMesh.UpdateMesh(lowLODData, (Mesh::VBufDataType::Color | Mesh::VBufDataType::Normal | Mesh::VBufDataType::UV | Mesh::VBufDataType::TexIndex), Mesh::ShaderSettings::None);
+	m_highLODMesh.UpdateMesh(highLODData, Mesh::VBufDataType::UV, Mesh::ShaderSettings::None);
+	m_lowLODMesh.UpdateMesh(lowLODData, Mesh::VBufDataType::UV, Mesh::ShaderSettings::None);
 
-	m_vertexHighLODMesh.UpdateMesh(vertexHighLODData, (Mesh::VBufDataType::Color | Mesh::VBufDataType::Normal), Mesh::ShaderSettings::None);
-	m_vertexLowLODMesh.UpdateMesh(vertexLowLODData, (Mesh::VBufDataType::Color | Mesh::VBufDataType::Normal), Mesh::ShaderSettings::None);
+	m_vertexHighLODMesh.UpdateMesh(vertexHighLODData, Mesh::VBufDataType::None, Mesh::ShaderSettings::None);
+	m_vertexLowLODMesh.UpdateMesh(vertexLowLODData, Mesh::VBufDataType::None, Mesh::ShaderSettings::None);
 
-	const unsigned filterMeshFlags = (Mesh::VBufDataType::Color | Mesh::VBufDataType::Normal);
+	const unsigned filterMeshFlags = Mesh::VBufDataType::None;
 	const unsigned filterMeshShaderSettings = (Mesh::ShaderSettings::DrawWireframe | Mesh::ShaderSettings::DrawBackfaces | Mesh::ShaderSettings::ForceDrawOnTop |
 		Mesh::ShaderSettings::DrawLinesAA | Mesh::ShaderSettings::DontOverrideShaderSettings | Mesh::ShaderSettings::ThickLines | Mesh::ShaderSettings::DiscardZeroColor);
 	m_filterEdgeHighLODMesh.UpdateMesh(filterHighLODData, filterMeshFlags, filterMeshShaderSettings);
@@ -2361,7 +2361,7 @@ void Level::GenerateRenderBspData(const BSP& bsp)
 	GuiRenderSettings::bspTreeMaxDepth = 0;
 	GeomBoundingRect(&bsp, 0, bspData);
 
-	bspMesh.UpdateMesh(bspData, (Mesh::VBufDataType::Color | Mesh::VBufDataType::Normal),
+	bspMesh.UpdateMesh(bspData, Mesh::VBufDataType::None,
 		(Mesh::ShaderSettings::DrawWireframe | Mesh::ShaderSettings::DontOverrideShaderSettings));
 	m_models[LevelModels::BSP]->SetMesh(&bspMesh);
 }
@@ -2387,7 +2387,7 @@ void Level::GenerateRenderCheckpointData(std::vector<Checkpoint>& checkpoints)
 		GeomOctopoint(&v, 0, checkData);
 	}
 
-	checkMesh.UpdateMesh(checkData, (Mesh::VBufDataType::Color | Mesh::VBufDataType::Normal), Mesh::ShaderSettings::None);
+	checkMesh.UpdateMesh(checkData, Mesh::VBufDataType::None, Mesh::ShaderSettings::None);
 	m_models[LevelModels::CHECKPOINT]->SetMesh(&checkMesh);
 }
 
@@ -2404,7 +2404,7 @@ void Level::GenerateRenderStartpointData(std::array<Spawn, NUM_DRIVERS>& spawns)
 		GeomOctopoint(&v, 0, spawnsData);
 	}
 
-	spawnsMesh.UpdateMesh(spawnsData, (Mesh::VBufDataType::Color | Mesh::VBufDataType::Normal), Mesh::ShaderSettings::None);
+	spawnsMesh.UpdateMesh(spawnsData, Mesh::VBufDataType::None, Mesh::ShaderSettings::None);
 	m_models[LevelModels::SPAWN]->SetMesh(&spawnsMesh);
 }
 
@@ -2480,7 +2480,7 @@ void Level::GenerateRenderSelectedBlockData(const Quadblock& quadblock, const Ve
 	Vertex v = Vertex(Point(queryPoint.x, queryPoint.y, queryPoint.z, 255, 0, 0));
 	GeomOctopoint(&v, 0, data);
 
-	quadblockMesh.UpdateMesh(data, (Mesh::VBufDataType::Color | Mesh::VBufDataType::Normal), (Mesh::ShaderSettings::DrawWireframe | Mesh::ShaderSettings::DrawBackfaces | Mesh::ShaderSettings::ForceDrawOnTop | Mesh::ShaderSettings::DrawLinesAA | Mesh::ShaderSettings::DontOverrideShaderSettings | Mesh::ShaderSettings::Blinky));
+	quadblockMesh.UpdateMesh(data, Mesh::VBufDataType::None, (Mesh::ShaderSettings::DrawWireframe | Mesh::ShaderSettings::DrawBackfaces | Mesh::ShaderSettings::ForceDrawOnTop | Mesh::ShaderSettings::DrawLinesAA | Mesh::ShaderSettings::DontOverrideShaderSettings | Mesh::ShaderSettings::Blinky));
 	m_models[LevelModels::SELECTED]->SetMesh(&quadblockMesh);
 
 	if (GuiRenderSettings::showVisTree)
@@ -2578,7 +2578,7 @@ void Level::GenerateRenderMultipleQuadsData(const std::vector<Quadblock*>& quads
 		}
 	}
 
-	quadblockMesh.UpdateMesh(data, (Mesh::VBufDataType::Color | Mesh::VBufDataType::Normal), (Mesh::ShaderSettings::DrawWireframe | Mesh::ShaderSettings::DrawBackfaces | Mesh::ShaderSettings::ForceDrawOnTop | Mesh::ShaderSettings::DrawLinesAA | Mesh::ShaderSettings::DontOverrideShaderSettings | Mesh::ShaderSettings::Blinky));
+	quadblockMesh.UpdateMesh(data, Mesh::VBufDataType::None, (Mesh::ShaderSettings::DrawWireframe | Mesh::ShaderSettings::DrawBackfaces | Mesh::ShaderSettings::ForceDrawOnTop | Mesh::ShaderSettings::DrawLinesAA | Mesh::ShaderSettings::DontOverrideShaderSettings | Mesh::ShaderSettings::Blinky));
 	m_models[LevelModels::MULTI_SELECTED]->SetMesh(&quadblockMesh);
 }
 

@@ -287,11 +287,11 @@ std::string ShaderTemplates::frag_;
 std::map<int, std::tuple<std::string, std::string, std::string>> ShaderTemplates::datasToShaderSourceMap =
 {
   {
-    (Mesh::VBufDataType::Position | Mesh::VBufDataType::Color | Mesh::VBufDataType::Normal),
+    Mesh::VBufDataType::None,
     (std::make_tuple(ShaderTemplates::geom_vcolornormal, ShaderTemplates::vert_vcolornormal, ShaderTemplates::frag_vcolornormal))
   },
   {
-    (Mesh::VBufDataType::Position | Mesh::VBufDataType::Color | Mesh::VBufDataType::Normal | Mesh::VBufDataType::UV | Mesh::VBufDataType::TexIndex),
+    Mesh::VBufDataType::UV,
     (std::make_tuple(ShaderTemplates::geom_vcolornormaltex, ShaderTemplates::vert_vcolornormaltex, ShaderTemplates::frag_vcolornormaltex))
   },
 };
