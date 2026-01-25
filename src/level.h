@@ -75,7 +75,6 @@ private:
 	void RenderUI();
 
 	void InitModels(Renderer& renderer);
-	int GetTextureIndex(const std::filesystem::path& texPath);
 	void GenerateRenderLevData();
 	void UpdateAnimationRenderData();
 	void UpdateFilterRenderData(const Quadblock& qb);
@@ -142,7 +141,6 @@ private:
 	Mesh m_vertexHighLODMesh;
 	Mesh m_filterEdgeLowLODMesh;
 	Mesh m_filterEdgeHighLODMesh;
-	std::unordered_map<std::filesystem::path, int> m_textureStorePaths;
 
 	std::array<Model*, LevelModels::COUNT> m_models;
 

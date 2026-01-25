@@ -514,44 +514,9 @@ const std::array<QuadUV, NUM_FACES_QUADBLOCK + 1>& Quadblock::GetUVs() const
 	return m_uvs;
 }
 
-size_t Quadblock::GetRenderHighLodPointIndex() const
+size_t Quadblock::GetRenderTriangleIndex() const
 {
-	return m_renderHighLodPointIndex;
-}
-
-size_t Quadblock::GetRenderLowLodPointIndex() const
-{
-	return m_renderLowLodPointIndex;
-}
-
-size_t Quadblock::GetRenderHighLodUVIndex() const
-{
-	return m_renderHighLodUVIndex;
-}
-
-size_t Quadblock::GetRenderLowLodUVIndex() const
-{
-	return m_renderLowLodUVIndex;
-}
-
-size_t Quadblock::GetRenderHighLodOctoPointIndex() const
-{
-	return m_renderHighLodOctoPointIndex;
-}
-
-size_t Quadblock::GetRenderLowLodOctoPointIndex() const
-{
-	return m_renderLowLodOctoPointIndex;
-}
-
-size_t Quadblock::GetRenderFilterHighLodEdgeIndex() const
-{
-	return m_renderFilterHighLodEdgeIndex;
-}
-
-size_t Quadblock::GetRenderFilterLowLodEdgeIndex() const
-{
-	return m_renderFilterLowLodEdgeIndex;
+	return m_renderTriangleIndex;
 }
 
 const std::string& Quadblock::GetMaterial() const
@@ -559,20 +524,9 @@ const std::string& Quadblock::GetMaterial() const
 	return m_material;
 }
 
-void Quadblock::SetRenderIndices(size_t highPointIndex, size_t lowPointIndex, size_t highUvIndex, size_t lowUvIndex, size_t highOctoIndex, size_t lowOctoIndex)
+void Quadblock::SetRenderTriangleIndex(size_t triangleIndex)
 {
-	m_renderHighLodPointIndex = highPointIndex;
-	m_renderLowLodPointIndex = lowPointIndex;
-	m_renderHighLodUVIndex = highUvIndex;
-	m_renderLowLodUVIndex = lowUvIndex;
-	m_renderHighLodOctoPointIndex = highOctoIndex;
-	m_renderLowLodOctoPointIndex = lowOctoIndex;
-}
-
-void Quadblock::SetRenderFilterIndices(size_t highEdgeIndex, size_t lowEdgeIndex)
-{
-	m_renderFilterHighLodEdgeIndex = highEdgeIndex;
-	m_renderFilterLowLodEdgeIndex = lowEdgeIndex;
+	m_renderTriangleIndex = triangleIndex;
 }
 
 void Quadblock::SetTerrain(uint8_t terrain)
@@ -676,6 +630,65 @@ void Quadblock::Translate(float ratio, const Vec3& direction)
 const BoundingBox& Quadblock::GetBoundingBox() const
 {
 	return m_bbox;
+}
+
+std::vector<Tri> Quadblock::ToGeometry(const std::array<QuadUV, NUM_FACES_QUADBLOCK + 1>* overrideUvs, const std::filesystem::path* overrideTexturePath) const
+{
+	constexpr int NUM_VERTICES_QUAD = 4;
+	constexpr int uvVertInd[NUM_FACES_QUADBLOCK + 1][NUM_VERTICES_QUAD] =
+	{
+		{0, 1, 3, 4},
+		{1, 2, 4, 5},
+		{3, 4, 6, 7},
+		{4, 5, 7, 8},
+		{0, 2, 6, 8},
+	};
+
+	const bool isQuadblock = IsQuadblock();
+	const int triCount = isQuadblock ? 8 : 4;
+	const std::filesystem::path& texPath = overrideTexturePath ? *overrideTexturePath : m_texPath;
+	const std::array<QuadUV, NUM_FACES_QUADBLOCK + 1>& uvs = overrideUvs ? *overrideUvs : m_uvs;
+
+	auto GetUVForVertex = [&](int quadInd, int vertInd) -> Vec2
+		{
+			const QuadUV& quv = uvs[quadInd];
+			int vertIndInUvs = 0;
+			for (int i = 0; i < NUM_VERTICES_QUAD; i++)
+			{
+				if (vertInd == uvVertInd[quadInd][i]) { vertIndInUvs = i; break; }
+			}
+			return quv[vertIndInUvs];
+		};
+
+	auto GetQuadIndexForTri = [&](int triIndex) -> int
+		{
+			if (isQuadblock) { return triIndex / 2; }
+			if (triIndex <= 1) { return 0; }
+			return (triIndex == 2) ? 1 : 2;
+		};
+
+	std::vector<Tri> triangles;
+	triangles.reserve(triCount);
+	for (int triIndex = 0; triIndex < triCount; triIndex++)
+	{
+		const int quadIndex = GetQuadIndexForTri(triIndex);
+		const int* triVerts = isQuadblock ? FaceIndexConstants::quadHLODVertArrangements[triIndex] : FaceIndexConstants::triHLODVertArrangements[triIndex];
+
+		Tri tri;
+		tri.texture = texPath.string();
+		for (int i = 0; i < 3; i++)
+		{
+			const int vertIndex = triVerts[i];
+			const Vertex& vert = m_p[vertIndex];
+			tri.p[i].pos = vert.m_pos;
+			tri.p[i].normal = vert.m_normal;
+			tri.p[i].color = vert.GetColor(true);
+			tri.p[i].uv = GetUVForVertex(quadIndex, vertIndex);
+		}
+		triangles.push_back(tri);
+	}
+
+	return triangles;
 }
 
 std::vector<Vertex> Quadblock::GetVertices() const
@@ -802,14 +815,7 @@ void Quadblock::SetDefaultValues()
 	m_filter = false;
 	m_downforce = 0;
 	m_filterColor = GuiRenderSettings::defaultFilterColor;
-	m_renderHighLodPointIndex = RENDER_INDEX_NONE;
-	m_renderLowLodPointIndex = RENDER_INDEX_NONE;
-	m_renderHighLodUVIndex = RENDER_INDEX_NONE;
-	m_renderLowLodUVIndex = RENDER_INDEX_NONE;
-	m_renderHighLodOctoPointIndex = RENDER_INDEX_NONE;
-	m_renderLowLodOctoPointIndex = RENDER_INDEX_NONE;
-	m_renderFilterHighLodEdgeIndex = RENDER_INDEX_NONE;
-	m_renderFilterLowLodEdgeIndex = RENDER_INDEX_NONE;
+	m_renderTriangleIndex = RENDER_INDEX_NONE;
 }
 
 Vec3 Quadblock::ComputeNormalVector(size_t id0, size_t id1, size_t id2) const

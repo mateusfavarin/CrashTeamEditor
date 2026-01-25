@@ -75,7 +75,6 @@ void Level::Clear(bool clearErrors)
 	m_pythonConsole.clear();
 	m_saveScript = false;
 	m_vrm.clear();
-	m_textureStorePaths.clear();
 	m_lastAnimTextureCount = 0;
 	DeleteMaterials(this);
 
@@ -1938,363 +1937,52 @@ void Level::InitModels(Renderer& renderer)
 	m_models[LevelModels::FILTER]->SetRenderCondition([]() { return GuiRenderSettings::filterActive; });
 }
 
-int Level::GetTextureIndex(const std::filesystem::path& texPath)
-{
-	auto findResult = m_textureStorePaths.find(texPath);
-	if (findResult != m_textureStorePaths.end()) { return findResult->second; }
-	int texIndex = static_cast<int>(m_textureStorePaths.size());
-	m_textureStorePaths[texPath] = texIndex;
-	m_highLODMesh.UpdateTextureStore(texPath);
-	m_lowLODMesh.UpdateTextureStore(texPath);
-	return texIndex;
-}
-
 void Level::GenerateRenderLevData()
 {
 	if (!m_models[LevelModels::LEVEL]) { return; }
-	/* 062 is triblock
-		p0 -- p1 -- p2
-		|  q0 |  q1 |
-		p3 -- p4 -- p5
-		|  q2 |  q3 |
-		p6 -- p7 -- p8
-	*/
-	std::vector<float> highLODData, lowLODData, vertexHighLODData, vertexLowLODData;
-	std::vector<float> filterHighLODData, filterLowLODData;
-	size_t highLodVertexCount = 0;
-	size_t lowLodVertexCount = 0;
-	size_t vertexHighLodVertexCount = 0;
-	size_t vertexLowLodVertexCount = 0;
-	size_t filterHighLodVertexCount = 0;
-	size_t filterLowLodVertexCount = 0;
-
-	struct AnimRenderData
-	{
-		const AnimTextureFrame* frame;
-		int textureIndex;
-	};
-
-	std::vector<AnimRenderData> animRenderData(m_quadblocks.size());
-	std::vector<bool> hasAnimRenderData(m_quadblocks.size(), false);
-	for (const AnimTexture& animTex : m_animTextures)
-	{
-		if (!animTex.IsPopulated()) { continue; }
-		const std::vector<Texture>& textures = animTex.GetTextures();
-		const AnimTextureFrame& frame = animTex.GetRenderFrame();
-		int animTexIndex = GetTextureIndex(textures[frame.textureIndex].GetPath());
-		for (size_t qbIndex : animTex.GetQuadblockIndexes())
-		{
-			animRenderData[qbIndex] = {&frame, animTexIndex};
-			hasAnimRenderData[qbIndex] = true;
-		}
-	}
+	std::vector<Tri> triangles;
+	triangles.reserve(m_quadblocks.size() * 8);
 
 	for (size_t matIndex = 0; matIndex < m_materialToQuadblocks.size(); matIndex++)
 	{
 		auto begin = m_materialToQuadblocks.begin();
 		std::advance(begin, matIndex);
-		const std::string& mat = begin->first;
 		const std::vector<size_t>& quadblockIndexes = begin->second;
-		const int baseTexIndex = GetTextureIndex(m_materialToTexture[mat].GetPath());
 		for (size_t qbIndexIndex = 0; qbIndexIndex < quadblockIndexes.size(); qbIndexIndex++)
 		{
 			size_t qbIndex = quadblockIndexes[qbIndexIndex];
 			Quadblock& qb = m_quadblocks[qbIndex];
-			const Vertex* verts = qb.GetUnswizzledVertices();
-			const AnimRenderData* animData = hasAnimRenderData[qbIndex] ? &animRenderData[qbIndex] : nullptr;
-			const std::array<QuadUV, NUM_FACES_QUADBLOCK + 1>& uvs = animData ? animData->frame->uvs : qb.GetUVs();
-			const int texIndex = animData ? animData->textureIndex : baseTexIndex;
-			const size_t highLodBaseIndex = highLodVertexCount;
-			const size_t lowLodBaseIndex = lowLodVertexCount;
-			const size_t vertexHighLodBaseIndex = vertexHighLodVertexCount;
-			const size_t vertexLowLodBaseIndex = vertexLowLodVertexCount;
-			const size_t filterHighLodBaseIndex = filterHighLodVertexCount;
-			const size_t filterLowLodBaseIndex = filterLowLodVertexCount;
-			qb.SetRenderIndices(highLodBaseIndex, lowLodBaseIndex, highLodBaseIndex, lowLodBaseIndex, vertexHighLodBaseIndex, vertexLowLodBaseIndex);
-			qb.SetRenderFilterIndices(filterHighLodBaseIndex, filterLowLodBaseIndex);
-			const Color& filterColor = qb.GetFilter() ? qb.GetFilterColor() : Color(static_cast<unsigned char>(0u), static_cast<unsigned char>(0u), static_cast<unsigned char>(0u));
-			Vertex filterVerts[NUM_VERTICES_QUADBLOCK];
-			for (size_t i = 0; i < NUM_VERTICES_QUADBLOCK; i++)
-			{
-				const Vec3& pos = verts[i].m_pos;
-				Vertex v = Vertex(Point(pos.x, pos.y, pos.z, filterColor.r, filterColor.g, filterColor.b));
-				v.m_normal = verts[i].m_normal;
-				filterVerts[i] = v;
-			}
+			const size_t baseTriangleIndex = triangles.size();
+			qb.SetRenderTriangleIndex(baseTriangleIndex);
 
-			//clockwise point ordering
-			if (qb.IsQuadblock())
-			{
-				constexpr size_t HIGH_LOD_VERT_COUNT = 9;
-				const std::array<int, HIGH_LOD_VERT_COUNT> highLODIndexes = {0, 1, 2, 3, 4, 5, 6, 7, 8};
-				for (int index : highLODIndexes)
-				{
-					GeomOctopoint(verts, index, vertexHighLODData);
-					vertexHighLodVertexCount += 24;
-				}
-
-				constexpr size_t LOW_LOD_VERT_COUNT = 4;
-				const std::array<int, LOW_LOD_VERT_COUNT> lowLODIndexes = {0, 2, 6, 8};
-				for (int index : lowLODIndexes)
-				{
-					GeomOctopoint(verts, index, vertexLowLODData);
-					vertexLowLodVertexCount += 24;
-				}
-
-				for (int triIndex = 0; triIndex < 8; triIndex++)
-				{
-					int firstPointIndex = FaceIndexConstants::quadHLODVertArrangements[triIndex][0];
-					GeomPoint(verts, firstPointIndex, highLODData);
-					GeomUVs(uvs, triIndex / 2, firstPointIndex, highLODData, texIndex); //triIndex / 2 (integer division) because 2 tris per quad
-
-					int secondPointIndex = FaceIndexConstants::quadHLODVertArrangements[triIndex][1];
-					GeomPoint(verts, secondPointIndex, highLODData);
-					GeomUVs(uvs, triIndex / 2, secondPointIndex, highLODData, texIndex);
-
-					int thirdPointIndex = FaceIndexConstants::quadHLODVertArrangements[triIndex][2];
-					GeomPoint(verts, thirdPointIndex, highLODData);
-					GeomUVs(uvs, triIndex / 2, thirdPointIndex, highLODData, texIndex);
-
-					highLodVertexCount += 3;
-				}
-
-				for (int triIndex = 0; triIndex < 2; triIndex++)
-				{
-					int firstPointIndex = FaceIndexConstants::quadLLODVertArrangements[triIndex][0];
-					GeomPoint(verts, firstPointIndex, lowLODData);
-					GeomUVs(uvs, 4, firstPointIndex, lowLODData, texIndex);
-
-					int secondPointIndex = FaceIndexConstants::quadLLODVertArrangements[triIndex][1];
-					GeomPoint(verts, secondPointIndex, lowLODData);
-					GeomUVs(uvs, 4, secondPointIndex, lowLODData, texIndex);
-
-					int thirdPointIndex = FaceIndexConstants::quadLLODVertArrangements[triIndex][2];
-					GeomPoint(verts, thirdPointIndex, lowLODData);
-					GeomUVs(uvs, 4, thirdPointIndex, lowLODData, texIndex);
-
-					lowLodVertexCount += 3;
-				}
-
-				for (int triIndex = 0; triIndex < 8; triIndex++)
-				{
-					GeomPoint(filterVerts, FaceIndexConstants::quadHLODVertArrangements[triIndex][0], filterHighLODData);
-					GeomPoint(filterVerts, FaceIndexConstants::quadHLODVertArrangements[triIndex][1], filterHighLODData);
-					GeomPoint(filterVerts, FaceIndexConstants::quadHLODVertArrangements[triIndex][2], filterHighLODData);
-					filterHighLodVertexCount += 3;
-				}
-
-				for (int triIndex = 0; triIndex < 2; triIndex++)
-				{
-					GeomPoint(filterVerts, FaceIndexConstants::quadLLODVertArrangements[triIndex][0], filterLowLODData);
-					GeomPoint(filterVerts, FaceIndexConstants::quadLLODVertArrangements[triIndex][1], filterLowLODData);
-					GeomPoint(filterVerts, FaceIndexConstants::quadLLODVertArrangements[triIndex][2], filterLowLODData);
-					filterLowLodVertexCount += 3;
-				}
-			}
-			else
-			{
-				constexpr size_t HIGH_LOD_VERT_COUNT = 6;
-				const std::array<int, HIGH_LOD_VERT_COUNT> highLODIndexes = {0, 1, 2, 3, 4, 6};
-				for (int index : highLODIndexes)
-				{
-					GeomOctopoint(verts, index, vertexHighLODData);
-					vertexHighLodVertexCount += 24;
-				}
-
-				constexpr size_t LOW_LOD_VERT_COUNT = 3;
-				const std::array<int, LOW_LOD_VERT_COUNT> lowLODIndexes = {0, 2, 6};
-				for (int index : lowLODIndexes)
-				{
-					GeomOctopoint(verts, index, vertexLowLODData);
-					vertexLowLodVertexCount += 24;
-				}
-
-				for (int triIndex = 0; triIndex < 4; triIndex++)
-				{
-					int quadBlockIndex = 0;
-					switch (triIndex)
-					{
-					case 0:
-					case 1:
-						quadBlockIndex = 0;
-						break;
-					case 2:
-						quadBlockIndex = 1;
-						break;
-					case 3:
-						quadBlockIndex = 2;
-						break;
-					}
-
-					int firstPointIndex = FaceIndexConstants::triHLODVertArrangements[triIndex][0];
-					GeomPoint(verts, firstPointIndex, highLODData);
-					GeomUVs(uvs, quadBlockIndex, firstPointIndex, highLODData, texIndex);
-
-					int secondPointIndex = FaceIndexConstants::triHLODVertArrangements[triIndex][1];
-					GeomPoint(verts, secondPointIndex, highLODData);
-					GeomUVs(uvs, quadBlockIndex, secondPointIndex, highLODData, texIndex);
-
-					int thirdPointIndex = FaceIndexConstants::triHLODVertArrangements[triIndex][2];
-					GeomPoint(verts, thirdPointIndex, highLODData);
-					GeomUVs(uvs, quadBlockIndex, thirdPointIndex, highLODData, texIndex);
-
-					highLodVertexCount += 3;
-				}
-
-				for (int triIndex = 0; triIndex < 1; triIndex++)
-				{
-					int firstPointIndex = FaceIndexConstants::triLLODVertArrangements[triIndex][0];
-					GeomPoint(verts, firstPointIndex, lowLODData);
-					GeomUVs(uvs, 4, firstPointIndex, lowLODData, texIndex);
-
-					int secondPointIndex = FaceIndexConstants::triLLODVertArrangements[triIndex][1];
-					GeomPoint(verts, secondPointIndex, lowLODData);
-					GeomUVs(uvs, 4, secondPointIndex, lowLODData, texIndex);
-
-					int thirdPointIndex = FaceIndexConstants::triLLODVertArrangements[triIndex][2];
-					GeomPoint(verts, thirdPointIndex, lowLODData);
-					GeomUVs(uvs, 4, thirdPointIndex, lowLODData, texIndex);
-
-					lowLodVertexCount += 3;
-				}
-
-				for (int triIndex = 0; triIndex < 4; triIndex++)
-				{
-					GeomPoint(filterVerts, FaceIndexConstants::triHLODVertArrangements[triIndex][0], filterHighLODData);
-					GeomPoint(filterVerts, FaceIndexConstants::triHLODVertArrangements[triIndex][1], filterHighLODData);
-					GeomPoint(filterVerts, FaceIndexConstants::triHLODVertArrangements[triIndex][2], filterHighLODData);
-					filterHighLodVertexCount += 3;
-				}
-
-				for (int triIndex = 0; triIndex < 1; triIndex++)
-				{
-					GeomPoint(filterVerts, FaceIndexConstants::triLLODVertArrangements[triIndex][0], filterLowLODData);
-					GeomPoint(filterVerts, FaceIndexConstants::triLLODVertArrangements[triIndex][1], filterLowLODData);
-					GeomPoint(filterVerts, FaceIndexConstants::triLLODVertArrangements[triIndex][2], filterLowLODData);
-					filterLowLodVertexCount += 3;
-				}
-			}
+			std::vector<Tri> qbTriangles = qb.ToGeometry();
+			for (const Tri& tri : qbTriangles) { triangles.push_back(tri); }
 		}
 	}
 
-	m_highLODMesh.UpdateMesh(highLODData, Mesh::VBufDataType::UV, Mesh::ShaderSettings::None);
-	m_lowLODMesh.UpdateMesh(lowLODData, Mesh::VBufDataType::UV, Mesh::ShaderSettings::None);
-
-	m_vertexHighLODMesh.UpdateMesh(vertexHighLODData, Mesh::VBufDataType::None, Mesh::ShaderSettings::None);
-	m_vertexLowLODMesh.UpdateMesh(vertexLowLODData, Mesh::VBufDataType::None, Mesh::ShaderSettings::None);
-
-	const unsigned filterMeshFlags = Mesh::VBufDataType::None;
-	const unsigned filterMeshShaderSettings = (Mesh::ShaderSettings::DrawWireframe | Mesh::ShaderSettings::DrawBackfaces | Mesh::ShaderSettings::ForceDrawOnTop |
-		Mesh::ShaderSettings::DrawLinesAA | Mesh::ShaderSettings::DontOverrideShaderSettings | Mesh::ShaderSettings::ThickLines | Mesh::ShaderSettings::DiscardZeroColor);
-	m_filterEdgeHighLODMesh.UpdateMesh(filterHighLODData, filterMeshFlags, filterMeshShaderSettings);
-	m_filterEdgeLowLODMesh.UpdateMesh(filterLowLODData, filterMeshFlags, filterMeshShaderSettings);
-
+	m_highLODMesh.SetGeometry(triangles, Mesh::ShaderSettings::None);
 	m_models[LevelModels::LEVEL]->SetMesh(&m_highLODMesh);
 }
 
 void Level::UpdateAnimationRenderData()
 {
-	constexpr int NUM_VERTICES_QUAD = 4;
-	constexpr int uvVertInd[NUM_FACES_QUADBLOCK + 1][NUM_VERTICES_QUAD] =
-	{
-		{0, 1, 3, 4},
-		{1, 2, 4, 5},
-		{3, 4, 6, 7},
-		{4, 5, 7, 8},
-		{0, 2, 6, 8},
-	};
-
-	auto GetUVForVertex = [&](const std::array<QuadUV, NUM_FACES_QUADBLOCK + 1>& uvs, int quadInd, int vertInd) -> Vec2
-		{
-			const QuadUV& quv = uvs[quadInd];
-			int vertIndInUvs = 0;
-			for (int i = 0; i < NUM_VERTICES_QUAD; i++)
-			{
-				if (vertInd == uvVertInd[quadInd][i]) { vertIndInUvs = i; break; }
-			}
-			return quv[vertIndInUvs];
-		};
-
 	for (const AnimTexture& animTex : m_animTextures)
 	{
 		if (!animTex.IsPopulated()) { continue; }
 		const std::vector<Texture>& textures = animTex.GetTextures();
 		const AnimTextureFrame& frame = animTex.GetRenderFrame();
-		int texIndex = GetTextureIndex(textures[frame.textureIndex].GetPath());
 		for (size_t qbIndex : animTex.GetQuadblockIndexes())
 		{
 			Quadblock& qb = m_quadblocks[qbIndex];
 			const std::array<QuadUV, NUM_FACES_QUADBLOCK + 1>& uvs = frame.uvs;
-			const size_t highLodBaseIndex = qb.GetRenderHighLodUVIndex();
-			const size_t lowLodBaseIndex = qb.GetRenderLowLodUVIndex();
-			if (highLodBaseIndex == RENDER_INDEX_NONE || lowLodBaseIndex == RENDER_INDEX_NONE) { continue; }
+			const size_t baseTriangleIndex = qb.GetRenderTriangleIndex();
+			if (baseTriangleIndex == RENDER_INDEX_NONE) { continue; }
 
-			if (qb.IsQuadblock())
+			const std::filesystem::path texturePath = textures[frame.textureIndex].GetPath();
+			std::vector<Tri> qbTriangles = qb.ToGeometry(&uvs, &texturePath);
+			for (size_t triIndex = 0; triIndex < qbTriangles.size(); triIndex++)
 			{
-				for (int triIndex = 0; triIndex < 8; triIndex++)
-				{
-					int firstPointIndex = FaceIndexConstants::quadHLODVertArrangements[triIndex][0];
-					m_highLODMesh.UpdateUV(GetUVForVertex(uvs, triIndex / 2, firstPointIndex), texIndex, highLodBaseIndex + triIndex * 3);
-
-					int secondPointIndex = FaceIndexConstants::quadHLODVertArrangements[triIndex][1];
-					m_highLODMesh.UpdateUV(GetUVForVertex(uvs, triIndex / 2, secondPointIndex), texIndex, highLodBaseIndex + triIndex * 3 + 1);
-
-					int thirdPointIndex = FaceIndexConstants::quadHLODVertArrangements[triIndex][2];
-					m_highLODMesh.UpdateUV(GetUVForVertex(uvs, triIndex / 2, thirdPointIndex), texIndex, highLodBaseIndex + triIndex * 3 + 2);
-				}
-
-				for (int triIndex = 0; triIndex < 2; triIndex++)
-				{
-					int firstPointIndex = FaceIndexConstants::quadLLODVertArrangements[triIndex][0];
-					m_lowLODMesh.UpdateUV(GetUVForVertex(uvs, 4, firstPointIndex), texIndex, lowLodBaseIndex + triIndex * 3);
-
-					int secondPointIndex = FaceIndexConstants::quadLLODVertArrangements[triIndex][1];
-					m_lowLODMesh.UpdateUV(GetUVForVertex(uvs, 4, secondPointIndex), texIndex, lowLodBaseIndex + triIndex * 3 + 1);
-
-					int thirdPointIndex = FaceIndexConstants::quadLLODVertArrangements[triIndex][2];
-					m_lowLODMesh.UpdateUV(GetUVForVertex(uvs, 4, thirdPointIndex), texIndex, lowLodBaseIndex + triIndex * 3 + 2);
-				}
-			}
-			else
-			{
-				for (int triIndex = 0; triIndex < 4; triIndex++)
-				{
-					int quadBlockIndex = 0;
-					switch (triIndex)
-					{
-					case 0:
-					case 1:
-						quadBlockIndex = 0;
-						break;
-					case 2:
-						quadBlockIndex = 1;
-						break;
-					case 3:
-						quadBlockIndex = 2;
-						break;
-					}
-
-					int firstPointIndex = FaceIndexConstants::triHLODVertArrangements[triIndex][0];
-					m_highLODMesh.UpdateUV(GetUVForVertex(uvs, quadBlockIndex, firstPointIndex), texIndex, highLodBaseIndex + triIndex * 3);
-
-					int secondPointIndex = FaceIndexConstants::triHLODVertArrangements[triIndex][1];
-					m_highLODMesh.UpdateUV(GetUVForVertex(uvs, quadBlockIndex, secondPointIndex), texIndex, highLodBaseIndex + triIndex * 3 + 1);
-
-					int thirdPointIndex = FaceIndexConstants::triHLODVertArrangements[triIndex][2];
-					m_highLODMesh.UpdateUV(GetUVForVertex(uvs, quadBlockIndex, thirdPointIndex), texIndex, highLodBaseIndex + triIndex * 3 + 2);
-				}
-
-				for (int triIndex = 0; triIndex < 1; triIndex++)
-				{
-					int firstPointIndex = FaceIndexConstants::triLLODVertArrangements[triIndex][0];
-					m_lowLODMesh.UpdateUV(GetUVForVertex(uvs, 4, firstPointIndex), texIndex, lowLodBaseIndex + triIndex * 3);
-
-					int secondPointIndex = FaceIndexConstants::triLLODVertArrangements[triIndex][1];
-					m_lowLODMesh.UpdateUV(GetUVForVertex(uvs, 4, secondPointIndex), texIndex, lowLodBaseIndex + triIndex * 3 + 1);
-
-					int thirdPointIndex = FaceIndexConstants::triLLODVertArrangements[triIndex][2];
-					m_lowLODMesh.UpdateUV(GetUVForVertex(uvs, 4, thirdPointIndex), texIndex, lowLodBaseIndex + triIndex * 3 + 2);
-				}
+				m_highLODMesh.UpdateTriangle(qbTriangles[triIndex], baseTriangleIndex + triIndex);
 			}
 		}
 	}
@@ -2302,9 +1990,9 @@ void Level::UpdateAnimationRenderData()
 
 void Level::UpdateFilterRenderData(const Quadblock& qb)
 {
-	const size_t highLodBaseIndex = qb.GetRenderFilterHighLodEdgeIndex();
-	const size_t lowLodBaseIndex = qb.GetRenderFilterLowLodEdgeIndex();
-	if (highLodBaseIndex == RENDER_INDEX_NONE || lowLodBaseIndex == RENDER_INDEX_NONE) { return; }
+	const size_t baseTriangleIndex = qb.GetRenderTriangleIndex();
+	if (baseTriangleIndex == RENDER_INDEX_NONE) { return; }
+	const size_t baseVertexIndex = baseTriangleIndex * 3;
 
 	const Vertex* verts = qb.GetUnswizzledVertices();
 	const Color& filterColor = qb.GetFilter() ? qb.GetFilterColor() : Color(static_cast<unsigned char>(0u), static_cast<unsigned char>(0u), static_cast<unsigned char>(0u));
@@ -2321,32 +2009,18 @@ void Level::UpdateFilterRenderData(const Quadblock& qb)
 	{
 		for (int triIndex = 0; triIndex < 8; triIndex++)
 		{
-			m_filterEdgeHighLODMesh.UpdatePoint(filterVerts[FaceIndexConstants::quadHLODVertArrangements[triIndex][0]], highLodBaseIndex + triIndex * 3);
-			m_filterEdgeHighLODMesh.UpdatePoint(filterVerts[FaceIndexConstants::quadHLODVertArrangements[triIndex][1]], highLodBaseIndex + triIndex * 3 + 1);
-			m_filterEdgeHighLODMesh.UpdatePoint(filterVerts[FaceIndexConstants::quadHLODVertArrangements[triIndex][2]], highLodBaseIndex + triIndex * 3 + 2);
-		}
-
-		for (int triIndex = 0; triIndex < 2; triIndex++)
-		{
-			m_filterEdgeLowLODMesh.UpdatePoint(filterVerts[FaceIndexConstants::quadLLODVertArrangements[triIndex][0]], lowLodBaseIndex + triIndex * 3);
-			m_filterEdgeLowLODMesh.UpdatePoint(filterVerts[FaceIndexConstants::quadLLODVertArrangements[triIndex][1]], lowLodBaseIndex + triIndex * 3 + 1);
-			m_filterEdgeLowLODMesh.UpdatePoint(filterVerts[FaceIndexConstants::quadLLODVertArrangements[triIndex][2]], lowLodBaseIndex + triIndex * 3 + 2);
+			m_filterEdgeHighLODMesh.UpdatePoint(filterVerts[FaceIndexConstants::quadHLODVertArrangements[triIndex][0]], baseVertexIndex + triIndex * 3);
+			m_filterEdgeHighLODMesh.UpdatePoint(filterVerts[FaceIndexConstants::quadHLODVertArrangements[triIndex][1]], baseVertexIndex + triIndex * 3 + 1);
+			m_filterEdgeHighLODMesh.UpdatePoint(filterVerts[FaceIndexConstants::quadHLODVertArrangements[triIndex][2]], baseVertexIndex + triIndex * 3 + 2);
 		}
 	}
 	else
 	{
 		for (int triIndex = 0; triIndex < 4; triIndex++)
 		{
-			m_filterEdgeHighLODMesh.UpdatePoint(filterVerts[FaceIndexConstants::triHLODVertArrangements[triIndex][0]], highLodBaseIndex + triIndex * 3);
-			m_filterEdgeHighLODMesh.UpdatePoint(filterVerts[FaceIndexConstants::triHLODVertArrangements[triIndex][1]], highLodBaseIndex + triIndex * 3 + 1);
-			m_filterEdgeHighLODMesh.UpdatePoint(filterVerts[FaceIndexConstants::triHLODVertArrangements[triIndex][2]], highLodBaseIndex + triIndex * 3 + 2);
-		}
-
-		for (int triIndex = 0; triIndex < 1; triIndex++)
-		{
-			m_filterEdgeLowLODMesh.UpdatePoint(filterVerts[FaceIndexConstants::triLLODVertArrangements[triIndex][0]], lowLodBaseIndex + triIndex * 3);
-			m_filterEdgeLowLODMesh.UpdatePoint(filterVerts[FaceIndexConstants::triLLODVertArrangements[triIndex][1]], lowLodBaseIndex + triIndex * 3 + 1);
-			m_filterEdgeLowLODMesh.UpdatePoint(filterVerts[FaceIndexConstants::triLLODVertArrangements[triIndex][2]], lowLodBaseIndex + triIndex * 3 + 2);
+			m_filterEdgeHighLODMesh.UpdatePoint(filterVerts[FaceIndexConstants::triHLODVertArrangements[triIndex][0]], baseVertexIndex + triIndex * 3);
+			m_filterEdgeHighLODMesh.UpdatePoint(filterVerts[FaceIndexConstants::triHLODVertArrangements[triIndex][1]], baseVertexIndex + triIndex * 3 + 1);
+			m_filterEdgeHighLODMesh.UpdatePoint(filterVerts[FaceIndexConstants::triHLODVertArrangements[triIndex][2]], baseVertexIndex + triIndex * 3 + 2);
 		}
 	}
 }
