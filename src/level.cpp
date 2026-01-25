@@ -1848,19 +1848,25 @@ void Level::InitModels(Renderer& renderer)
 void Level::GenerateRenderLevData()
 {
 	if (!m_models[LevelModels::LEVEL]) { return; }
-	std::vector<Tri> triangles;
-	triangles.reserve(m_quadblocks.size() * 8);
+	std::vector<Tri> levTriangles;
+	std::vector<Tri> filterTriangles;
+	levTriangles.reserve(m_quadblocks.size() * 8);
+	filterTriangles.reserve(m_quadblocks.size() * 8);
 
 	for (Quadblock& qb : m_quadblocks)
 	{
-			const size_t baseTriangleIndex = triangles.size();
+			const size_t baseTriangleIndex = levTriangles.size();
 			qb.SetRenderTriangleIndex(baseTriangleIndex);
-			std::vector<Tri> qbTriangles = qb.ToGeometry();
-			for (const Tri& tri : qbTriangles) { triangles.push_back(tri); }
+			std::vector<Tri> qbTriangles = qb.ToGeometry(false);
+			std::vector<Tri> qbFilterTriangles = qb.ToGeometry(true);
+			for (const Tri& tri : qbTriangles) { levTriangles.push_back(tri); }
+			for (const Tri& tri : qbFilterTriangles) { filterTriangles.push_back(tri); }
 	}
 
-	m_highLODMesh.SetGeometry(triangles, Mesh::ShaderSettings::None);
+	m_highLODMesh.SetGeometry(levTriangles, Mesh::ShaderSettings::None);
+	m_filterEdgeHighLODMesh.SetGeometry(filterTriangles, Mesh::ShaderSettings::DrawWireframe | Mesh::ShaderSettings::DrawBackfaces | Mesh::ShaderSettings::ForceDrawOnTop | Mesh::ShaderSettings::DrawLinesAA | Mesh::ShaderSettings::DontOverrideShaderSettings | Mesh::ShaderSettings::ThickLines | Mesh::ShaderSettings::DiscardZeroColor);
 	m_models[LevelModels::LEVEL]->SetMesh(&m_highLODMesh);
+	m_models[LevelModels::FILTER]->SetMesh(&m_filterEdgeHighLODMesh);
 }
 
 void Level::UpdateAnimationRenderData()
@@ -1878,7 +1884,7 @@ void Level::UpdateAnimationRenderData()
 			if (baseTriangleIndex == RENDER_INDEX_NONE) { continue; }
 
 			const std::filesystem::path texturePath = textures[frame.textureIndex].GetPath();
-			std::vector<Tri> qbTriangles = qb.ToGeometry(&uvs, &texturePath);
+			std::vector<Tri> qbTriangles = qb.ToGeometry(false, &uvs, &texturePath);
 			for (size_t triIndex = 0; triIndex < qbTriangles.size(); triIndex++)
 			{
 				m_highLODMesh.UpdateTriangle(qbTriangles[triIndex], baseTriangleIndex + triIndex);
@@ -1891,36 +1897,11 @@ void Level::UpdateFilterRenderData(const Quadblock& qb)
 {
 	const size_t baseTriangleIndex = qb.GetRenderTriangleIndex();
 	if (baseTriangleIndex == RENDER_INDEX_NONE) { return; }
-	const size_t baseVertexIndex = baseTriangleIndex * 3;
 
-	const Vertex* verts = qb.GetUnswizzledVertices();
-	const Color& filterColor = qb.GetFilter() ? qb.GetFilterColor() : Color(static_cast<unsigned char>(0u), static_cast<unsigned char>(0u), static_cast<unsigned char>(0u));
-	Vertex filterVerts[NUM_VERTICES_QUADBLOCK];
-	for (size_t i = 0; i < NUM_VERTICES_QUADBLOCK; i++)
+	std::vector<Tri> qbFilterTriangles = qb.ToGeometry(true);
+	for (size_t triIndex = 0; triIndex < qbFilterTriangles.size(); triIndex++)
 	{
-		const Vec3& pos = verts[i].m_pos;
-		Vertex v = Vertex(Point(pos.x, pos.y, pos.z, filterColor.r, filterColor.g, filterColor.b));
-		v.m_normal = verts[i].m_normal;
-		filterVerts[i] = v;
-	}
-
-	if (qb.IsQuadblock())
-	{
-		for (int triIndex = 0; triIndex < 8; triIndex++)
-		{
-			m_filterEdgeHighLODMesh.UpdatePoint(filterVerts[FaceIndexConstants::quadHLODVertArrangements[triIndex][0]], baseVertexIndex + triIndex * 3);
-			m_filterEdgeHighLODMesh.UpdatePoint(filterVerts[FaceIndexConstants::quadHLODVertArrangements[triIndex][1]], baseVertexIndex + triIndex * 3 + 1);
-			m_filterEdgeHighLODMesh.UpdatePoint(filterVerts[FaceIndexConstants::quadHLODVertArrangements[triIndex][2]], baseVertexIndex + triIndex * 3 + 2);
-		}
-	}
-	else
-	{
-		for (int triIndex = 0; triIndex < 4; triIndex++)
-		{
-			m_filterEdgeHighLODMesh.UpdatePoint(filterVerts[FaceIndexConstants::triHLODVertArrangements[triIndex][0]], baseVertexIndex + triIndex * 3);
-			m_filterEdgeHighLODMesh.UpdatePoint(filterVerts[FaceIndexConstants::triHLODVertArrangements[triIndex][1]], baseVertexIndex + triIndex * 3 + 1);
-			m_filterEdgeHighLODMesh.UpdatePoint(filterVerts[FaceIndexConstants::triHLODVertArrangements[triIndex][2]], baseVertexIndex + triIndex * 3 + 2);
-		}
+		m_filterEdgeHighLODMesh.UpdateTriangle(qbFilterTriangles[triIndex], baseTriangleIndex + triIndex);
 	}
 }
 

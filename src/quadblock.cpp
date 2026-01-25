@@ -632,7 +632,7 @@ const BoundingBox& Quadblock::GetBoundingBox() const
 	return m_bbox;
 }
 
-std::vector<Tri> Quadblock::ToGeometry(const std::array<QuadUV, NUM_FACES_QUADBLOCK + 1>* overrideUvs, const std::filesystem::path* overrideTexturePath) const
+std::vector<Tri> Quadblock::ToGeometry(bool filterTriangles, const std::array<QuadUV, NUM_FACES_QUADBLOCK + 1>* overrideUvs, const std::filesystem::path* overrideTexturePath) const
 {
 	constexpr int NUM_VERTICES_QUAD = 4;
 	constexpr int uvVertInd[NUM_FACES_QUADBLOCK + 1][NUM_VERTICES_QUAD] =
@@ -648,6 +648,7 @@ std::vector<Tri> Quadblock::ToGeometry(const std::array<QuadUV, NUM_FACES_QUADBL
 	const int triCount = isQuadblock ? 8 : 4;
 	const std::filesystem::path& texPath = overrideTexturePath ? *overrideTexturePath : m_texPath;
 	const std::array<QuadUV, NUM_FACES_QUADBLOCK + 1>& uvs = overrideUvs ? *overrideUvs : m_uvs;
+	const Color filterColor = GetFilter() ? GetFilterColor() : Color(static_cast<unsigned char>(0u), static_cast<unsigned char>(0u), static_cast<unsigned char>(0u));
 
 	auto GetUVForVertex = [&](int quadInd, int vertInd) -> Vec2
 		{
@@ -667,6 +668,7 @@ std::vector<Tri> Quadblock::ToGeometry(const std::array<QuadUV, NUM_FACES_QUADBL
 			return (triIndex == 2) ? 1 : 2;
 		};
 
+	const std::string textureString = filterTriangles ? std::string() : texPath.string();
 	std::vector<Tri> triangles;
 	triangles.reserve(triCount);
 	for (int triIndex = 0; triIndex < triCount; triIndex++)
@@ -675,15 +677,15 @@ std::vector<Tri> Quadblock::ToGeometry(const std::array<QuadUV, NUM_FACES_QUADBL
 		const int* triVerts = isQuadblock ? FaceIndexConstants::quadHLODVertArrangements[triIndex] : FaceIndexConstants::triHLODVertArrangements[triIndex];
 
 		Tri tri;
-		tri.texture = texPath.string();
+		tri.texture = textureString;
 		for (int i = 0; i < 3; i++)
 		{
 			const int vertIndex = triVerts[i];
 			const Vertex& vert = m_p[vertIndex];
 			tri.p[i].pos = vert.m_pos;
 			tri.p[i].normal = vert.m_normal;
-			tri.p[i].color = vert.GetColor(true);
-			tri.p[i].uv = GetUVForVertex(quadIndex, vertIndex);
+			tri.p[i].color = filterTriangles ? filterColor : vert.GetColor(true);
+			tri.p[i].uv = filterTriangles ? Vec2() : GetUVForVertex(quadIndex, vertIndex);
 		}
 		triangles.push_back(tri);
 	}
