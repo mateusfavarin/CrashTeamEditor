@@ -1795,37 +1795,6 @@ void Level::GeomPoint(const Vertex* verts, int ind, std::vector<float>& data)
 	data.push_back(verts[ind].m_normal.z);
 }
 
-void Level::GeomUVs(const std::array<QuadUV, NUM_FACES_QUADBLOCK + 1>& uvs, int quadInd, int vertInd, std::vector<float>& data, int textureIndex)
-{
-	/* 062 is triblock
-	p0 -- p1 -- p2
-	|  q0 |  q1 |
-	p3 -- p4 -- p5
-	|  q2 |  q3 |
-	p6 -- p7 -- p8
-	*/
-	const QuadUV& quv = uvs[quadInd];
-	constexpr int NUM_VERTICES_QUAD = 4;
-	constexpr int uvVertInd[NUM_FACES_QUADBLOCK + 1][NUM_VERTICES_QUAD] =
-	{
-		{0, 1, 3, 4},
-		{1, 2, 4, 5},
-		{3, 4, 6, 7},
-		{4, 5, 7, 8},
-		{0, 2, 6, 8},
-	};
-
-	int vertIndInUvs = 0;
-	for (int i = 0; i < NUM_VERTICES_QUAD; i++)
-	{
-		if (vertInd == uvVertInd[quadInd][i]) { vertIndInUvs = i; break; }
-	}
-	const Vec2& uv = quv[vertIndInUvs];
-	data.push_back(uv.x);
-	data.push_back(uv.y);
-	data.push_back(std::bit_cast<float>(textureIndex)); //todo, do this in geometry shader since ID is the same for all 3 verts for this tri
-}
-
 void Level::GeomOctopoint(const Vertex* verts, int ind, std::vector<float>& data)
 {
 	constexpr float radius = 0.5f;
@@ -1863,67 +1832,6 @@ void Level::GeomOctopoint(const Vertex* verts, int ind, std::vector<float>& data
 	v.m_pos.x -= radius; v.m_normal = Vec3(-1.f / sqrtThree, -1.f / sqrtThree, -1.f / sqrtThree); GeomPoint(&v, 0, data); v.m_pos.x += radius;
 	v.m_pos.y -= radius; GeomPoint(&v, 0, data); v.m_pos.y += radius;
 	v.m_pos.z -= radius; GeomPoint(&v, 0, data); v.m_pos.z += radius;
-}
-
-void Level::GeomBoundingRect(const BSP* bsp, int depth, std::vector<float>& data)
-{
-	constexpr float sqrtThree = 1.44224957031f;
-
-	if (GuiRenderSettings::bspTreeMaxDepth < depth)
-	{
-		GuiRenderSettings::bspTreeMaxDepth = depth;
-	}
-	const BoundingBox& bb = bsp->GetBoundingBox();
-	Color c = Color(depth * 30.0, 1.0, 1.0);
-	Vertex verts[] = {
-		Vertex(Point(bb.min.x, bb.min.y, bb.min.z, c.r, c.g, c.b)), //---
-		Vertex(Point(bb.min.x, bb.min.y, bb.max.z, c.r, c.g, c.b)), //--+
-		Vertex(Point(bb.min.x, bb.max.y, bb.min.z, c.r, c.g, c.b)), //-+-
-		Vertex(Point(bb.max.x, bb.min.y, bb.min.z, c.r, c.g, c.b)), //+--
-		Vertex(Point(bb.max.x, bb.max.y, bb.min.z, c.r, c.g, c.b)), //++-
-		Vertex(Point(bb.min.x, bb.max.y, bb.max.z, c.r, c.g, c.b)), //-++
-		Vertex(Point(bb.max.x, bb.min.y, bb.max.z, c.r, c.g, c.b)), //+-+
-		Vertex(Point(bb.max.x, bb.max.y, bb.max.z, c.r, c.g, c.b)), //+++
-	};
-	//these normals are octohedral, should technechally be duplicated and vertex normals should probably be for faces.
-	verts[0].m_normal = Vec3(-1.f / sqrtThree, -1.f / sqrtThree, -1.f / sqrtThree);
-	verts[1].m_normal = Vec3(-1.f / sqrtThree, -1.f / sqrtThree, 1.f / sqrtThree);
-	verts[2].m_normal = Vec3(-1.f / sqrtThree, 1.f / sqrtThree, -1.f / sqrtThree);
-	verts[3].m_normal = Vec3(1.f / sqrtThree, -1.f / sqrtThree, -1.f / sqrtThree);
-	verts[4].m_normal = Vec3(1.f / sqrtThree, 1.f / sqrtThree, -1.f / sqrtThree);
-	verts[5].m_normal = Vec3(-1.f / sqrtThree, 1.f / sqrtThree, 1.f / sqrtThree);
-	verts[6].m_normal = Vec3(1.f / sqrtThree, -1.f / sqrtThree, 1.f / sqrtThree);
-	verts[7].m_normal = Vec3(1.f / sqrtThree, 1.f / sqrtThree, 1.f / sqrtThree);
-
-	if (GuiRenderSettings::bspTreeTopDepth <= depth && GuiRenderSettings::bspTreeBottomDepth >= depth)
-	{
-		constexpr int NUM_EDGES = 12;
-		constexpr int EDGE_VERTS = 2;
-		const int edgeIndexes[NUM_EDGES][EDGE_VERTS] =
-		{
-			{0, 1}, {2, 5}, {3, 6}, {4, 7},
-			{0, 2}, {1, 5}, {3, 4}, {6, 7},
-			{0, 3}, {1, 6}, {2, 4}, {5, 7},
-		};
-
-		for (int i = 0; i < NUM_EDGES; i++)
-		{
-			const int a = edgeIndexes[i][0];
-			const int b = edgeIndexes[i][1];
-			GeomPoint(verts, a, data);
-			GeomPoint(verts, b, data);
-			GeomPoint(verts, b, data);
-		}
-	}
-
-	if (bsp->GetLeftChildren() != nullptr)
-	{
-		GeomBoundingRect(bsp->GetLeftChildren(), depth + 1, data);
-	}
-	if (bsp->GetRightChildren() != nullptr)
-	{
-		GeomBoundingRect(bsp->GetRightChildren(), depth + 1, data);
-	}
 }
 
 void Level::InitModels(Renderer& renderer)
