@@ -14,6 +14,12 @@ class Model
 public:
 	Model();
   Mesh& GetMesh();
+	void SetPosition(const Vec3& pos);
+	void SetScale(const Vec3& scale);
+	void SetRotation(const Vec3& rotation);
+	Vec3 GetPosition() const;
+	Vec3 GetScale() const;
+	Vec3 GetRotation() const;
 	void SetRenderCondition(const std::function<bool()>& renderCondition);
 	void Clear();
 	bool IsReady() const;
