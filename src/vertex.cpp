@@ -46,3 +46,67 @@ Color Vertex::GetColor(bool high) const
 {
 	return high ? m_colorHigh : m_colorLow;
 }
+
+std::vector<Tri> Vertex::ToGeometry(bool highColor) const
+{
+	constexpr float radius = 0.5f;
+	constexpr float sqrtThree = 1.44224957031f;
+	constexpr size_t vertsPerOctopoint = 24;
+	constexpr size_t trisPerOctopoint = vertsPerOctopoint / 3;
+
+	std::vector<Point> points;
+	points.reserve(vertsPerOctopoint);
+
+	auto AppendPoint = [&](const Vertex& vert)
+		{
+			Point p;
+			p.pos = vert.m_pos;
+			p.normal = vert.m_normal;
+			p.color = vert.GetColor(highColor);
+			p.uv = Vec2();
+			points.push_back(p);
+		};
+
+	Vertex v(*this);
+	v.m_pos.x += radius; v.m_normal = Vec3(1.f / sqrtThree, 1.f / sqrtThree, 1.f / sqrtThree); AppendPoint(v); v.m_pos.x -= radius;
+	v.m_pos.y += radius; AppendPoint(v); v.m_pos.y -= radius;
+	v.m_pos.z += radius; AppendPoint(v); v.m_pos.z -= radius;
+
+	v.m_pos.x -= radius; v.m_normal = Vec3(-1.f / sqrtThree, 1.f / sqrtThree, 1.f / sqrtThree); AppendPoint(v); v.m_pos.x += radius;
+	v.m_pos.y += radius; AppendPoint(v); v.m_pos.y -= radius;
+	v.m_pos.z += radius; AppendPoint(v); v.m_pos.z -= radius;
+
+	v.m_pos.x += radius; v.m_normal = Vec3(1.f / sqrtThree, -1.f / sqrtThree, 1.f / sqrtThree); AppendPoint(v); v.m_pos.x -= radius;
+	v.m_pos.y -= radius; AppendPoint(v); v.m_pos.y += radius;
+	v.m_pos.z += radius; AppendPoint(v); v.m_pos.z -= radius;
+
+	v.m_pos.x += radius; v.m_normal = Vec3(1.f / sqrtThree, 1.f / sqrtThree, -1.f / sqrtThree); AppendPoint(v); v.m_pos.x -= radius;
+	v.m_pos.y += radius; AppendPoint(v); v.m_pos.y -= radius;
+	v.m_pos.z -= radius; AppendPoint(v); v.m_pos.z += radius;
+
+	v.m_pos.x -= radius; v.m_normal = Vec3(-1.f / sqrtThree, -1.f / sqrtThree, 1.f / sqrtThree); AppendPoint(v); v.m_pos.x += radius;
+	v.m_pos.y -= radius; AppendPoint(v); v.m_pos.y += radius;
+	v.m_pos.z += radius; AppendPoint(v); v.m_pos.z -= radius;
+
+	v.m_pos.x += radius; v.m_normal = Vec3(1.f / sqrtThree, -1.f / sqrtThree, -1.f / sqrtThree); AppendPoint(v); v.m_pos.x -= radius;
+	v.m_pos.y -= radius; AppendPoint(v); v.m_pos.y += radius;
+	v.m_pos.z -= radius; AppendPoint(v); v.m_pos.z += radius;
+
+	v.m_pos.x -= radius; v.m_normal = Vec3(-1.f / sqrtThree, 1.f / sqrtThree, -1.f / sqrtThree); AppendPoint(v); v.m_pos.x += radius;
+	v.m_pos.y += radius; AppendPoint(v); v.m_pos.y -= radius;
+	v.m_pos.z -= radius; AppendPoint(v); v.m_pos.z += radius;
+
+	v.m_pos.x -= radius; v.m_normal = Vec3(-1.f / sqrtThree, -1.f / sqrtThree, -1.f / sqrtThree); AppendPoint(v); v.m_pos.x += radius;
+	v.m_pos.y -= radius; AppendPoint(v); v.m_pos.y += radius;
+	v.m_pos.z -= radius; AppendPoint(v); v.m_pos.z += radius;
+
+	std::vector<Tri> triangles;
+	triangles.reserve(trisPerOctopoint);
+	for (size_t i = 0; i + 2 < points.size(); i += 3)
+	{
+		Tri tri(points[i], points[i + 1], points[i + 2]);
+		triangles.push_back(tri);
+	}
+
+	return triangles;
+}

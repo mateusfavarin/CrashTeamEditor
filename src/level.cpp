@@ -1990,15 +1990,17 @@ void Level::GenerateRenderStartpointData(std::array<Spawn, NUM_DRIVERS>& spawns)
 	if (!m_models[LevelModels::SPAWN]) { return; }
 
 	static Mesh spawnsMesh;
-	std::vector<float> spawnsData;
+	std::vector<Tri> spawnsTriangles;
+	spawnsTriangles.reserve(spawns.size() * 8);
 
 	for (Spawn& e : spawns)
 	{
 		Vertex v = Vertex(Point(e.pos.x, e.pos.y, e.pos.z, 0, 128, 255));
-		GeomOctopoint(&v, 0, spawnsData);
+		const std::vector<Tri> tris = v.ToGeometry();
+		spawnsTriangles.insert(spawnsTriangles.end(), tris.begin(), tris.end());
 	}
 
-	spawnsMesh.UpdateMesh(spawnsData, Mesh::VBufDataType::None, Mesh::ShaderSettings::None);
+	spawnsMesh.SetGeometry(spawnsTriangles, Mesh::ShaderSettings::None);
 	m_models[LevelModels::SPAWN]->SetMesh(&spawnsMesh);
 }
 
