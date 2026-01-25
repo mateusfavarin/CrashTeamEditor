@@ -39,11 +39,7 @@ public:
 public:
 	Mesh();
 	void SetGeometry(const std::vector<Tri>& triangles, unsigned shaderSettings);
-	void UpdateMesh(const std::vector<float>& data, unsigned includedDataFlags, unsigned shadSettings);
-	void UpdatePoint(const Vertex& vert, size_t vertexIndex);
-	void UpdateOctoPoint(const Vertex& vert, size_t baseVertexIndex);
 	void UpdateTriangle(const Tri& tri, size_t triangleIndex);
-	void UpdateUV(const Vec2& uv, int textureIndex, size_t vertexIndex);
 	int GetDatas() const;
 	int GetShaderSettings() const;
 	void SetShaderSettings(unsigned shadSettings);
@@ -52,6 +48,7 @@ public:
 	void Clear();
 
 private:
+	void UpdateMesh(const std::vector<float>& data, unsigned includedDataFlags, unsigned shadSettings);
 	void AppendTextureStore(const std::filesystem::path& texturePath);
 	std::vector<unsigned char> LoadTextureData(const std::filesystem::path& path);
 	void RebuildTextureData();

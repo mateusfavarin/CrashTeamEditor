@@ -82,10 +82,7 @@ private:
 	void GenerateRenderCheckpointData(std::vector<Checkpoint>&);
 	void GenerateRenderStartpointData(std::array<Spawn, NUM_DRIVERS>&);
 	void GenerateRenderSelectedBlockData(const Quadblock& quadblock, const Vec3& queryPoint);
-	void GenerateRenderMultipleQuadsData(const std::vector<Quadblock*>& quads);
 	bool UpdateAnimTextures(float deltaTime);
-	void GeomPoint(const Vertex* verts, int ind, std::vector<float>& data);
-	void GeomOctopoint(const Vertex* verts, int ind, std::vector<float>& data);
 	void ViewportClickHandleBlockSelection(int pixelX, int pixelY, bool appendSelection, const Renderer& rend);
 
 	friend class UI;

@@ -217,68 +217,6 @@ void Mesh::UpdateMesh(const std::vector<float>& data, unsigned includedDataFlags
 	glBindVertexArray(0);
 }
 
-void Mesh::UpdatePoint(const Vertex& vert, size_t vertexIndex)
-{
-	if (m_VBO == 0) { return; }
-	const int stride = GetStrideFloats(m_includedData);
-	if (stride <= 0) { return; }
-	constexpr int posOffset = 0;
-	constexpr int colorOffset = 3;
-	constexpr int normalOffset = 6;
-
-	const float posData[3] = { vert.m_pos.x, vert.m_pos.y, vert.m_pos.z };
-	Color col = vert.GetColor(true);
-	const float colorData[3] = { col.Red(), col.Green(), col.Blue() };
-	const float normalData[3] = { vert.m_normal.x, vert.m_normal.y, vert.m_normal.z };
-
-	glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
-	glBufferSubData(GL_ARRAY_BUFFER, static_cast<GLintptr>((vertexIndex * stride + posOffset) * sizeof(float)), sizeof(posData), posData);
-	glBufferSubData(GL_ARRAY_BUFFER, static_cast<GLintptr>((vertexIndex * stride + colorOffset) * sizeof(float)), sizeof(colorData), colorData);
-	glBufferSubData(GL_ARRAY_BUFFER, static_cast<GLintptr>((vertexIndex * stride + normalOffset) * sizeof(float)), sizeof(normalData), normalData);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-}
-
-void Mesh::UpdateOctoPoint(const Vertex& vert, size_t baseVertexIndex)
-{
-	constexpr float radius = 0.5f;
-	constexpr float sqrtThree = 1.44224957031f;
-
-	Vertex v = Vertex(vert);
-	size_t vertexIndex = baseVertexIndex;
-
-	v.m_pos.x += radius; v.m_normal = Vec3(1.f / sqrtThree, 1.f / sqrtThree, 1.f / sqrtThree); UpdatePoint(v, vertexIndex++); v.m_pos.x -= radius;
-	v.m_pos.y += radius; UpdatePoint(v, vertexIndex++); v.m_pos.y -= radius;
-	v.m_pos.z += radius; UpdatePoint(v, vertexIndex++); v.m_pos.z -= radius;
-
-	v.m_pos.x -= radius; v.m_normal = Vec3(-1.f / sqrtThree, 1.f / sqrtThree, 1.f / sqrtThree); UpdatePoint(v, vertexIndex++); v.m_pos.x += radius;
-	v.m_pos.y += radius; UpdatePoint(v, vertexIndex++); v.m_pos.y -= radius;
-	v.m_pos.z += radius; UpdatePoint(v, vertexIndex++); v.m_pos.z -= radius;
-
-	v.m_pos.x += radius; v.m_normal = Vec3(1.f / sqrtThree, -1.f / sqrtThree, 1.f / sqrtThree); UpdatePoint(v, vertexIndex++); v.m_pos.x -= radius;
-	v.m_pos.y -= radius; UpdatePoint(v, vertexIndex++); v.m_pos.y += radius;
-	v.m_pos.z += radius; UpdatePoint(v, vertexIndex++); v.m_pos.z -= radius;
-
-	v.m_pos.x += radius; v.m_normal = Vec3(1.f / sqrtThree, 1.f / sqrtThree, -1.f / sqrtThree); UpdatePoint(v, vertexIndex++); v.m_pos.x -= radius;
-	v.m_pos.y += radius; UpdatePoint(v, vertexIndex++); v.m_pos.y -= radius;
-	v.m_pos.z -= radius; UpdatePoint(v, vertexIndex++); v.m_pos.z += radius;
-
-	v.m_pos.x -= radius; v.m_normal = Vec3(-1.f / sqrtThree, -1.f / sqrtThree, 1.f / sqrtThree); UpdatePoint(v, vertexIndex++); v.m_pos.x += radius;
-	v.m_pos.y -= radius; UpdatePoint(v, vertexIndex++); v.m_pos.y += radius;
-	v.m_pos.z += radius; UpdatePoint(v, vertexIndex++); v.m_pos.z -= radius;
-
-	v.m_pos.x += radius; v.m_normal = Vec3(1.f / sqrtThree, -1.f / sqrtThree, -1.f / sqrtThree); UpdatePoint(v, vertexIndex++); v.m_pos.x -= radius;
-	v.m_pos.y -= radius; UpdatePoint(v, vertexIndex++); v.m_pos.y += radius;
-	v.m_pos.z -= radius; UpdatePoint(v, vertexIndex++); v.m_pos.z += radius;
-
-	v.m_pos.x -= radius; v.m_normal = Vec3(-1.f / sqrtThree, 1.f / sqrtThree, -1.f / sqrtThree); UpdatePoint(v, vertexIndex++); v.m_pos.x += radius;
-	v.m_pos.y += radius; UpdatePoint(v, vertexIndex++); v.m_pos.y -= radius;
-	v.m_pos.z -= radius; UpdatePoint(v, vertexIndex++); v.m_pos.z += radius;
-
-	v.m_pos.x -= radius; v.m_normal = Vec3(-1.f / sqrtThree, -1.f / sqrtThree, -1.f / sqrtThree); UpdatePoint(v, vertexIndex++); v.m_pos.x += radius;
-	v.m_pos.y -= radius; UpdatePoint(v, vertexIndex++); v.m_pos.y += radius;
-	v.m_pos.z -= radius; UpdatePoint(v, vertexIndex++); v.m_pos.z += radius;
-}
-
 void Mesh::UpdateTriangle(const Tri& tri, size_t triangleIndex)
 {
 	if (m_VBO == 0) { return; }
@@ -317,24 +255,6 @@ void Mesh::UpdateTriangle(const Tri& tri, size_t triangleIndex)
 			glBufferSubData(GL_ARRAY_BUFFER, static_cast<GLintptr>((vertexIndex * stride + 11) * sizeof(float)), sizeof(texIndexData), &texIndexData);
 		}
 	}
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-}
-
-void Mesh::UpdateUV(const Vec2& uv, int textureIndex, size_t vertexIndex)
-{
-	if (m_VBO == 0) { return; }
-	if ((m_includedData & VBufDataType::UV) == 0) { return; }
-	const int stride = GetStrideFloats(m_includedData);
-	if (stride <= 0) { return; }
-	constexpr int uvOffset = 9;
-	constexpr int texOffset = 11;
-
-	const float uvData[2] = { uv.x, uv.y };
-	const float texIndexData = std::bit_cast<float>(textureIndex);
-
-	glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
-	glBufferSubData(GL_ARRAY_BUFFER, static_cast<GLintptr>((vertexIndex * stride + uvOffset) * sizeof(float)), sizeof(uvData), uvData);
-	glBufferSubData(GL_ARRAY_BUFFER, static_cast<GLintptr>((vertexIndex * stride + texOffset) * sizeof(float)), sizeof(texIndexData), &texIndexData);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 

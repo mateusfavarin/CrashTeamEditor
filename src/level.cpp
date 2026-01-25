@@ -1780,60 +1780,6 @@ bool Level::UpdateAnimTextures(float deltaTime)
 	return changed;
 }
 
-void Level::GeomPoint(const Vertex* verts, int ind, std::vector<float>& data)
-{
-	//data order: position, color, normal, uv (if present), texindex
-	data.push_back(verts[ind].m_pos.x);
-	data.push_back(verts[ind].m_pos.y);
-	data.push_back(verts[ind].m_pos.z);
-	Color col = verts[ind].GetColor(true);
-	data.push_back(col.Red());
-	data.push_back(col.Green());
-	data.push_back(col.Blue());
-	data.push_back(verts[ind].m_normal.x);
-	data.push_back(verts[ind].m_normal.y);
-	data.push_back(verts[ind].m_normal.z);
-}
-
-void Level::GeomOctopoint(const Vertex* verts, int ind, std::vector<float>& data)
-{
-	constexpr float radius = 0.5f;
-	constexpr float sqrtThree = 1.44224957031f;
-
-	Vertex v = Vertex(verts[ind]);
-	v.m_pos.x += radius; v.m_normal = Vec3(1.f / sqrtThree, 1.f / sqrtThree, 1.f / sqrtThree); GeomPoint(&v, 0, data); v.m_pos.x -= radius;
-	v.m_pos.y += radius; GeomPoint(&v, 0, data); v.m_pos.y -= radius;
-	v.m_pos.z += radius; GeomPoint(&v, 0, data); v.m_pos.z -= radius;
-
-	v.m_pos.x -= radius; v.m_normal = Vec3(-1.f / sqrtThree, 1.f / sqrtThree, 1.f / sqrtThree); GeomPoint(&v, 0, data); v.m_pos.x += radius;
-	v.m_pos.y += radius; GeomPoint(&v, 0, data); v.m_pos.y -= radius;
-	v.m_pos.z += radius; GeomPoint(&v, 0, data); v.m_pos.z -= radius;
-
-	v.m_pos.x += radius; v.m_normal = Vec3(1.f / sqrtThree, -1.f / sqrtThree, 1.f / sqrtThree); GeomPoint(&v, 0, data); v.m_pos.x -= radius;
-	v.m_pos.y -= radius; GeomPoint(&v, 0, data); v.m_pos.y += radius;
-	v.m_pos.z += radius; GeomPoint(&v, 0, data); v.m_pos.z -= radius;
-
-	v.m_pos.x += radius; v.m_normal = Vec3(1.f / sqrtThree, 1.f / sqrtThree, -1.f / sqrtThree); GeomPoint(&v, 0, data); v.m_pos.x -= radius;
-	v.m_pos.y += radius; GeomPoint(&v, 0, data); v.m_pos.y -= radius;
-	v.m_pos.z -= radius; GeomPoint(&v, 0, data); v.m_pos.z += radius;
-
-	v.m_pos.x -= radius; v.m_normal = Vec3(-1.f / sqrtThree, -1.f / sqrtThree, 1.f / sqrtThree); GeomPoint(&v, 0, data); v.m_pos.x += radius;
-	v.m_pos.y -= radius; GeomPoint(&v, 0, data); v.m_pos.y += radius;
-	v.m_pos.z += radius; GeomPoint(&v, 0, data); v.m_pos.z -= radius;
-
-	v.m_pos.x += radius; v.m_normal = Vec3(1.f / sqrtThree, -1.f / sqrtThree, -1.f / sqrtThree); GeomPoint(&v, 0, data); v.m_pos.x -= radius;
-	v.m_pos.y -= radius; GeomPoint(&v, 0, data); v.m_pos.y += radius;
-	v.m_pos.z -= radius; GeomPoint(&v, 0, data); v.m_pos.z += radius;
-
-	v.m_pos.x -= radius; v.m_normal = Vec3(-1.f / sqrtThree, 1.f / sqrtThree, -1.f / sqrtThree); GeomPoint(&v, 0, data); v.m_pos.x += radius;
-	v.m_pos.y += radius; GeomPoint(&v, 0, data); v.m_pos.y -= radius;
-	v.m_pos.z -= radius; GeomPoint(&v, 0, data); v.m_pos.z += radius;
-
-	v.m_pos.x -= radius; v.m_normal = Vec3(-1.f / sqrtThree, -1.f / sqrtThree, -1.f / sqrtThree); GeomPoint(&v, 0, data); v.m_pos.x += radius;
-	v.m_pos.y -= radius; GeomPoint(&v, 0, data); v.m_pos.y += radius;
-	v.m_pos.z -= radius; GeomPoint(&v, 0, data); v.m_pos.z += radius;
-}
-
 void Level::InitModels(Renderer& renderer)
 {
 	for (auto& m : m_models) { m = renderer.CreateModel(); }
@@ -1965,7 +1911,8 @@ void Level::GenerateRenderCheckpointData(std::vector<Checkpoint>& checkpoints)
 	if (!m_models[LevelModels::CHECKPOINT] || checkpoints.empty()) { return; }
 
 	static Mesh checkMesh;
-	std::vector<float> checkData;
+	std::vector<Tri> checkTriangles;
+	checkTriangles.reserve(checkpoints.size() * 8);
 	std::unordered_set<int> selectedCheckpointIndexes; // Contain the ID of the checkpoints from selected quads
 	for (size_t index : m_rendererSelectedQuadblockIndexes)
 	{
@@ -1978,10 +1925,11 @@ void Level::GenerateRenderCheckpointData(std::vector<Checkpoint>& checkpoints)
 		bool selected = selectedCheckpointIndexes.contains(e.GetIndex());
 		const Color& c = selected ? GuiRenderSettings::selectedCheckpointColor : e.GetColor();
 		Vertex v = Vertex(Point(e.GetPos().x, e.GetPos().y, e.GetPos().z, c.r, c.g, c.b));
-		GeomOctopoint(&v, 0, checkData);
+		const std::vector<Tri> tris = v.ToGeometry();
+		checkTriangles.insert(checkTriangles.end(), tris.begin(), tris.end());
 	}
 
-	checkMesh.UpdateMesh(checkData, Mesh::VBufDataType::None, Mesh::ShaderSettings::None);
+	checkMesh.SetGeometry(checkTriangles, Mesh::ShaderSettings::None);
 	m_models[LevelModels::CHECKPOINT]->SetMesh(&checkMesh);
 }
 
@@ -2011,72 +1959,27 @@ void Level::GenerateRenderSelectedBlockData(const Quadblock& quadblock, const Ve
 	m_rendererQueryPoint = queryPoint;
 
 	static Mesh quadblockMesh;
-	std::vector<float> data;
-	auto AppendSelectedQuadblock = [&](const Quadblock& selected)
-		{
-			const Vertex* verts = selected.GetUnswizzledVertices();
-			bool isQuadblock = selected.IsQuadblock();
-			Vertex recoloredVerts[9];
-			for (int i = 0; i < (isQuadblock ? 9 : 7); i++) //7 not 6 bc index correction
-			{
-				Color negated = verts[i].GetColor(true).Negated();
-				recoloredVerts[i] = Point(0, 0, 0, negated.r, negated.g, negated.b); //pos reassigned in next line
-				recoloredVerts[i].m_pos = verts[i].m_pos;
-				recoloredVerts[i].m_normal = verts[i].m_normal;
-				if (!isQuadblock && i == 4)
-				{ //index correction for tris, since tris use 01234-6
-					i++;
-				}
-			}
+	std::vector<Tri> triangles;
+	triangles.reserve(m_rendererSelectedQuadblockIndexes.size() * 8 + 8);
 
-			if (isQuadblock)
-			{
-				//LLOD
-				/*for (int triIndex = 0; triIndex < 2; triIndex++)
-				{
-					GeomPoint(recoloredVerts, FaceIndexConstants::quadLLODVertArrangements[triIndex][0], data);
-					GeomPoint(recoloredVerts, FaceIndexConstants::quadLLODVertArrangements[triIndex][1], data);
-					GeomPoint(recoloredVerts, FaceIndexConstants::quadLLODVertArrangements[triIndex][2], data);
-				}*/
-				//HLOD
-				for (int triIndex = 0; triIndex < 8; triIndex++)
-				{
-					GeomPoint(recoloredVerts, FaceIndexConstants::quadHLODVertArrangements[triIndex][0], data);
-					GeomPoint(recoloredVerts, FaceIndexConstants::quadHLODVertArrangements[triIndex][1], data);
-					GeomPoint(recoloredVerts, FaceIndexConstants::quadHLODVertArrangements[triIndex][2], data);
-				}
-			}
-			else
-			{
-				//LLOD
-				/*for (int triIndex = 0; triIndex < 1; triIndex++)
-				{
-					GeomPoint(recoloredVerts, FaceIndexConstants::triLLODVertArrangements[triIndex][0], data);
-					GeomPoint(recoloredVerts, FaceIndexConstants::triLLODVertArrangements[triIndex][1], data);
-					GeomPoint(recoloredVerts, FaceIndexConstants::triLLODVertArrangements[triIndex][2], data);
-				}*/
-				//HLOD
-				for (int triIndex = 0; triIndex < 4; triIndex++)
-				{
-					GeomPoint(recoloredVerts, FaceIndexConstants::triHLODVertArrangements[triIndex][0], data);
-					GeomPoint(recoloredVerts, FaceIndexConstants::triHLODVertArrangements[triIndex][1], data);
-					GeomPoint(recoloredVerts, FaceIndexConstants::triHLODVertArrangements[triIndex][2], data);
-				}
-			}
-		};
-
+	const std::filesystem::path emptyTexturePath;
+	const std::array<QuadUV, NUM_FACES_QUADBLOCK + 1> emptyUvs = {};
 	for (size_t index : m_rendererSelectedQuadblockIndexes)
 	{
-		if (index < m_quadblocks.size())
+		const Quadblock& qb = m_quadblocks[index];
+		std::vector<Tri> qbTriangles = qb.ToGeometry(false, &emptyUvs, &emptyTexturePath);
+		for (Tri& tri : qbTriangles)
 		{
-			AppendSelectedQuadblock(m_quadblocks[index]);
+			for (Point& point : tri.p) { point.color = point.color.Negated(); }
+			triangles.push_back(tri);
 		}
 	}
 
 	Vertex v = Vertex(Point(queryPoint.x, queryPoint.y, queryPoint.z, 255, 0, 0));
-	GeomOctopoint(&v, 0, data);
+	const std::vector<Tri> queryTriangles = v.ToGeometry();
+	triangles.insert(triangles.end(), queryTriangles.begin(), queryTriangles.end());
 
-	quadblockMesh.UpdateMesh(data, Mesh::VBufDataType::None, (Mesh::ShaderSettings::DrawWireframe | Mesh::ShaderSettings::DrawBackfaces | Mesh::ShaderSettings::ForceDrawOnTop | Mesh::ShaderSettings::DrawLinesAA | Mesh::ShaderSettings::DontOverrideShaderSettings | Mesh::ShaderSettings::Blinky));
+	quadblockMesh.SetGeometry(triangles, (Mesh::ShaderSettings::DrawWireframe | Mesh::ShaderSettings::DrawBackfaces | Mesh::ShaderSettings::ForceDrawOnTop | Mesh::ShaderSettings::DrawLinesAA | Mesh::ShaderSettings::DontOverrideShaderSettings | Mesh::ShaderSettings::Blinky));
 	m_models[LevelModels::SELECTED]->SetMesh(&quadblockMesh);
 
 	if (GuiRenderSettings::showVisTree)
@@ -2089,8 +1992,8 @@ void Level::GenerateRenderSelectedBlockData(const Quadblock& quadblock, const Ve
 			if (bsp.GetId() == quadblock.GetBSPID()) { myBSPIndex = bsp_index; }
 		}
 
-		std::vector<Quadblock*> quadsToSelect;
-
+		static Mesh multiQuadblockMesh;
+		std::vector<Tri> multiTriangles;
 		for (size_t bsp_index = 0; bsp_index < bspLeaves.size(); bsp_index++)
 		{
 			const BSP& bsp = *bspLeaves[bsp_index];
@@ -2099,83 +2002,24 @@ void Level::GenerateRenderSelectedBlockData(const Quadblock& quadblock, const Ve
 				const std::vector<size_t> qbIndeces = bsp.GetQuadblockIndexes();
 				for (size_t qbInd : qbIndeces)
 				{
-					quadsToSelect.push_back(&m_quadblocks[qbInd]);
+					Quadblock& qb = m_quadblocks[qbInd];
+					std::vector<Tri> qbTriangles = qb.ToGeometry(false, &emptyUvs, &emptyTexturePath);
+					for (Tri& tri : qbTriangles)
+					{
+						for (Point& point : tri.p) { point.color = point.color.Negated(); }
+						multiTriangles.push_back(tri);
+					}
 				}
 			}
 		}
 
-		GenerateRenderMultipleQuadsData(quadsToSelect);
-	}
-}
-
-void Level::GenerateRenderMultipleQuadsData(const std::vector<Quadblock*>& quads)
-{
-	if (!m_models[LevelModels::MULTI_SELECTED]) { return; }
-
-	if (quads.size() == 0)
-	{
-		m_models[LevelModels::MULTI_SELECTED]->SetMesh(nullptr);
-		return;
-	}
-
-	static Mesh quadblockMesh;
-	std::vector<float> data;
-	for (const Quadblock* quadblock_ptr : quads)
-	{
-		const Quadblock& quadblock = *quadblock_ptr;
-		const Vertex* verts = quadblock.GetUnswizzledVertices();
-		bool isQuadblock = quadblock.IsQuadblock();
-		Vertex recoloredVerts[9];
-		for (int i = 0; i < (isQuadblock ? 9 : 7); i++) //7 not 6 bc index correction
-		{
-			Color negated = verts[i].GetColor(true).Negated();
-			recoloredVerts[i] = Point(0, 0, 0, negated.r, negated.g, negated.b); //pos reassigned in next line
-			recoloredVerts[i].m_pos = verts[i].m_pos;
-			recoloredVerts[i].m_normal = verts[i].m_normal;
-			if (!isQuadblock && i == 4)
-			{ //index correction for tris, since tris use 01234-6
-				i++;
-			}
-		}
-
-		if (quadblock.IsQuadblock())
-		{
-			//LLOD
-			/*for (int triIndex = 0; triIndex < 2; triIndex++)
-			{
-				GeomPoint(recoloredVerts, FaceIndexConstants::quadLLODVertArrangements[triIndex][0], data);
-				GeomPoint(recoloredVerts, FaceIndexConstants::quadLLODVertArrangements[triIndex][1], data);
-				GeomPoint(recoloredVerts, FaceIndexConstants::quadLLODVertArrangements[triIndex][2], data);
-			}*/
-			//HLOD
-			for (int triIndex = 0; triIndex < 8; triIndex++)
-			{
-				GeomPoint(recoloredVerts, FaceIndexConstants::quadHLODVertArrangements[triIndex][0], data);
-				GeomPoint(recoloredVerts, FaceIndexConstants::quadHLODVertArrangements[triIndex][1], data);
-				GeomPoint(recoloredVerts, FaceIndexConstants::quadHLODVertArrangements[triIndex][2], data);
-			}
-		}
+		if (multiTriangles.empty()) { m_models[LevelModels::MULTI_SELECTED]->SetMesh(nullptr); }
 		else
 		{
-			//LLOD
-			/*for (int triIndex = 0; triIndex < 1; triIndex++)
-			{
-				GeomPoint(recoloredVerts, FaceIndexConstants::triLLODVertArrangements[triIndex][0], data);
-				GeomPoint(recoloredVerts, FaceIndexConstants::triLLODVertArrangements[triIndex][1], data);
-				GeomPoint(recoloredVerts, FaceIndexConstants::triLLODVertArrangements[triIndex][2], data);
-			}*/
-			//HLOD
-			for (int triIndex = 0; triIndex < 4; triIndex++)
-			{
-				GeomPoint(recoloredVerts, FaceIndexConstants::triHLODVertArrangements[triIndex][0], data);
-				GeomPoint(recoloredVerts, FaceIndexConstants::triHLODVertArrangements[triIndex][1], data);
-				GeomPoint(recoloredVerts, FaceIndexConstants::triHLODVertArrangements[triIndex][2], data);
-			}
+			quadblockMesh.SetGeometry(triangles, (Mesh::ShaderSettings::DrawWireframe | Mesh::ShaderSettings::DrawBackfaces | Mesh::ShaderSettings::ForceDrawOnTop | Mesh::ShaderSettings::DrawLinesAA | Mesh::ShaderSettings::DontOverrideShaderSettings | Mesh::ShaderSettings::Blinky));
+			m_models[LevelModels::MULTI_SELECTED]->SetMesh(&quadblockMesh);
 		}
 	}
-
-	quadblockMesh.UpdateMesh(data, Mesh::VBufDataType::None, (Mesh::ShaderSettings::DrawWireframe | Mesh::ShaderSettings::DrawBackfaces | Mesh::ShaderSettings::ForceDrawOnTop | Mesh::ShaderSettings::DrawLinesAA | Mesh::ShaderSettings::DontOverrideShaderSettings | Mesh::ShaderSettings::Blinky));
-	m_models[LevelModels::MULTI_SELECTED]->SetMesh(&quadblockMesh);
 }
 
 void Level::ViewportClickHandleBlockSelection(int pixelX, int pixelY, bool appendSelection, const Renderer& rend)
