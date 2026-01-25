@@ -83,7 +83,7 @@ uniform vec3 camWorldPos;
 
 //draw variations
 uniform int drawType; //correlates to GuiRenderSettings::RenderType (not a flag)
-uniform int shaderSettings; //correlates to Mesh::ShaderSettings (flag)
+uniform int shaderSettings; //correlates to Mesh::ShaderFlags (flag)
 
 //misc
 uniform float time;
@@ -132,7 +132,7 @@ void main()
     FragColor = vertColor;
   }
 
-  if ((shaderSettings & 128) != 0) //128 == "DiscardZeroColor"
+  if ((shaderSettings & 2) != 0) // "DiscardZeroColor"
   {
     if (VertColor.r <= 0.0 && VertColor.g <= 0.0 && VertColor.b <= 0.0)
     {
@@ -140,7 +140,7 @@ void main()
     }
   }
 
-  if ((shaderSettings & 32) != 0) //32 == "Blinky"
+  if ((shaderSettings & 1) != 0) // "Blinky"
   {
     if (mod(time * 1.5, 1.0) < 0.5)
     {
@@ -163,7 +163,7 @@ uniform vec3 camWorldPos;
 
 //draw variations
 uniform int drawType; //correlates to GuiRenderSettings::RenderType (not a flag)
-uniform int shaderSettings; //correlates to Mesh::ShaderSettings (flag)
+uniform int shaderSettings; //correlates to Mesh::ShaderFlags (flag)
 
 //misc
 uniform float time;
@@ -193,7 +193,7 @@ void main()
     FragColor = vec4(VertColor.rgb, 1.0);
   }
 
-  if ((shaderSettings & 128) != 0) //128 == "DiscardZeroColor"
+  if ((shaderSettings & 2) != 0) // "DiscardZeroColor"
   {
     if (VertColor.r <= 0.0 && VertColor.g <= 0.0 && VertColor.b <= 0.0)
     {
@@ -201,7 +201,7 @@ void main()
     }
   }
 
-  if ((shaderSettings & 32) != 0) //32 == "Blinky"
+  if ((shaderSettings & 1) != 0) // "Blinky"
   {
     if (mod(time * 1.5, 1.0) < 0.5)
     {

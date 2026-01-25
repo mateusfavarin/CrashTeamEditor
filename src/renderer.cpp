@@ -114,12 +114,12 @@ void Renderer::Render(bool skyGradientEnabled, const std::array<ColorGradient, N
 			lastUsedShader = datas;
 		}
 
-		if ((m->GetMesh()->GetShaderSettings() & Mesh::ShaderSettings::DontOverrideShaderSettings) == 0)
+		if ((m->GetMesh()->GetRenderFlags() & Mesh::RenderFlags::DontOverrideRenderFlags) == 0)
 		{
-			int newShadSettings = Mesh::ShaderSettings::None;
-			if (GuiRenderSettings::showWireframe) { newShadSettings |= Mesh::ShaderSettings::DrawWireframe; }
-			if (GuiRenderSettings::showBackfaces) { newShadSettings |= Mesh::ShaderSettings::DrawBackfaces; }
-			m->GetMesh()->SetShaderSettings(newShadSettings);
+			int newRenderFlags = Mesh::RenderFlags::None;
+			if (GuiRenderSettings::showWireframe) { newRenderFlags |= Mesh::RenderFlags::DrawWireframe; }
+			if (GuiRenderSettings::showBackfaces) { newRenderFlags |= Mesh::RenderFlags::DrawBackfaces; }
+			m->GetMesh()->SetRenderFlags(newRenderFlags);
 		}
 
 		glm::mat4 model = m->CalculateModelMatrix();
@@ -130,7 +130,7 @@ void Renderer::Render(bool skyGradientEnabled, const std::array<ColorGradient, N
 		shad.SetUniform("camWorldPos", camPos);
 		//draw variations
 		shad.SetUniform("drawType", GuiRenderSettings::renderType);
-		shad.SetUniform("shaderSettings", m->GetMesh()->GetShaderSettings());
+		shad.SetUniform("shaderSettings", m->GetMesh()->GetShaderFlags());
 		//misc
 		shad.SetUniform("time", m_time);
 		shad.SetUniform("lightDir", glm::normalize(glm::vec3(0.2f, -3.f, -1.f)));

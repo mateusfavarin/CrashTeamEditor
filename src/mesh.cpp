@@ -19,7 +19,7 @@ Mesh::Mesh()
 	Clear();
 }
 
-void Mesh::SetGeometry(const std::vector<Tri>& triangles, unsigned shaderSettings)
+void Mesh::SetGeometry(const std::vector<Tri>& triangles, unsigned renderFlags, unsigned shaderFlags)
 {
 	m_triCount = triangles.size();
 	m_textureStoreData.clear();
@@ -73,7 +73,7 @@ void Mesh::SetGeometry(const std::vector<Tri>& triangles, unsigned shaderSetting
 	}
 
 	const unsigned includedDataFlags = hasUVs ? VBufDataType::UV : VBufDataType::None;
-	UpdateMesh(data, includedDataFlags, shaderSettings);
+	UpdateMesh(data, includedDataFlags, renderFlags, shaderFlags);
 }
 
 void Mesh::Bind() const
@@ -100,7 +100,7 @@ void Mesh::Bind() const
 		}
 	}
 
-	if (m_shaderSettings & Mesh::ShaderSettings::DrawBackfaces)
+	if (m_renderFlags & Mesh::RenderFlags::DrawBackfaces)
 	{
 		glDisable(GL_CULL_FACE);
 	}
@@ -109,17 +109,17 @@ void Mesh::Bind() const
 		glEnable(GL_CULL_FACE);
 		glCullFace(GL_FRONT);
 	}
-	if (m_shaderSettings & Mesh::ShaderSettings::DrawWireframe)
+	if (m_renderFlags & Mesh::RenderFlags::DrawWireframe)
 	{
 		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-		glLineWidth((m_shaderSettings & Mesh::ShaderSettings::ThickLines) ? 2.5f : 1.0f);
+		glLineWidth((m_renderFlags & Mesh::RenderFlags::ThickLines) ? 2.5f : 1.0f);
 	}
 	else
 	{
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 		glLineWidth(1.0f);
 	}
-	if (m_shaderSettings & Mesh::ShaderSettings::ForceDrawOnTop)
+	if (m_renderFlags & Mesh::RenderFlags::ForceDrawOnTop)
 	{
 		glDisable(GL_DEPTH_TEST);
 	}
@@ -127,7 +127,7 @@ void Mesh::Bind() const
 	{
 		glEnable(GL_DEPTH_TEST);
 	}
-	if (m_shaderSettings & Mesh::ShaderSettings::DrawLinesAA)
+	if (m_renderFlags & Mesh::RenderFlags::DrawLinesAA)
 	{
 		glEnable(GL_LINE_SMOOTH);
 	}
@@ -166,7 +166,7 @@ When passing data[], any present data according to the "includedDataFlags" is ex
 * uv (if present)
 * texindex
 */
-void Mesh::UpdateMesh(const std::vector<float>& data, unsigned includedDataFlags, unsigned shadSettings)
+void Mesh::UpdateMesh(const std::vector<float>& data, unsigned includedDataFlags, unsigned renderFlags, unsigned shaderFlags)
 {
 	includedDataFlags &= VBufDataType::UV;
 	const bool hasUV = (includedDataFlags & VBufDataType::UV) != 0;
@@ -175,7 +175,8 @@ void Mesh::UpdateMesh(const std::vector<float>& data, unsigned includedDataFlags
 
 	const unsigned buffSize = static_cast<unsigned>(data.size() * sizeof(float));
 	m_includedData = includedDataFlags;
-	m_shaderSettings = shadSettings;
+	m_renderFlags = renderFlags;
+	m_shaderFlags = shaderFlags;
 	m_vertexCount = 0;
 
 	int ultimateStrideSize = GetStrideFloats(includedDataFlags);
@@ -263,14 +264,24 @@ int Mesh::GetDatas() const
 	return m_includedData;
 }
 
-int Mesh::GetShaderSettings() const
+int Mesh::GetRenderFlags() const
 {
-	return m_shaderSettings;
+	return m_renderFlags;
 }
 
-void Mesh::SetShaderSettings(unsigned shadSettings)
+void Mesh::SetRenderFlags(unsigned renderFlags)
 {
-	m_shaderSettings = shadSettings;
+	m_renderFlags = renderFlags;
+}
+
+int Mesh::GetShaderFlags() const
+{
+	return m_shaderFlags;
+}
+
+void Mesh::SetShaderFlags(unsigned shaderFlags)
+{
+	m_shaderFlags = shaderFlags;
 }
 
 static constexpr int textureWidth = 256;
@@ -342,7 +353,8 @@ void Mesh::Clear()
 	Dispose();
 	DeleteTextures();
 	m_includedData = 0;
-	m_shaderSettings = 0;
+	m_renderFlags = 0;
+	m_shaderFlags = 0;
 	m_textureStoreData.clear();
 	m_textureStoreIndex.clear();
 }

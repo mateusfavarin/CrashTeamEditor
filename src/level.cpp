@@ -1804,8 +1804,10 @@ void Level::GenerateRenderLevData()
 			for (const Tri& tri : qbFilterTriangles) { filterTriangles.push_back(tri); }
 	}
 
-	m_highLODMesh.SetGeometry(levTriangles, Mesh::ShaderSettings::None);
-	m_filterEdgeHighLODMesh.SetGeometry(filterTriangles, Mesh::ShaderSettings::DrawWireframe | Mesh::ShaderSettings::DrawBackfaces | Mesh::ShaderSettings::ForceDrawOnTop | Mesh::ShaderSettings::DrawLinesAA | Mesh::ShaderSettings::DontOverrideShaderSettings | Mesh::ShaderSettings::ThickLines | Mesh::ShaderSettings::DiscardZeroColor);
+	m_highLODMesh.SetGeometry(levTriangles, Mesh::RenderFlags::None);
+	m_filterEdgeHighLODMesh.SetGeometry(filterTriangles,
+		Mesh::RenderFlags::DrawWireframe | Mesh::RenderFlags::DrawBackfaces | Mesh::RenderFlags::ForceDrawOnTop | Mesh::RenderFlags::DrawLinesAA | Mesh::RenderFlags::DontOverrideRenderFlags | Mesh::RenderFlags::ThickLines,
+		Mesh::ShaderFlags::DiscardZeroColor);
 	m_models[LevelModels::LEVEL]->SetMesh(&m_highLODMesh);
 	m_models[LevelModels::FILTER]->SetMesh(&m_filterEdgeHighLODMesh);
 }
@@ -1897,7 +1899,7 @@ void Level::GenerateRenderBspData()
 		}
 	}
 
-	bspMesh.SetGeometry(triangles, Mesh::ShaderSettings::DrawWireframe | Mesh::ShaderSettings::DontOverrideShaderSettings);
+	bspMesh.SetGeometry(triangles, Mesh::RenderFlags::DrawWireframe | Mesh::RenderFlags::DontOverrideRenderFlags);
 	m_models[LevelModels::BSP]->SetMesh(&bspMesh);
 }
 
@@ -1924,7 +1926,7 @@ void Level::UpdateRenderCheckpointData()
 		checkTriangles.insert(checkTriangles.end(), tris.begin(), tris.end());
 	}
 
-	checkMesh.SetGeometry(checkTriangles, Mesh::ShaderSettings::None);
+	checkMesh.SetGeometry(checkTriangles, Mesh::RenderFlags::None);
 	m_models[LevelModels::CHECKPOINT]->SetMesh(&checkMesh);
 }
 
@@ -1943,7 +1945,7 @@ void Level::GenerateRenderStartpointData()
 		spawnsTriangles.insert(spawnsTriangles.end(), tris.begin(), tris.end());
 	}
 
-	spawnsMesh.SetGeometry(spawnsTriangles, Mesh::ShaderSettings::None);
+	spawnsMesh.SetGeometry(spawnsTriangles, Mesh::RenderFlags::None);
 	m_models[LevelModels::SPAWN]->SetMesh(&spawnsMesh);
 }
 
@@ -1974,7 +1976,9 @@ void Level::GenerateRenderSelectedBlockData(const Quadblock& quadblock, const Ve
 	const std::vector<Tri> queryTriangles = v.ToGeometry();
 	triangles.insert(triangles.end(), queryTriangles.begin(), queryTriangles.end());
 
-	quadblockMesh.SetGeometry(triangles, (Mesh::ShaderSettings::DrawWireframe | Mesh::ShaderSettings::DrawBackfaces | Mesh::ShaderSettings::ForceDrawOnTop | Mesh::ShaderSettings::DrawLinesAA | Mesh::ShaderSettings::DontOverrideShaderSettings | Mesh::ShaderSettings::Blinky));
+	quadblockMesh.SetGeometry(triangles,
+		Mesh::RenderFlags::DrawWireframe | Mesh::RenderFlags::DrawBackfaces | Mesh::RenderFlags::ForceDrawOnTop | Mesh::RenderFlags::DrawLinesAA | Mesh::RenderFlags::DontOverrideRenderFlags,
+		Mesh::ShaderFlags::Blinky);
 	m_models[LevelModels::SELECTED]->SetMesh(&quadblockMesh);
 
 	if (GuiRenderSettings::showVisTree)
@@ -2011,7 +2015,9 @@ void Level::GenerateRenderSelectedBlockData(const Quadblock& quadblock, const Ve
 		if (multiTriangles.empty()) { m_models[LevelModels::MULTI_SELECTED]->SetMesh(nullptr); }
 		else
 		{
-			quadblockMesh.SetGeometry(triangles, (Mesh::ShaderSettings::DrawWireframe | Mesh::ShaderSettings::DrawBackfaces | Mesh::ShaderSettings::ForceDrawOnTop | Mesh::ShaderSettings::DrawLinesAA | Mesh::ShaderSettings::DontOverrideShaderSettings | Mesh::ShaderSettings::Blinky));
+			quadblockMesh.SetGeometry(triangles,
+				Mesh::RenderFlags::DrawWireframe | Mesh::RenderFlags::DrawBackfaces | Mesh::RenderFlags::ForceDrawOnTop | Mesh::RenderFlags::DrawLinesAA | Mesh::RenderFlags::DontOverrideRenderFlags,
+				Mesh::ShaderFlags::Blinky);
 			m_models[LevelModels::MULTI_SELECTED]->SetMesh(&quadblockMesh);
 		}
 	}

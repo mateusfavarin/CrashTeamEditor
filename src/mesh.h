@@ -17,17 +17,22 @@ struct Vec2;
 class Mesh
 {
 public:
-	struct ShaderSettings //note: updating this also requires updating all shader source.
+	struct RenderFlags
 	{
 		static constexpr unsigned None = 0;
 		static constexpr unsigned DrawWireframe = 1 << 0;
 		static constexpr unsigned ForceDrawOnTop = 1 << 1;
 		static constexpr unsigned DrawBackfaces = 1 << 2;
 		static constexpr unsigned DrawLinesAA = 1 << 3;
-		static constexpr unsigned DontOverrideShaderSettings = 1 << 4;
-		static constexpr unsigned Blinky = 1 << 5;
-		static constexpr unsigned ThickLines = 1 << 6;
-		static constexpr unsigned DiscardZeroColor = 1 << 7;
+		static constexpr unsigned DontOverrideRenderFlags = 1 << 4;
+		static constexpr unsigned ThickLines = 1 << 5;
+	};
+
+	struct ShaderFlags // note: updating this also requires updating all shader source.
+	{
+		static constexpr unsigned None = 0;
+		static constexpr unsigned Blinky = 1 << 0;
+		static constexpr unsigned DiscardZeroColor = 1 << 1;
 	};
 
 	struct VBufDataType
@@ -38,17 +43,19 @@ public:
 
 public:
 	Mesh();
-	void SetGeometry(const std::vector<Tri>& triangles, unsigned shaderSettings);
+	void SetGeometry(const std::vector<Tri>& triangles, unsigned renderFlags = RenderFlags::None, unsigned shaderFlags = ShaderFlags::None);
 	void UpdateTriangle(const Tri& tri, size_t triangleIndex);
 	int GetDatas() const;
-	int GetShaderSettings() const;
-	void SetShaderSettings(unsigned shadSettings);
+	int GetRenderFlags() const;
+	void SetRenderFlags(unsigned renderFlags);
+	int GetShaderFlags() const;
+	void SetShaderFlags(unsigned shaderFlags);
 	void UpdateTextureStore(const std::filesystem::path& texturePath);
 	GLuint GetTextureStore() const;
 	void Clear();
 
 private:
-	void UpdateMesh(const std::vector<float>& data, unsigned includedDataFlags, unsigned shadSettings);
+	void UpdateMesh(const std::vector<float>& data, unsigned includedDataFlags, unsigned renderFlags, unsigned shaderFlags);
 	void AppendTextureStore(const std::filesystem::path& texturePath);
 	std::vector<unsigned char> LoadTextureData(const std::filesystem::path& path);
 	void RebuildTextureData();
@@ -64,7 +71,8 @@ private:
 	GLuint m_textures = 0;
 	int m_vertexCount = 0;
 	unsigned m_includedData = 0;
-	unsigned m_shaderSettings = 0;
+	unsigned m_renderFlags = 0;
+	unsigned m_shaderFlags = 0;
 	size_t m_triCount = 0;
 	std::vector<std::vector<unsigned char>> m_textureStoreData;
 	std::unordered_map<std::filesystem::path, size_t> m_textureStoreIndex;
