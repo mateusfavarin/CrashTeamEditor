@@ -36,6 +36,7 @@ void main()
   TexIndex = aTexIndex;
 }
 )*";
+
 std::string ShaderTemplates::vert_vcolornormal = R"*(
 #version 330
 
@@ -58,6 +59,21 @@ void main()
   FragWorldPos = aPos;
   Normal = (model * vec4(aNormal, 1.0)).xyz;
   VertColor = aColor;
+}
+)*";
+
+std::string ShaderTemplates::vert_skygradient = R"*(
+#version 330 core
+
+layout (location = 0) in vec2 aPos;
+layout (location = 1) in vec3 aColor;
+
+out vec3 vColor;
+
+void main()
+{
+  gl_Position = vec4(aPos, 0.999, 1.0);
+  vColor = aColor;
 }
 )*";
 
@@ -149,6 +165,7 @@ void main()
   }
 }
 )*";
+
 std::string ShaderTemplates::frag_vcolornormal = R"*(
 #version 330
 
@@ -210,7 +227,20 @@ void main()
   }
 }
 )*";
-std::map<int, std::pair<std::string, std::string>> ShaderTemplates::datasToShaderSourceMap =
+
+std::string ShaderTemplates::frag_skygradient = R"*(
+#version 330 core
+
+in vec3 vColor;
+out vec4 FragColor;
+
+void main()
+{
+  FragColor = vec4(vColor, 1.0);
+}
+)*";
+
+std::unordered_map<int, std::pair<std::string, std::string>> ShaderTemplates::datasToShaderSourceMap =
 {
   {
     Mesh::VBufDataType::None,

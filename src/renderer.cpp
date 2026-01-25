@@ -40,6 +40,16 @@ Renderer::Renderer(int width, int height)
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glBindTexture(GL_TEXTURE_2D, 0);
 	glBindRenderbuffer(GL_RENDERBUFFER, 0);
+
+	m_shaderCache.reserve(ShaderTemplates::datasToShaderSourceMap.size());
+	for (const auto& [datas, sources] : ShaderTemplates::datasToShaderSourceMap)
+	{
+		m_shaderCache.emplace(datas, Shader(sources.first.c_str(), sources.second.c_str()));
+	}
+
+	m_skyGradientShader = Shader(ShaderTemplates::vert_skygradient.c_str(), ShaderTemplates::frag_skygradient.c_str());
+	glGenVertexArrays(1, &m_skyGradientVAO);
+	glGenBuffers(1, &m_skyGradientVBO);
 }
 
 Renderer::~Renderer()
@@ -103,10 +113,9 @@ void Renderer::Render(bool skyGradientEnabled, const std::array<ColorGradient, N
 		if (m->GetMesh() == nullptr || !m->m_renderCondition()) { continue; }
 
 		int datas = m->GetMesh()->GetDatas();
+		if (!m_shaderCache.contains(datas)) { continue; }
 
-		if (!m_shaderCache.contains(datas)) { m_shaderCache[datas] = Shader(ShaderTemplates::datasToShaderSourceMap[datas].first.c_str(), ShaderTemplates::datasToShaderSourceMap[datas].second.c_str()); }
-
-		Shader& shad = m_shaderCache[datas];
+		const Shader& shad = m_shaderCache.at(datas);
 		if (lastUsedShader != datas)
 		{
 			if (lastUsedShader != -1) { m_shaderCache[lastUsedShader].Unuse(); }
@@ -304,49 +313,7 @@ void Renderer::RenderSkyGradient(const std::array<ColorGradient, NUM_GRADIENT>& 
 	glDisable(GL_CULL_FACE);
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-	static GLuint gradientProgram = 0;
-	static GLuint gradientVAO = 0;
-	static GLuint gradientVBO = 0;
-
-	if (gradientProgram == 0)
-	{
-		const char* vertSrc =
-			"#version 330 core\n"
-			"layout (location = 0) in vec2 aPos;\n"
-			"layout (location = 1) in vec3 aColor;\n"
-			"out vec3 vColor;\n"
-			"void main() {\n"
-			"  gl_Position = vec4(aPos, 0.999, 1.0);\n"
-			"  vColor = aColor;\n"
-			"}\n";
-
-		const char* fragSrc =
-			"#version 330 core\n"
-			"in vec3 vColor;\n"
-			"out vec4 FragColor;\n"
-			"void main() {\n"
-			"  FragColor = vec4(vColor, 1.0);\n"
-			"}\n";
-
-		GLuint vs = glCreateShader(GL_VERTEX_SHADER);
-		glShaderSource(vs, 1, &vertSrc, NULL);
-		glCompileShader(vs);
-
-		GLuint fs = glCreateShader(GL_FRAGMENT_SHADER);
-		glShaderSource(fs, 1, &fragSrc, NULL);
-		glCompileShader(fs);
-
-		gradientProgram = glCreateProgram();
-		glAttachShader(gradientProgram, vs);
-		glAttachShader(gradientProgram, fs);
-		glLinkProgram(gradientProgram);
-
-		glDeleteShader(vs);
-		glDeleteShader(fs);
-
-		glGenVertexArrays(1, &gradientVAO);
-		glGenBuffers(1, &gradientVBO);
-	}
+	if (m_skyGradientVAO == 0 || m_skyGradientVBO == 0) { return; }
 
 	auto coordToNDC = [SKY_GRADIENT_COORD_MAX, SKY_GRADIENT_COORD_MIN](float coord) -> float {
 		float clamped = std::max(std::min(coord, SKY_GRADIENT_COORD_MAX), SKY_GRADIENT_COORD_MIN);
@@ -386,8 +353,8 @@ void Renderer::RenderSkyGradient(const std::array<ColorGradient, NUM_GRADIENT>& 
 		quadData.push_back(topColor.Red()); quadData.push_back(topColor.Green()); quadData.push_back(topColor.Blue());
 	}
 
-	glBindVertexArray(gradientVAO);
-	glBindBuffer(GL_ARRAY_BUFFER, gradientVBO);
+	glBindVertexArray(m_skyGradientVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, m_skyGradientVBO);
 	glBufferData(GL_ARRAY_BUFFER, quadData.size() * sizeof(float), quadData.data(), GL_DYNAMIC_DRAW);
 
 	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, SKY_GRADIENT_VERTEX_STRIDE, (void*) SKY_GRADIENT_POS_OFFSET);
@@ -395,12 +362,12 @@ void Renderer::RenderSkyGradient(const std::array<ColorGradient, NUM_GRADIENT>& 
 	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, SKY_GRADIENT_VERTEX_STRIDE, (void*) (SKY_GRADIENT_COLOR_OFFSET * sizeof(float)));
 	glEnableVertexAttribArray(1);
 
-	glUseProgram(gradientProgram);
+	m_skyGradientShader.Use();
 	glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(quadData.size() / SKY_GRADIENT_FLOATS_PER_VERTEX));
 
 	glBindVertexArray(0);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glUseProgram(0);
+	m_skyGradientShader.Unuse();
 
 	// Restore state
 	if (depthTestEnabled) { glEnable(GL_DEPTH_TEST); }

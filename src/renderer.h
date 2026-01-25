@@ -50,6 +50,9 @@ private:
 	GLuint m_renderbuffer;
 	GLuint m_framebuffer;
 	std::unordered_map<int, Shader> m_shaderCache;
+	Shader m_skyGradientShader;
+	GLuint m_skyGradientVAO = 0;
+	GLuint m_skyGradientVBO = 0;
 	float m_time = 0.0f;
 	float m_lastFrameTime = 0.0f;
 	float m_deltaTime = -1.0f;
