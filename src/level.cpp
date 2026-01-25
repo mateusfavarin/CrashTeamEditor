@@ -1943,21 +1943,12 @@ void Level::GenerateRenderLevData()
 	std::vector<Tri> triangles;
 	triangles.reserve(m_quadblocks.size() * 8);
 
-	for (size_t matIndex = 0; matIndex < m_materialToQuadblocks.size(); matIndex++)
+	for (Quadblock& qb : m_quadblocks)
 	{
-		auto begin = m_materialToQuadblocks.begin();
-		std::advance(begin, matIndex);
-		const std::vector<size_t>& quadblockIndexes = begin->second;
-		for (size_t qbIndexIndex = 0; qbIndexIndex < quadblockIndexes.size(); qbIndexIndex++)
-		{
-			size_t qbIndex = quadblockIndexes[qbIndexIndex];
-			Quadblock& qb = m_quadblocks[qbIndex];
 			const size_t baseTriangleIndex = triangles.size();
 			qb.SetRenderTriangleIndex(baseTriangleIndex);
-
 			std::vector<Tri> qbTriangles = qb.ToGeometry();
 			for (const Tri& tri : qbTriangles) { triangles.push_back(tri); }
-		}
 	}
 
 	m_highLODMesh.SetGeometry(triangles, Mesh::ShaderSettings::None);
