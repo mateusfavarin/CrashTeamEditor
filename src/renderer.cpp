@@ -123,9 +123,11 @@ void Renderer::Render(bool skyGradientEnabled, const std::array<ColorGradient, N
 			lastUsedShader = datas;
 		}
 
-		if ((m->GetMesh().GetRenderFlags() & Mesh::RenderFlags::DontOverrideRenderFlags) == 0)
+		const unsigned currentRenderFlags = m->GetMesh().GetRenderFlags();
+		const bool modifyRenderFlags = (currentRenderFlags & Mesh::RenderFlags::DontOverrideRenderFlags) == 0;
+		if (modifyRenderFlags)
 		{
-			int newRenderFlags = Mesh::RenderFlags::None;
+			unsigned newRenderFlags = currentRenderFlags;
 			if (GuiRenderSettings::showWireframe) { newRenderFlags |= Mesh::RenderFlags::DrawWireframe; }
 			if (GuiRenderSettings::showBackfaces) { newRenderFlags |= Mesh::RenderFlags::DrawBackfaces; }
 			m->GetMesh().SetRenderFlags(newRenderFlags);
@@ -146,6 +148,7 @@ void Renderer::Render(bool skyGradientEnabled, const std::array<ColorGradient, N
 		GLuint tex = m->GetMesh().GetTextureStore();
 		if (tex) { shad.SetUniform("tex", 0); } // "0" represents texture unit 0
 		m->Draw();
+		if (modifyRenderFlags) { m->GetMesh().SetRenderFlags(currentRenderFlags); }
 	}
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);

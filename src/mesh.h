@@ -26,6 +26,7 @@ public:
 		static constexpr unsigned DrawLinesAA = 1 << 3;
 		static constexpr unsigned DontOverrideRenderFlags = 1 << 4;
 		static constexpr unsigned ThickLines = 1 << 5;
+		static constexpr unsigned AllowPointRender = 1 << 6;
 	};
 
 	struct ShaderFlags // note: updating this also requires updating all shader source.
@@ -65,6 +66,7 @@ private:
 	void Draw() const;
 	void Dispose();
 	void DeleteTextures();
+	bool IsRenderingPoints() const;
 
 private:
 	GLuint m_VAO = 0;

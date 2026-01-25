@@ -1798,7 +1798,7 @@ void Level::GenerateRenderLevData()
 			for (const Tri& tri : qbFilterTriangles) { filterTriangles.push_back(tri); }
 	}
 
-	m_models[LevelModels::LEVEL]->GetMesh().SetGeometry(levTriangles, Mesh::RenderFlags::None);
+	m_models[LevelModels::LEVEL]->GetMesh().SetGeometry(levTriangles, Mesh::RenderFlags::AllowPointRender);
 	m_models[LevelModels::FILTER]->GetMesh().SetGeometry(filterTriangles,
 		Mesh::RenderFlags::DrawWireframe | Mesh::RenderFlags::DrawBackfaces | Mesh::RenderFlags::ForceDrawOnTop | Mesh::RenderFlags::DrawLinesAA | Mesh::RenderFlags::DontOverrideRenderFlags | Mesh::RenderFlags::ThickLines,
 		Mesh::ShaderFlags::DiscardZeroColor);
@@ -1918,7 +1918,7 @@ void Level::UpdateRenderCheckpointData()
 		checkTriangles.insert(checkTriangles.end(), tris.begin(), tris.end());
 	}
 
-	m_models[LevelModels::CHECKPOINT]->GetMesh().SetGeometry(checkTriangles, Mesh::RenderFlags::None);
+	m_models[LevelModels::CHECKPOINT]->GetMesh().SetGeometry(checkTriangles, Mesh::RenderFlags::DontOverrideRenderFlags);
 }
 
 void Level::GenerateRenderStartpointData()
@@ -1935,7 +1935,7 @@ void Level::GenerateRenderStartpointData()
 		spawnsTriangles.insert(spawnsTriangles.end(), tris.begin(), tris.end());
 	}
 
-	m_models[LevelModels::SPAWN]->GetMesh().SetGeometry(spawnsTriangles, Mesh::RenderFlags::None);
+	m_models[LevelModels::SPAWN]->GetMesh().SetGeometry(spawnsTriangles, Mesh::RenderFlags::DontOverrideRenderFlags);
 }
 
 void Level::GenerateRenderSelectedBlockData(const Quadblock& quadblock, const Vec3& queryPoint)

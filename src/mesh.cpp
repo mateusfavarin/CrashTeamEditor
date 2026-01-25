@@ -3,6 +3,8 @@
 
 #include "mesh.h"
 #include "vertex.h"
+#include "gui_render_settings.h"
+
 #include "stb_image.h"
 #define STB_IMAGE_RESIZE_IMPLEMENTATION
 #include "stb_image_resize2.h"
@@ -137,6 +139,7 @@ void Mesh::Bind() const
 	{
 		glDisable(GL_LINE_SMOOTH);
 	}
+	glPointSize(IsRenderingPoints() ? 5.0f : 1.0f);
 }
 
 void Mesh::Unbind() const
@@ -157,7 +160,7 @@ void Mesh::Unbind() const
 void Mesh::Draw() const
 {
 	if (m_VAO == 0) { return; }
-	glDrawArrays(GL_TRIANGLES, 0, m_vertexCount);
+	glDrawArrays(IsRenderingPoints() ? GL_POINTS : GL_TRIANGLES, 0, m_vertexCount);
 }
 
 /*
@@ -378,4 +381,9 @@ void Mesh::DeleteTextures()
 	if (m_textures == 0) { return; }
 	glDeleteTextures(1, &m_textures);
 	m_textures = 0;
+}
+
+bool Mesh::IsRenderingPoints() const
+{
+	return (m_renderFlags & Mesh::RenderFlags::AllowPointRender) && GuiRenderSettings::showVerts;
 }
