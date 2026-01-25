@@ -45,16 +45,16 @@ public:
 	Mesh();
 	void SetGeometry(const std::vector<Tri>& triangles, unsigned renderFlags = RenderFlags::None, unsigned shaderFlags = ShaderFlags::None);
 	void UpdateTriangle(const Tri& tri, size_t triangleIndex);
-	int GetDatas() const;
 	int GetRenderFlags() const;
 	void SetRenderFlags(unsigned renderFlags);
 	int GetShaderFlags() const;
 	void SetShaderFlags(unsigned shaderFlags);
-	void UpdateTextureStore(const std::filesystem::path& texturePath);
-	GLuint GetTextureStore() const;
 	void Clear();
 
 private:
+	int GetDatas() const;
+	GLuint GetTextureStore() const;
+	void UpdateTextureStore(const std::filesystem::path& texturePath);
 	void UpdateMesh(const std::vector<float>& data, unsigned includedDataFlags, unsigned renderFlags, unsigned shaderFlags);
 	void AppendTextureStore(const std::filesystem::path& texturePath);
 	std::vector<unsigned char> LoadTextureData(const std::filesystem::path& path);
@@ -77,4 +77,5 @@ private:
 	std::vector<std::vector<unsigned char>> m_textureStoreData;
 	std::unordered_map<std::filesystem::path, size_t> m_textureStoreIndex;
 	friend class Model;
+	friend class Renderer;
 };
