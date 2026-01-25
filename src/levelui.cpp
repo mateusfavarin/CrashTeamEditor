@@ -419,7 +419,7 @@ void Level::RenderUI()
 					if (ImGui::Button(("Set from selection##" + std::to_string(i)).c_str()))
 					{
 						m_spawn[i].pos = m_rendererQueryPoint;
-						GenerateRenderStartpointData(m_spawn);
+						GenerateRenderStartpointData();
 					}
 					ImGui::Text("Pos:"); ImGui::SameLine();
 					bool changed = ImGui::InputFloat3("##pos", m_spawn[i].pos.Data());
@@ -432,7 +432,7 @@ void Level::RenderUI()
 						m_spawn[i].rot.y = Clamp(m_spawn[i].rot.y, -360.0f, 360.0f);
 						m_spawn[i].rot.z = Clamp(m_spawn[i].rot.z, -360.0f, 360.0f);
 					};
-					if (changed) { GenerateRenderStartpointData(m_spawn); }
+					if (changed) { GenerateRenderStartpointData(); }
 					ImGui::TreePop();
 				}
 			}
@@ -536,7 +536,7 @@ void Level::RenderUI()
 						if (m_bsp.IsValid())
 						{
 							m_bsp.Clear();
-							GenerateRenderBspData(m_bsp);
+							GenerateRenderBspData();
 						}
 					}
 					m_propSpeedImpact.RenderUI(material, quadblockIndexes, m_quadblocks);
@@ -635,7 +635,7 @@ void Level::RenderUI()
 		if (resetBsp && m_bsp.IsValid())
 		{
 			m_bsp.Clear();
-			GenerateRenderBspData(m_bsp);
+			GenerateRenderBspData();
 		}
 	}
 
@@ -921,7 +921,7 @@ void Level::RenderUI()
 					checkboxPair("Show Low LOD", &GuiRenderSettings::showLowLOD, "Show Wireframe", &GuiRenderSettings::showWireframe);
 					checkboxPair("Show Backfaces", &GuiRenderSettings::showBackfaces, "Show Level Verts", &GuiRenderSettings::showLevVerts);
 					unsigned cpStartPoints = checkboxPair("Show Checkpoints", &GuiRenderSettings::showCheckpoints, "Show Starting Positions", &GuiRenderSettings::showStartpoints);
-					if (cpStartPoints & REND_FLAGS_COLUMN_1) { GenerateRenderStartpointData(m_spawn); }
+					if (cpStartPoints & REND_FLAGS_COLUMN_1) { GenerateRenderStartpointData(); }
 					checkboxPair("Show BSP", &GuiRenderSettings::showBspRectTree, "Show Vis Tree", &GuiRenderSettings::showVisTree);
 
 					ImGui::EndTable();
@@ -936,13 +936,13 @@ void Level::RenderUI()
 					if (ImGui::SliderInt("Top", &GuiRenderSettings::bspTreeTopDepth, 0, GuiRenderSettings::bspTreeMaxDepth)) //top changed
 					{
 						GuiRenderSettings::bspTreeBottomDepth = std::max(GuiRenderSettings::bspTreeBottomDepth, GuiRenderSettings::bspTreeTopDepth);
-						GenerateRenderBspData(m_bsp);
+						GenerateRenderBspData();
 					}
 					ImGui::TableSetColumnIndex(1);
 					if (ImGui::SliderInt("Bottom", &GuiRenderSettings::bspTreeBottomDepth, 0, GuiRenderSettings::bspTreeMaxDepth)) //bottom changed
 					{
 						GuiRenderSettings::bspTreeTopDepth = std::min(GuiRenderSettings::bspTreeTopDepth, GuiRenderSettings::bspTreeBottomDepth);
-						GenerateRenderBspData(m_bsp);
+						GenerateRenderBspData();
 					}
 					ImGui::EndTable();
 				}
@@ -1065,7 +1065,7 @@ void Level::RenderUI()
 					if (resetBsp && m_bsp.IsValid())
 					{
 						m_bsp.Clear();
-						GenerateRenderBspData(m_bsp);
+						GenerateRenderBspData();
 					}
 				}
 			}

@@ -152,7 +152,7 @@ bool Level::GenerateBSP()
 	m_bsp.Generate(m_quadblocks, MAX_QUADBLOCKS_LEAF, m_maxLeafAxisLength);
 	if (m_bsp.IsValid())
 	{
-		GenerateRenderBspData(m_bsp);
+		GenerateRenderBspData();
 		std::vector<const BSP*> bspLeaves = m_bsp.GetLeaves();
 		if (m_genVisTree) { m_bspVis = GenerateVisTree(m_quadblocks, bspLeaves, m_distanceFarClip * m_distanceFarClip); }
 		return true;
@@ -354,7 +354,7 @@ bool Level::GenerateCheckpoints()
 		m_checkpoints = std::move(newCheckpoints);
 	}
 
-	GenerateRenderCheckpointData(m_checkpoints);
+	UpdateRenderCheckpointData();
 	return true;
 }
 
@@ -485,7 +485,7 @@ bool Level::LoadPreset(const std::filesystem::path& filename)
 					if (m_bsp.IsValid())
 					{
 						m_bsp.Clear();
-						GenerateRenderBspData(m_bsp);
+						GenerateRenderBspData();
 					}
 				}
 			}
@@ -613,11 +613,6 @@ void Level::ResetRendererSelection()
 	m_models[LevelModels::SELECTED]->SetMesh();
 }
 
-void Level::UpdateRendererCheckpoints()
-{
-	GenerateRenderCheckpointData(m_checkpoints);
-}
-
 void Level::ManageTurbopad(Quadblock& quadblock)
 {
 	bool stp = true;
@@ -726,7 +721,7 @@ bool Level::LoadLEV(const std::filesystem::path& levFile)
 		Read(file, checkpoint);
 		m_checkpoints.emplace_back(checkpoint, static_cast<int>(i));
 	}
-	GenerateRenderCheckpointData(m_checkpoints);
+	UpdateRenderCheckpointData();
 
 	m_loaded = true;
 	file.close();
@@ -1851,7 +1846,7 @@ void Level::UpdateFilterRenderData(const Quadblock& qb)
 	}
 }
 
-void Level::GenerateRenderBspData(const BSP& bsp)
+void Level::GenerateRenderBspData()
 {
 	if (!m_models[LevelModels::BSP]) { return; }
 
@@ -1865,7 +1860,7 @@ void Level::GenerateRenderBspData(const BSP& bsp)
 		int depth;
 	};
 	std::vector<NodeDepth> stack;
-	stack.push_back({&bsp, 0});
+	stack.push_back({&m_bsp, 0});
 	while (!stack.empty())
 	{
 		const NodeDepth entry = stack.back();
@@ -1906,13 +1901,13 @@ void Level::GenerateRenderBspData(const BSP& bsp)
 	m_models[LevelModels::BSP]->SetMesh(&bspMesh);
 }
 
-void Level::GenerateRenderCheckpointData(std::vector<Checkpoint>& checkpoints)
+void Level::UpdateRenderCheckpointData()
 {
-	if (!m_models[LevelModels::CHECKPOINT] || checkpoints.empty()) { return; }
+	if (!m_models[LevelModels::CHECKPOINT] || m_checkpoints.empty()) { return; }
 
 	static Mesh checkMesh;
 	std::vector<Tri> checkTriangles;
-	checkTriangles.reserve(checkpoints.size() * 8);
+	checkTriangles.reserve(m_checkpoints.size() * 8);
 	std::unordered_set<int> selectedCheckpointIndexes; // Contain the ID of the checkpoints from selected quads
 	for (size_t index : m_rendererSelectedQuadblockIndexes)
 	{
@@ -1920,7 +1915,7 @@ void Level::GenerateRenderCheckpointData(std::vector<Checkpoint>& checkpoints)
 		selectedCheckpointIndexes.insert(checkpointIndex);
 	}
 
-	for (Checkpoint& e : checkpoints)
+	for (const Checkpoint& e : m_checkpoints)
 	{
 		bool selected = selectedCheckpointIndexes.contains(e.GetIndex());
 		const Color& c = selected ? GuiRenderSettings::selectedCheckpointColor : e.GetColor();
@@ -1933,15 +1928,15 @@ void Level::GenerateRenderCheckpointData(std::vector<Checkpoint>& checkpoints)
 	m_models[LevelModels::CHECKPOINT]->SetMesh(&checkMesh);
 }
 
-void Level::GenerateRenderStartpointData(std::array<Spawn, NUM_DRIVERS>& spawns)
+void Level::GenerateRenderStartpointData()
 {
 	if (!m_models[LevelModels::SPAWN]) { return; }
 
 	static Mesh spawnsMesh;
 	std::vector<Tri> spawnsTriangles;
-	spawnsTriangles.reserve(spawns.size() * 8);
+	spawnsTriangles.reserve(m_spawn.size() * 8);
 
-	for (Spawn& e : spawns)
+	for (const Spawn& e : m_spawn)
 	{
 		Vertex v = Vertex(Point(e.pos.x, e.pos.y, e.pos.z, 0, 128, 255));
 		const std::vector<Tri> tris = v.ToGeometry();
@@ -2165,5 +2160,5 @@ void Level::ViewportClickHandleBlockSelection(int pixelX, int pixelY, bool appen
 	{
 		m_models[LevelModels::SELECTED]->SetMesh();
 	}
-	GenerateRenderCheckpointData(m_checkpoints);
+	UpdateRenderCheckpointData();
 }

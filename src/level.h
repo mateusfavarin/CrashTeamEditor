@@ -56,7 +56,7 @@ public:
 	bool SavePreset(const std::filesystem::path& path);
 	void ResetFilter();
 	void ResetRendererSelection();
-	void UpdateRendererCheckpoints();
+	void UpdateRenderCheckpointData();
 
 private:
 	void ManageTurbopad(Quadblock& quadblock);
@@ -78,9 +78,8 @@ private:
 	void GenerateRenderLevData();
 	void UpdateAnimationRenderData();
 	void UpdateFilterRenderData(const Quadblock& qb);
-	void GenerateRenderBspData(const BSP& bsp);
-	void GenerateRenderCheckpointData(std::vector<Checkpoint>&);
-	void GenerateRenderStartpointData(std::array<Spawn, NUM_DRIVERS>&);
+	void GenerateRenderBspData();
+	void GenerateRenderStartpointData();
 	void GenerateRenderSelectedBlockData(const Quadblock& quadblock, const Vec3& queryPoint);
 	bool UpdateAnimTextures(float deltaTime);
 	void ViewportClickHandleBlockSelection(int pixelX, int pixelY, bool appendSelection, const Renderer& rend);
