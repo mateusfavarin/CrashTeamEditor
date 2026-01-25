@@ -27,16 +27,15 @@ public:
 	~Renderer();
 	Model* CreateModel();
 	bool DeleteModel(Model* model);
+	float GetLastDeltaTime() const;
+	float GetLastTime() const;
 
 	void RescaleFramebuffer(float width, float height);
 	void Render(bool skyGradientEnabled, const std::array<ColorGradient, NUM_GRADIENT>& skyGradients);
 	void SetViewportSize(float width, float height);
 	void SetCameraToLevelSpawn(const Vec3& pos, const Vec3& rot);
-	float GetLastDeltaTime() const;
-	float GetLastTime() const;
 	float GetWidth() const;
 	float GetHeight() const;
-	GLuint GetTexBuffer() const;
 	std::tuple<glm::vec3, float> WorldspaceRayTriIntersection(glm::vec3 worldSpaceRay, const glm::vec3 tri[3]) const;
 	glm::vec3 ScreenspaceToWorldRay(int pixelX, int pixelY) const;
 

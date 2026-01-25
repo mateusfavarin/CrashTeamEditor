@@ -13,12 +13,14 @@ class Model
 {
 public:
 	Model();
-  glm::mat4 CalculateModelMatrix() const;
   Mesh& GetMesh();
 	void SetRenderCondition(const std::function<bool()>& renderCondition);
-  void Draw() const;
 	void Clear();
 	bool IsReady() const;
+
+private:
+  void Draw() const;
+  glm::mat4 CalculateModelMatrix() const;
 
 private:
 	Mesh m_mesh;
@@ -26,4 +28,6 @@ private:
 	glm::vec3 m_scale;
 	glm::quat m_rotation;
 	std::function<bool()> m_renderCondition;
+
+	friend class Renderer;
 };

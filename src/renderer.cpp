@@ -191,11 +191,6 @@ float Renderer::GetHeight() const
 	return static_cast<float>(m_height);
 }
 
-GLuint Renderer::GetTexBuffer() const
-{
-	return m_texturebuffer;
-}
-
 void Renderer::RescaleFramebuffer(float width, float height)
 {
 	int tempWidth = static_cast<int>(width);
