@@ -27,6 +27,8 @@ public:
 		static constexpr unsigned DontOverrideRenderFlags = 1 << 4;
 		static constexpr unsigned ThickLines = 1 << 5;
 		static constexpr unsigned AllowPointRender = 1 << 6;
+		static constexpr unsigned DrawPoints = 1 << 7;
+		static constexpr unsigned QuadblockLod = 1 << 8;
 	};
 
 	struct ShaderFlags // note: updating this also requires updating all shader source.
@@ -44,7 +46,7 @@ public:
 
 public:
 	Mesh();
-	void SetGeometry(const std::vector<Tri>& triangles, unsigned renderFlags = RenderFlags::None, unsigned shaderFlags = ShaderFlags::None);
+	void SetGeometry(const std::vector<Tri>& triangles, unsigned renderFlags = RenderFlags::None, unsigned shaderFlags = ShaderFlags::None, const std::vector<size_t>* lodGroupTriangleCounts = nullptr);
 	void UpdateTriangle(const Tri& tri, size_t triangleIndex);
 	int GetRenderFlags() const;
 	void SetRenderFlags(unsigned renderFlags);
@@ -54,10 +56,12 @@ public:
 	bool IsReady() const;
 
 private:
+	void SetUseLowLOD(bool useLowLOD);
 	int GetDatas() const;
 	GLuint GetTextureStore() const;
 	void UpdateTextureStore(const std::filesystem::path& texturePath);
 	void UpdateMesh(const std::vector<float>& data, unsigned includedDataFlags, unsigned renderFlags, unsigned shaderFlags);
+	void UpdateIndexBuffer();
 	void AppendTextureStore(const std::filesystem::path& texturePath);
 	std::vector<unsigned char> LoadTextureData(const std::filesystem::path& path);
 	void RebuildTextureData();
@@ -67,16 +71,22 @@ private:
 	void Dispose();
 	void DeleteTextures();
 	bool IsRenderingPoints() const;
+	bool BuildLowLODIndices(const std::vector<Tri>& triangles, const std::vector<size_t>* lodGroupTriangleCounts);
 
 private:
 	GLuint m_VAO = 0;
 	GLuint m_VBO = 0;
+	GLuint m_EBO = 0;
 	GLuint m_textures = 0;
 	int m_vertexCount = 0;
+	size_t m_indexCount = 0;
 	unsigned m_includedData = 0;
 	unsigned m_renderFlags = 0;
 	unsigned m_shaderFlags = 0;
+	bool m_useLowLOD = false;
 	size_t m_triCount = 0;
+	std::vector<unsigned> m_highLODIndices;
+	std::vector<unsigned> m_lowLODIndices;
 	std::vector<std::vector<unsigned char>> m_textureStoreData;
 	std::unordered_map<std::filesystem::path, size_t> m_textureStoreIndex;
 	friend class Model;

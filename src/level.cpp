@@ -1785,8 +1785,10 @@ void Level::GenerateRenderLevData()
 
 	std::vector<Tri> levTriangles;
 	std::vector<Tri> filterTriangles;
+	std::vector<size_t> lodGroupTriangleCounts;
 	levTriangles.reserve(m_quadblocks.size() * 8);
 	filterTriangles.reserve(m_quadblocks.size() * 8);
+	lodGroupTriangleCounts.reserve(m_quadblocks.size());
 
 	for (Quadblock& qb : m_quadblocks)
 	{
@@ -1796,12 +1798,14 @@ void Level::GenerateRenderLevData()
 			std::vector<Tri> qbFilterTriangles = qb.ToGeometry(true);
 			for (const Tri& tri : qbTriangles) { levTriangles.push_back(tri); }
 			for (const Tri& tri : qbFilterTriangles) { filterTriangles.push_back(tri); }
+			lodGroupTriangleCounts.push_back(qbTriangles.size());
 	}
 
-	m_models[LevelModels::LEVEL]->GetMesh().SetGeometry(levTriangles, Mesh::RenderFlags::AllowPointRender);
+	m_models[LevelModels::LEVEL]->GetMesh().SetGeometry(levTriangles, Mesh::RenderFlags::AllowPointRender, Mesh::ShaderFlags::None, &lodGroupTriangleCounts);
 	m_models[LevelModels::FILTER]->GetMesh().SetGeometry(filterTriangles,
 		Mesh::RenderFlags::DrawWireframe | Mesh::RenderFlags::DrawBackfaces | Mesh::RenderFlags::ForceDrawOnTop | Mesh::RenderFlags::DrawLinesAA | Mesh::RenderFlags::DontOverrideRenderFlags | Mesh::RenderFlags::ThickLines,
-		Mesh::ShaderFlags::DiscardZeroColor);
+		Mesh::ShaderFlags::DiscardZeroColor,
+		&lodGroupTriangleCounts);
 }
 
 void Level::UpdateAnimationRenderData()
@@ -1945,7 +1949,9 @@ void Level::GenerateRenderSelectedBlockData(const Quadblock& quadblock, const Ve
 	m_rendererQueryPoint = queryPoint;
 
 	std::vector<Tri> triangles;
+	std::vector<size_t> lodGroupTriangleCounts;
 	triangles.reserve(m_rendererSelectedQuadblockIndexes.size() * 8 + 8);
+	lodGroupTriangleCounts.reserve(m_rendererSelectedQuadblockIndexes.size() + 1);
 
 	const std::filesystem::path emptyTexturePath;
 	const std::array<QuadUV, NUM_FACES_QUADBLOCK + 1> emptyUvs = {};
@@ -1958,15 +1964,18 @@ void Level::GenerateRenderSelectedBlockData(const Quadblock& quadblock, const Ve
 			for (Point& point : tri.p) { point.color = point.color.Negated(); }
 			triangles.push_back(tri);
 		}
+		lodGroupTriangleCounts.push_back(qbTriangles.size());
 	}
 
 	Vertex v = Vertex(Point(queryPoint.x, queryPoint.y, queryPoint.z, 255, 0, 0));
 	const std::vector<Tri> queryTriangles = v.ToGeometry();
 	triangles.insert(triangles.end(), queryTriangles.begin(), queryTriangles.end());
+	lodGroupTriangleCounts.push_back(queryTriangles.size());
 
 	m_models[LevelModels::SELECTED]->GetMesh().SetGeometry(triangles,
 		Mesh::RenderFlags::DrawWireframe | Mesh::RenderFlags::DrawBackfaces | Mesh::RenderFlags::ForceDrawOnTop | Mesh::RenderFlags::DrawLinesAA | Mesh::RenderFlags::DontOverrideRenderFlags,
-		Mesh::ShaderFlags::Blinky);
+		Mesh::ShaderFlags::Blinky,
+		&lodGroupTriangleCounts);
 
 	if (GuiRenderSettings::showVisTree)
 	{
@@ -1979,6 +1988,7 @@ void Level::GenerateRenderSelectedBlockData(const Quadblock& quadblock, const Ve
 		}
 
 		std::vector<Tri> multiTriangles;
+		std::vector<size_t> multiLodGroupTriangleCounts;
 		for (size_t bsp_index = 0; bsp_index < bspLeaves.size(); bsp_index++)
 		{
 			const BSP& bsp = *bspLeaves[bsp_index];
@@ -1994,13 +2004,15 @@ void Level::GenerateRenderSelectedBlockData(const Quadblock& quadblock, const Ve
 						for (Point& point : tri.p) { point.color = point.color.Negated(); }
 						multiTriangles.push_back(tri);
 					}
+					multiLodGroupTriangleCounts.push_back(qbTriangles.size());
 				}
 			}
 		}
 
 		m_models[LevelModels::MULTI_SELECTED]->GetMesh().SetGeometry(multiTriangles,
 			Mesh::RenderFlags::DrawWireframe | Mesh::RenderFlags::DrawBackfaces | Mesh::RenderFlags::ForceDrawOnTop | Mesh::RenderFlags::DrawLinesAA | Mesh::RenderFlags::DontOverrideRenderFlags,
-			Mesh::ShaderFlags::Blinky);
+			Mesh::ShaderFlags::Blinky,
+			&multiLodGroupTriangleCounts);
 	}
 }
 
@@ -2024,7 +2036,7 @@ void Level::ViewportClickHandleBlockSelection(int pixelX, int pixelY, bool appen
 
 				std::tuple<glm::vec3, float> queryResult;
 				glm::vec3 worldSpaceRay = rend.ScreenspaceToWorldRay(pixelCoordX, pixelCoordY);
-				//high LOD
+
 				for (int triIndex = 0; triIndex < (isQuadblock ? 8 : 4); triIndex++)
 				{
 					if (isQuadblock)
@@ -2045,29 +2057,6 @@ void Level::ViewportClickHandleBlockSelection(int pixelX, int pixelY, bool appen
 
 					if (collided) { break; }
 				}
-
-				//low LOD THIS ONE MIGHT HAVE A BUG
-				//for (int triIndex = 0; triIndex < (isQuadblock ? 2 : 1); triIndex++)
-				//{
-				//  if (isQuadblock)
-				//  {
-				//    tri[0] = glm::vec3(verts[FaceIndexConstants::quadLLODVertArrangements[triIndex][0]].m_pos.x, verts[FaceIndexConstants::quadLLODVertArrangements[triIndex][0]].m_pos.y, verts[FaceIndexConstants::quadLLODVertArrangements[triIndex][0]].m_pos.z);
-				//    tri[1] = glm::vec3(verts[FaceIndexConstants::quadLLODVertArrangements[triIndex][1]].m_pos.x, verts[FaceIndexConstants::quadLLODVertArrangements[triIndex][1]].m_pos.y, verts[FaceIndexConstants::quadLLODVertArrangements[triIndex][1]].m_pos.z);
-				//    tri[2] = glm::vec3(verts[FaceIndexConstants::quadLLODVertArrangements[triIndex][2]].m_pos.x, verts[FaceIndexConstants::quadLLODVertArrangements[triIndex][2]].m_pos.y, verts[FaceIndexConstants::quadLLODVertArrangements[triIndex][2]].m_pos.z);
-				//  }
-				//  else
-				//  {
-				//    tri[0] = glm::vec3(verts[FaceIndexConstants::triLLODVertArrangements[triIndex][0]].m_pos.x, verts[FaceIndexConstants::triLLODVertArrangements[triIndex][0]].m_pos.y, verts[FaceIndexConstants::triLLODVertArrangements[triIndex][0]].m_pos.z);
-				//    tri[1] = glm::vec3(verts[FaceIndexConstants::triLLODVertArrangements[triIndex][1]].m_pos.x, verts[FaceIndexConstants::triLLODVertArrangements[triIndex][1]].m_pos.y, verts[FaceIndexConstants::triLLODVertArrangements[triIndex][1]].m_pos.z);
-				//    tri[2] = glm::vec3(verts[FaceIndexConstants::triLLODVertArrangements[triIndex][2]].m_pos.x, verts[FaceIndexConstants::triLLODVertArrangements[triIndex][2]].m_pos.y, verts[FaceIndexConstants::triLLODVertArrangements[triIndex][2]].m_pos.z);
-				//  }
-
-				//  queryResult = rend.WorldspaceRayTriIntersection(worldSpaceRay, tri); //if we have multiple collisions in one block, just pick one idc
-				//  collided |= (std::get<1>(queryResult) != -1.0f);
-
-				//  if (collided) { break; }
-				//}
-
 
 				if (collided) { passed.push_back(std::tuple<const Quadblock*, glm::vec3, float>(&qb, std::get<0>(queryResult), std::get<1>(queryResult))); continue; }
 			}

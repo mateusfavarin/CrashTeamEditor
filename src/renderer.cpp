@@ -124,6 +124,10 @@ void Renderer::Render(bool skyGradientEnabled, const std::array<ColorGradient, N
 		}
 
 		const unsigned currentRenderFlags = m->GetMesh().GetRenderFlags();
+		if ((currentRenderFlags & Mesh::RenderFlags::QuadblockLod) != 0)
+		{
+			m->GetMesh().SetUseLowLOD(GuiRenderSettings::showLowLOD);
+		}
 		const bool modifyRenderFlags = (currentRenderFlags & Mesh::RenderFlags::DontOverrideRenderFlags) == 0;
 		if (modifyRenderFlags)
 		{

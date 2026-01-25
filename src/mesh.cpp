@@ -1,9 +1,11 @@
 #include <map>
 #include <bit>
+#include <numeric>
 
 #include "mesh.h"
 #include "vertex.h"
 #include "gui_render_settings.h"
+#include "quadblock.h"
 
 #include "stb_image.h"
 #define STB_IMAGE_RESIZE_IMPLEMENTATION
@@ -21,7 +23,7 @@ Mesh::Mesh()
 	Clear();
 }
 
-void Mesh::SetGeometry(const std::vector<Tri>& triangles, unsigned renderFlags, unsigned shaderFlags)
+void Mesh::SetGeometry(const std::vector<Tri>& triangles, unsigned renderFlags, unsigned shaderFlags, const std::vector<size_t>* lodGroupTriangleCounts)
 {
 	if (triangles.empty()) { Clear(); return; }
 
@@ -75,6 +77,13 @@ void Mesh::SetGeometry(const std::vector<Tri>& triangles, unsigned renderFlags, 
 	{
 		RebuildTextureData();
 	}
+
+	m_highLODIndices.clear();
+	m_lowLODIndices.clear();
+	m_indexCount = 0;
+	m_useLowLOD = false;
+
+	if (BuildLowLODIndices(triangles, lodGroupTriangleCounts)) { renderFlags |= RenderFlags::QuadblockLod; }
 
 	const unsigned includedDataFlags = hasUVs ? VBufDataType::UV : VBufDataType::None;
 	UpdateMesh(data, includedDataFlags, renderFlags, shaderFlags);
@@ -160,7 +169,15 @@ void Mesh::Unbind() const
 void Mesh::Draw() const
 {
 	if (m_VAO == 0) { return; }
-	glDrawArrays(IsRenderingPoints() ? GL_POINTS : GL_TRIANGLES, 0, m_vertexCount);
+	const GLenum drawMode = IsRenderingPoints() ? GL_POINTS : GL_TRIANGLES;
+	if (m_EBO != 0 && m_indexCount > 0)
+	{
+		glDrawElements(drawMode, static_cast<GLsizei>(m_indexCount), GL_UNSIGNED_INT, nullptr);
+	}
+	else
+	{
+		glDrawArrays(drawMode, 0, m_vertexCount);
+	}
 }
 
 /*
@@ -195,6 +212,7 @@ void Mesh::UpdateMesh(const std::vector<float>& data, unsigned includedDataFlags
 		glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
 		glBufferData(GL_ARRAY_BUFFER, buffSize, data.data(), GL_STATIC_DRAW);
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		UpdateIndexBuffer();
 		return;
 	}
 
@@ -221,6 +239,33 @@ void Mesh::UpdateMesh(const std::vector<float>& data, unsigned includedDataFlags
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
+
+	UpdateIndexBuffer();
+}
+
+void Mesh::UpdateIndexBuffer()
+{
+	if (m_highLODIndices.empty())
+	{
+		if (m_EBO != 0)
+		{
+			glDeleteBuffers(1, &m_EBO);
+			m_EBO = 0;
+		}
+		m_indexCount = 0;
+		return;
+	}
+
+	const std::vector<unsigned>& indices = (m_useLowLOD && !m_lowLODIndices.empty()) ? m_lowLODIndices : m_highLODIndices;
+	m_indexCount = indices.size();
+
+	if (m_EBO == 0) { glGenBuffers(1, &m_EBO); }
+
+	glBindVertexArray(m_VAO);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_EBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, static_cast<GLsizeiptr>(indices.size() * sizeof(unsigned)), indices.data(), GL_STATIC_DRAW);
+	glBindVertexArray(0);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
 void Mesh::UpdateTriangle(const Tri& tri, size_t triangleIndex)
@@ -287,6 +332,13 @@ int Mesh::GetShaderFlags() const
 void Mesh::SetShaderFlags(unsigned shaderFlags)
 {
 	m_shaderFlags = shaderFlags;
+}
+
+void Mesh::SetUseLowLOD(bool useLowLOD)
+{
+	if (m_useLowLOD == useLowLOD) { return; }
+	m_useLowLOD = useLowLOD;
+	UpdateIndexBuffer();
 }
 
 static constexpr int textureWidth = 256;
@@ -360,20 +412,26 @@ void Mesh::Clear()
 	m_includedData = 0;
 	m_renderFlags = 0;
 	m_shaderFlags = 0;
+	m_useLowLOD = false;
+	m_indexCount = 0;
+	m_highLODIndices.clear();
+	m_lowLODIndices.clear();
 	m_textureStoreData.clear();
 	m_textureStoreIndex.clear();
 }
 
 bool Mesh::IsReady() const
 {
-	return m_VAO != 0;
+	return m_VAO != 0 && m_vertexCount > 0;
 }
 
 void Mesh::Dispose()
 {
 	if (m_VAO != 0) { glDeleteVertexArrays(1, &m_VAO); m_VAO = 0; }
 	if (m_VBO != 0) { glDeleteBuffers(1, &m_VBO); m_VBO = 0; }
+	if (m_EBO != 0) { glDeleteBuffers(1, &m_EBO); m_EBO = 0; }
 	m_vertexCount = 0;
+	m_indexCount = 0;
 }
 
 void Mesh::DeleteTextures()
@@ -386,4 +444,60 @@ void Mesh::DeleteTextures()
 bool Mesh::IsRenderingPoints() const
 {
 	return (m_renderFlags & Mesh::RenderFlags::AllowPointRender) && GuiRenderSettings::showVerts;
+}
+
+bool Mesh::BuildLowLODIndices(const std::vector<Tri>& triangles, const std::vector<size_t>* lodGroupTriangleCounts)
+{
+	if (!lodGroupTriangleCounts || lodGroupTriangleCounts->empty()) { return false; }
+
+	static constexpr int quadLogicalToVert[9][2] =
+	{
+		{0, 1}, {0, 2}, {2, 2}, {0, 0}, {1, 1}, {3, 1}, {4, 0}, {5, 1}, {7, 1},
+	};
+	static constexpr int triLogicalToVert[9][2] =
+	{
+		{0, 1}, {0, 2}, {2, 2}, {0, 0}, {1, 1}, {-1, -1}, {3, 0}, {-1, -1}, {-1, -1},
+	};
+
+	const size_t vertexCount = triangles.size() * 3;
+	m_highLODIndices.resize(vertexCount);
+	std::iota(m_highLODIndices.begin(), m_highLODIndices.end(), 0u);
+	m_lowLODIndices.reserve(vertexCount / 4);
+
+	size_t triOffset = 0;
+	for (const size_t groupTriCount : *lodGroupTriangleCounts)
+	{
+		if (groupTriCount != 8 && groupTriCount != 4) { triOffset += groupTriCount; continue; }
+		if (triOffset + groupTriCount > triangles.size()) { break; }
+
+		const bool isQuadblock = groupTriCount == 8;
+		const int (*llodArr)[3] = isQuadblock ? FaceIndexConstants::quadLLODVertArrangements : FaceIndexConstants::triLLODVertArrangements;
+		const int llodTriCount = isQuadblock ? 2 : 1;
+		const int (*logicalMap)[2] = isQuadblock ? quadLogicalToVert : triLogicalToVert;
+
+		for (int triIndex = 0; triIndex < llodTriCount; triIndex++)
+		{
+			const size_t startSize = m_lowLODIndices.size();
+			bool valid = true;
+			for (int vert = 0; vert < 3; vert++)
+			{
+				const int logicalIndex = llodArr[triIndex][vert];
+				const int mappedTri = (logicalIndex >= 0 && logicalIndex < 9) ? logicalMap[logicalIndex][0] : -1;
+				const int mappedVert = (logicalIndex >= 0 && logicalIndex < 9) ? logicalMap[logicalIndex][1] : -1;
+				if (mappedTri < 0 || mappedVert < 0)
+				{
+					valid = false;
+					break;
+				}
+				m_lowLODIndices.push_back(static_cast<unsigned>((triOffset + mappedTri) * 3 + mappedVert));
+			}
+			if (!valid)
+			{
+				m_lowLODIndices.resize(startSize);
+			}
+		}
+		triOffset += groupTriCount;
+	}
+
+	return true;
 }
