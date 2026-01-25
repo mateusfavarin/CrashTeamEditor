@@ -79,13 +79,6 @@ void Level::Clear(bool clearErrors)
 	DeleteMaterials(this);
 
 	for (Model* model : m_models) { if (model) { model->Clear(); } }
-
-	m_lowLODMesh.Clear();
-	m_highLODMesh.Clear();
-	m_vertexLowLODMesh.Clear();
-	m_vertexHighLODMesh.Clear();
-	m_filterEdgeLowLODMesh.Clear();
-	m_filterEdgeHighLODMesh.Clear();
 }
 
 const std::string& Level::GetName() const
@@ -610,7 +603,7 @@ void Level::ResetRendererSelection()
 {
 	m_rendererQueryPoint = Vec3();
 	m_rendererSelectedQuadblockIndexes.clear();
-	m_models[LevelModels::SELECTED]->SetMesh();
+	m_models[LevelModels::SELECTED]->GetMesh().Clear();
 }
 
 void Level::ManageTurbopad(Quadblock& quadblock)
@@ -1788,7 +1781,8 @@ void Level::InitModels(Renderer& renderer)
 
 void Level::GenerateRenderLevData()
 {
-	if (!m_models[LevelModels::LEVEL]) { return; }
+	if (!m_models[LevelModels::LEVEL] || !m_models[LevelModels::FILTER]) { return; }
+
 	std::vector<Tri> levTriangles;
 	std::vector<Tri> filterTriangles;
 	levTriangles.reserve(m_quadblocks.size() * 8);
@@ -1804,16 +1798,16 @@ void Level::GenerateRenderLevData()
 			for (const Tri& tri : qbFilterTriangles) { filterTriangles.push_back(tri); }
 	}
 
-	m_highLODMesh.SetGeometry(levTriangles, Mesh::RenderFlags::None);
-	m_filterEdgeHighLODMesh.SetGeometry(filterTriangles,
+	m_models[LevelModels::LEVEL]->GetMesh().SetGeometry(levTriangles, Mesh::RenderFlags::None);
+	m_models[LevelModels::FILTER]->GetMesh().SetGeometry(filterTriangles,
 		Mesh::RenderFlags::DrawWireframe | Mesh::RenderFlags::DrawBackfaces | Mesh::RenderFlags::ForceDrawOnTop | Mesh::RenderFlags::DrawLinesAA | Mesh::RenderFlags::DontOverrideRenderFlags | Mesh::RenderFlags::ThickLines,
 		Mesh::ShaderFlags::DiscardZeroColor);
-	m_models[LevelModels::LEVEL]->SetMesh(&m_highLODMesh);
-	m_models[LevelModels::FILTER]->SetMesh(&m_filterEdgeHighLODMesh);
 }
 
 void Level::UpdateAnimationRenderData()
 {
+	if (!m_models[LevelModels::LEVEL]) { return; }
+
 	for (const AnimTexture& animTex : m_animTextures)
 	{
 		if (!animTex.IsPopulated()) { continue; }
@@ -1830,7 +1824,7 @@ void Level::UpdateAnimationRenderData()
 			std::vector<Tri> qbTriangles = qb.ToGeometry(false, &uvs, &texturePath);
 			for (size_t triIndex = 0; triIndex < qbTriangles.size(); triIndex++)
 			{
-				m_highLODMesh.UpdateTriangle(qbTriangles[triIndex], baseTriangleIndex + triIndex);
+				m_models[LevelModels::LEVEL]->GetMesh().UpdateTriangle(qbTriangles[triIndex], baseTriangleIndex + triIndex);
 			}
 		}
 	}
@@ -1838,13 +1832,15 @@ void Level::UpdateAnimationRenderData()
 
 void Level::UpdateFilterRenderData(const Quadblock& qb)
 {
+	if (!m_models[LevelModels::FILTER]) { return; }
+
 	const size_t baseTriangleIndex = qb.GetRenderTriangleIndex();
 	if (baseTriangleIndex == RENDER_INDEX_NONE) { return; }
 
 	std::vector<Tri> qbFilterTriangles = qb.ToGeometry(true);
 	for (size_t triIndex = 0; triIndex < qbFilterTriangles.size(); triIndex++)
 	{
-		m_filterEdgeHighLODMesh.UpdateTriangle(qbFilterTriangles[triIndex], baseTriangleIndex + triIndex);
+		m_models[LevelModels::FILTER]->GetMesh().UpdateTriangle(qbFilterTriangles[triIndex], baseTriangleIndex + triIndex);
 	}
 }
 
@@ -1852,17 +1848,15 @@ void Level::GenerateRenderBspData()
 {
 	if (!m_models[LevelModels::BSP]) { return; }
 
-	static Mesh bspMesh;
-	std::vector<Tri> triangles;
-
-	GuiRenderSettings::bspTreeMaxDepth = 0;
 	struct NodeDepth
 	{
 		const BSP* node;
 		int depth;
 	};
+	std::vector<Tri> triangles;
 	std::vector<NodeDepth> stack;
 	stack.push_back({&m_bsp, 0});
+	GuiRenderSettings::bspTreeMaxDepth = 0;
 	while (!stack.empty())
 	{
 		const NodeDepth entry = stack.back();
@@ -1899,15 +1893,13 @@ void Level::GenerateRenderBspData()
 		}
 	}
 
-	bspMesh.SetGeometry(triangles, Mesh::RenderFlags::DrawWireframe | Mesh::RenderFlags::DontOverrideRenderFlags);
-	m_models[LevelModels::BSP]->SetMesh(&bspMesh);
+	m_models[LevelModels::BSP]->GetMesh().SetGeometry(triangles, Mesh::RenderFlags::DrawWireframe | Mesh::RenderFlags::DontOverrideRenderFlags);
 }
 
 void Level::UpdateRenderCheckpointData()
 {
 	if (!m_models[LevelModels::CHECKPOINT] || m_checkpoints.empty()) { return; }
 
-	static Mesh checkMesh;
 	std::vector<Tri> checkTriangles;
 	checkTriangles.reserve(m_checkpoints.size() * 8);
 	std::unordered_set<int> selectedCheckpointIndexes; // Contain the ID of the checkpoints from selected quads
@@ -1926,15 +1918,13 @@ void Level::UpdateRenderCheckpointData()
 		checkTriangles.insert(checkTriangles.end(), tris.begin(), tris.end());
 	}
 
-	checkMesh.SetGeometry(checkTriangles, Mesh::RenderFlags::None);
-	m_models[LevelModels::CHECKPOINT]->SetMesh(&checkMesh);
+	m_models[LevelModels::CHECKPOINT]->GetMesh().SetGeometry(checkTriangles, Mesh::RenderFlags::None);
 }
 
 void Level::GenerateRenderStartpointData()
 {
 	if (!m_models[LevelModels::SPAWN]) { return; }
 
-	static Mesh spawnsMesh;
 	std::vector<Tri> spawnsTriangles;
 	spawnsTriangles.reserve(m_spawn.size() * 8);
 
@@ -1945,8 +1935,7 @@ void Level::GenerateRenderStartpointData()
 		spawnsTriangles.insert(spawnsTriangles.end(), tris.begin(), tris.end());
 	}
 
-	spawnsMesh.SetGeometry(spawnsTriangles, Mesh::RenderFlags::None);
-	m_models[LevelModels::SPAWN]->SetMesh(&spawnsMesh);
+	m_models[LevelModels::SPAWN]->GetMesh().SetGeometry(spawnsTriangles, Mesh::RenderFlags::None);
 }
 
 void Level::GenerateRenderSelectedBlockData(const Quadblock& quadblock, const Vec3& queryPoint)
@@ -1955,7 +1944,6 @@ void Level::GenerateRenderSelectedBlockData(const Quadblock& quadblock, const Ve
 
 	m_rendererQueryPoint = queryPoint;
 
-	static Mesh quadblockMesh;
 	std::vector<Tri> triangles;
 	triangles.reserve(m_rendererSelectedQuadblockIndexes.size() * 8 + 8);
 
@@ -1976,10 +1964,9 @@ void Level::GenerateRenderSelectedBlockData(const Quadblock& quadblock, const Ve
 	const std::vector<Tri> queryTriangles = v.ToGeometry();
 	triangles.insert(triangles.end(), queryTriangles.begin(), queryTriangles.end());
 
-	quadblockMesh.SetGeometry(triangles,
+	m_models[LevelModels::SELECTED]->GetMesh().SetGeometry(triangles,
 		Mesh::RenderFlags::DrawWireframe | Mesh::RenderFlags::DrawBackfaces | Mesh::RenderFlags::ForceDrawOnTop | Mesh::RenderFlags::DrawLinesAA | Mesh::RenderFlags::DontOverrideRenderFlags,
 		Mesh::ShaderFlags::Blinky);
-	m_models[LevelModels::SELECTED]->SetMesh(&quadblockMesh);
 
 	if (GuiRenderSettings::showVisTree)
 	{
@@ -1991,7 +1978,6 @@ void Level::GenerateRenderSelectedBlockData(const Quadblock& quadblock, const Ve
 			if (bsp.GetId() == quadblock.GetBSPID()) { myBSPIndex = bsp_index; }
 		}
 
-		static Mesh multiQuadblockMesh;
 		std::vector<Tri> multiTriangles;
 		for (size_t bsp_index = 0; bsp_index < bspLeaves.size(); bsp_index++)
 		{
@@ -2012,14 +1998,9 @@ void Level::GenerateRenderSelectedBlockData(const Quadblock& quadblock, const Ve
 			}
 		}
 
-		if (multiTriangles.empty()) { m_models[LevelModels::MULTI_SELECTED]->SetMesh(nullptr); }
-		else
-		{
-			quadblockMesh.SetGeometry(triangles,
-				Mesh::RenderFlags::DrawWireframe | Mesh::RenderFlags::DrawBackfaces | Mesh::RenderFlags::ForceDrawOnTop | Mesh::RenderFlags::DrawLinesAA | Mesh::RenderFlags::DontOverrideRenderFlags,
-				Mesh::ShaderFlags::Blinky);
-			m_models[LevelModels::MULTI_SELECTED]->SetMesh(&quadblockMesh);
-		}
+		m_models[LevelModels::MULTI_SELECTED]->GetMesh().SetGeometry(multiTriangles,
+			Mesh::RenderFlags::DrawWireframe | Mesh::RenderFlags::DrawBackfaces | Mesh::RenderFlags::ForceDrawOnTop | Mesh::RenderFlags::DrawLinesAA | Mesh::RenderFlags::DontOverrideRenderFlags,
+			Mesh::ShaderFlags::Blinky);
 	}
 }
 
@@ -2164,7 +2145,7 @@ void Level::ViewportClickHandleBlockSelection(int pixelX, int pixelY, bool appen
 	}
 	else
 	{
-		m_models[LevelModels::SELECTED]->SetMesh();
+		m_models[LevelModels::SELECTED]->GetMesh().Clear();
 	}
 	UpdateRenderCheckpointData();
 }

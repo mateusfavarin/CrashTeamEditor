@@ -21,6 +21,8 @@ Mesh::Mesh()
 
 void Mesh::SetGeometry(const std::vector<Tri>& triangles, unsigned renderFlags, unsigned shaderFlags)
 {
+	if (triangles.empty()) { Clear(); return; }
+
 	m_triCount = triangles.size();
 	m_textureStoreData.clear();
 	m_textureStoreIndex.clear();
@@ -357,6 +359,11 @@ void Mesh::Clear()
 	m_shaderFlags = 0;
 	m_textureStoreData.clear();
 	m_textureStoreIndex.clear();
+}
+
+bool Mesh::IsReady() const
+{
+	return m_VAO != 0;
 }
 
 void Mesh::Dispose()

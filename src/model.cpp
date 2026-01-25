@@ -6,23 +6,16 @@ Model::Model()
 	m_renderCondition = []() { return true; };
 }
 
-void Model::Draw()
+void Model::Draw() const
 {
-	if (m_mesh == nullptr) { return; }
-
-  m_mesh->Bind();
-	m_mesh->Draw();
-	m_mesh->Unbind();
+  m_mesh.Bind();
+	m_mesh.Draw();
+	m_mesh.Unbind();
 }
 
-Mesh* Model::GetMesh()
+Mesh& Model::GetMesh()
 {
   return m_mesh;
-}
-
-void Model::SetMesh(Mesh* newMesh)
-{
-  m_mesh = newMesh;
 }
 
 void Model::SetRenderCondition(const std::function<bool()>& renderCondition)
@@ -30,7 +23,7 @@ void Model::SetRenderCondition(const std::function<bool()>& renderCondition)
 	m_renderCondition = renderCondition;
 }
 
-glm::mat4 Model::CalculateModelMatrix()
+glm::mat4 Model::CalculateModelMatrix() const
 {
   glm::mat4 model = glm::mat4(1.0f); // scale * rotate * translate
   model = glm::translate(model, m_position);
@@ -41,8 +34,13 @@ glm::mat4 Model::CalculateModelMatrix()
 
 void Model::Clear()
 {
-	m_mesh = nullptr;
+	m_mesh.Clear();
 	m_position = glm::vec3(0.f, 0.f, 0.f);
 	m_scale = glm::vec3(1.f, 1.f, 1.f);
 	m_rotation = glm::quat(1.f, 0.f, 0.f, 0.f);
+}
+
+bool Model::IsReady() const
+{
+	return m_mesh.IsReady() && m_renderCondition();
 }

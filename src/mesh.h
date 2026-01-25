@@ -50,6 +50,7 @@ public:
 	int GetShaderFlags() const;
 	void SetShaderFlags(unsigned shaderFlags);
 	void Clear();
+	bool IsReady() const;
 
 private:
 	int GetDatas() const;

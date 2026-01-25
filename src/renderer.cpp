@@ -110,9 +110,9 @@ void Renderer::Render(bool skyGradientEnabled, const std::array<ColorGradient, N
 	static int lastUsedShader = -1;
 	for (Model* m : m_modelList)
 	{
-		if (m->GetMesh() == nullptr || !m->m_renderCondition()) { continue; }
+		if (!m->IsReady()) { continue; }
 
-		int datas = m->GetMesh()->GetDatas();
+		int datas = m->GetMesh().GetDatas();
 		if (!m_shaderCache.contains(datas)) { continue; }
 
 		const Shader& shad = m_shaderCache.at(datas);
@@ -123,12 +123,12 @@ void Renderer::Render(bool skyGradientEnabled, const std::array<ColorGradient, N
 			lastUsedShader = datas;
 		}
 
-		if ((m->GetMesh()->GetRenderFlags() & Mesh::RenderFlags::DontOverrideRenderFlags) == 0)
+		if ((m->GetMesh().GetRenderFlags() & Mesh::RenderFlags::DontOverrideRenderFlags) == 0)
 		{
 			int newRenderFlags = Mesh::RenderFlags::None;
 			if (GuiRenderSettings::showWireframe) { newRenderFlags |= Mesh::RenderFlags::DrawWireframe; }
 			if (GuiRenderSettings::showBackfaces) { newRenderFlags |= Mesh::RenderFlags::DrawBackfaces; }
-			m->GetMesh()->SetRenderFlags(newRenderFlags);
+			m->GetMesh().SetRenderFlags(newRenderFlags);
 		}
 
 		glm::mat4 model = m->CalculateModelMatrix();
@@ -139,11 +139,11 @@ void Renderer::Render(bool skyGradientEnabled, const std::array<ColorGradient, N
 		shad.SetUniform("camWorldPos", camPos);
 		//draw variations
 		shad.SetUniform("drawType", GuiRenderSettings::renderType);
-		shad.SetUniform("shaderSettings", m->GetMesh()->GetShaderFlags());
+		shad.SetUniform("shaderSettings", m->GetMesh().GetShaderFlags());
 		//misc
 		shad.SetUniform("time", m_time);
 		shad.SetUniform("lightDir", glm::normalize(glm::vec3(0.2f, -3.f, -1.f)));
-		GLuint tex = m->GetMesh()->GetTextureStore();
+		GLuint tex = m->GetMesh().GetTextureStore();
 		if (tex) { shad.SetUniform("tex", 0); } // "0" represents texture unit 0
 		m->Draw();
 	}

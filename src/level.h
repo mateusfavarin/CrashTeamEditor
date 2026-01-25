@@ -11,7 +11,6 @@
 #include "renderer.h"
 #include "animtexture.h"
 #include "model.h"
-#include "mesh.h"
 #include "vistree.h"
 
 #include <nlohmann/json.hpp>
@@ -128,13 +127,6 @@ private:
 	MaterialProperty<QuadblockTrigger, MaterialType::TURBO_PAD> m_propTurboPads;
 	MaterialProperty<int, MaterialType::SPEED_IMPACT> m_propSpeedImpact;
 	MaterialProperty<bool, MaterialType::CHECKPOINT_PATHABLE> m_propCheckpointPathable;
-
-	Mesh m_lowLODMesh;
-	Mesh m_highLODMesh;
-	Mesh m_vertexLowLODMesh;
-	Mesh m_vertexHighLODMesh;
-	Mesh m_filterEdgeLowLODMesh;
-	Mesh m_filterEdgeHighLODMesh;
 
 	std::array<Model*, LevelModels::COUNT> m_models;
 
