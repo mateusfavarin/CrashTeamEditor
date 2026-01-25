@@ -9,8 +9,6 @@
 #include "gtc/matrix_transform.hpp"
 #include "gtc/type_ptr.hpp"
 
-#include <tuple>
-
 Renderer::Renderer(int width, int height)
 {
 	//create framebuffer
@@ -97,7 +95,6 @@ void Renderer::Render(bool skyGradientEnabled, const std::array<ColorGradient, N
 	m_camera.Update(allowShortcuts, m_deltaTime);
 
 	const glm::vec3& camPos = m_camera.GetPosition();
-	const glm::vec3& camFront = m_camera.GetFront();
 
 	m_perspective = glm::perspective<float>(glm::radians(GuiRenderSettings::camFovDeg), (static_cast<float>(m_width) / static_cast<float>(m_height)), 0.1f, 1000.0f);
 	static int lastUsedShader = -1;
@@ -107,7 +104,7 @@ void Renderer::Render(bool skyGradientEnabled, const std::array<ColorGradient, N
 
 		int datas = m->GetMesh()->GetDatas();
 
-		if (!m_shaderCache.contains(datas)) { m_shaderCache[datas] = Shader(std::get<0>(ShaderTemplates::datasToShaderSourceMap[datas]).c_str(), std::get<1>(ShaderTemplates::datasToShaderSourceMap[datas]).c_str(), std::get<2>(ShaderTemplates::datasToShaderSourceMap[datas]).c_str()); }
+		if (!m_shaderCache.contains(datas)) { m_shaderCache[datas] = Shader(ShaderTemplates::datasToShaderSourceMap[datas].first.c_str(), ShaderTemplates::datasToShaderSourceMap[datas].second.c_str()); }
 
 		Shader& shad = m_shaderCache[datas];
 		if (lastUsedShader != datas)
@@ -130,7 +127,6 @@ void Renderer::Render(bool skyGradientEnabled, const std::array<ColorGradient, N
 		//world
 		shad.SetUniform("mvp", mvp);
 		shad.SetUniform("model", model);
-		shad.SetUniform("camViewDir", camFront);
 		shad.SetUniform("camWorldPos", camPos);
 		//draw variations
 		shad.SetUniform("drawType", GuiRenderSettings::renderType);
@@ -138,7 +134,6 @@ void Renderer::Render(bool skyGradientEnabled, const std::array<ColorGradient, N
 		//misc
 		shad.SetUniform("time", m_time);
 		shad.SetUniform("lightDir", glm::normalize(glm::vec3(0.2f, -3.f, -1.f)));
-		shad.SetUniform("wireframeWireThickness", .02f);
 		GLuint tex = m->GetMesh()->GetTextureStore();
 		if (tex) { shad.SetUniform("tex", 0); } // "0" represents texture unit 0
 		m->Draw();
