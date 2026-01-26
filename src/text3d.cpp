@@ -156,5 +156,5 @@ void Text3D::UpdateMeshFromLabel()
 		triangles.emplace_back(p0, p2, p3);
 	}
 
-	m_mesh.SetGeometry(triangles, Mesh::RenderFlags::DontOverrideRenderFlags | Mesh::RenderFlags::DrawBackfaces);
+	m_mesh.SetGeometry(triangles, Mesh::RenderFlags::DontOverrideRenderFlags | Mesh::RenderFlags::DrawBackfaces | Mesh::RenderFlags::FollowCamera);
 }

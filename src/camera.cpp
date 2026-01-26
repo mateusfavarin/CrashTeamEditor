@@ -126,3 +126,39 @@ float Camera::GetDistance() const
 {
 	return m_distance;
 }
+
+glm::mat4 Camera::BuildBillboardMatrix(const glm::vec3& position, const glm::vec3& scale,
+	const glm::vec3& eulerRotation) const
+{
+	glm::vec3 forward = m_position - position;
+	const float forwardLenSq = glm::dot(forward, forward);
+	if (forwardLenSq < 0.000001f) { forward = glm::vec3(0.0f, 0.0f, 1.0f); }
+	else { forward = glm::normalize(forward); }
+
+	glm::vec3 up(0.0f, 1.0f, 0.0f);
+	glm::vec3 right = glm::cross(up, forward);
+	const float rightLenSq = glm::dot(right, right);
+	if (rightLenSq < 0.000001f)
+	{
+		up = glm::vec3(0.0f, 0.0f, 1.0f);
+		right = glm::cross(up, forward);
+	}
+	right = glm::normalize(right);
+	up = glm::normalize(glm::cross(forward, right));
+
+	glm::mat4 billboardRotation(1.0f);
+	billboardRotation[0] = glm::vec4(right, 0.0f);
+	billboardRotation[1] = glm::vec4(up, 0.0f);
+	billboardRotation[2] = glm::vec4(forward, 0.0f);
+
+	glm::mat4 model(1.0f);
+	model = glm::translate(model, position);
+	model *= billboardRotation;
+	glm::mat4 localRotation(1.0f);
+	localRotation = glm::rotate(localRotation, glm::radians(eulerRotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+	localRotation = glm::rotate(localRotation, glm::radians(eulerRotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+	localRotation = glm::rotate(localRotation, glm::radians(eulerRotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+	model *= localRotation;
+	model = glm::scale(model, scale);
+	return model;
+}

@@ -29,6 +29,7 @@ public:
 		static constexpr unsigned AllowPointRender = 1 << 6;
 		static constexpr unsigned DrawPoints = 1 << 7;
 		static constexpr unsigned QuadblockLod = 1 << 8;
+		static constexpr unsigned FollowCamera = 1 << 9;
 	};
 
 	struct ShaderFlags // note: updating this also requires updating all shader source.

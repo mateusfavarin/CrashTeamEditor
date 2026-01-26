@@ -14,6 +14,8 @@ public:
 	const glm::vec3& GetTarget() const;
 	const glm::mat4& GetViewMatrix() const;
 	float GetDistance() const;
+	glm::mat4 BuildBillboardMatrix(const glm::vec3& position, const glm::vec3& scale,
+		const glm::vec3& eulerRotation = glm::vec3(0.0f)) const;
 
 	void SetPosition(const glm::vec3& pos) { m_position = pos; }
 	void SetTarget(const glm::vec3& target) { m_target = target; }

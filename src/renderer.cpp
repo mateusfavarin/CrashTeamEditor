@@ -131,10 +131,12 @@ void Renderer::Render(bool skyGradientEnabled, const std::array<ColorGradient, N
 				}
 
 				const unsigned currentRenderFlags = m->GetMesh().GetRenderFlags();
+				const bool followCamera = (currentRenderFlags & Mesh::RenderFlags::FollowCamera) != 0;
 				if ((currentRenderFlags & Mesh::RenderFlags::QuadblockLod) != 0)
 				{
 					m->GetMesh().SetUseLowLOD(GuiRenderSettings::showLowLOD);
 				}
+
 				const bool modifyRenderFlags = (currentRenderFlags & Mesh::RenderFlags::DontOverrideRenderFlags) == 0;
 				if (modifyRenderFlags)
 				{
@@ -142,6 +144,14 @@ void Renderer::Render(bool skyGradientEnabled, const std::array<ColorGradient, N
 					if (GuiRenderSettings::showWireframe) { newRenderFlags |= Mesh::RenderFlags::DrawWireframe; }
 					if (GuiRenderSettings::showBackfaces) { newRenderFlags |= Mesh::RenderFlags::DrawBackfaces; }
 					m->GetMesh().SetRenderFlags(newRenderFlags);
+				}
+
+				if (followCamera)
+				{
+					const Vec3 pos = m->GetPosition();
+					const Vec3 scale = m->GetScale();
+					const Vec3 rotation = m->GetRotation();
+					model = m_camera.BuildBillboardMatrix(glm::vec3(pos.x, pos.y, pos.z), glm::vec3(scale.x, scale.y, scale.z), glm::vec3(rotation.x, rotation.y, rotation.z));
 				}
 
 				glm::mat4 mvp = m_perspective * m_camera.GetViewMatrix() * model;
@@ -179,6 +189,17 @@ void Renderer::Render(bool skyGradientEnabled, const std::array<ColorGradient, N
 				}
 
 				glm::mat4 labelModel = model * label->CalculateModelMatrix();
+				const unsigned labelRenderFlags = labelMesh.GetRenderFlags();
+				if ((labelRenderFlags & Mesh::RenderFlags::FollowCamera) != 0)
+				{
+					const Vec3 labelPos = label->GetPosition();
+					const glm::vec3 worldPos = glm::vec3(model * glm::vec4(labelPos.x, labelPos.y, labelPos.z, 1.0f));
+					const Vec3 modelScale = m->GetScale();
+					const Vec3 labelScale = label->GetScale();
+					const glm::vec3 worldScale(modelScale.x * labelScale.x, modelScale.y * labelScale.y, modelScale.z * labelScale.z);
+					const Vec3 labelRot = label->GetRotation();
+					labelModel = m_camera.BuildBillboardMatrix(worldPos, worldScale, glm::vec3(labelRot.x, labelRot.y, labelRot.z));
+				}
 				glm::mat4 mvp = m_perspective * m_camera.GetViewMatrix() * labelModel;
 				//world
 				shad.SetUniform("mvp", mvp);
