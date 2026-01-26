@@ -15,11 +15,6 @@ public:
 		RIGHT
 	};
 
-	Text3D();
-	explicit Text3D(const std::string& label,
-		TextAlign align = TextAlign::LEFT,
-		const Color& color = Color(static_cast<unsigned char>(0u), static_cast<unsigned char>(0u), static_cast<unsigned char>(0u), static_cast<unsigned char>(255u)),
-		const Color& backgroundColor = Color(static_cast<unsigned char>(0u), static_cast<unsigned char>(0u), static_cast<unsigned char>(0u), static_cast<unsigned char>(0u)));
 	const std::string& GetLabel() const;
 	void SetLabel(const std::string& label);
 	TextAlign GetAlign() const;
@@ -36,6 +31,11 @@ public:
 	const Mesh& GetMesh() const;
 
 private:
+	Text3D();
+	explicit Text3D(const std::string& label,
+		TextAlign align = TextAlign::LEFT,
+		const Color& color = Color(static_cast<unsigned char>(0u), static_cast<unsigned char>(0u), static_cast<unsigned char>(0u), static_cast<unsigned char>(255u)),
+		const Color& backgroundColor = Color(static_cast<unsigned char>(0u), static_cast<unsigned char>(0u), static_cast<unsigned char>(0u), static_cast<unsigned char>(0u)));
 	void UpdateMeshFromLabel();
 
 private:
@@ -45,4 +45,6 @@ private:
 	Color m_backgroundColor = Color(static_cast<unsigned char>(0u), static_cast<unsigned char>(0u), static_cast<unsigned char>(0u), static_cast<unsigned char>(0u));
 	float m_size = 1.0f;
 	Mesh m_mesh;
+
+	friend class Model;
 };
