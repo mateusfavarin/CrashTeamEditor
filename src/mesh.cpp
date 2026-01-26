@@ -180,6 +180,13 @@ void Mesh::Draw() const
 	}
 }
 
+void Mesh::Render() const
+{
+	Bind();
+	Draw();
+	Unbind();
+}
+
 /*
 When passing data[], any present data according to the "includedDataFlags" is expected to be in this order:
 * vertex/position data (always assumed to be present).

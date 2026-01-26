@@ -167,7 +167,7 @@ void Renderer::Render(bool skyGradientEnabled, const std::array<ColorGradient, N
 				shad.SetUniform("lightDir", glm::normalize(glm::vec3(0.2f, -3.f, -1.f)));
 				GLuint tex = m->GetMesh().GetTextureStore();
 				if (tex) { shad.SetUniform("tex", 0); } // "0" represents texture unit 0
-				m->Draw();
+				m->GetMesh().Render();
 				if (modifyRenderFlags) { m->GetMesh().SetRenderFlags(currentRenderFlags); }
 			}
 
@@ -211,9 +211,7 @@ void Renderer::Render(bool skyGradientEnabled, const std::array<ColorGradient, N
 				//misc
 				shad.SetUniform("time", m_time);
 				shad.SetUniform("lightDir", glm::normalize(glm::vec3(0.2f, -3.f, -1.f)));
-				labelMesh.Bind();
-				labelMesh.Draw();
-				labelMesh.Unbind();
+				labelMesh.Render();
 			}
 		}
 	}

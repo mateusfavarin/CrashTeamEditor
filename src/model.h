@@ -26,9 +26,6 @@ public:
 	bool IsReady() const;
 
 private:
-  void Draw() const;
-
-private:
 	Mesh m_mesh;
 	std::function<bool()> m_renderCondition;
 	std::list<Text3D*> m_labels;

@@ -69,6 +69,7 @@ private:
 	void Bind() const;
 	void Unbind() const;
 	void Draw() const;
+	void Render() const;
 	void Dispose();
 	void DeleteTextures();
 	bool IsRenderingPoints() const;

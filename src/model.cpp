@@ -15,13 +15,6 @@ Model::~Model()
 	RemoveLabels();
 }
 
-void Model::Draw() const
-{
-  m_mesh.Bind();
-	m_mesh.Draw();
-	m_mesh.Unbind();
-}
-
 Mesh& Model::GetMesh()
 {
   return m_mesh;
