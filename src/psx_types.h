@@ -281,7 +281,7 @@ namespace PSX
 		uint16_t id;
 		PSX::BoundingBox bbox;
 		PSX::Vec3 axis;
-		uint16_t unk1;
+		int16_t unk1;
 		uint16_t leftChild;
 		uint16_t rightChild;
 		uint16_t unk2;
