@@ -198,6 +198,7 @@ void init_crashteameditor(py::module_& m)
 		.def_property("checkpoint_index", &Quadblock::GetCheckpoint, &Quadblock::SetCheckpoint)
 		.def_property("checkpoint_status", &Quadblock::GetCheckpointStatus, &Quadblock::SetCheckpointStatus)
 		.def_property("checkpoint_pathable", &Quadblock::GetCheckpointPathable, &Quadblock::SetCheckpointPathable)
+		.def_property("vistree_transparent", &Quadblock::GetVisTreeTransparent, &Quadblock::SetVisTreeTransparent)
 		.def_property("tex_path",
 			[](const Quadblock& qb) { return std::filesystem::path(qb.GetTexPath()); },
 			&Quadblock::SetTexPath)

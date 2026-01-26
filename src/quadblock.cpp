@@ -427,9 +427,19 @@ bool Quadblock::IsQuadblock() const
 	return !m_triblock;
 }
 
-const Vec3& Quadblock::GetCenter() const
+Vec3 Quadblock::GetCenter() const
 {
-	return m_p[4].m_pos;
+	if (m_triblock)
+	{
+		Vec3 v1 = m_p[1].m_pos;
+		Vec3 v2 = m_p[3].m_pos;
+		Vec3 v3 = m_p[4].m_pos;
+		return (v1 + v2 + v3) / (3.0f);
+	}
+	else
+	{
+		return m_p[4].m_pos;
+	}
 }
 
 Vec3 Quadblock::GetNormal() const
@@ -489,6 +499,11 @@ const Color& Quadblock::GetFilterColor() const
 	return m_filterColor;
 }
 
+bool Quadblock::GetDrawDoubleSided() const
+{
+	return m_doubleSided;
+}
+
 bool Quadblock::GetCheckpointStatus() const
 {
 	return m_checkpointStatus;
@@ -497,6 +512,11 @@ bool Quadblock::GetCheckpointStatus() const
 bool Quadblock::GetCheckpointPathable() const
 {
 	return m_checkpointPathable;
+}
+
+bool Quadblock::GetVisTreeTransparent() const
+{
+	return m_visTreeTransparent;
 }
 
 const QuadUV& Quadblock::GetQuadUV(size_t quad) const
@@ -608,6 +628,11 @@ void Quadblock::SetCheckpointStatus(bool active)
 void Quadblock::SetCheckpointPathable(bool pathable)
 {
 	m_checkpointPathable = pathable;
+}
+
+void Quadblock::SetVisTreeTransparent(bool transparent)
+{
+	m_visTreeTransparent = transparent;
 }
 
 void Quadblock::SetName(const std::string& name)
@@ -795,6 +820,7 @@ void Quadblock::SetDefaultValues()
 	m_doubleSided = false;
 	m_checkpointPathable = true;
 	m_checkpointStatus = false;
+	m_visTreeTransparent = false;
 	m_trigger = QuadblockTrigger::NONE;
 	m_turboPadIndex = TURBO_PAD_INDEX_NONE;
 	m_hide = false;
