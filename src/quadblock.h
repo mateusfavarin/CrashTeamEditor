@@ -149,7 +149,7 @@ public:
 	Quadblock(const std::string& name, Quad& q0, Quad& q1, Quad& q2, Quad& q3, const Vec3& normal, const std::string& material, bool hasUV, UpdateFilterCallback filterCallback);
 	Quadblock(const PSX::Quadblock& quadblock, const std::vector<PSX::Vertex>& vertices, UpdateFilterCallback filterCallback);
 	const std::string& GetName() const;
-	const Vec3& GetCenter() const;
+	Vec3 GetCenter() const;
 	Vec3 GetNormal() const;
 	uint8_t GetTerrain() const;
 	uint16_t GetFlags() const;
@@ -161,6 +161,7 @@ public:
 	bool GetAnimated() const;
 	bool GetFilter() const;
 	const Color& GetFilterColor() const;
+	bool GetDrawDoubleSided() const;
 	bool GetCheckpointStatus() const;
 	bool GetCheckpointPathable() const;
 	bool GetVisTreeTransparent() const;
