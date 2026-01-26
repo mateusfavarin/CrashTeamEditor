@@ -12,6 +12,7 @@ public:
 	void Clear();
 	void SetPosition(const Vec3& pos);
 	void SetScale(const Vec3& scale);
+	void SetScale(float scale);
 	void SetRotation(const Vec3& rotation);
 	Vec3 GetPosition() const;
 	Vec3 GetScale() const;

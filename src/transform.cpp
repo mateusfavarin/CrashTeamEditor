@@ -26,6 +26,13 @@ void Transform::SetScale(const Vec3& scale)
 	m_scale.z = scale.z;
 }
 
+void Transform::SetScale(float scale)
+{
+	m_scale.x = scale;
+	m_scale.y = scale;
+	m_scale.z = scale;
+}
+
 void Transform::SetRotation(const Vec3& rotation)
 {
 	m_rotation = glm::quat(glm::radians(glm::vec3(rotation.x, rotation.y, rotation.z)));

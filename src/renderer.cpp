@@ -3,6 +3,7 @@
 #include "time.h"
 #include "gui_render_settings.h"
 #include "shader_templates.h"
+#include "text3d.h"
 
 #include "globalimguiglglfw.h"
 #include "glm.hpp"
@@ -66,7 +67,10 @@ Model* Renderer::CreateModel()
 bool Renderer::DeleteModel(Model* model)
 {
 	if (!model) { return false; }
-	m_modelList.remove(model);
+
+	size_t count = std::erase(m_modelList, model);
+	if (count == 0) { return false; }
+
 	delete model;
 	return true;
 }
@@ -110,49 +114,87 @@ void Renderer::Render(bool skyGradientEnabled, const std::array<ColorGradient, N
 	static int lastUsedShader = -1;
 	for (Model* m : m_modelList)
 	{
-		if (!m->IsReady()) { continue; }
-
-		int datas = m->GetMesh().GetDatas();
-		if (!m_shaderCache.contains(datas)) { continue; }
-
-		const Shader& shad = m_shaderCache.at(datas);
-		if (lastUsedShader != datas)
-		{
-			if (lastUsedShader != -1) { m_shaderCache[lastUsedShader].Unuse(); }
-			shad.Use();
-			lastUsedShader = datas;
-		}
-
-		const unsigned currentRenderFlags = m->GetMesh().GetRenderFlags();
-		if ((currentRenderFlags & Mesh::RenderFlags::QuadblockLod) != 0)
-		{
-			m->GetMesh().SetUseLowLOD(GuiRenderSettings::showLowLOD);
-		}
-		const bool modifyRenderFlags = (currentRenderFlags & Mesh::RenderFlags::DontOverrideRenderFlags) == 0;
-		if (modifyRenderFlags)
-		{
-			unsigned newRenderFlags = currentRenderFlags;
-			if (GuiRenderSettings::showWireframe) { newRenderFlags |= Mesh::RenderFlags::DrawWireframe; }
-			if (GuiRenderSettings::showBackfaces) { newRenderFlags |= Mesh::RenderFlags::DrawBackfaces; }
-			m->GetMesh().SetRenderFlags(newRenderFlags);
-		}
+		if (!m) { continue; }
 
 		glm::mat4 model = m->CalculateModelMatrix();
-		glm::mat4 mvp = m_perspective * m_camera.GetViewMatrix() * model;
-		//world
-		shad.SetUniform("mvp", mvp);
-		shad.SetUniform("model", model);
-		shad.SetUniform("camWorldPos", camPos);
-		//draw variations
-		shad.SetUniform("drawType", GuiRenderSettings::renderType);
-		shad.SetUniform("shaderSettings", m->GetMesh().GetShaderFlags());
-		//misc
-		shad.SetUniform("time", m_time);
-		shad.SetUniform("lightDir", glm::normalize(glm::vec3(0.2f, -3.f, -1.f)));
-		GLuint tex = m->GetMesh().GetTextureStore();
-		if (tex) { shad.SetUniform("tex", 0); } // "0" represents texture unit 0
-		m->Draw();
-		if (modifyRenderFlags) { m->GetMesh().SetRenderFlags(currentRenderFlags); }
+		if (m->IsReady())
+		{
+			int datas = m->GetMesh().GetDatas();
+			if (m_shaderCache.contains(datas))
+			{
+				const Shader& shad = m_shaderCache.at(datas);
+				if (lastUsedShader != datas)
+				{
+					if (lastUsedShader != -1) { m_shaderCache[lastUsedShader].Unuse(); }
+					shad.Use();
+					lastUsedShader = datas;
+				}
+
+				const unsigned currentRenderFlags = m->GetMesh().GetRenderFlags();
+				if ((currentRenderFlags & Mesh::RenderFlags::QuadblockLod) != 0)
+				{
+					m->GetMesh().SetUseLowLOD(GuiRenderSettings::showLowLOD);
+				}
+				const bool modifyRenderFlags = (currentRenderFlags & Mesh::RenderFlags::DontOverrideRenderFlags) == 0;
+				if (modifyRenderFlags)
+				{
+					unsigned newRenderFlags = currentRenderFlags;
+					if (GuiRenderSettings::showWireframe) { newRenderFlags |= Mesh::RenderFlags::DrawWireframe; }
+					if (GuiRenderSettings::showBackfaces) { newRenderFlags |= Mesh::RenderFlags::DrawBackfaces; }
+					m->GetMesh().SetRenderFlags(newRenderFlags);
+				}
+
+				glm::mat4 mvp = m_perspective * m_camera.GetViewMatrix() * model;
+				//world
+				shad.SetUniform("mvp", mvp);
+				shad.SetUniform("model", model);
+				shad.SetUniform("camWorldPos", camPos);
+				//draw variations
+				shad.SetUniform("drawType", GuiRenderSettings::renderType);
+				shad.SetUniform("shaderSettings", m->GetMesh().GetShaderFlags());
+				//misc
+				shad.SetUniform("time", m_time);
+				shad.SetUniform("lightDir", glm::normalize(glm::vec3(0.2f, -3.f, -1.f)));
+				GLuint tex = m->GetMesh().GetTextureStore();
+				if (tex) { shad.SetUniform("tex", 0); } // "0" represents texture unit 0
+				m->Draw();
+				if (modifyRenderFlags) { m->GetMesh().SetRenderFlags(currentRenderFlags); }
+			}
+
+			for (Text3D* label : m->GetLabels())
+			{
+				if (!label) { continue; }
+				const Mesh& labelMesh = label->GetMesh();
+				if (!labelMesh.IsReady()) { continue; }
+
+				int datas = labelMesh.GetDatas();
+				if (!m_shaderCache.contains(datas)) { continue; }
+
+				const Shader& shad = m_shaderCache.at(datas);
+				if (lastUsedShader != datas)
+				{
+					if (lastUsedShader != -1) { m_shaderCache[lastUsedShader].Unuse(); }
+					shad.Use();
+					lastUsedShader = datas;
+				}
+
+				glm::mat4 labelModel = model * label->CalculateModelMatrix();
+				glm::mat4 mvp = m_perspective * m_camera.GetViewMatrix() * labelModel;
+				//world
+				shad.SetUniform("mvp", mvp);
+				shad.SetUniform("model", labelModel);
+				shad.SetUniform("camWorldPos", camPos);
+				//draw variations
+				shad.SetUniform("drawType", 2);
+				shad.SetUniform("shaderSettings", labelMesh.GetShaderFlags());
+				//misc
+				shad.SetUniform("time", m_time);
+				shad.SetUniform("lightDir", glm::normalize(glm::vec3(0.2f, -3.f, -1.f)));
+				labelMesh.Bind();
+				labelMesh.Draw();
+				labelMesh.Unbind();
+			}
+		}
 	}
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);

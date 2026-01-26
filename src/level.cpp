@@ -7,6 +7,7 @@
 #include "gui_render_settings.h"
 #include "renderer.h"
 #include "vistree.h"
+#include "text3d.h"
 
 #include <fstream>
 #include <unordered_set>
@@ -1902,17 +1903,26 @@ void Level::GenerateRenderBspData()
 
 void Level::UpdateRenderCheckpointData()
 {
-	if (!m_models[LevelModels::CHECKPOINT] || m_checkpoints.empty()) { return; }
+	Model* checkpointModel = m_models[LevelModels::CHECKPOINT];
+	if (!checkpointModel) { return; }
+
+	checkpointModel->RemoveLabels();
+	if (m_checkpoints.empty())
+	{
+		checkpointModel->GetMesh().Clear();
+		return;
+	}
 
 	std::vector<Tri> checkTriangles;
 	checkTriangles.reserve(m_checkpoints.size() * 8);
-	std::unordered_set<int> selectedCheckpointIndexes; // Contain the ID of the checkpoints from selected quads
+	std::unordered_set<int> selectedCheckpointIndexes;
 	for (size_t index : m_rendererSelectedQuadblockIndexes)
 	{
 		int checkpointIndex = m_quadblocks[index].GetCheckpoint();
 		selectedCheckpointIndexes.insert(checkpointIndex);
 	}
 
+	constexpr float labelHeightOffset = 1.5f;
 	for (const Checkpoint& e : m_checkpoints)
 	{
 		bool selected = selectedCheckpointIndexes.contains(e.GetIndex());
@@ -1920,9 +1930,14 @@ void Level::UpdateRenderCheckpointData()
 		Vertex v = Vertex(Point(e.GetPos().x, e.GetPos().y, e.GetPos().z, c.r, c.g, c.b));
 		const std::vector<Tri> tris = v.ToGeometry();
 		checkTriangles.insert(checkTriangles.end(), tris.begin(), tris.end());
+
+		Text3D* label = checkpointModel->AddLabel("CP " + std::to_string(e.GetIndex()), Text3D::TextAlign::CENTER, Color(c.r, c.g, c.b, static_cast<unsigned char>(255u)));
+		Vec3 labelPos = e.GetPos();
+		labelPos.y += labelHeightOffset;
+		label->SetPosition(labelPos);
 	}
 
-	m_models[LevelModels::CHECKPOINT]->GetMesh().SetGeometry(checkTriangles, Mesh::RenderFlags::DontOverrideRenderFlags);
+	checkpointModel->GetMesh().SetGeometry(checkTriangles, Mesh::RenderFlags::DrawBackfaces | Mesh::RenderFlags::DontOverrideRenderFlags);
 }
 
 void Level::GenerateRenderStartpointData()
@@ -1939,7 +1954,7 @@ void Level::GenerateRenderStartpointData()
 		spawnsTriangles.insert(spawnsTriangles.end(), tris.begin(), tris.end());
 	}
 
-	m_models[LevelModels::SPAWN]->GetMesh().SetGeometry(spawnsTriangles, Mesh::RenderFlags::DontOverrideRenderFlags);
+	m_models[LevelModels::SPAWN]->GetMesh().SetGeometry(spawnsTriangles, Mesh::RenderFlags::DrawBackfaces | Mesh::RenderFlags::DontOverrideRenderFlags);
 }
 
 void Level::GenerateRenderSelectedBlockData(const Quadblock& quadblock, const Vec3& queryPoint)

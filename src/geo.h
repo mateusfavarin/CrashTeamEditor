@@ -9,23 +9,23 @@
 
 struct Color
 {
- 	Color() : r(0u), g(0u), b(0u), a(false) {};
- 	Color(float r, float g, float b) : r(static_cast<unsigned char>(Clamp(r * 255.0f, 0.0f, 255.0f))), g(static_cast<unsigned char>(Clamp(g * 255.0f, 0.0f, 255.0f))), b(static_cast<unsigned char>(Clamp(b * 255.0f, 0.0f, 255.0f))), a(false) {};
- 	Color(float r, float g, float b, bool a) : r(static_cast<unsigned char>(Clamp(r * 255.0f, 0.0f, 255.0f))), g(static_cast<unsigned char>(Clamp(g * 255.0f, 0.0f, 255.0f))), b(static_cast<unsigned char>(Clamp(b * 255.0f, 0.0f, 255.0f))), a(a) {};
-	Color(unsigned char r, unsigned char g, unsigned char b) : r(r), g(g), b(b), a(false) {};
-	Color(unsigned char r, unsigned char g, unsigned char b, bool a) : r(r), g(g), b(b), a(a) {};
+ 	Color() : r(0u), g(0u), b(0u), a(0u) {};
+ 	Color(float r, float g, float b) : r(static_cast<unsigned char>(Clamp(r * 255.0f, 0.0f, 255.0f))), g(static_cast<unsigned char>(Clamp(g * 255.0f, 0.0f, 255.0f))), b(static_cast<unsigned char>(Clamp(b * 255.0f, 0.0f, 255.0f))), a(0u) {};
+ 	Color(float r, float g, float b, float a) : r(static_cast<unsigned char>(Clamp(r * 255.0f, 0.0f, 255.0f))), g(static_cast<unsigned char>(Clamp(g * 255.0f, 0.0f, 255.0f))), b(static_cast<unsigned char>(Clamp(b * 255.0f, 0.0f, 255.0f))), a(static_cast<unsigned char>(Clamp(a * 255.0f, 0.0f, 255.0f))) {};
+	Color(unsigned char r, unsigned char g, unsigned char b) : r(r), g(g), b(b), a(0u) {};
+	Color(unsigned char r, unsigned char g, unsigned char b, unsigned char a) : r(r), g(g), b(b), a(a) {};
 	Color(double hue, double sat, double value);
  	inline bool operator==(const Color& color) const { return (r == color.r) && (g == color.g) && (b == color.b) && (a == color.a); }
  	inline float Red() const { return static_cast<float>(r) / 255.0f; }
  	inline float Green() const { return static_cast<float>(g) / 255.0f; }
  	inline float Blue() const { return static_cast<float>(b) / 255.0f; }
+	inline float Alpha() const { return static_cast<float>(a) / 255.0f; }
  	inline Color Negated() const
  	{
- 		return Color(static_cast<unsigned char>(255 - r), static_cast<unsigned char>(255 - g), static_cast<unsigned char>(255 - b));
+ 		return Color(static_cast<unsigned char>(255 - r), static_cast<unsigned char>(255 - g), static_cast<unsigned char>(255 - b), a);
  	}
 
- 	unsigned char r, g, b;
- 	bool a;
+ 	unsigned char r, g, b, a;
 };
 
 template<>
@@ -33,7 +33,7 @@ struct std::hash<Color>
 {
 	inline std::size_t operator()(const Color& key) const
 	{
-		return ((((std::hash<float>()(key.Red()) ^ (std::hash<float>()(key.Green()) << 1)) >> 1) ^ (std::hash<float>()(key.Blue()) << 1)) >> 2) ^ (std::hash<bool>()(key.a) << 2);
+		return ((((std::hash<float>()(key.Red()) ^ (std::hash<float>()(key.Green()) << 1)) >> 1) ^ (std::hash<float>()(key.Blue()) << 1)) >> 2) ^ (std::hash<float>()(key.Alpha()) << 2);
 	}
 };
 
@@ -131,6 +131,13 @@ struct Point
 		normal = Vec3();
 		uv = Vec2();
 	};
+	Point(float x, float y, float z, const Vec3& normal, const Color& color)
+	{
+		pos = Vec3(x, y, z);
+		this->normal = normal;
+		this->color = color;
+		uv = Vec2();
+	}
 };
 
 struct Tri
