@@ -458,6 +458,11 @@ bool Level::LoadPreset(const std::filesystem::path& filename)
 						m_propCheckpointPathable.SetPreview(material, json[material + "_checkpointPathable"]);
 						m_propCheckpointPathable.Apply(material, m_materialToQuadblocks[material], m_quadblocks);
 					}
+					if (json.contains(material + "_visTreeTransparent"))
+					{
+						m_propVisTreeTransparent.SetPreview(material, json[material + "_visTreeTransparent"]);
+						m_propVisTreeTransparent.Apply(material, m_materialToQuadblocks[material], m_quadblocks);
+					}
 				}
 			}
 		}
@@ -558,6 +563,7 @@ bool Level::SavePreset(const std::filesystem::path& path)
 			materialJson[key + "_drawflags"] = m_propDoubleSided.GetBackup(key);
 			materialJson[key + "_checkpoint"] = m_propCheckpoints.GetBackup(key);
 			materialJson[key + "_checkpointPathable"] = m_propCheckpointPathable.GetBackup(key);
+			materialJson[key + "_visTreeTransparent"] = m_propVisTreeTransparent.GetBackup(key);
 			materialJson[key + "_trigger"] = m_propTurboPads.GetBackup(key);
 			materialJson[key + "_speedImpact"] = m_propSpeedImpact.GetBackup(key);
 		}
@@ -672,6 +678,7 @@ void Level::ManageTurbopad(Quadblock& quadblock)
 		turboPad.Translate(TURBO_PAD_QUADBLOCK_TRANSLATION, up);
 		turboPad.SetCheckpoint(-1);
 		turboPad.SetCheckpointStatus(false);
+		turboPad.SetVisTreeTransparent(false);
 		turboPad.SetName(quadblock.GetName() + (stp ? "_stp" : "_tp"));
 		turboPad.SetFlag(QuadFlags::TRIGGER_SCRIPT | QuadFlags::INVISIBLE_TRIGGER | QuadFlags::WALL);
 		turboPad.SetTerrain(stp ? TerrainType::SUPER_TURBO_PAD : TerrainType::TURBO_PAD);
@@ -1500,6 +1507,7 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 						m_propCheckpoints.SetDefaultValue(material, false);
 						m_propTurboPads.SetDefaultValue(material, QuadblockTrigger::NONE);
 						m_propCheckpointPathable.SetDefaultValue(material, true);
+						m_propVisTreeTransparent.SetDefaultValue(material, false);
 						m_propTerrain.RegisterMaterial(this);
 						m_propQuadFlags.RegisterMaterial(this);
 						m_propDoubleSided.RegisterMaterial(this);

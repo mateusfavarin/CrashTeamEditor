@@ -499,6 +499,11 @@ bool Quadblock::GetCheckpointPathable() const
 	return m_checkpointPathable;
 }
 
+bool Quadblock::GetVisTreeTransparent() const
+{
+	return m_visTreeTransparent;
+}
+
 const QuadUV& Quadblock::GetQuadUV(size_t quad) const
 {
 	return m_uvs[quad];
@@ -608,6 +613,11 @@ void Quadblock::SetCheckpointStatus(bool active)
 void Quadblock::SetCheckpointPathable(bool pathable)
 {
 	m_checkpointPathable = pathable;
+}
+
+void Quadblock::SetVisTreeTransparent(bool transparent)
+{
+	m_visTreeTransparent = transparent;
 }
 
 void Quadblock::SetName(const std::string& name)
@@ -795,6 +805,7 @@ void Quadblock::SetDefaultValues()
 	m_doubleSided = false;
 	m_checkpointPathable = true;
 	m_checkpointStatus = false;
+	m_visTreeTransparent = false;
 	m_trigger = QuadblockTrigger::NONE;
 	m_turboPadIndex = TURBO_PAD_INDEX_NONE;
 	m_hide = false;
