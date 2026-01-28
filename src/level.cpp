@@ -79,7 +79,10 @@ void Level::Clear(bool clearErrors)
 	m_lastAnimTextureCount = 0;
 	DeleteMaterials(this);
 
-	for (Model* model : m_models) { if (model) { model->Clear(); } }
+	for (Model* model : m_models)
+	{
+		if (model) { model->Clear(model != m_models[LevelModels::LEVEL]); }
+	}
 }
 
 const std::string& Level::GetName() const
@@ -1771,12 +1774,24 @@ bool Level::UpdateAnimTextures(float deltaTime)
 
 void Level::InitModels(Renderer& renderer)
 {
-	for (auto& m : m_models) { m = renderer.CreateModel(); }
+	m_models[LevelModels::LEVEL] = renderer.CreateModel();
 	m_models[LevelModels::LEVEL]->SetRenderCondition([]() { return GuiRenderSettings::showLevel; });
+
+	m_models[LevelModels::BSP] = m_models[LevelModels::LEVEL]->AddModel();
 	m_models[LevelModels::BSP]->SetRenderCondition([]() { return GuiRenderSettings::showBspRectTree; });
+
+	m_models[LevelModels::SPAWN] = m_models[LevelModels::LEVEL]->AddModel();
 	m_models[LevelModels::SPAWN]->SetRenderCondition([]() { return GuiRenderSettings::showStartpoints; });
+
+	m_models[LevelModels::CHECKPOINT] = m_models[LevelModels::LEVEL]->AddModel();
 	m_models[LevelModels::CHECKPOINT]->SetRenderCondition([]() { return GuiRenderSettings::showCheckpoints; });
+
+	m_models[LevelModels::SELECTED] = m_models[LevelModels::LEVEL]->AddModel();
+
+	m_models[LevelModels::MULTI_SELECTED] = m_models[LevelModels::LEVEL]->AddModel();
 	m_models[LevelModels::MULTI_SELECTED]->SetRenderCondition([]() { return GuiRenderSettings::showVisTree; });
+
+	m_models[LevelModels::FILTER] = m_models[LevelModels::LEVEL]->AddModel();
 	m_models[LevelModels::FILTER]->SetRenderCondition([]() { return GuiRenderSettings::filterActive; });
 }
 
@@ -1906,7 +1921,7 @@ void Level::UpdateRenderCheckpointData()
 	Model* checkpointModel = m_models[LevelModels::CHECKPOINT];
 	if (!checkpointModel) { return; }
 
-	checkpointModel->RemoveLabels();
+	checkpointModel->ClearModels();
 	if (m_checkpoints.empty())
 	{
 		checkpointModel->GetMesh().Clear();
@@ -1931,7 +1946,8 @@ void Level::UpdateRenderCheckpointData()
 		const std::vector<Tri> tris = v.ToGeometry();
 		checkTriangles.insert(checkTriangles.end(), tris.begin(), tris.end());
 
-		Text3D* label = checkpointModel->AddLabel("CP " + std::to_string(e.GetIndex()), Text3D::TextAlign::CENTER, Color(c.r, c.g, c.b, static_cast<unsigned char>(255u)));
+		Model* label = checkpointModel->AddModel();
+		label->GetMesh().SetGeometry("CP " + std::to_string(e.GetIndex()), Text3D::Align::CENTER, Color(c.r, c.g, c.b, static_cast<unsigned char>(255u)));
 		Vec3 labelPos = e.GetPos();
 		labelPos.y += labelHeightOffset;
 		label->SetPosition(labelPos);

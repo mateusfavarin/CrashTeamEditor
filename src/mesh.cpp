@@ -6,6 +6,7 @@
 #include "vertex.h"
 #include "gui_render_settings.h"
 #include "quadblock.h"
+#include "text3d.h"
 
 #include "stb_image.h"
 #define STB_IMAGE_RESIZE_IMPLEMENTATION
@@ -82,6 +83,11 @@ void Mesh::SetGeometry(const std::vector<Tri>& triangles, unsigned renderFlags, 
 	if (BuildLowLODIndices(triangles, lodGroupTriangleCounts)) { renderFlags |= RenderFlags::QuadblockLod; }
 
 	UpdateMesh(data, includedDataFlags, renderFlags, shaderFlags);
+}
+
+void Mesh::SetGeometry(const std::string& label, Text3D::Align align, const Color& color)
+{
+	SetGeometry(Text3D::ToGeometry(label, align, color), Mesh::RenderFlags::DontOverrideRenderFlags | Mesh::RenderFlags::DrawBackfaces | Mesh::RenderFlags::FollowCamera);
 }
 
 void Mesh::Bind() const

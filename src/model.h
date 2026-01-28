@@ -15,20 +15,16 @@ public:
 	~Model();
   Mesh& GetMesh();
 	void SetRenderCondition(const std::function<bool()>& renderCondition);
-	Text3D* AddLabel(const std::string& label,
-		Text3D::TextAlign align = Text3D::TextAlign::LEFT,
-		const Color& color = Color(static_cast<unsigned char>(0u), static_cast<unsigned char>(0u), static_cast<unsigned char>(0u), static_cast<unsigned char>(255u)),
-		const Color& backgroundColor = Color(static_cast<unsigned char>(0u), static_cast<unsigned char>(0u), static_cast<unsigned char>(0u), static_cast<unsigned char>(0u)));
-	void RemoveLabels();
-	bool RemoveLabel(Text3D* label);
-	const std::list<Text3D*>& GetLabels() const;
-	void Clear();
+	Model* AddModel();
+	void ClearModels();
+	bool RemoveModel(Model* model);
+	void Clear(bool models);
 	bool IsReady() const;
 
 private:
 	Mesh m_mesh;
 	std::function<bool()> m_renderCondition;
-	std::list<Text3D*> m_labels;
+	std::list<Model*> m_child;
 
 	friend class Renderer;
 };

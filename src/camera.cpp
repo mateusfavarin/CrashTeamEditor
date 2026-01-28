@@ -9,6 +9,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include "transform.h"
 
 Camera::Camera()
 	: m_position(0.f, 0.f, 3.f)
@@ -127,8 +128,7 @@ float Camera::GetDistance() const
 	return m_distance;
 }
 
-glm::mat4 Camera::BuildBillboardMatrix(const glm::vec3& position, const glm::vec3& scale,
-	const glm::vec3& eulerRotation) const
+glm::mat4 Camera::BuildBillboardMatrix(const glm::vec3& position, const glm::vec3& scale) const
 {
 	glm::vec3 forward = m_position - position;
 	const float forwardLenSq = glm::dot(forward, forward);
@@ -154,11 +154,6 @@ glm::mat4 Camera::BuildBillboardMatrix(const glm::vec3& position, const glm::vec
 	glm::mat4 model(1.0f);
 	model = glm::translate(model, position);
 	model *= billboardRotation;
-	glm::mat4 localRotation(1.0f);
-	localRotation = glm::rotate(localRotation, glm::radians(eulerRotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-	localRotation = glm::rotate(localRotation, glm::radians(eulerRotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-	localRotation = glm::rotate(localRotation, glm::radians(eulerRotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
-	model *= localRotation;
 	model = glm::scale(model, scale);
 	return model;
 }

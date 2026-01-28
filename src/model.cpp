@@ -6,13 +6,13 @@
 
 Model::Model()
 {
-	Clear();
+	Clear(true);
 	m_renderCondition = []() { return true; };
 }
 
 Model::~Model()
 {
-	RemoveLabels();
+	ClearModels();
 }
 
 Mesh& Model::GetMesh()
@@ -25,37 +25,32 @@ void Model::SetRenderCondition(const std::function<bool()>& renderCondition)
 	m_renderCondition = renderCondition;
 }
 
-Text3D* Model::AddLabel(const std::string& label, Text3D::TextAlign align, const Color& color, const Color& backgroundColor)
+Model* Model::AddModel()
 {
-	m_labels.push_back(new Text3D(label, align, color, backgroundColor));
-	return m_labels.back();
+	m_child.push_back(new Model());
+	return m_child.back();
 }
 
-void Model::RemoveLabels()
+void Model::ClearModels()
 {
-	for (Text3D* label : m_labels) { delete label; }
-	m_labels.clear();
+	for (Model* model : m_child) { delete model; }
+	m_child.clear();
 }
 
-bool Model::RemoveLabel(Text3D* label)
+bool Model::RemoveModel(Model* model)
 {
-	if (!label) { return false; }
+	if (!model) { return false; }
 
-	size_t count = std::erase(m_labels, label);
+	size_t count = std::erase(m_child, model);
 	if (count == 0) { return false; }
 
-	delete label;
+	delete model;
 	return true;
 }
 
-const std::list<Text3D*>& Model::GetLabels() const
+void Model::Clear(bool models)
 {
-	return m_labels;
-}
-
-void Model::Clear()
-{
-	RemoveLabels();
+	if (models) { ClearModels(); }
 	m_mesh.Clear();
 	Transform::Clear();
 }

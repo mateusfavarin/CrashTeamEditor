@@ -3,7 +3,6 @@
 #include "time.h"
 #include "gui_render_settings.h"
 #include "shader_templates.h"
-#include "text3d.h"
 
 #include "globalimguiglglfw.h"
 #include "glm.hpp"
@@ -112,111 +111,82 @@ void Renderer::Render(bool skyGradientEnabled, const std::array<ColorGradient, N
 
 	m_perspective = glm::perspective<float>(glm::radians(GuiRenderSettings::camFovDeg), (static_cast<float>(m_width) / static_cast<float>(m_height)), 0.1f, 1000.0f);
 	static int lastUsedShader = -1;
+
+	const glm::mat4 rootParentMatrix(1.0f);
 	for (Model* m : m_modelList)
 	{
-		if (!m) { continue; }
-
-		glm::mat4 model = m->CalculateModelMatrix();
-		if (m->IsReady())
-		{
-			int datas = m->GetMesh().GetDatas();
-			if (m_shaderCache.contains(datas))
-			{
-				const Shader& shad = m_shaderCache.at(datas);
-				if (lastUsedShader != datas)
-				{
-					if (lastUsedShader != -1) { m_shaderCache[lastUsedShader].Unuse(); }
-					shad.Use();
-					lastUsedShader = datas;
-				}
-
-				const unsigned currentRenderFlags = m->GetMesh().GetRenderFlags();
-				const bool followCamera = (currentRenderFlags & Mesh::RenderFlags::FollowCamera) != 0;
-				if ((currentRenderFlags & Mesh::RenderFlags::QuadblockLod) != 0)
-				{
-					m->GetMesh().SetUseLowLOD(GuiRenderSettings::showLowLOD);
-				}
-
-				const bool modifyRenderFlags = (currentRenderFlags & Mesh::RenderFlags::DontOverrideRenderFlags) == 0;
-				if (modifyRenderFlags)
-				{
-					unsigned newRenderFlags = currentRenderFlags;
-					if (GuiRenderSettings::showWireframe) { newRenderFlags |= Mesh::RenderFlags::DrawWireframe; }
-					if (GuiRenderSettings::showBackfaces) { newRenderFlags |= Mesh::RenderFlags::DrawBackfaces; }
-					m->GetMesh().SetRenderFlags(newRenderFlags);
-				}
-
-				if (followCamera)
-				{
-					const Vec3 pos = m->GetPosition();
-					const Vec3 scale = m->GetScale();
-					const Vec3 rotation = m->GetRotation();
-					model = m_camera.BuildBillboardMatrix(glm::vec3(pos.x, pos.y, pos.z), glm::vec3(scale.x, scale.y, scale.z), glm::vec3(rotation.x, rotation.y, rotation.z));
-				}
-
-				glm::mat4 mvp = m_perspective * m_camera.GetViewMatrix() * model;
-				//world
-				shad.SetUniform("mvp", mvp);
-				shad.SetUniform("model", model);
-				shad.SetUniform("camWorldPos", camPos);
-				//draw variations
-				shad.SetUniform("drawType", GuiRenderSettings::renderType);
-				shad.SetUniform("shaderSettings", m->GetMesh().GetShaderFlags());
-				//misc
-				shad.SetUniform("time", m_time);
-				shad.SetUniform("lightDir", glm::normalize(glm::vec3(0.2f, -3.f, -1.f)));
-				GLuint tex = m->GetMesh().GetTextureStore();
-				if (tex) { shad.SetUniform("tex", 0); } // "0" represents texture unit 0
-				m->GetMesh().Render();
-				if (modifyRenderFlags) { m->GetMesh().SetRenderFlags(currentRenderFlags); }
-			}
-
-			for (Text3D* label : m->GetLabels())
-			{
-				if (!label) { continue; }
-				const Mesh& labelMesh = label->GetMesh();
-				if (!labelMesh.IsReady()) { continue; }
-
-				int datas = labelMesh.GetDatas();
-				if (!m_shaderCache.contains(datas)) { continue; }
-
-				const Shader& shad = m_shaderCache.at(datas);
-				if (lastUsedShader != datas)
-				{
-					if (lastUsedShader != -1) { m_shaderCache[lastUsedShader].Unuse(); }
-					shad.Use();
-					lastUsedShader = datas;
-				}
-
-				glm::mat4 labelModel = model * label->CalculateModelMatrix();
-				const unsigned labelRenderFlags = labelMesh.GetRenderFlags();
-				if ((labelRenderFlags & Mesh::RenderFlags::FollowCamera) != 0)
-				{
-					const Vec3 labelPos = label->GetPosition();
-					const glm::vec3 worldPos = glm::vec3(model * glm::vec4(labelPos.x, labelPos.y, labelPos.z, 1.0f));
-					const Vec3 modelScale = m->GetScale();
-					const Vec3 labelScale = label->GetScale();
-					const glm::vec3 worldScale(modelScale.x * labelScale.x, modelScale.y * labelScale.y, modelScale.z * labelScale.z);
-					const Vec3 labelRot = label->GetRotation();
-					labelModel = m_camera.BuildBillboardMatrix(worldPos, worldScale, glm::vec3(labelRot.x, labelRot.y, labelRot.z));
-				}
-				glm::mat4 mvp = m_perspective * m_camera.GetViewMatrix() * labelModel;
-				//world
-				shad.SetUniform("mvp", mvp);
-				shad.SetUniform("model", labelModel);
-				shad.SetUniform("camWorldPos", camPos);
-				//draw variations
-				shad.SetUniform("drawType", 2);
-				shad.SetUniform("shaderSettings", labelMesh.GetShaderFlags());
-				//misc
-				shad.SetUniform("time", m_time);
-				shad.SetUniform("lightDir", glm::normalize(glm::vec3(0.2f, -3.f, -1.f)));
-				labelMesh.Render();
-			}
-		}
+		RenderModelRecursive(m, rootParentMatrix, camPos, lastUsedShader);
 	}
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+bool Renderer::RenderModelRecursive(Model* model, const glm::mat4& parentMatrix, const glm::vec3& camPos, int& lastUsedShader)
+{
+	if (!model) { return false; }
+
+	model->SetParentMatrix(parentMatrix);
+	if (!model->IsReady()) { return false; }
+
+	int datas = model->GetMesh().GetDatas();
+	if (!m_shaderCache.contains(datas)) { return false; }
+
+	const Shader& shad = m_shaderCache.at(datas);
+	if (lastUsedShader != datas)
+	{
+		if (lastUsedShader != -1) { m_shaderCache[lastUsedShader].Unuse(); }
+		shad.Use();
+		lastUsedShader = datas;
+	}
+
+	const unsigned currentRenderFlags = model->GetMesh().GetRenderFlags();
+	const bool followCamera = (currentRenderFlags & Mesh::RenderFlags::FollowCamera) != 0;
+	if ((currentRenderFlags & Mesh::RenderFlags::QuadblockLod) != 0)
+	{
+		model->GetMesh().SetUseLowLOD(GuiRenderSettings::showLowLOD);
+	}
+
+	const bool modifyRenderFlags = (currentRenderFlags & Mesh::RenderFlags::DontOverrideRenderFlags) == 0;
+	if (modifyRenderFlags)
+	{
+		unsigned newRenderFlags = currentRenderFlags;
+		if (GuiRenderSettings::showWireframe) { newRenderFlags |= Mesh::RenderFlags::DrawWireframe; }
+		if (GuiRenderSettings::showBackfaces) { newRenderFlags |= Mesh::RenderFlags::DrawBackfaces; }
+		model->GetMesh().SetRenderFlags(newRenderFlags);
+	}
+
+	glm::mat4 modelMatrix = model->GetModelMatrix();
+	if (followCamera)
+	{
+		const Vec3 pos = model->GetWorldPosition();
+		const Vec3 scale = model->GetWorldScale();
+		const Vec3 rotation = model->GetWorldRotation();
+		modelMatrix = m_camera.BuildBillboardMatrix(glm::vec3(pos.x, pos.y, pos.z), glm::vec3(scale.x, scale.y, scale.z));
+	}
+
+	glm::mat4 mvp = m_perspective * m_camera.GetViewMatrix() * modelMatrix;
+	//world
+	shad.SetUniform("mvp", mvp);
+	shad.SetUniform("model", modelMatrix);
+	shad.SetUniform("camWorldPos", camPos);
+	//draw variations
+	shad.SetUniform("drawType", GuiRenderSettings::renderType);
+	shad.SetUniform("shaderSettings", model->GetMesh().GetShaderFlags());
+	//misc
+	shad.SetUniform("time", m_time);
+	shad.SetUniform("lightDir", glm::normalize(glm::vec3(0.2f, -3.f, -1.f)));
+	GLuint tex = model->GetMesh().GetTextureStore();
+	if (tex) { shad.SetUniform("tex", 0); } // "0" represents texture unit 0
+	model->GetMesh().Render();
+	if (modifyRenderFlags) { model->GetMesh().SetRenderFlags(currentRenderFlags); }
+
+	for (Model* child : model->m_child)
+	{
+		if (!child) { continue; }
+		RenderModelRecursive(child, modelMatrix, camPos, lastUsedShader);
+	}
+
+	return true;
 }
 
 void Renderer::SetCameraToLevelSpawn(const Vec3& pos, const Vec3& rot)

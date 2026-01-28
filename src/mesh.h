@@ -1,6 +1,7 @@
 #pragma once
 
 #include "geo.h"
+#include "text3d.h"
 
 #include "globalimguiglglfw.h"
 #include "glm.hpp"
@@ -48,6 +49,7 @@ public:
 public:
 	Mesh();
 	void SetGeometry(const std::vector<Tri>& triangles, unsigned renderFlags = RenderFlags::None, unsigned shaderFlags = ShaderFlags::None, const std::vector<size_t>* lodGroupTriangleCounts = nullptr);
+	void SetGeometry(const std::string& label, Text3D::Align align, const Color& color);
 	void UpdateTriangle(const Tri& tri, size_t triangleIndex);
 	int GetRenderFlags() const;
 	void SetRenderFlags(unsigned renderFlags);

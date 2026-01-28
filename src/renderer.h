@@ -41,6 +41,7 @@ public:
 
 private:
 	void RenderSkyGradient(const std::array<ColorGradient, NUM_GRADIENT>& skyGradients);
+	bool RenderModelRecursive(Model* model, const glm::mat4& parentMatrix, const glm::vec3& camPos, int& lastUsedShader);
 
 private:
 	int m_width;
