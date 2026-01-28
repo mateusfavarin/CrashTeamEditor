@@ -94,7 +94,7 @@ std::vector<Tri> BoundingBox::ToGeometry() const
 
 Color::Color(double hue, double sat, double value)
 {
-	a = 0u;
+	a = 255u;
 
 	if (sat == 0)
 	{

@@ -9,10 +9,10 @@
 
 struct Color
 {
- 	Color() : r(0u), g(0u), b(0u), a(0u) {};
- 	Color(float r, float g, float b) : r(static_cast<unsigned char>(Clamp(r * 255.0f, 0.0f, 255.0f))), g(static_cast<unsigned char>(Clamp(g * 255.0f, 0.0f, 255.0f))), b(static_cast<unsigned char>(Clamp(b * 255.0f, 0.0f, 255.0f))), a(0u) {};
+ 	Color() : r(0u), g(0u), b(0u), a(255u) {};
+ 	Color(float r, float g, float b) : r(static_cast<unsigned char>(Clamp(r * 255.0f, 0.0f, 255.0f))), g(static_cast<unsigned char>(Clamp(g * 255.0f, 0.0f, 255.0f))), b(static_cast<unsigned char>(Clamp(b * 255.0f, 0.0f, 255.0f))), a(255u) {};
  	Color(float r, float g, float b, float a) : r(static_cast<unsigned char>(Clamp(r * 255.0f, 0.0f, 255.0f))), g(static_cast<unsigned char>(Clamp(g * 255.0f, 0.0f, 255.0f))), b(static_cast<unsigned char>(Clamp(b * 255.0f, 0.0f, 255.0f))), a(static_cast<unsigned char>(Clamp(a * 255.0f, 0.0f, 255.0f))) {};
-	Color(unsigned char r, unsigned char g, unsigned char b) : r(r), g(g), b(b), a(0u) {};
+	Color(unsigned char r, unsigned char g, unsigned char b) : r(r), g(g), b(b), a(255u) {};
 	Color(unsigned char r, unsigned char g, unsigned char b, unsigned char a) : r(r), g(g), b(b), a(a) {};
 	Color(double hue, double sat, double value);
  	inline bool operator==(const Color& color) const { return (r == color.r) && (g == color.g) && (b == color.b) && (a == color.a); }
