@@ -60,7 +60,6 @@ private:
 	void SetUseLowLOD(bool useLowLOD);
 	int GetDatas() const;
 	GLuint GetTextureStore() const;
-	void UpdateTextureStore(const std::filesystem::path& texturePath);
 	void UpdateMesh(const std::vector<float>& data, unsigned includedDataFlags, unsigned renderFlags, unsigned shaderFlags);
 	void UpdateIndexBuffer();
 	void AppendTextureStore(const std::filesystem::path& texturePath);

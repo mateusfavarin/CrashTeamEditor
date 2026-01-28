@@ -11,10 +11,10 @@
 #define STB_IMAGE_RESIZE_IMPLEMENTATION
 #include "stb_image_resize2.h"
 
-static int GetStrideFloats(unsigned includedDataFlags)
+static size_t GetStrideFloats(unsigned includedDataFlags)
 {
-	int stride = 9; // position + color + normal
-	if ((includedDataFlags & Mesh::VBufDataType::UV) != 0) { stride += 3; }
+	size_t stride = 9; // position + color + normal
+	if ((includedDataFlags & Mesh::VBufDataType::UV) != 0) { stride += 3; } // uv + texIndex
 	return stride;
 }
 
@@ -33,12 +33,11 @@ void Mesh::SetGeometry(const std::vector<Tri>& triangles, unsigned renderFlags, 
 	DeleteTextures();
 
 	bool hasUVs = false;
-	for (const Tri& tri : triangles)
-	{
-		if (!tri.texture.empty()) { hasUVs = true; break; }
-	}
+	for (const Tri& tri : triangles) { if (!tri.texture.empty()) { hasUVs = true; break; } }
 
+	const unsigned includedDataFlags = hasUVs ? VBufDataType::UV : VBufDataType::None;
 	std::vector<float> data;
+	data.reserve(GetStrideFloats(includedDataFlags) * triangles.size() * 3);
 	for (const Tri& tri : triangles)
 	{
 		if (hasUVs && !tri.texture.empty())
@@ -73,10 +72,7 @@ void Mesh::SetGeometry(const std::vector<Tri>& triangles, unsigned renderFlags, 
 		}
 	}
 
-	if (!m_textureStoreData.empty())
-	{
-		RebuildTextureData();
-	}
+	if (!m_textureStoreData.empty()) { RebuildTextureData(); }
 
 	m_highLODIndices.clear();
 	m_lowLODIndices.clear();
@@ -85,7 +81,6 @@ void Mesh::SetGeometry(const std::vector<Tri>& triangles, unsigned renderFlags, 
 
 	if (BuildLowLODIndices(triangles, lodGroupTriangleCounts)) { renderFlags |= RenderFlags::QuadblockLod; }
 
-	const unsigned includedDataFlags = hasUVs ? VBufDataType::UV : VBufDataType::None;
 	UpdateMesh(data, includedDataFlags, renderFlags, shaderFlags);
 }
 
@@ -277,13 +272,10 @@ void Mesh::UpdateIndexBuffer()
 
 void Mesh::UpdateTriangle(const Tri& tri, size_t triangleIndex)
 {
-	if (m_VBO == 0) { return; }
-	if (triangleIndex >= m_triCount) { return; }
-
-	const int stride = GetStrideFloats(m_includedData);
-	if (stride <= 0) { return; }
+	if (m_VBO == 0 || triangleIndex >= m_triCount) { return; }
 
 	int texIndex = 0;
+	const size_t stride = GetStrideFloats(m_includedData);
 	const bool hasUV = (m_includedData & VBufDataType::UV) != 0;
 	if (hasUV)
 	{
@@ -391,13 +383,6 @@ void Mesh::RebuildTextureData()
 	{
 		glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, static_cast<GLint>(i), textureWidth, textureHeight, 1, GL_RGBA, GL_UNSIGNED_BYTE, m_textureStoreData[i].data());
 	}
-}
-
-void Mesh::UpdateTextureStore(const std::filesystem::path& texturePath)
-{
-	if (!m_textureStoreIndex.contains(texturePath)) { AppendTextureStore(texturePath); return; }
-	m_textureStoreData[m_textureStoreIndex[texturePath]] = LoadTextureData(texturePath);
-	RebuildTextureData();
 }
 
 void Mesh::AppendTextureStore(const std::filesystem::path& texturePath)
