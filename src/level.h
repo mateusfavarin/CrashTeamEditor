@@ -13,6 +13,7 @@
 #include "model.h"
 #include "mesh.h"
 #include "vistree.h"
+#include "minimap.h"
 
 #include <nlohmann/json.hpp>
 #include <vector>
@@ -45,6 +46,7 @@ public:
 	void ResetFilter();
 	void ResetRendererSelection();
 	void UpdateRendererCheckpoints();
+	MinimapConfig& GetMinimapConfig();
 
 private:
 	void ManageTurbopad(Quadblock& quadblock);
@@ -70,6 +72,7 @@ private:
 	void GenerateRenderBspData(const BSP& bsp);
 	void GenerateRenderCheckpointData(std::vector<Checkpoint>&);
 	void GenerateRenderStartpointData(std::array<Spawn, NUM_DRIVERS>&);
+	void GenerateRenderMinimapBoundsData();
 	void GenerateRenderSelectedBlockData(const Quadblock& quadblock, const Vec3& queryPoint);
 	void GenerateRenderMultipleQuadsData(const std::vector<Quadblock*>& quads);
 	bool UpdateAnimTextures(float deltaTime);
@@ -113,6 +116,7 @@ private:
 	std::vector<AnimTexture> m_animTextures;
 	BitMatrix m_bspVis;
 	std::vector<uint8_t> m_vrm;
+	MinimapConfig m_minimapConfig;
 
 	std::unordered_map<std::string, std::vector<size_t>> m_materialToQuadblocks;
 	std::unordered_map<std::string, Texture> m_materialToTexture;
@@ -136,6 +140,7 @@ private:
 	Model m_bspModel;
 	Model m_spawnsModel;
 	Model m_checkModel;
+	Model m_minimapBoundsModel;
 	Model m_selectedBlockModel;
 	Model m_multipleSelectedQuads;
 	Model m_filterEdgeModel;

@@ -237,6 +237,53 @@ namespace PSX
 		uint32_t offsets[LevelExtra::COUNT];
 	};
 
+	// Minimap struct - stored within SpawnType1[ST1_MAP]
+	struct Map
+	{
+		int16_t worldEndX;      // 0x0 - World coordinate bound
+		int16_t worldEndY;      // 0x2
+		int16_t worldStartX;    // 0x4
+		int16_t worldStartY;    // 0x6
+		int16_t iconSizeX;      // 0x8 - Size in pixels of minimap icon (width)
+		int16_t iconSizeY;      // 0xA - Size in pixels of minimap icon (height)
+		int16_t driverDotStartX; // 0xC - Screen position for driver markers (512x252 screen)
+		int16_t driverDotStartY; // 0xE
+		int16_t mode;           // 0x10 - Orientation mode (0=0°, 1=90°, 2=180°, 3=270°)
+		int16_t unk;            // 0x12 - Needed for some levels like Crash Cove (value different from 0 stops drawing top part)
+	};
+
+	// Icon struct for minimap textures
+	struct Icon
+	{
+		char name[16];                    // 0x0 - Icon name
+		int32_t globalIconArrayIndex;     // 0x10 - Index in global icon array (3=top, 4=bottom)
+		TextureLayout texLayout;          // 0x14 - UV and texture page info
+	};
+
+	// LevTexLookup - Icon pack header, pointed to by Level::levTexLookup
+	struct LevTexLookup
+	{
+		int32_t numIcon;                  // 0x0 - Number of icons (2 for minimap: top and bottom)
+		uint32_t offFirstIcon;            // 0x4 - Pointer to first Icon struct
+		int32_t numIconGroup;             // 0x8 - Number of icon groups
+		uint32_t offFirstIconGroupPtr;    // 0xC - Pointer to IconGroup pointer array
+	};
+
+	// SpawnType1 header - contains count and array of pointers
+	struct SpawnType1
+	{
+		uint32_t count;                   // 0x0 - Number of pointers in the array
+		// uint32_t offsets[count];       // Variable-length array of pointers follows
+	};
+
+	// Global icon array indices for minimap
+	static constexpr int32_t ICON_INDEX_MAP_TOP = 3;
+	static constexpr int32_t ICON_INDEX_MAP_BOTTOM = 4;
+
+	// Screen size
+	static constexpr int32_t SCREEN_WIDTH = 512;
+	static constexpr int32_t SCREEN_HEIGHT = 252;
+
 	struct Vertex
 	{
 		PSX::Vec3 pos; // 0x0

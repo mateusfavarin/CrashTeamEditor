@@ -46,6 +46,7 @@
     <ClCompile Include="src\io.cpp" />
     <ClCompile Include="src\level.cpp" />
     <ClCompile Include="src\levelui.cpp" />
+    <ClCompile Include="src\minimap.cpp" />
     <ClCompile Include="src\script.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\material.cpp" />
@@ -88,6 +89,7 @@
     <ClInclude Include="src\lev.h" />
     <ClInclude Include="src\level.h" />
     <ClInclude Include="src\material.h" />
+    <ClInclude Include="src\minimap.h" />
     <ClInclude Include="src\path.h" />
     <ClInclude Include="src\process.h" />
     <ClInclude Include="src\psx_types.h" />

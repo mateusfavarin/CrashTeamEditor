@@ -11,6 +11,7 @@
 #include "texture.h"
 #include "ui.h"
 #include "script.h"
+#include "minimap.h"
 
 #include <imgui.h>
 #include <misc/cpp/imgui_stdlib.h>
@@ -501,6 +502,15 @@ void Level::RenderUI()
 
 				ImGui::TreePop();
 			}
+
+			if (ImGui::TreeNode("Minimap"))
+			{
+				if (m_minimapConfig.RenderUI(m_quadblocks) && GuiRenderSettings::showMinimapBounds)
+				{
+					GenerateRenderMinimapBoundsData();
+				}
+				ImGui::TreePop();
+			}
 		}
 		ImGui::End();
 	}
@@ -912,9 +922,9 @@ void Level::RenderUI()
 							unsigned ret = REND_FLAGS_NONE;
 							ImGui::TableNextRow();
 							ImGui::TableSetColumnIndex(0);
-							if (ImGui::Checkbox(leftLabel, leftValue)) { ret |= REND_FLAGS_COLUMN_0; }
+							if (leftValue && ImGui::Checkbox(leftLabel, leftValue)) { ret |= REND_FLAGS_COLUMN_0; }
 							ImGui::TableSetColumnIndex(1);
-							if (ImGui::Checkbox(rightLabel, rightValue)) { ret |= REND_FLAGS_COLUMN_1; }
+							if (rightValue && ImGui::Checkbox(rightLabel, rightValue)) { ret |= REND_FLAGS_COLUMN_1; }
 							return ret;
 						};
 
@@ -923,6 +933,8 @@ void Level::RenderUI()
 					unsigned cpStartPoints = checkboxPair("Show Checkpoints", &GuiRenderSettings::showCheckpoints, "Show Starting Positions", &GuiRenderSettings::showStartpoints);
 					if (cpStartPoints & REND_FLAGS_COLUMN_1) { GenerateRenderStartpointData(m_spawn); }
 					checkboxPair("Show BSP", &GuiRenderSettings::showBspRectTree, "Show Vis Tree", &GuiRenderSettings::showVisTree);
+					unsigned minimapBoundsChanged = checkboxPair("Show Minimap Bounds", &GuiRenderSettings::showMinimapBounds, "", nullptr);
+					if (minimapBoundsChanged & REND_FLAGS_COLUMN_0) { GenerateRenderMinimapBoundsData(); }
 
 					ImGui::EndTable();
 				}

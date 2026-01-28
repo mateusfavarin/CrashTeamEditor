@@ -77,6 +77,58 @@ void from_json(const nlohmann::json& json, Stars& stars)
     if (json.contains("depth")) { stars.zDepth = json["depth"]; }
 }
 
+void to_json(nlohmann::json& json, const MinimapConfig& minimap)
+{
+	json = {
+		{"enabled", minimap.enabled},
+		{"worldEndX", minimap.worldEndX},
+		{"worldEndY", minimap.worldEndY},
+		{"worldStartX", minimap.worldStartX},
+		{"worldStartY", minimap.worldStartY},
+		{"iconSizeX", minimap.iconSizeX},
+		{"iconSizeY", minimap.iconSizeY},
+		{"driverDotStartX", minimap.driverDotStartX},
+		{"driverDotStartY", minimap.driverDotStartY},
+		{"orientationMode", minimap.orientationMode},
+		{"unk", minimap.unk},
+		{"topTexturePath", minimap.topTexturePath.string()},
+		{"bottomTexturePath", minimap.bottomTexturePath.string()}
+	};
+}
+
+void from_json(const nlohmann::json& json, MinimapConfig& minimap)
+{
+	if (json.contains("enabled")) { json.at("enabled").get_to(minimap.enabled); }
+	if (json.contains("worldEndX")) { json.at("worldEndX").get_to(minimap.worldEndX); }
+	if (json.contains("worldEndY")) { json.at("worldEndY").get_to(minimap.worldEndY); }
+	if (json.contains("worldStartX")) { json.at("worldStartX").get_to(minimap.worldStartX); }
+	if (json.contains("worldStartY")) { json.at("worldStartY").get_to(minimap.worldStartY); }
+	if (json.contains("iconSizeX")) { json.at("iconSizeX").get_to(minimap.iconSizeX); }
+	if (json.contains("iconSizeY")) { json.at("iconSizeY").get_to(minimap.iconSizeY); }
+	if (json.contains("driverDotStartX")) { json.at("driverDotStartX").get_to(minimap.driverDotStartX); }
+	if (json.contains("driverDotStartY")) { json.at("driverDotStartY").get_to(minimap.driverDotStartY); }
+	if (json.contains("orientationMode")) { json.at("orientationMode").get_to(minimap.orientationMode); }
+	else if (json.contains("mode")) { json.at("mode").get_to(minimap.orientationMode); } // backwards compatibility
+	if (json.contains("unk")) { json.at("unk").get_to(minimap.unk); }
+
+	if (json.contains("topTexturePath"))
+	{
+		std::string path;
+		json.at("topTexturePath").get_to(path);
+		if (!path.empty()) { minimap.topTexturePath = path; }
+	}
+
+	if (json.contains("bottomTexturePath"))
+	{
+		std::string path;
+		json.at("bottomTexturePath").get_to(path);
+		if (!path.empty()) { minimap.bottomTexturePath = path; }
+	}
+
+	// Load textures after setting paths
+	minimap.LoadTextures();
+}
+
 void ReadBinaryFile(std::vector<uint8_t>& v, const std::filesystem::path& path)
 {
 	std::ifstream file(path, std::ios::binary);
