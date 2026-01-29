@@ -67,19 +67,10 @@ std::vector<Primitive> Vertex::ToGeometry(bool highColor) const
 		{
 			std::vector<Point> points;
 			points.reserve(3);
-			auto AppendPoint = [&](const Vertex& v)
-				{
-					Point p;
-					p.pos = v.m_pos;
-					p.normal = v.m_normal;
-					p.color = v.GetColor(highColor);
-					p.uv = Vec2();
-					points.push_back(p);
-				};
 			v.m_normal = Vec3((1.f / sqrtThree) * dir.x, (1.f / sqrtThree) * dir.y, (1.f / sqrtThree) * dir.z);
-			v.m_pos.x += (radius * dir.x); AppendPoint(v); v.m_pos.x -= (radius * dir.x);
-			v.m_pos.y += (radius * dir.y); AppendPoint(v); v.m_pos.y -= (radius * dir.y);
-			v.m_pos.z += (radius * dir.z); AppendPoint(v); v.m_pos.z -= (radius * dir.z);
+			v.m_pos.x += (radius * dir.x); points.emplace_back(v.m_pos, v.m_normal, v.GetColor(highColor)); v.m_pos.x -= (radius * dir.x);
+			v.m_pos.y += (radius * dir.y); points.emplace_back(v.m_pos, v.m_normal, v.GetColor(highColor)); v.m_pos.y -= (radius * dir.y);
+			v.m_pos.z += (radius * dir.z); points.emplace_back(v.m_pos, v.m_normal, v.GetColor(highColor)); v.m_pos.z -= (radius * dir.z);
 			triangles.push_back(Tri(points[0], points[1], points[2]));
 		};
 

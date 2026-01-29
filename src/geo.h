@@ -138,6 +138,13 @@ struct Point
 		this->color = color;
 		uv = Vec2();
 	}
+	Point(const Vec3& pos, const Vec3& normal, const Color& color)
+	{
+		this->pos = pos;
+		this->normal = normal;
+		this->color = color;
+		uv = Vec2();
+	}
 };
 
 struct Primitive
