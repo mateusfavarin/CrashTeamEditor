@@ -24,14 +24,22 @@ void to_json(nlohmann::json& json, const Color& c)
 
 void from_json(const nlohmann::json& json, Color& c)
 {
-	bool a = false;
 	float r = 0.0f;
 	float g = 0.0f;
 	float b = 0.0f;
+	float a = 0.0f;
 	if (json.contains("r")) { json.at("r").get_to(r); }
 	if (json.contains("g")) { json.at("g").get_to(g); }
 	if (json.contains("b")) { json.at("b").get_to(b); }
-	if (json.contains("a")) { json.at("a").get_to(a); }
+	if (json.contains("a"))
+	{
+		const nlohmann::json& alpha = json.at("a");
+		if (alpha.is_boolean())
+		{
+			a = alpha.get<bool>() ? 1.0f : 0.0f;
+		}
+		else if (alpha.is_number_float()) { alpha.get_to(a); }
+	}
 	c = Color(r, g, b, a);
 }
 

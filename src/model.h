@@ -1,26 +1,30 @@
 #pragma once
 
-#include "glm.hpp"
-#include "common.hpp"
-#include "gtc/matrix_transform.hpp"
-#include "gtc/type_ptr.hpp"
-#include "gtc/quaternion.hpp"
 #include "mesh.h"
+#include "text3d.h"
+#include "transform.h"
 
-class Model
+#include <functional>
+#include <list>
+#include <string>
+
+class Model : public Transform
 {
 public:
 	Model();
-  Model(Mesh* mesh, const glm::vec3& position = glm::vec3(0.f, 0.f, 0.f), const glm::vec3& scale = glm::vec3(1.f, 1.f, 1.f), const glm::quat& rotation = glm::quat(1.f, 0.f, 0.f, 0.f));
-  glm::mat4 CalculateModelMatrix();
-  Mesh* GetMesh();
-  void SetMesh(Mesh* newMesh = nullptr);
-  void Draw();
-	void Clear();
+	~Model();
+  Mesh& GetMesh();
+	void SetRenderCondition(const std::function<bool()>& renderCondition);
+	Model* AddModel();
+	void ClearModels();
+	bool RemoveModel(Model* model);
+	void Clear(bool models);
+	bool IsReady() const;
 
 private:
-	Mesh* m_mesh;
-	glm::vec3 m_position;
-	glm::vec3 m_scale;
-	glm::quat m_rotation;
+	Mesh m_mesh;
+	std::function<bool()> m_renderCondition;
+	std::list<Model*> m_child;
+
+	friend class Renderer;
 };

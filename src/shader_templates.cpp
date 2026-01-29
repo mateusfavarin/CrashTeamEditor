@@ -2,39 +2,6 @@
 
 #include <string>
 
-#pragma region Shader Templates
-//=====================================================================================================================
-// Geometry shaders
-//=====================================================================================================================
-
-std::string ShaderTemplates::geom_vcolornormaltex = R"*()*";
-std::string ShaderTemplates::geom_vcolornormal = R"*(
-#version 330 core
-
-layout(triangles) in;       // Input is a triangle
-layout(triangle_strip, max_vertices = 3) out;  // Output is a triangle strip
-
-out vec3 CalculatedFaceNormal;      // Output normal to vertex shader
-
-void main() {
-  // Get the vertex positions from the incoming triangle
-  vec3 v0 = gl_in[0].gl_Position.xyz;
-  vec3 v1 = gl_in[1].gl_Position.xyz;
-  vec3 v2 = gl_in[2].gl_Position.xyz;
-
-  // Calculate the face normal using cross product
-  vec3 faceNormal = normalize(cross(v0 - v1, v2 - v0));
-
-  // Emit the triangle vertices with the calculated face normal
-  for (int i = 0; i < 3; ++i) {
-      CalculatedFaceNormal = faceNormal;  // Set the face normal to be the same for all vertices
-      gl_Position = gl_in[i].gl_Position;  // Pass through vertex position
-      EmitVertex();  // Emit the vertex
-  }
-  EndPrimitive();  // Finish the triangle
-}
-)*";
-
 //=====================================================================================================================
 // Vertex shaders
 //=====================================================================================================================
@@ -48,7 +15,6 @@ layout (location = 2) in vec3 aNormal;
 layout (location = 3) in vec2 aTexCoord;
 layout (location = 4) in int aTexIndex;
 
-out vec3 FragModelPos;
 out vec3 FragWorldPos;
 out vec3 Normal;
 out vec3 VertColor;
@@ -58,22 +24,11 @@ flat out int TexIndex;
 //world
 uniform mat4 mvp;
 uniform mat4 model;
-uniform vec3 camViewDir;
-uniform vec3 camWorldPos;
-
-//draw variations
-uniform int drawType; //correlates to GuiRenderSettings::RenderType (not a flag)
-uniform int shaderSettings; //correlates to Mesh::ShaderSettings (flag)
-
-//misc
-uniform float time;
-uniform vec3 lightDir;
 
 void main()
 {
 	gl_Position = mvp * vec4(aPos, 1.0);
 
-  FragModelPos = vec3(model * vec4(aPos, 1.0));
   FragWorldPos = aPos;
   Normal = (model * vec4(aNormal, 1.0)).xyz;
   VertColor = aColor;
@@ -81,6 +36,7 @@ void main()
   TexIndex = aTexIndex;
 }
 )*";
+
 std::string ShaderTemplates::vert_vcolornormal = R"*(
 #version 330
 
@@ -88,7 +44,6 @@ layout (location = 0) in vec3 aPos;
 layout (location = 1) in vec3 aColor;
 layout (location = 2) in vec3 aNormal;
 
-out vec3 FragModelPos;
 out vec3 FragWorldPos;
 out vec3 Normal;
 out vec3 VertColor;
@@ -96,30 +51,31 @@ out vec3 VertColor;
 //world
 uniform mat4 mvp;
 uniform mat4 model;
-uniform vec3 camViewDir;
-uniform vec3 camWorldPos;
-
-//draw variations
-uniform int drawType; //correlates to GuiRenderSettings::RenderType (not a flag)
-uniform int shaderSettings; //correlates to Mesh::ShaderSettings (flag)
-
-//misc
-uniform float time;
-uniform vec3 lightDir;
 
 void main()
 {
 	gl_Position = mvp * vec4(aPos, 1.0);
 
-  FragModelPos = vec3(model * vec4(aPos, 1.0));
   FragWorldPos = aPos;
   Normal = (model * vec4(aNormal, 1.0)).xyz;
   VertColor = aColor;
 }
 )*";
-std::string ShaderTemplates::vert_vcolor;
-std::string ShaderTemplates::vert_normal;
-std::string ShaderTemplates::vert_;
+
+std::string ShaderTemplates::vert_skygradient = R"*(
+#version 330 core
+
+layout (location = 0) in vec2 aPos;
+layout (location = 1) in vec3 aColor;
+
+out vec3 vColor;
+
+void main()
+{
+  gl_Position = vec4(aPos, 0.999, 1.0);
+  vColor = aColor;
+}
+)*";
 
 //=====================================================================================================================
 // Fragment shaders
@@ -129,7 +85,6 @@ std::string ShaderTemplates::frag_vcolornormaltex = R"*(
 
 out vec4 FragColor;
 
-in vec3 FragModelPos;
 in vec3 FragWorldPos;
 in vec3 Normal;
 in vec3 VertColor;
@@ -140,19 +95,15 @@ flat in int TexIndex;
 uniform sampler2DArray tex;
 
 //world
-uniform mat4 mvp;
-uniform mat4 model;
-uniform vec3 camViewDir;
 uniform vec3 camWorldPos;
 
 //draw variations
 uniform int drawType; //correlates to GuiRenderSettings::RenderType (not a flag)
-uniform int shaderSettings; //correlates to Mesh::ShaderSettings (flag)
+uniform int shaderSettings; //correlates to Mesh::ShaderFlags (flag)
 
 //misc
 uniform float time;
 uniform vec3 lightDir;
-uniform float wireframeWireThickness;
 
 //note: many of the ways I accomplish things here (e.g., backface culling, wireframe) could be accomplished *MUCH* more
 //efficiently with purpose-made opengl features, many function calls exist for stuff like that. This approach is simpler
@@ -197,7 +148,7 @@ void main()
     FragColor = vertColor;
   }
 
-  if ((shaderSettings & 128) != 0) //128 == "DiscardZeroColor"
+  if ((shaderSettings & 2) != 0) // "DiscardZeroColor"
   {
     if (VertColor.r <= 0.0 && VertColor.g <= 0.0 && VertColor.b <= 0.0)
     {
@@ -205,7 +156,7 @@ void main()
     }
   }
 
-  if ((shaderSettings & 32) != 0) //32 == "Blinky"
+  if ((shaderSettings & 1) != 0) // "Blinky"
   {
     if (mod(time * 1.5, 1.0) < 0.5)
     {
@@ -214,30 +165,26 @@ void main()
   }
 }
 )*";
+
 std::string ShaderTemplates::frag_vcolornormal = R"*(
 #version 330
 
 out vec4 FragColor;
 
-in vec3 FragModelPos;
 in vec3 FragWorldPos;
 in vec3 Normal;
 in vec3 VertColor;
 
 //world
-uniform mat4 mvp;
-uniform mat4 model;
-uniform vec3 camViewDir;
 uniform vec3 camWorldPos;
 
 //draw variations
 uniform int drawType; //correlates to GuiRenderSettings::RenderType (not a flag)
-uniform int shaderSettings; //correlates to Mesh::ShaderSettings (flag)
+uniform int shaderSettings; //correlates to Mesh::ShaderFlags (flag)
 
 //misc
 uniform float time;
 uniform vec3 lightDir;
-uniform float wireframeWireThickness;
 
 //note: many of the ways I accomplish things here (e.g., backface culling, wireframe) could be accomplished *MUCH* more
 //efficiently with purpose-made opengl features, many function calls exist for stuff like that. This approach is simpler
@@ -263,7 +210,7 @@ void main()
     FragColor = vec4(VertColor.rgb, 1.0);
   }
 
-  if ((shaderSettings & 128) != 0) //128 == "DiscardZeroColor"
+  if ((shaderSettings & 2) != 0) // "DiscardZeroColor"
   {
     if (VertColor.r <= 0.0 && VertColor.g <= 0.0 && VertColor.b <= 0.0)
     {
@@ -271,7 +218,7 @@ void main()
     }
   }
 
-  if ((shaderSettings & 32) != 0) //32 == "Blinky"
+  if ((shaderSettings & 1) != 0) // "Blinky"
   {
     if (mod(time * 1.5, 1.0) < 0.5)
     {
@@ -280,19 +227,27 @@ void main()
   }
 }
 )*";
-std::string ShaderTemplates::frag_vcolor;
-std::string ShaderTemplates::frag_normal;
-std::string ShaderTemplates::frag_;
 
-std::map<int, std::tuple<std::string, std::string, std::string>> ShaderTemplates::datasToShaderSourceMap =
+std::string ShaderTemplates::frag_skygradient = R"*(
+#version 330 core
+
+in vec3 vColor;
+out vec4 FragColor;
+
+void main()
+{
+  FragColor = vec4(vColor, 1.0);
+}
+)*";
+
+std::unordered_map<int, std::pair<std::string, std::string>> ShaderTemplates::datasToShaderSourceMap =
 {
   {
-    (Mesh::VBufDataType::VertexPos | Mesh::VBufDataType::VertexColor | Mesh::VBufDataType::Normals),
-    (std::make_tuple(ShaderTemplates::geom_vcolornormal, ShaderTemplates::vert_vcolornormal, ShaderTemplates::frag_vcolornormal))
+    Mesh::VBufDataType::None,
+    (std::make_pair(ShaderTemplates::vert_vcolornormal, ShaderTemplates::frag_vcolornormal))
   },
   {
-    (Mesh::VBufDataType::VertexPos | Mesh::VBufDataType::VertexColor | Mesh::VBufDataType::Normals | Mesh::VBufDataType::STUV | Mesh::VBufDataType::TexIndex),
-    (std::make_tuple(ShaderTemplates::geom_vcolornormaltex, ShaderTemplates::vert_vcolornormaltex, ShaderTemplates::frag_vcolornormaltex))
+    Mesh::VBufDataType::UV,
+    (std::make_pair(ShaderTemplates::vert_vcolornormaltex, ShaderTemplates::frag_vcolornormaltex))
   },
 };
-#pragma endregion

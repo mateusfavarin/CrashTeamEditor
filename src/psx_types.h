@@ -404,25 +404,25 @@ static inline Vec3 ConvertPSXVec3(const PSX::Vec3& v, int16_t one = FP_ONE)
 	return out;
 }
 
-static inline Color ConvertColor(const PSX::Color& c)
-{
-	Color out = {};
-	out.r = c.r;
-	out.g = c.g;
-	out.b = c.b;
-	out.a = c.a == 1;
-	return out;
-}
+  static inline Color ConvertColor(const PSX::Color& c)
+  {
+  	Color out = {};
+  	out.r = c.r;
+  	out.g = c.g;
+  	out.b = c.b;
+  	out.a = c.a > 0 ? static_cast<unsigned char>(0u) : static_cast<unsigned char>(255u);
+  	return out;
+  }
 
-static inline PSX::Color ConvertColor(const Color& c)
-{
-	PSX::Color out = {};
-	out.r = c.r;
-	out.g = c.g;
-	out.b = c.b;
-	out.a = c.a ? 1 : 0;
-	return out;
-}
+  static inline PSX::Color ConvertColor(const Color& c)
+  {
+  	PSX::Color out = {};
+  	out.r = c.r;
+  	out.g = c.g;
+  	out.b = c.b;
+  	out.a = (c.a == 0) ? 1 : 0;
+  	return out;
+  }
 
 static inline PSX::Stars ConvertStars(const Stars& stars)
 {

@@ -64,8 +64,6 @@ private:
 	bool m_renderDirty;
 	size_t m_renderFrameIndex;
 	float m_renderFrameTimer;
-	size_t m_renderStartAtFrame;
-	unsigned int m_renderDuration;
 
 	std::string m_previewQuadName;
 	size_t m_previewQuadIndex;

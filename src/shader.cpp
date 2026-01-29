@@ -8,22 +8,9 @@ Shader::Shader() //todo make this a friend of std::map then make this private.
   m_programId = static_cast<GLuint>(-1);
 }
 
-Shader::Shader(const char* geomShader, const char* vertShader, const char* fragShader)
+Shader::Shader(const char* vertShader, const char* fragShader)
 {
-  //geometry shader
-  //NEED OPENGL 3.2 :(
-  //GLuint geom = glCreateShader(GL_GEOMETRY_SHADER);
-  //glShaderSource(geom, 1, &vertShader, NULL);
-  //glCompileShader(geom);
-  //GLint success = 0;
-  //glGetShaderiv(geom, GL_COMPILE_STATUS, &success);
-  //if (!success)
-  //{
-  //  glGetShaderInfoLog(geom, LOG_BUF_SIZE, NULL, logBuf);
-  //  fprintf(stderr, "Error, geometry shader compilation failed:\n%s", logBuf);
-  //  throw 0;
-  //}
-  //vertex shader
+  /* vertex shader */
   GLuint vert = glCreateShader(GL_VERTEX_SHADER);
   glShaderSource(vert, 1, &vertShader, NULL);
   glCompileShader(vert);
@@ -35,7 +22,7 @@ Shader::Shader(const char* geomShader, const char* vertShader, const char* fragS
     fprintf(stderr, "Error, vertex shader compilation failed:\n%s", logBuf);
     throw 0;
   }
-  //fragment shader
+  /* fragment shader */
   GLuint frag = glCreateShader(GL_FRAGMENT_SHADER);
   glShaderSource(frag, 1, &fragShader, NULL);
   glCompileShader(frag);
@@ -47,9 +34,8 @@ Shader::Shader(const char* geomShader, const char* vertShader, const char* fragS
     fprintf(stderr, "Error, fragment shader compilation failed:\n%s", logBuf);
     throw 0;
   }
-  //link
-  m_programId = glCreateProgram();
-  //glAttachShader(m_programId, geom);
+
+	m_programId = glCreateProgram();
   glAttachShader(m_programId, vert);
   glAttachShader(m_programId, frag);
   glLinkProgram(m_programId);
@@ -61,7 +47,6 @@ Shader::Shader(const char* geomShader, const char* vertShader, const char* fragS
     fprintf(stderr, "Error, shader link failed:\n%s", logBuf);
     throw 0;
   }
-  //glDeleteShader(geom);
   glDeleteShader(vert);
   glDeleteShader(frag);
 }

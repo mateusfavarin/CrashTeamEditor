@@ -117,6 +117,12 @@
     <ClCompile Include="src\model.cpp">
       <Filter>Renderer</Filter>
     </ClCompile>
+    <ClCompile Include="src\text3d.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\transform.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
     <ClCompile Include="src\mesh.cpp">
       <Filter>Renderer</Filter>
     </ClCompile>
@@ -204,6 +210,12 @@
       <Filter>Renderer</Filter>
     </ClInclude>
     <ClInclude Include="src\model.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\text3d.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\transform.h">
       <Filter>Renderer</Filter>
     </ClInclude>
     <ClInclude Include="src\mesh.h">

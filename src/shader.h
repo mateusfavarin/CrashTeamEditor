@@ -10,7 +10,7 @@ class Shader
 {
 public:
   Shader();
-  Shader(const char* geomShader, const char* vertShader, const char* fragShader);
+  Shader(const char* vertShader, const char* fragShader);
   void Use() const;
   void Unuse() const;
   void SetUniform(const char* name, bool value) const;
