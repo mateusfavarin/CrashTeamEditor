@@ -24,7 +24,7 @@ Mesh::Mesh()
 	Clear();
 }
 
-void Mesh::SetGeometry(const std::vector<Primitive>& primitives, unsigned renderFlags, unsigned shaderFlags, const std::vector<size_t>* lodGroupTriangleCounts)
+void Mesh::SetGeometry(const std::vector<Primitive>& primitives, unsigned renderFlags, unsigned shaderFlags)
 {
 	if (primitives.empty()) { Clear(); return; }
 
@@ -121,8 +121,7 @@ void Mesh::SetGeometry(const std::vector<Primitive>& primitives, unsigned render
 	m_lowLODIndices.clear();
 	m_indexCount = 0;
 	m_useLowLOD = false;
-
-	(void)lodGroupTriangleCounts;
+	if (renderFlags & RenderFlags::QuadblockLod) { BuildLowLODIndices(primitives); }
 
 	UpdateMesh(data, includedDataFlags, renderFlags, shaderFlags);
 }
@@ -519,60 +518,47 @@ bool Mesh::IsRenderingPoints() const
 	return (m_renderFlags & Mesh::RenderFlags::AllowPointRender) && GuiRenderSettings::showVerts;
 }
 
-bool Mesh::BuildLowLODIndices(const std::vector<Tri>& triangles, const std::vector<size_t>* lodGroupTriangleCounts)
+void Mesh::BuildLowLODIndices(const std::vector<Primitive>& primitives)
 {
-	/*
-	if (!lodGroupTriangleCounts || lodGroupTriangleCounts->empty()) { return false; }
-
-	static constexpr int quadLogicalToVert[9][2] =
+	unsigned triCount = 0;
+	std::vector<unsigned> primitiveBaseVertex;
+	primitiveBaseVertex.reserve(primitives.size());
+	for (const Primitive& primitive : primitives)
 	{
-		{0, 1}, {0, 2}, {2, 2}, {0, 0}, {1, 1}, {3, 1}, {4, 0}, {5, 1}, {7, 1},
-	};
-	static constexpr int triLogicalToVert[9][2] =
-	{
-		{0, 1}, {0, 2}, {2, 2}, {0, 0}, {1, 1}, {-1, -1}, {3, 0}, {-1, -1}, {-1, -1},
-	};
+		primitiveBaseVertex.push_back(triCount * 3);
+		triCount += (primitive.type == Primitive::PrimitiveType::QUAD) ? 2 : 1;
+	}
 
-	const size_t vertexCount = triangles.size() * 3;
+	const unsigned vertexCount = triCount * 3;
 	m_highLODIndices.resize(vertexCount);
 	std::iota(m_highLODIndices.begin(), m_highLODIndices.end(), 0u);
+	m_lowLODIndices.clear();
 	m_lowLODIndices.reserve(vertexCount / 4);
 
-	size_t triOffset = 0;
-	for (const size_t groupTriCount : *lodGroupTriangleCounts)
+	constexpr size_t groupSize = 4;
+	for (size_t groupStart = 0; groupStart < primitives.size(); groupStart += groupSize)
 	{
-		if (groupTriCount != 8 && groupTriCount != 4) { triOffset += groupTriCount; continue; }
-		if (triOffset + groupTriCount > triangles.size()) { break; }
-
-		const bool isQuadblock = groupTriCount == 8;
-		const int (*llodArr)[3] = isQuadblock ? FaceIndexConstants::quadLLODVertArrangements : FaceIndexConstants::triLLODVertArrangements;
-		const int llodTriCount = isQuadblock ? 2 : 1;
-		const int (*logicalMap)[2] = isQuadblock ? quadLogicalToVert : triLogicalToVert;
-
-		for (int triIndex = 0; triIndex < llodTriCount; triIndex++)
+		const Primitive::PrimitiveType groupType = primitives[groupStart].type;
+		const unsigned base0 = primitiveBaseVertex[groupStart];
+		const unsigned base1 = primitiveBaseVertex[groupStart + 1];
+		const unsigned base2 = primitiveBaseVertex[groupStart + 2];
+		if (groupType == Primitive::PrimitiveType::QUAD)
 		{
-			const size_t startSize = m_lowLODIndices.size();
-			bool valid = true;
-			for (int vert = 0; vert < 3; vert++)
-			{
-				const int logicalIndex = llodArr[triIndex][vert];
-				const int mappedTri = (logicalIndex >= 0 && logicalIndex < 9) ? logicalMap[logicalIndex][0] : -1;
-				const int mappedVert = (logicalIndex >= 0 && logicalIndex < 9) ? logicalMap[logicalIndex][1] : -1;
-				if (mappedTri < 0 || mappedVert < 0)
-				{
-					valid = false;
-					break;
-				}
-				m_lowLODIndices.push_back(static_cast<unsigned>((triOffset + mappedTri) * 3 + mappedVert));
-			}
-			if (!valid)
-			{
-				m_lowLODIndices.resize(startSize);
-			}
+			const unsigned base3 = primitiveBaseVertex[groupStart + 3];
+			const unsigned v0 = base0 + 0; const unsigned v1 = base1 + 1;
+			const unsigned v2 = base2 + 2; const unsigned v3 = base3 + 5;
+			m_lowLODIndices.push_back(v0);
+			m_lowLODIndices.push_back(v1);
+			m_lowLODIndices.push_back(v2);
+			m_lowLODIndices.push_back(v1);
+			m_lowLODIndices.push_back(v3);
+			m_lowLODIndices.push_back(v2);
 		}
-		triOffset += groupTriCount;
+		else
+		{
+			m_lowLODIndices.push_back(base0 + 0);
+			m_lowLODIndices.push_back(base1 + 1);
+			m_lowLODIndices.push_back(base2 + 2);
+		}
 	}
-	*/
-
-	return true;
 }

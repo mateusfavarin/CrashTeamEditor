@@ -48,7 +48,7 @@ public:
 
 public:
 	Mesh();
-	void SetGeometry(const std::vector<Primitive>& primitives, unsigned renderFlags = RenderFlags::None, unsigned shaderFlags = ShaderFlags::None, const std::vector<size_t>* lodGroupTriangleCounts = nullptr);
+	void SetGeometry(const std::vector<Primitive>& primitives, unsigned renderFlags = RenderFlags::None, unsigned shaderFlags = ShaderFlags::None);
 	void SetGeometry(const std::string& label, Text3D::Align align, const Color& color);
 	size_t UpdatePrimitive(const Primitive& primitive, size_t index);
 	int GetRenderFlags() const;
@@ -75,7 +75,7 @@ private:
 	void Dispose();
 	void DeleteTextures();
 	bool IsRenderingPoints() const;
-	bool BuildLowLODIndices(const std::vector<Tri>& triangles, const std::vector<size_t>* lodGroupTriangleCounts);
+	void BuildLowLODIndices(const std::vector<Primitive>& primitives);
 
 private:
 	GLuint m_VAO = 0;

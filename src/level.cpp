@@ -1801,10 +1801,8 @@ void Level::GenerateRenderLevData()
 
 	std::vector<Primitive> levTriangles;
 	std::vector<Primitive> filterTriangles;
-	std::vector<size_t> lodGroupTriangleCounts;
 	levTriangles.reserve(m_quadblocks.size() * 8);
 	filterTriangles.reserve(m_quadblocks.size() * 8);
-	lodGroupTriangleCounts.reserve(m_quadblocks.size());
 
 	auto CountPrimitiveTriangles = [](const std::vector<Primitive>& primitives)
 		{
@@ -1825,11 +1823,10 @@ void Level::GenerateRenderLevData()
 			triangleOffset += qbTriCount;
 	}
 
-	m_models[LevelModels::LEVEL]->GetMesh().SetGeometry(levTriangles, Mesh::RenderFlags::AllowPointRender, Mesh::ShaderFlags::None, &lodGroupTriangleCounts);
+	m_models[LevelModels::LEVEL]->GetMesh().SetGeometry(levTriangles, Mesh::RenderFlags::AllowPointRender | Mesh::RenderFlags::QuadblockLod, Mesh::ShaderFlags::None);
 	m_models[LevelModels::FILTER]->GetMesh().SetGeometry(filterTriangles,
-		Mesh::RenderFlags::DrawWireframe | Mesh::RenderFlags::DrawBackfaces | Mesh::RenderFlags::ForceDrawOnTop | Mesh::RenderFlags::DrawLinesAA | Mesh::RenderFlags::DontOverrideRenderFlags | Mesh::RenderFlags::ThickLines,
-		Mesh::ShaderFlags::DiscardZeroColor,
-		&lodGroupTriangleCounts);
+		Mesh::RenderFlags::DrawWireframe | Mesh::RenderFlags::DrawBackfaces | Mesh::RenderFlags::ForceDrawOnTop | Mesh::RenderFlags::DrawLinesAA | Mesh::RenderFlags::DontOverrideRenderFlags | Mesh::RenderFlags::ThickLines | Mesh::RenderFlags::QuadblockLod,
+		Mesh::ShaderFlags::DiscardZeroColor);
 }
 
 void Level::UpdateAnimationRenderData()
@@ -1987,9 +1984,7 @@ void Level::GenerateRenderSelectedBlockData(const Quadblock& quadblock, const Ve
 	m_rendererQueryPoint = queryPoint;
 
 	std::vector<Primitive> triangles;
-	std::vector<size_t> lodGroupTriangleCounts;
 	triangles.reserve(m_rendererSelectedQuadblockIndexes.size() * 8 + 8);
-	lodGroupTriangleCounts.reserve(m_rendererSelectedQuadblockIndexes.size() + 1);
 
 	const std::filesystem::path emptyTexturePath;
 	const std::array<QuadUV, NUM_FACES_QUADBLOCK + 1> emptyUvs = {};
@@ -2009,9 +2004,8 @@ void Level::GenerateRenderSelectedBlockData(const Quadblock& quadblock, const Ve
 	triangles.insert(triangles.end(), queryTriangles.begin(), queryTriangles.end());
 
 	m_models[LevelModels::SELECTED]->GetMesh().SetGeometry(triangles,
-		Mesh::RenderFlags::DrawWireframe | Mesh::RenderFlags::DrawBackfaces | Mesh::RenderFlags::ForceDrawOnTop | Mesh::RenderFlags::DrawLinesAA | Mesh::RenderFlags::DontOverrideRenderFlags,
-		Mesh::ShaderFlags::Blinky,
-		&lodGroupTriangleCounts);
+		Mesh::RenderFlags::DrawWireframe | Mesh::RenderFlags::DrawBackfaces | Mesh::RenderFlags::ForceDrawOnTop | Mesh::RenderFlags::DrawLinesAA | Mesh::RenderFlags::DontOverrideRenderFlags | Mesh::RenderFlags::QuadblockLod,
+		Mesh::ShaderFlags::Blinky);
 
 	if (GuiRenderSettings::showVisTree)
 	{
@@ -2024,7 +2018,6 @@ void Level::GenerateRenderSelectedBlockData(const Quadblock& quadblock, const Ve
 		}
 
 		std::vector<Primitive> multiTriangles;
-		std::vector<size_t> multiLodGroupTriangleCounts;
 		for (size_t bsp_index = 0; bsp_index < bspLeaves.size(); bsp_index++)
 		{
 			const BSP& bsp = *bspLeaves[bsp_index];
@@ -2045,9 +2038,8 @@ void Level::GenerateRenderSelectedBlockData(const Quadblock& quadblock, const Ve
 		}
 
 		m_models[LevelModels::MULTI_SELECTED]->GetMesh().SetGeometry(multiTriangles,
-			Mesh::RenderFlags::DrawWireframe | Mesh::RenderFlags::DrawBackfaces | Mesh::RenderFlags::ForceDrawOnTop | Mesh::RenderFlags::DrawLinesAA | Mesh::RenderFlags::DontOverrideRenderFlags,
-			Mesh::ShaderFlags::Blinky,
-			&multiLodGroupTriangleCounts);
+			Mesh::RenderFlags::DrawWireframe | Mesh::RenderFlags::DrawBackfaces | Mesh::RenderFlags::ForceDrawOnTop | Mesh::RenderFlags::DrawLinesAA | Mesh::RenderFlags::DontOverrideRenderFlags | Mesh::RenderFlags::QuadblockLod,
+			Mesh::ShaderFlags::Blinky);
 	}
 }
 
