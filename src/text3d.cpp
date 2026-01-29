@@ -17,8 +17,8 @@ constexpr float DEFAULT_FONT_SCALE = 0.1f;
 
 std::vector<Primitive> Text3D::ToGeometry(const std::string& label, Align align, const Color& color)
 {
-	std::vector<Primitive> triangles;
-	if (label.empty()) { return triangles; }
+	std::vector<Primitive> primitives;
+	if (label.empty()) { return primitives; }
 
 	const Vec3 normalUp = Vec3(0.0f, 0.0f, 1.0f);
 	char* labelText = const_cast<char*>(label.c_str());
@@ -29,14 +29,14 @@ std::vector<Primitive> Text3D::ToGeometry(const std::string& label, Align align,
 
 	const size_t bufferBytes = (label.size() + 1) * 270u;
 	const size_t maxVerts = bufferBytes / sizeof(StbVertex);
-	if (maxVerts == 0) { return triangles; }
+	if (maxVerts == 0) { return primitives; }
 
 	std::vector<StbVertex> vbuf(maxVerts);
 	const int quadCount = stb_easy_font_print(0.0f, 0.0f, labelText, nullptr, vbuf.data(), static_cast<int>(bufferBytes));
-	if (quadCount <= 0) { return triangles; }
+	if (quadCount <= 0) { return primitives; }
 
 	const size_t safeQuadCount = std::min(static_cast<size_t>(quadCount), vbuf.size() / 4u);
-	triangles.reserve(safeQuadCount * 2u);
+	primitives.reserve(safeQuadCount);
 
 	auto ApplyTransform = [](Point& point, float scale)
 		{
@@ -65,9 +65,13 @@ std::vector<Primitive> Text3D::ToGeometry(const std::string& label, Align align,
 		ApplyTransform(p2, DEFAULT_FONT_SCALE);
 		ApplyTransform(p3, DEFAULT_FONT_SCALE);
 
-		triangles.push_back(Tri(p0, p1, p2));
-		triangles.push_back(Tri(p0, p2, p3));
+		Quad quad;
+		quad.p[0] = p1;
+		quad.p[1] = p0;
+		quad.p[2] = p2;
+		quad.p[3] = p3;
+		primitives.push_back(quad);
 	}
 
-	return triangles;
+	return primitives;
 }
