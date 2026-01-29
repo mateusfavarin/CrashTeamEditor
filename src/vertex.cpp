@@ -27,7 +27,7 @@ Vertex::Vertex(const PSX::Vertex& vertex)
 	m_flags = vertex.flags;
 	m_colorHigh = ConvertColor(vertex.colorHi);
 	m_colorLow = ConvertColor(vertex.colorLo);
-	m_normal = { 0.0f, 1.0f, 0.0f };
+	m_normal = {0.0f, 1.0f, 0.0f};
 }
 
 std::vector<uint8_t> Vertex::Serialize() const
@@ -53,60 +53,36 @@ std::vector<Primitive> Vertex::ToGeometry(bool highColor) const
 	constexpr float sqrtThree = 1.44224957031f;
 	constexpr size_t vertsPerOctopoint = 24;
 	constexpr size_t trisPerOctopoint = vertsPerOctopoint / 3;
-
-	std::vector<Point> points;
-	points.reserve(vertsPerOctopoint);
-
-	auto AppendPoint = [&](const Vertex& vert)
-		{
-			Point p;
-			p.pos = vert.m_pos;
-			p.normal = vert.m_normal;
-			p.color = vert.GetColor(highColor);
-			p.uv = Vec2();
-			points.push_back(p);
-		};
+	const Vec3 radiusDirection[trisPerOctopoint] =
+	{
+		{1.0f, 1.0f, 1.0f}, {-1.0f, 1.0f, 1.0f}, {1.0f, -1.0f, 1.0f}, {1.0f, 1.0f, -1.0f},
+		{-1.0f, -1.0f, 1.0f}, {1.0f, -1.0f, -1.0f}, {-1.0f, 1.0f, -1.0f}, {-1.0f, -1.0f, -1.0f},
+	};
 
 	Vertex v(*this);
-	v.m_pos.x += radius; v.m_normal = Vec3(1.f / sqrtThree, 1.f / sqrtThree, 1.f / sqrtThree); AppendPoint(v); v.m_pos.x -= radius;
-	v.m_pos.y += radius; AppendPoint(v); v.m_pos.y -= radius;
-	v.m_pos.z += radius; AppendPoint(v); v.m_pos.z -= radius;
-
-	v.m_pos.x -= radius; v.m_normal = Vec3(-1.f / sqrtThree, 1.f / sqrtThree, 1.f / sqrtThree); AppendPoint(v); v.m_pos.x += radius;
-	v.m_pos.y += radius; AppendPoint(v); v.m_pos.y -= radius;
-	v.m_pos.z += radius; AppendPoint(v); v.m_pos.z -= radius;
-
-	v.m_pos.x += radius; v.m_normal = Vec3(1.f / sqrtThree, -1.f / sqrtThree, 1.f / sqrtThree); AppendPoint(v); v.m_pos.x -= radius;
-	v.m_pos.y -= radius; AppendPoint(v); v.m_pos.y += radius;
-	v.m_pos.z += radius; AppendPoint(v); v.m_pos.z -= radius;
-
-	v.m_pos.x += radius; v.m_normal = Vec3(1.f / sqrtThree, 1.f / sqrtThree, -1.f / sqrtThree); AppendPoint(v); v.m_pos.x -= radius;
-	v.m_pos.y += radius; AppendPoint(v); v.m_pos.y -= radius;
-	v.m_pos.z -= radius; AppendPoint(v); v.m_pos.z += radius;
-
-	v.m_pos.x -= radius; v.m_normal = Vec3(-1.f / sqrtThree, -1.f / sqrtThree, 1.f / sqrtThree); AppendPoint(v); v.m_pos.x += radius;
-	v.m_pos.y -= radius; AppendPoint(v); v.m_pos.y += radius;
-	v.m_pos.z += radius; AppendPoint(v); v.m_pos.z -= radius;
-
-	v.m_pos.x += radius; v.m_normal = Vec3(1.f / sqrtThree, -1.f / sqrtThree, -1.f / sqrtThree); AppendPoint(v); v.m_pos.x -= radius;
-	v.m_pos.y -= radius; AppendPoint(v); v.m_pos.y += radius;
-	v.m_pos.z -= radius; AppendPoint(v); v.m_pos.z += radius;
-
-	v.m_pos.x -= radius; v.m_normal = Vec3(-1.f / sqrtThree, 1.f / sqrtThree, -1.f / sqrtThree); AppendPoint(v); v.m_pos.x += radius;
-	v.m_pos.y += radius; AppendPoint(v); v.m_pos.y -= radius;
-	v.m_pos.z -= radius; AppendPoint(v); v.m_pos.z += radius;
-
-	v.m_pos.x -= radius; v.m_normal = Vec3(-1.f / sqrtThree, -1.f / sqrtThree, -1.f / sqrtThree); AppendPoint(v); v.m_pos.x += radius;
-	v.m_pos.y -= radius; AppendPoint(v); v.m_pos.y += radius;
-	v.m_pos.z -= radius; AppendPoint(v); v.m_pos.z += radius;
-
 	std::vector<Primitive> triangles;
 	triangles.reserve(trisPerOctopoint);
-	for (size_t i = 0; i + 2 < points.size(); i += 3)
-	{
-		Tri tri(points[i], points[i + 1], points[i + 2]);
-		triangles.push_back(tri);
-	}
 
+	auto AppendTri = [&](const Vec3& dir)
+		{
+			std::vector<Point> points;
+			points.reserve(3);
+			auto AppendPoint = [&](const Vertex& v)
+				{
+					Point p;
+					p.pos = v.m_pos;
+					p.normal = v.m_normal;
+					p.color = v.GetColor(highColor);
+					p.uv = Vec2();
+					points.push_back(p);
+				};
+			v.m_normal = Vec3((1.f / sqrtThree) * dir.x, (1.f / sqrtThree) * dir.y, (1.f / sqrtThree) * dir.z);
+			v.m_pos.x += (radius * dir.x); AppendPoint(v); v.m_pos.x -= (radius * dir.x);
+			v.m_pos.y += (radius * dir.y); AppendPoint(v); v.m_pos.y -= (radius * dir.y);
+			v.m_pos.z += (radius * dir.z); AppendPoint(v); v.m_pos.z -= (radius * dir.z);
+			triangles.push_back(Tri(points[0], points[1], points[2]));
+		};
+
+	for (const Vec3& dir : radiusDirection) { AppendTri(dir); }
 	return triangles;
 }

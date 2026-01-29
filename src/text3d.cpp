@@ -38,16 +38,7 @@ std::vector<Primitive> Text3D::ToGeometry(const std::string& label, Align align,
 	const size_t safeQuadCount = std::min(static_cast<size_t>(quadCount), vbuf.size() / 4u);
 	primitives.reserve(safeQuadCount);
 
-	auto ApplyTransform = [](Point& point, float scale)
-		{
-			point.pos.x *= scale;
-			point.pos.y *= scale;
-			point.pos.z *= scale;
-
-			point.pos.y = -point.pos.y;
-			point.pos.z = -point.pos.z;
-		};
-
+	constexpr float scale = DEFAULT_FONT_SCALE;
 	for (size_t quadIndex = 0; quadIndex < safeQuadCount; ++quadIndex)
 	{
 		const StbVertex& v0 = vbuf[quadIndex * 4u + 0u];
@@ -55,15 +46,10 @@ std::vector<Primitive> Text3D::ToGeometry(const std::string& label, Align align,
 		const StbVertex& v2 = vbuf[quadIndex * 4u + 2u];
 		const StbVertex& v3 = vbuf[quadIndex * 4u + 3u];
 
-		Point p0 = Point(v0.x + xOffset, v0.y, v0.z, normalUp, color);
-		Point p1 = Point(v1.x + xOffset, v1.y, v1.z, normalUp, color);
-		Point p2 = Point(v2.x + xOffset, v2.y, v2.z, normalUp, color);
-		Point p3 = Point(v3.x + xOffset, v3.y, v3.z, normalUp, color);
-
-		ApplyTransform(p0, DEFAULT_FONT_SCALE);
-		ApplyTransform(p1, DEFAULT_FONT_SCALE);
-		ApplyTransform(p2, DEFAULT_FONT_SCALE);
-		ApplyTransform(p3, DEFAULT_FONT_SCALE);
+		Point p0 = Point((v0.x + xOffset) * scale, v0.y * -scale, v0.z * -scale, normalUp, color);
+		Point p1 = Point((v1.x + xOffset) * scale, v1.y * -scale, v1.z * -scale, normalUp, color);
+		Point p2 = Point((v2.x + xOffset) * scale, v2.y * -scale, v2.z * -scale, normalUp, color);
+		Point p3 = Point((v3.x + xOffset) * scale, v3.y * -scale, v3.z * -scale, normalUp, color);
 
 		Quad quad;
 		quad.p[0] = p1;

@@ -635,13 +635,12 @@ const BoundingBox& Quadblock::GetBoundingBox() const
 std::vector<Primitive> Quadblock::ToGeometry(bool filterTriangles, const std::array<QuadUV, NUM_FACES_QUADBLOCK + 1>* overrideUvs, const std::filesystem::path* overrideTexturePath) const
 {
 	constexpr int NUM_VERTICES_QUAD = 4;
-	constexpr int uvVertInd[NUM_FACES_QUADBLOCK + 1][NUM_VERTICES_QUAD] =
+	constexpr int uvVertInd[NUM_FACES_QUADBLOCK][NUM_VERTICES_QUAD] =
 	{
 		{0, 1, 3, 4},
 		{1, 2, 4, 5},
 		{3, 4, 6, 7},
 		{4, 5, 7, 8},
-		{0, 2, 6, 8},
 	};
 
 	const bool isQuadblock = IsQuadblock();
