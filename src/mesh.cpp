@@ -284,7 +284,7 @@ void Mesh::UpdateMesh(const std::vector<float>& data, unsigned includedDataFlags
 	m_shaderFlags = shaderFlags;
 	m_vertexCount = 0;
 
-	int ultimateStrideSize = GetStrideFloats(includedDataFlags);
+	int ultimateStrideSize = static_cast<int>(GetStrideFloats(includedDataFlags));
 	if (ultimateStrideSize > 0)
 	{
 		m_vertexCount = static_cast<int>(data.size() / ultimateStrideSize);
@@ -521,6 +521,7 @@ bool Mesh::IsRenderingPoints() const
 
 bool Mesh::BuildLowLODIndices(const std::vector<Tri>& triangles, const std::vector<size_t>* lodGroupTriangleCounts)
 {
+	/*
 	if (!lodGroupTriangleCounts || lodGroupTriangleCounts->empty()) { return false; }
 
 	static constexpr int quadLogicalToVert[9][2] =
@@ -571,6 +572,7 @@ bool Mesh::BuildLowLODIndices(const std::vector<Tri>& triangles, const std::vect
 		}
 		triOffset += groupTriCount;
 	}
+	*/
 
 	return true;
 }

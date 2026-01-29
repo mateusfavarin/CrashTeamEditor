@@ -2057,11 +2057,6 @@ void Level::ViewportClickHandleBlockSelection(int pixelX, int pixelY, bool appen
 		{
 			std::vector<std::tuple<const Quadblock*, glm::vec3, float>> passed;
 
-			//we're currently checking ALL quadblocks on a click (bad), so we should
-			//use an acceleration structure (good thing we can have a BSP :) )
-			//although it may be better to use a different acceleration structure.
-			//I don't care for right now, clicking causes a little lag spike. TODO.
-			//another option to speed this up is to do collision testing for the low LOD instead.
 			for (const Quadblock& qb : qbs)
 			{
 				bool collided = false;
@@ -2072,48 +2067,41 @@ void Level::ViewportClickHandleBlockSelection(int pixelX, int pixelY, bool appen
 				std::tuple<glm::vec3, float> queryResult;
 				glm::vec3 worldSpaceRay = rend.ScreenspaceToWorldRay(pixelCoordX, pixelCoordY);
 
-				for (int triIndex = 0; triIndex < (isQuadblock ? 8 : 4); triIndex++)
-				{
-					if (isQuadblock)
-					{
-						tri[0] = glm::vec3(verts[FaceIndexConstants::quadHLODVertArrangements[triIndex][0]].m_pos.x, verts[FaceIndexConstants::quadHLODVertArrangements[triIndex][0]].m_pos.y, verts[FaceIndexConstants::quadHLODVertArrangements[triIndex][0]].m_pos.z);
-						tri[1] = glm::vec3(verts[FaceIndexConstants::quadHLODVertArrangements[triIndex][1]].m_pos.x, verts[FaceIndexConstants::quadHLODVertArrangements[triIndex][1]].m_pos.y, verts[FaceIndexConstants::quadHLODVertArrangements[triIndex][1]].m_pos.z);
-						tri[2] = glm::vec3(verts[FaceIndexConstants::quadHLODVertArrangements[triIndex][2]].m_pos.x, verts[FaceIndexConstants::quadHLODVertArrangements[triIndex][2]].m_pos.y, verts[FaceIndexConstants::quadHLODVertArrangements[triIndex][2]].m_pos.z);
-					}
-					else
-					{
-						tri[0] = glm::vec3(verts[FaceIndexConstants::triHLODVertArrangements[triIndex][0]].m_pos.x, verts[FaceIndexConstants::triHLODVertArrangements[triIndex][0]].m_pos.y, verts[FaceIndexConstants::triHLODVertArrangements[triIndex][0]].m_pos.z);
-						tri[1] = glm::vec3(verts[FaceIndexConstants::triHLODVertArrangements[triIndex][1]].m_pos.x, verts[FaceIndexConstants::triHLODVertArrangements[triIndex][1]].m_pos.y, verts[FaceIndexConstants::triHLODVertArrangements[triIndex][1]].m_pos.z);
-						tri[2] = glm::vec3(verts[FaceIndexConstants::triHLODVertArrangements[triIndex][2]].m_pos.x, verts[FaceIndexConstants::triHLODVertArrangements[triIndex][2]].m_pos.y, verts[FaceIndexConstants::triHLODVertArrangements[triIndex][2]].m_pos.z);
-					}
+				tri[0] = glm::vec3(verts[0].m_pos.x, verts[0].m_pos.y, verts[0].m_pos.z);
+				tri[1] = glm::vec3(verts[2].m_pos.x, verts[2].m_pos.y, verts[2].m_pos.z);
+				tri[2] = glm::vec3(verts[6].m_pos.x, verts[6].m_pos.y, verts[6].m_pos.z);
 
-					queryResult = rend.WorldspaceRayTriIntersection(worldSpaceRay, tri); //if we have multiple collisions in one block, just pick one idc
-					collided |= (std::get<1>(queryResult) != -1.0f);
+				queryResult = rend.WorldspaceRayTriIntersection(worldSpaceRay, tri);
+				collided |= (std::get<1>(queryResult) != -1.0f);
 
-					if (collided) { break; }
-				}
+				if (collided) { passed.push_back(std::tuple<const Quadblock*, glm::vec3, float>(&qb, std::get<0>(queryResult), std::get<1>(queryResult))); continue; }
+
+				if (!isQuadblock) { continue; }
+
+				tri[0] = glm::vec3(verts[2].m_pos.x, verts[2].m_pos.y, verts[2].m_pos.z);
+				tri[1] = glm::vec3(verts[6].m_pos.x, verts[6].m_pos.y, verts[6].m_pos.z);
+				tri[2] = glm::vec3(verts[8].m_pos.x, verts[8].m_pos.y, verts[8].m_pos.z);
+
+				queryResult = rend.WorldspaceRayTriIntersection(worldSpaceRay, tri);
+				collided |= (std::get<1>(queryResult) != -1.0f);
 
 				if (collided) { passed.push_back(std::tuple<const Quadblock*, glm::vec3, float>(&qb, std::get<0>(queryResult), std::get<1>(queryResult))); continue; }
 			}
 
-			//sort collided blocks by time value (distance from camera).
+			// sort collided blocks by time value (distance from camera).
 			std::sort(passed.begin(), passed.end(),
 				[](const std::tuple<const Quadblock*, glm::vec3, float>& a, const std::tuple<const Quadblock*, glm::vec3, float>& b) {
 					return std::get<2>(a) < std::get<2>(b);
 				});
 
 			std::optional<std::tuple<const Quadblock*, glm::vec3>> result;
-			//at the very end
 			if (passed.size() > 0)
 			{
 				const auto& tuple = passed[index % passed.size()];
 				const Quadblock* qb = std::get<0>(tuple);
 				result = std::make_optional(std::tuple<const Quadblock*, glm::vec3>(qb, std::get<1>(tuple)));
 			}
-			else
-			{
-				result.reset();
-			}
+			else { result.reset(); }
 			return result;
 		};
 

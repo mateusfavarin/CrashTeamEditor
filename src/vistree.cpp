@@ -69,6 +69,7 @@ static bool RayIntersectQuadblockTest(const Vec3& worldSpaceRayOrigin, const Vec
 	const Vertex* verts = qb.GetUnswizzledVertices();
 
 	Vec3 tris[3];
+	/*
 	if (isQuadblock)
 	{
 		for (int triIndex = 0; triIndex < 8; triIndex++)
@@ -89,6 +90,7 @@ static bool RayIntersectQuadblockTest(const Vec3& worldSpaceRayOrigin, const Vec
 			if (WorldspaceRayTriIntersection(worldSpaceRayOrigin, worldSpaceRayDir, tris, dist)) { return true; }
 		}
 	}
+	*/
 	return false;
 }
 

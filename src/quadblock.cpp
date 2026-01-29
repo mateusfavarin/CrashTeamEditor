@@ -659,13 +659,6 @@ std::vector<Primitive> Quadblock::ToGeometry(bool filterTriangles, const std::ar
 			return quv[vertIndInUvs];
 		};
 
-	auto GetQuadIndexForTri = [&](int triIndex) -> int
-		{
-			if (isQuadblock) { return triIndex / 2; }
-			if (triIndex <= 1) { return 0; }
-			return (triIndex == 2) ? 1 : 2;
-		};
-
 	const std::string textureString = filterTriangles ? std::string() : texPath.string();
 	std::vector<Primitive> primitives;
 	if (isQuadblock)
@@ -689,12 +682,20 @@ std::vector<Primitive> Quadblock::ToGeometry(bool filterTriangles, const std::ar
 	}
 	else
 	{
-		const int triCount = 4;
+		constexpr int triCount = 4;
 		primitives.reserve(triCount);
+		constexpr int triblockVertArrangements[triCount][3] =
+		{
+			{ 0, 1, 3 },
+			{ 1, 2, 4 },
+			{ 3, 4, 6 },
+			{ 1, 3, 4 },
+		};
+		constexpr int triblockQuadIndex[triCount] = { 0, 1, 2, 0 };
 		for (int triIndex = 0; triIndex < triCount; triIndex++)
 		{
-			const int quadIndex = GetQuadIndexForTri(triIndex);
-			const int* triVerts = FaceIndexConstants::triHLODVertArrangements[triIndex];
+			const int quadIndex = triblockQuadIndex[triIndex];
+			const int* triVerts = triblockVertArrangements[triIndex];
 
 			Tri tri;
 			tri.texture = textureString;

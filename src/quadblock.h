@@ -100,40 +100,6 @@ struct FaceDrawMode
 	static constexpr uint32_t DRAW_NONE = 3;
 };
 
-struct FaceIndexConstants
-{
-	static constexpr int quadHLODVertArrangements[][3] =
-	{
-		{ 3, 0, 1 },
-		{ 1, 4, 3 },
-		{ 4, 1, 2 },
-		{ 2, 5, 4 },
-		{ 6, 3, 4 },
-		{ 4, 7, 6 },
-		{ 7, 4, 5 },
-		{ 5, 8, 7 },
-	};
-
-	static constexpr int quadLLODVertArrangements[][3] =
-	{
-		{ 6, 0, 2 },
-		{ 2, 8, 6 },
-	};
-
-	static constexpr int triHLODVertArrangements[][3] =
-	{
-		{ 3, 0, 1 },
-		{ 1, 4, 3 },
-		{ 4, 1, 2 },
-		{ 6, 3, 4 },
-	};
-
-	static constexpr int triLLODVertArrangements[][3] =
-	{
-		{ 6, 0, 2 },
-	};
-};
-
 enum class QuadblockTrigger
 {
 	NONE, TURBO_PAD, SUPER_TURBO_PAD
