@@ -1807,7 +1807,7 @@ void Level::GenerateRenderLevData()
 	auto CountPrimitiveTriangles = [](const std::vector<Primitive>& primitives)
 		{
 			size_t count = 0;
-			for (const Primitive& primitive : primitives) { count += (primitive.type == Primitive::PrimitiveType::QUAD) ? 2 : 1; }
+			for (const Primitive& primitive : primitives) { count += (primitive.type == PrimitiveType::QUAD) ? 2 : 1; }
 			return count;
 		};
 

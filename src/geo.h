@@ -147,10 +147,10 @@ struct Point
 	}
 };
 
+enum class PrimitiveType { TRI, QUAD, LINE };
+
 struct Primitive
 {
-	enum class PrimitiveType { TRI, QUAD, LINE };
-
 	explicit Primitive(PrimitiveType type, unsigned pointCount)
 		: type(type)
 		, texture()

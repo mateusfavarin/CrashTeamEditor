@@ -35,11 +35,11 @@ void Mesh::SetGeometry(const std::vector<Primitive>& primitives, unsigned render
 		if (!primitive.texture.empty()) { hasUVs = true; }
 		switch (primitive.type)
 		{
-		case Primitive::PrimitiveType::TRI:
-		case Primitive::PrimitiveType::LINE:
+		case PrimitiveType::TRI:
+		case PrimitiveType::LINE:
 			triCount += 1;
 			break;
-		case Primitive::PrimitiveType::QUAD:
+		case PrimitiveType::QUAD:
 			triCount += 2;
 			break;
 		default:
@@ -100,14 +100,14 @@ void Mesh::SetGeometry(const std::vector<Primitive>& primitives, unsigned render
 		const std::filesystem::path texturePath = primitive.texture;
 		switch (primitive.type)
 		{
-		case Primitive::PrimitiveType::TRI:
+		case PrimitiveType::TRI:
 			AppendTriangle(primitive.p[0], primitive.p[1], primitive.p[2], texturePath);
 			break;
-		case Primitive::PrimitiveType::QUAD:
+		case PrimitiveType::QUAD:
 			AppendTriangle(primitive.p[0], primitive.p[1], primitive.p[2], texturePath);
 			AppendTriangle(primitive.p[1], primitive.p[2], primitive.p[3], texturePath);
 			break;
-		case Primitive::PrimitiveType::LINE:
+		case PrimitiveType::LINE:
 			AppendTriangle(primitive.p[0], primitive.p[1], primitive.p[1], texturePath);
 			break;
 		default:
@@ -135,7 +135,7 @@ size_t Mesh::UpdatePrimitive(const Primitive& primitive, size_t index)
 {
 	switch (primitive.type)
 	{
-		case Primitive::PrimitiveType::QUAD:
+		case PrimitiveType::QUAD:
 		{
 			Tri triA(primitive.p[0], primitive.p[1], primitive.p[2]);
 			triA.texture = primitive.texture;
@@ -145,14 +145,14 @@ size_t Mesh::UpdatePrimitive(const Primitive& primitive, size_t index)
 			UpdateTriangle(triB, index++);
 		}
 		break;
-		case Primitive::PrimitiveType::LINE:
+		case PrimitiveType::LINE:
 		{
 			Tri tri(primitive.p[0], primitive.p[1], primitive.p[1]);
 			tri.texture = primitive.texture;
 			UpdateTriangle(tri, index++);
 		}
 		break;
-		case Primitive::PrimitiveType::TRI:
+		case PrimitiveType::TRI:
 		default:
 		{
 			Tri tri(primitive.p[0], primitive.p[1], primitive.p[2]);
@@ -526,7 +526,7 @@ void Mesh::BuildLowLODIndices(const std::vector<Primitive>& primitives)
 	for (const Primitive& primitive : primitives)
 	{
 		primitiveBaseVertex.push_back(triCount * 3);
-		triCount += (primitive.type == Primitive::PrimitiveType::QUAD) ? 2 : 1;
+		triCount += (primitive.type == PrimitiveType::QUAD) ? 2 : 1;
 	}
 
 	const unsigned vertexCount = triCount * 3;
@@ -538,11 +538,11 @@ void Mesh::BuildLowLODIndices(const std::vector<Primitive>& primitives)
 	constexpr size_t groupSize = 4;
 	for (size_t groupStart = 0; groupStart < primitives.size(); groupStart += groupSize)
 	{
-		const Primitive::PrimitiveType groupType = primitives[groupStart].type;
+		const PrimitiveType groupType = primitives[groupStart].type;
 		const unsigned base0 = primitiveBaseVertex[groupStart];
 		const unsigned base1 = primitiveBaseVertex[groupStart + 1];
 		const unsigned base2 = primitiveBaseVertex[groupStart + 2];
-		if (groupType == Primitive::PrimitiveType::QUAD)
+		if (groupType == PrimitiveType::QUAD)
 		{
 			const unsigned base3 = primitiveBaseVertex[groupStart + 3];
 			const unsigned v0 = base0 + 0; const unsigned v1 = base1 + 1;
