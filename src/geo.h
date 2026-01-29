@@ -25,7 +25,7 @@ struct Color
  		return Color(static_cast<unsigned char>(255 - r), static_cast<unsigned char>(255 - g), static_cast<unsigned char>(255 - b), a);
  	}
 
- 	unsigned char r, g, b, a;
+	unsigned char r, g, b, a;
 };
 
 template<>
@@ -95,7 +95,7 @@ struct std::hash<Vec3>
 	}
 };
 
-struct Tri;
+struct Primitive;
 struct BoundingBox
 {
 	Vec3 min;
@@ -105,7 +105,7 @@ struct BoundingBox
 	float SemiPerimeter() const;
 	Vec3 AxisLength() const;
 	Vec3 Midpoint() const;
-	std::vector<Tri> ToGeometry() const;
+	std::vector<Primitive> ToGeometry() const;
 	void RenderUI() const;
 };
 
@@ -140,20 +140,38 @@ struct Point
 	}
 };
 
-struct Tri
+struct Primitive
 {
-	Tri() : p() {};
-	Tri(const Point& p0, const Point& p1, const Point& p2);
+	enum class PrimitiveType { TRI, QUAD, LINE };
 
-	Point p[3];
+	explicit Primitive(PrimitiveType type, unsigned pointCount)
+		: type(type)
+		, texture()
+		, p()
+		, pointCount(pointCount)
+	{
+	}
+
+	PrimitiveType type;
 	std::string texture;
+	Point p[4];
+	unsigned pointCount;
 };
 
-struct Quad
+struct Tri : public Primitive
 {
-	Quad() : p() {};
-	Quad(const Point& p0, const Point& p1, const Point& p2, const Point& p3);
+	Tri() : Primitive(PrimitiveType::TRI, 3) {};
+	Tri(const Point& p0, const Point& p1, const Point& p2);
+};
 
-	Point p[4];
-	std::string texture;
+struct Quad : public Primitive
+{
+	Quad() : Primitive(PrimitiveType::QUAD, 4) {};
+	Quad(const Point& p0, const Point& p1, const Point& p2, const Point& p3);
+};
+
+struct Line : public Primitive
+{
+	Line() : Primitive(PrimitiveType::LINE, 2) {};
+	Line(const Point& p0, const Point& p1);
 };

@@ -1,13 +1,21 @@
 #include "geo.h"
 
 Tri::Tri(const Point& p0, const Point& p1, const Point& p2)
+	: Primitive(PrimitiveType::TRI, 3)
 {
 	p[0] = p0; p[1] = p1, p[2] = p2;
 }
 
 Quad::Quad(const Point& p0, const Point& p1, const Point& p2, const Point& p3)
+	: Primitive(PrimitiveType::QUAD, 4)
 {
 	p[0] = p0; p[1] = p1; p[2] = p2; p[3] = p3;
+}
+
+Line::Line(const Point& p0, const Point& p1)
+	: Primitive(PrimitiveType::LINE, 2)
+{
+	p[0] = p0; p[1] = p1;
 }
 
 float BoundingBox::Area() const
@@ -32,7 +40,7 @@ Vec3 BoundingBox::Midpoint() const
 	return (max + min) / 2;
 }
 
-std::vector<Tri> BoundingBox::ToGeometry() const
+std::vector<Primitive> BoundingBox::ToGeometry() const
 {
 	constexpr size_t numCorners = 8;
 	constexpr size_t numEdges = 12;
@@ -66,30 +74,26 @@ std::vector<Tri> BoundingBox::ToGeometry() const
 		{0, 3}, {1, 6}, {2, 4}, {5, 7},
 	};
 
-	std::vector<Tri> triangles;
-	triangles.reserve(numEdges);
+	std::vector<Primitive> primitives;
+	primitives.reserve(numEdges);
 	for (int edgeIndex = 0; edgeIndex < 12; edgeIndex++)
 	{
 		const int a = edgeIndices[edgeIndex][0];
 		const int b = edgeIndices[edgeIndex][1];
-		Tri tri;
-		tri.texture = std::string();
-		tri.p[0].pos = corners[a];
-		tri.p[0].normal = cornerNormals[a];
-		tri.p[0].color = Color();
-		tri.p[0].uv = Vec2();
-		tri.p[1].pos = corners[b];
-		tri.p[1].normal = cornerNormals[b];
-		tri.p[1].color = Color();
-		tri.p[1].uv = Vec2();
-		tri.p[2].pos = corners[b];
-		tri.p[2].normal = cornerNormals[b];
-		tri.p[2].color = Color();
-		tri.p[2].uv = Vec2();
-		triangles.push_back(tri);
+		Line line;
+		line.texture = std::string();
+		line.p[0].pos = corners[a];
+		line.p[0].normal = cornerNormals[a];
+		line.p[0].color = Color();
+		line.p[0].uv = Vec2();
+		line.p[1].pos = corners[b];
+		line.p[1].normal = cornerNormals[b];
+		line.p[1].color = Color();
+		line.p[1].uv = Vec2();
+		primitives.push_back(line);
 	}
 
-	return triangles;
+	return primitives;
 }
 
 Color::Color(double hue, double sat, double value)

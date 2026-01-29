@@ -48,9 +48,9 @@ public:
 
 public:
 	Mesh();
-	void SetGeometry(const std::vector<Tri>& triangles, unsigned renderFlags = RenderFlags::None, unsigned shaderFlags = ShaderFlags::None, const std::vector<size_t>* lodGroupTriangleCounts = nullptr);
+	void SetGeometry(const std::vector<Primitive>& primitives, unsigned renderFlags = RenderFlags::None, unsigned shaderFlags = ShaderFlags::None, const std::vector<size_t>* lodGroupTriangleCounts = nullptr);
 	void SetGeometry(const std::string& label, Text3D::Align align, const Color& color);
-	void UpdateTriangle(const Tri& tri, size_t triangleIndex);
+	size_t UpdatePrimitive(const Primitive& primitive, size_t index);
 	int GetRenderFlags() const;
 	void SetRenderFlags(unsigned renderFlags);
 	int GetShaderFlags() const;
@@ -59,6 +59,7 @@ public:
 	bool IsReady() const;
 
 private:
+	void UpdateTriangle(const Tri& tri, size_t triangleIndex);
 	void SetUseLowLOD(bool useLowLOD);
 	int GetDatas() const;
 	GLuint GetTextureStore() const;

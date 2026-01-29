@@ -47,7 +47,7 @@ Color Vertex::GetColor(bool high) const
 	return high ? m_colorHigh : m_colorLow;
 }
 
-std::vector<Tri> Vertex::ToGeometry(bool highColor) const
+std::vector<Primitive> Vertex::ToGeometry(bool highColor) const
 {
 	constexpr float radius = 0.5f;
 	constexpr float sqrtThree = 1.44224957031f;
@@ -100,7 +100,7 @@ std::vector<Tri> Vertex::ToGeometry(bool highColor) const
 	v.m_pos.y -= radius; AppendPoint(v); v.m_pos.y += radius;
 	v.m_pos.z -= radius; AppendPoint(v); v.m_pos.z += radius;
 
-	std::vector<Tri> triangles;
+	std::vector<Primitive> triangles;
 	triangles.reserve(trisPerOctopoint);
 	for (size_t i = 0; i + 2 < points.size(); i += 3)
 	{

@@ -15,9 +15,9 @@ struct StbVertex
 
 constexpr float DEFAULT_FONT_SCALE = 0.1f;
 
-std::vector<Tri> Text3D::ToGeometry(const std::string& label, Align align, const Color& color)
+std::vector<Primitive> Text3D::ToGeometry(const std::string& label, Align align, const Color& color)
 {
-	std::vector<Tri> triangles;
+	std::vector<Primitive> triangles;
 	if (label.empty()) { return triangles; }
 
 	const Vec3 normalUp = Vec3(0.0f, 0.0f, 1.0f);
@@ -65,8 +65,8 @@ std::vector<Tri> Text3D::ToGeometry(const std::string& label, Align align, const
 		ApplyTransform(p2, DEFAULT_FONT_SCALE);
 		ApplyTransform(p3, DEFAULT_FONT_SCALE);
 
-		triangles.emplace_back(p0, p1, p2);
-		triangles.emplace_back(p0, p2, p3);
+		triangles.push_back(Tri(p0, p1, p2));
+		triangles.push_back(Tri(p0, p2, p3));
 	}
 
 	return triangles;

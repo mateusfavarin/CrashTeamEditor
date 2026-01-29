@@ -24,33 +24,55 @@ Mesh::Mesh()
 	Clear();
 }
 
-void Mesh::SetGeometry(const std::vector<Tri>& triangles, unsigned renderFlags, unsigned shaderFlags, const std::vector<size_t>* lodGroupTriangleCounts)
+void Mesh::SetGeometry(const std::vector<Primitive>& primitives, unsigned renderFlags, unsigned shaderFlags, const std::vector<size_t>* lodGroupTriangleCounts)
 {
-	if (triangles.empty()) { Clear(); return; }
+	if (primitives.empty()) { Clear(); return; }
 
-	m_triCount = triangles.size();
+	size_t triCount = 0;
+	bool hasUVs = false;
+	for (const Primitive& primitive : primitives)
+	{
+		if (!primitive.texture.empty()) { hasUVs = true; }
+		switch (primitive.type)
+		{
+		case Primitive::PrimitiveType::TRI:
+		case Primitive::PrimitiveType::LINE:
+			triCount += 1;
+			break;
+		case Primitive::PrimitiveType::QUAD:
+			triCount += 2;
+			break;
+		default:
+			break;
+		}
+	}
+
+	if (triCount == 0) { return; }
+
+	m_triCount = triCount;
 	m_textureStoreData.clear();
 	m_textureStoreIndex.clear();
 	DeleteTextures();
 
-	bool hasUVs = false;
-	for (const Tri& tri : triangles) { if (!tri.texture.empty()) { hasUVs = true; break; } }
-
 	const unsigned includedDataFlags = hasUVs ? VBufDataType::UV : VBufDataType::None;
 	std::vector<float> data;
-	data.reserve(GetStrideFloats(includedDataFlags) * triangles.size() * 3);
-	for (const Tri& tri : triangles)
+	data.reserve(GetStrideFloats(includedDataFlags) * triCount * 3);
+
+	auto AppendTriangle = [&](const Point& p0, const Point& p1, const Point& p2, const std::filesystem::path& texturePath)
 	{
-		if (hasUVs && !tri.texture.empty())
+		int texIndex = 0;
+		if (hasUVs && !texturePath.empty())
 		{
-			if (!m_textureStoreIndex.contains(tri.texture))
+			if (!m_textureStoreIndex.contains(texturePath))
 			{
-				m_textureStoreIndex[tri.texture] = m_textureStoreData.size();
-				m_textureStoreData.push_back(LoadTextureData(tri.texture));
+				m_textureStoreIndex[texturePath] = m_textureStoreData.size();
+				m_textureStoreData.push_back(LoadTextureData(texturePath));
 			}
+			texIndex = static_cast<int>(m_textureStoreIndex[texturePath]);
 		}
 
-		for (const Point& point : tri.p)
+		const Point points[3] = { p0, p1, p2 };
+		for (const Point& point : points)
 		{
 			data.push_back(point.pos.x);
 			data.push_back(point.pos.y);
@@ -68,8 +90,28 @@ void Mesh::SetGeometry(const std::vector<Tri>& triangles, unsigned renderFlags, 
 			{
 				data.push_back(point.uv.x);
 				data.push_back(point.uv.y);
-				data.push_back(std::bit_cast<float>(static_cast<int>(m_textureStoreIndex[tri.texture])));
+				data.push_back(std::bit_cast<float>(texIndex));
 			}
+		}
+	};
+
+	for (const Primitive& primitive : primitives)
+	{
+		const std::filesystem::path texturePath = primitive.texture;
+		switch (primitive.type)
+		{
+		case Primitive::PrimitiveType::TRI:
+			AppendTriangle(primitive.p[0], primitive.p[1], primitive.p[2], texturePath);
+			break;
+		case Primitive::PrimitiveType::QUAD:
+			AppendTriangle(primitive.p[0], primitive.p[1], primitive.p[2], texturePath);
+			AppendTriangle(primitive.p[1], primitive.p[2], primitive.p[3], texturePath);
+			break;
+		case Primitive::PrimitiveType::LINE:
+			AppendTriangle(primitive.p[0], primitive.p[1], primitive.p[1], texturePath);
+			break;
+		default:
+			break;
 		}
 	}
 
@@ -80,7 +122,7 @@ void Mesh::SetGeometry(const std::vector<Tri>& triangles, unsigned renderFlags, 
 	m_indexCount = 0;
 	m_useLowLOD = false;
 
-	if (BuildLowLODIndices(triangles, lodGroupTriangleCounts)) { renderFlags |= RenderFlags::QuadblockLod; }
+	(void)lodGroupTriangleCounts;
 
 	UpdateMesh(data, includedDataFlags, renderFlags, shaderFlags);
 }
@@ -88,6 +130,39 @@ void Mesh::SetGeometry(const std::vector<Tri>& triangles, unsigned renderFlags, 
 void Mesh::SetGeometry(const std::string& label, Text3D::Align align, const Color& color)
 {
 	SetGeometry(Text3D::ToGeometry(label, align, color), Mesh::RenderFlags::DontOverrideRenderFlags | Mesh::RenderFlags::DrawBackfaces | Mesh::RenderFlags::FollowCamera);
+}
+
+size_t Mesh::UpdatePrimitive(const Primitive& primitive, size_t index)
+{
+	switch (primitive.type)
+	{
+		case Primitive::PrimitiveType::QUAD:
+		{
+			Tri triA(primitive.p[0], primitive.p[1], primitive.p[2]);
+			triA.texture = primitive.texture;
+			UpdateTriangle(triA, index++);
+			Tri triB(primitive.p[1], primitive.p[2], primitive.p[3]);
+			triB.texture = primitive.texture;
+			UpdateTriangle(triB, index++);
+		}
+		break;
+		case Primitive::PrimitiveType::LINE:
+		{
+			Tri tri(primitive.p[0], primitive.p[1], primitive.p[1]);
+			tri.texture = primitive.texture;
+			UpdateTriangle(tri, index++);
+		}
+		break;
+		case Primitive::PrimitiveType::TRI:
+		default:
+		{
+			Tri tri(primitive.p[0], primitive.p[1], primitive.p[2]);
+			tri.texture = primitive.texture;
+			UpdateTriangle(tri, index++);
+		}
+		break;
+	}
+	return index;
 }
 
 void Mesh::Bind() const

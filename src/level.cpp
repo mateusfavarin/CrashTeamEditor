@@ -1799,22 +1799,30 @@ void Level::GenerateRenderLevData()
 {
 	if (!m_models[LevelModels::LEVEL] || !m_models[LevelModels::FILTER]) { return; }
 
-	std::vector<Tri> levTriangles;
-	std::vector<Tri> filterTriangles;
+	std::vector<Primitive> levTriangles;
+	std::vector<Primitive> filterTriangles;
 	std::vector<size_t> lodGroupTriangleCounts;
 	levTriangles.reserve(m_quadblocks.size() * 8);
 	filterTriangles.reserve(m_quadblocks.size() * 8);
 	lodGroupTriangleCounts.reserve(m_quadblocks.size());
 
+	auto CountPrimitiveTriangles = [](const std::vector<Primitive>& primitives)
+		{
+			size_t count = 0;
+			for (const Primitive& primitive : primitives) { count += (primitive.type == Primitive::PrimitiveType::QUAD) ? 2 : 1; }
+			return count;
+		};
+
+	size_t triangleOffset = 0;
 	for (Quadblock& qb : m_quadblocks)
 	{
-			const size_t baseTriangleIndex = levTriangles.size();
-			qb.SetRenderTriangleIndex(baseTriangleIndex);
-			std::vector<Tri> qbTriangles = qb.ToGeometry(false);
-			std::vector<Tri> qbFilterTriangles = qb.ToGeometry(true);
-			for (const Tri& tri : qbTriangles) { levTriangles.push_back(tri); }
-			for (const Tri& tri : qbFilterTriangles) { filterTriangles.push_back(tri); }
-			lodGroupTriangleCounts.push_back(qbTriangles.size());
+			qb.SetRenderPrimitiveIndex(triangleOffset);
+			std::vector<Primitive> qbTriangles = qb.ToGeometry(false);
+			std::vector<Primitive> qbFilterTriangles = qb.ToGeometry(true);
+			levTriangles.insert(levTriangles.end(), qbTriangles.begin(), qbTriangles.end());
+			filterTriangles.insert(filterTriangles.end(), qbFilterTriangles.begin(), qbFilterTriangles.end());
+			const size_t qbTriCount = CountPrimitiveTriangles(qbTriangles);
+			triangleOffset += qbTriCount;
 	}
 
 	m_models[LevelModels::LEVEL]->GetMesh().SetGeometry(levTriangles, Mesh::RenderFlags::AllowPointRender, Mesh::ShaderFlags::None, &lodGroupTriangleCounts);
@@ -1837,14 +1845,15 @@ void Level::UpdateAnimationRenderData()
 		{
 			Quadblock& qb = m_quadblocks[qbIndex];
 			const std::array<QuadUV, NUM_FACES_QUADBLOCK + 1>& uvs = frame.uvs;
-			const size_t baseTriangleIndex = qb.GetRenderTriangleIndex();
-			if (baseTriangleIndex == RENDER_INDEX_NONE) { continue; }
+			const size_t basePrimitiveIndex = qb.GetRenderPrimitiveIndex();
+			if (basePrimitiveIndex == RENDER_INDEX_NONE) { continue; }
 
 			const std::filesystem::path texturePath = textures[frame.textureIndex].GetPath();
-			std::vector<Tri> qbTriangles = qb.ToGeometry(false, &uvs, &texturePath);
-			for (size_t triIndex = 0; triIndex < qbTriangles.size(); triIndex++)
+			std::vector<Primitive> qbTriangles = qb.ToGeometry(false, &uvs, &texturePath);
+			size_t primitiveIndex = basePrimitiveIndex;
+			for (const Primitive& primitive : qbTriangles)
 			{
-				m_models[LevelModels::LEVEL]->GetMesh().UpdateTriangle(qbTriangles[triIndex], baseTriangleIndex + triIndex);
+				primitiveIndex = m_models[LevelModels::LEVEL]->GetMesh().UpdatePrimitive(primitive, primitiveIndex);
 			}
 		}
 	}
@@ -1854,13 +1863,14 @@ void Level::UpdateFilterRenderData(const Quadblock& qb)
 {
 	if (!m_models[LevelModels::FILTER]) { return; }
 
-	const size_t baseTriangleIndex = qb.GetRenderTriangleIndex();
-	if (baseTriangleIndex == RENDER_INDEX_NONE) { return; }
+	const size_t basePrimitiveIndex = qb.GetRenderPrimitiveIndex();
+	if (basePrimitiveIndex == RENDER_INDEX_NONE) { return; }
 
-	std::vector<Tri> qbFilterTriangles = qb.ToGeometry(true);
-	for (size_t triIndex = 0; triIndex < qbFilterTriangles.size(); triIndex++)
+	std::vector<Primitive> qbFilterTriangles = qb.ToGeometry(true);
+	size_t primitiveIndex = basePrimitiveIndex;
+	for (const Primitive& primitive : qbFilterTriangles)
 	{
-		m_models[LevelModels::FILTER]->GetMesh().UpdateTriangle(qbFilterTriangles[triIndex], baseTriangleIndex + triIndex);
+		primitiveIndex = m_models[LevelModels::FILTER]->GetMesh().UpdatePrimitive(primitive, primitiveIndex);
 	}
 }
 
@@ -1873,7 +1883,7 @@ void Level::GenerateRenderBspData()
 		const BSP* node;
 		int depth;
 	};
-	std::vector<Tri> triangles;
+	std::vector<Primitive> triangles;
 	std::vector<NodeDepth> stack;
 	stack.push_back({&m_bsp, 0});
 	GuiRenderSettings::bspTreeMaxDepth = 0;
@@ -1892,14 +1902,11 @@ void Level::GenerateRenderBspData()
 		if (drawDepth)
 		{
 			const Color c = Color(entry.depth * 30.0, 1.0, 1.0);
-			std::vector<Tri> nodeTriangles = entry.node->GetBoundingBox().ToGeometry();
-			for (Tri& tri : nodeTriangles)
+			std::vector<Primitive> nodeTriangles = entry.node->GetBoundingBox().ToGeometry();
+			for (Primitive& primitive : nodeTriangles)
 			{
-				for (Point& point : tri.p)
-				{
-					point.color = c;
-				}
-				triangles.push_back(tri);
+				for (unsigned i = 0; i < primitive.pointCount; i++) { primitive.p[i].color = c; }
+				triangles.push_back(primitive);
 			}
 		}
 
@@ -1928,7 +1935,7 @@ void Level::UpdateRenderCheckpointData()
 		return;
 	}
 
-	std::vector<Tri> checkTriangles;
+	std::vector<Primitive> checkTriangles;
 	checkTriangles.reserve(m_checkpoints.size() * 8);
 	std::unordered_set<int> selectedCheckpointIndexes;
 	for (size_t index : m_rendererSelectedQuadblockIndexes)
@@ -1943,7 +1950,7 @@ void Level::UpdateRenderCheckpointData()
 		bool selected = selectedCheckpointIndexes.contains(e.GetIndex());
 		const Color& c = selected ? GuiRenderSettings::selectedCheckpointColor : e.GetColor();
 		Vertex v = Vertex(Point(e.GetPos().x, e.GetPos().y, e.GetPos().z, c.r, c.g, c.b));
-		const std::vector<Tri> tris = v.ToGeometry();
+		const std::vector<Primitive> tris = v.ToGeometry();
 		checkTriangles.insert(checkTriangles.end(), tris.begin(), tris.end());
 
 		Model* label = checkpointModel->AddModel();
@@ -1960,13 +1967,13 @@ void Level::GenerateRenderStartpointData()
 {
 	if (!m_models[LevelModels::SPAWN]) { return; }
 
-	std::vector<Tri> spawnsTriangles;
+	std::vector<Primitive> spawnsTriangles;
 	spawnsTriangles.reserve(m_spawn.size() * 8);
 
 	for (const Spawn& e : m_spawn)
 	{
 		Vertex v = Vertex(Point(e.pos.x, e.pos.y, e.pos.z, 0, 128, 255));
-		const std::vector<Tri> tris = v.ToGeometry();
+		const std::vector<Primitive> tris = v.ToGeometry();
 		spawnsTriangles.insert(spawnsTriangles.end(), tris.begin(), tris.end());
 	}
 
@@ -1979,7 +1986,7 @@ void Level::GenerateRenderSelectedBlockData(const Quadblock& quadblock, const Ve
 
 	m_rendererQueryPoint = queryPoint;
 
-	std::vector<Tri> triangles;
+	std::vector<Primitive> triangles;
 	std::vector<size_t> lodGroupTriangleCounts;
 	triangles.reserve(m_rendererSelectedQuadblockIndexes.size() * 8 + 8);
 	lodGroupTriangleCounts.reserve(m_rendererSelectedQuadblockIndexes.size() + 1);
@@ -1989,19 +1996,17 @@ void Level::GenerateRenderSelectedBlockData(const Quadblock& quadblock, const Ve
 	for (size_t index : m_rendererSelectedQuadblockIndexes)
 	{
 		const Quadblock& qb = m_quadblocks[index];
-		std::vector<Tri> qbTriangles = qb.ToGeometry(false, &emptyUvs, &emptyTexturePath);
-		for (Tri& tri : qbTriangles)
+		std::vector<Primitive> qbTriangles = qb.ToGeometry(false, &emptyUvs, &emptyTexturePath);
+		for (Primitive& primitive : qbTriangles)
 		{
-			for (Point& point : tri.p) { point.color = point.color.Negated(); }
-			triangles.push_back(tri);
+			for (unsigned i = 0; i < primitive.pointCount; i++) { primitive.p[i].color = primitive.p[i].color.Negated(); }
+			triangles.push_back(primitive);
 		}
-		lodGroupTriangleCounts.push_back(qbTriangles.size());
 	}
 
 	Vertex v = Vertex(Point(queryPoint.x, queryPoint.y, queryPoint.z, 255, 0, 0));
-	const std::vector<Tri> queryTriangles = v.ToGeometry();
+	const std::vector<Primitive> queryTriangles = v.ToGeometry();
 	triangles.insert(triangles.end(), queryTriangles.begin(), queryTriangles.end());
-	lodGroupTriangleCounts.push_back(queryTriangles.size());
 
 	m_models[LevelModels::SELECTED]->GetMesh().SetGeometry(triangles,
 		Mesh::RenderFlags::DrawWireframe | Mesh::RenderFlags::DrawBackfaces | Mesh::RenderFlags::ForceDrawOnTop | Mesh::RenderFlags::DrawLinesAA | Mesh::RenderFlags::DontOverrideRenderFlags,
@@ -2018,7 +2023,7 @@ void Level::GenerateRenderSelectedBlockData(const Quadblock& quadblock, const Ve
 			if (bsp.GetId() == quadblock.GetBSPID()) { myBSPIndex = bsp_index; }
 		}
 
-		std::vector<Tri> multiTriangles;
+		std::vector<Primitive> multiTriangles;
 		std::vector<size_t> multiLodGroupTriangleCounts;
 		for (size_t bsp_index = 0; bsp_index < bspLeaves.size(); bsp_index++)
 		{
@@ -2029,13 +2034,12 @@ void Level::GenerateRenderSelectedBlockData(const Quadblock& quadblock, const Ve
 				for (size_t qbInd : qbIndeces)
 				{
 					Quadblock& qb = m_quadblocks[qbInd];
-					std::vector<Tri> qbTriangles = qb.ToGeometry(false, &emptyUvs, &emptyTexturePath);
-					for (Tri& tri : qbTriangles)
+					std::vector<Primitive> qbTriangles = qb.ToGeometry(false, &emptyUvs, &emptyTexturePath);
+					for (Primitive& primitive : qbTriangles)
 					{
-						for (Point& point : tri.p) { point.color = point.color.Negated(); }
-						multiTriangles.push_back(tri);
+						for (unsigned i = 0; i < primitive.pointCount; i++) { primitive.p[i].color = primitive.p[i].color.Negated(); }
+						multiTriangles.push_back(primitive);
 					}
-					multiLodGroupTriangleCounts.push_back(qbTriangles.size());
 				}
 			}
 		}

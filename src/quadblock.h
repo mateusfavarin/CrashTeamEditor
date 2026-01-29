@@ -166,9 +166,9 @@ public:
 	const QuadUV& GetQuadUV(size_t quad) const;
 	const std::filesystem::path& GetTexPath() const;
 	const std::array<QuadUV, NUM_FACES_QUADBLOCK + 1>& GetUVs() const;
-	size_t GetRenderTriangleIndex() const;
+	size_t GetRenderPrimitiveIndex() const;
 	const std::string& GetMaterial() const;
-	void SetRenderTriangleIndex(size_t triangleIndex);
+	void SetRenderPrimitiveIndex(size_t triangleIndex);
 	void SetTerrain(uint8_t terrain);
 	void SetFlag(uint16_t flag);
 	void SetCheckpoint(int index);
@@ -190,7 +190,7 @@ public:
 	void SetSpeedImpact(int speed);
 	void Translate(float ratio, const Vec3& direction);
 	const BoundingBox& GetBoundingBox() const;
-	std::vector<Tri> ToGeometry(bool filterTriangles = false,
+	std::vector<Primitive> ToGeometry(bool filterTriangles = false,
 		const std::array<QuadUV, NUM_FACES_QUADBLOCK + 1>* overrideUvs = nullptr,
 		const std::filesystem::path* overrideTexturePath = nullptr) const;
 	std::vector<Vertex> GetVertices() const;
@@ -239,7 +239,7 @@ private:
 	std::array<size_t, NUM_FACES_QUADBLOCK + 1> m_textureIDs = { 0, 0, 0, 0, 0 };
 	std::array<size_t, NUM_FACES_QUADBLOCK + 1> m_animTexOffset = {0, 0, 0, 0, 0};
 	std::filesystem::path m_texPath;
-	size_t m_renderTriangleIndex = RENDER_INDEX_NONE;
+	size_t m_renderPrimitiveIndex = RENDER_INDEX_NONE;
 	UpdateFilterCallback m_filterCallback;
 };
 

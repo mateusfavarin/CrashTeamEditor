@@ -514,9 +514,9 @@ const std::array<QuadUV, NUM_FACES_QUADBLOCK + 1>& Quadblock::GetUVs() const
 	return m_uvs;
 }
 
-size_t Quadblock::GetRenderTriangleIndex() const
+size_t Quadblock::GetRenderPrimitiveIndex() const
 {
-	return m_renderTriangleIndex;
+	return m_renderPrimitiveIndex;
 }
 
 const std::string& Quadblock::GetMaterial() const
@@ -524,9 +524,9 @@ const std::string& Quadblock::GetMaterial() const
 	return m_material;
 }
 
-void Quadblock::SetRenderTriangleIndex(size_t triangleIndex)
+void Quadblock::SetRenderPrimitiveIndex(size_t primitiveIndex)
 {
-	m_renderTriangleIndex = triangleIndex;
+	m_renderPrimitiveIndex = primitiveIndex;
 }
 
 void Quadblock::SetTerrain(uint8_t terrain)
@@ -632,7 +632,7 @@ const BoundingBox& Quadblock::GetBoundingBox() const
 	return m_bbox;
 }
 
-std::vector<Tri> Quadblock::ToGeometry(bool filterTriangles, const std::array<QuadUV, NUM_FACES_QUADBLOCK + 1>* overrideUvs, const std::filesystem::path* overrideTexturePath) const
+std::vector<Primitive> Quadblock::ToGeometry(bool filterTriangles, const std::array<QuadUV, NUM_FACES_QUADBLOCK + 1>* overrideUvs, const std::filesystem::path* overrideTexturePath) const
 {
 	constexpr int NUM_VERTICES_QUAD = 4;
 	constexpr int uvVertInd[NUM_FACES_QUADBLOCK + 1][NUM_VERTICES_QUAD] =
@@ -645,7 +645,6 @@ std::vector<Tri> Quadblock::ToGeometry(bool filterTriangles, const std::array<Qu
 	};
 
 	const bool isQuadblock = IsQuadblock();
-	const int triCount = isQuadblock ? 8 : 4;
 	const std::filesystem::path& texPath = overrideTexturePath ? *overrideTexturePath : m_texPath;
 	const std::array<QuadUV, NUM_FACES_QUADBLOCK + 1>& uvs = overrideUvs ? *overrideUvs : m_uvs;
 	const Color filterColor = GetFilter() ? GetFilterColor() : Color(static_cast<unsigned char>(0u), static_cast<unsigned char>(0u), static_cast<unsigned char>(0u));
@@ -669,28 +668,51 @@ std::vector<Tri> Quadblock::ToGeometry(bool filterTriangles, const std::array<Qu
 		};
 
 	const std::string textureString = filterTriangles ? std::string() : texPath.string();
-	std::vector<Tri> triangles;
-	triangles.reserve(triCount);
-	for (int triIndex = 0; triIndex < triCount; triIndex++)
+	std::vector<Primitive> primitives;
+	if (isQuadblock)
 	{
-		const int quadIndex = GetQuadIndexForTri(triIndex);
-		const int* triVerts = isQuadblock ? FaceIndexConstants::quadHLODVertArrangements[triIndex] : FaceIndexConstants::triHLODVertArrangements[triIndex];
-
-		Tri tri;
-		tri.texture = textureString;
-		for (int i = 0; i < 3; i++)
+		primitives.reserve(NUM_FACES_QUADBLOCK);
+		for (int quadIndex = 0; quadIndex < NUM_FACES_QUADBLOCK; quadIndex++)
 		{
-			const int vertIndex = triVerts[i];
-			const Vertex& vert = m_p[vertIndex];
-			tri.p[i].pos = vert.m_pos;
-			tri.p[i].normal = vert.m_normal;
-			tri.p[i].color = filterTriangles ? filterColor : vert.GetColor(true);
-			tri.p[i].uv = filterTriangles ? Vec2() : GetUVForVertex(quadIndex, vertIndex);
+			Quad quad;
+			quad.texture = textureString;
+			for (int i = 0; i < NUM_VERTICES_QUAD; i++)
+			{
+				const int vertIndex = uvVertInd[quadIndex][i];
+				const Vertex& vert = m_p[vertIndex];
+				quad.p[i].pos = vert.m_pos;
+				quad.p[i].normal = vert.m_normal;
+				quad.p[i].color = filterTriangles ? filterColor : vert.GetColor(true);
+				quad.p[i].uv = filterTriangles ? Vec2() : GetUVForVertex(quadIndex, vertIndex);
+			}
+			primitives.push_back(quad);
 		}
-		triangles.push_back(tri);
+	}
+	else
+	{
+		const int triCount = 4;
+		primitives.reserve(triCount);
+		for (int triIndex = 0; triIndex < triCount; triIndex++)
+		{
+			const int quadIndex = GetQuadIndexForTri(triIndex);
+			const int* triVerts = FaceIndexConstants::triHLODVertArrangements[triIndex];
+
+			Tri tri;
+			tri.texture = textureString;
+			for (int i = 0; i < 3; i++)
+			{
+				const int vertIndex = triVerts[i];
+				const Vertex& vert = m_p[vertIndex];
+				tri.p[i].pos = vert.m_pos;
+				tri.p[i].normal = vert.m_normal;
+				tri.p[i].color = filterTriangles ? filterColor : vert.GetColor(true);
+				tri.p[i].uv = filterTriangles ? Vec2() : GetUVForVertex(quadIndex, vertIndex);
+			}
+			primitives.push_back(tri);
+		}
 	}
 
-	return triangles;
+	return primitives;
 }
 
 std::vector<Vertex> Quadblock::GetVertices() const
@@ -817,7 +839,7 @@ void Quadblock::SetDefaultValues()
 	m_filter = false;
 	m_downforce = 0;
 	m_filterColor = GuiRenderSettings::defaultFilterColor;
-	m_renderTriangleIndex = RENDER_INDEX_NONE;
+	m_renderPrimitiveIndex = RENDER_INDEX_NONE;
 }
 
 Vec3 Quadblock::ComputeNormalVector(size_t id0, size_t id1, size_t id2) const
