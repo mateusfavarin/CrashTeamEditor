@@ -51,6 +51,13 @@ public:
 	std::vector<std::string> GetMaterialNames() const;
 	std::vector<size_t> GetMaterialQuadblockIndexes(const std::string& material) const;
 	std::tuple<std::vector<Quadblock*>, Vec3> GetRendererSelectedData();
+	Model* GetLevelModel();
+	Model* GetBspModel();
+	Model* GetSpawnModel();
+	Model* GetCheckpointModel();
+	Model* GetSelectedModel();
+	Model* GetMultiSelectedModel();
+	Model* GetFilterModel();
 	bool LoadPreset(const std::filesystem::path& filename);
 	bool SavePreset(const std::filesystem::path& path);
 	void ResetFilter();
@@ -71,7 +78,7 @@ private:
 	bool GenerateBSP();
 
 	void OpenHotReloadWindow();
-	void RenderUI();
+	void RenderUI(Renderer& renderer);
 
 	void InitModels(Renderer& renderer);
 	void GenerateRenderLevData();

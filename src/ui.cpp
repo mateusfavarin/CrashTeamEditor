@@ -34,7 +34,7 @@ UI::UI() : m_rend(Windows::w_width, Windows::w_height)
 void UI::Render()
 {
 	MainMenu();
-	m_lev.RenderUI();
+	m_lev.RenderUI(m_rend);
 	RenderWorld();
 }
 

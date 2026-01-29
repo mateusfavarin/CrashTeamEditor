@@ -3,16 +3,23 @@
 #include <pybind11/stl.h>
 #include <pybind11/stl_bind.h>
 #include <pybind11/stl/filesystem.h>
+#include <pybind11/functional.h>
 
 #include <filesystem>
 #include <sstream>
+#include <array>
 
 #include "geo.h"
+#include "text3d.h"
 #include "quadblock.h"
 #include "vertex.h"
 #include "bsp.h"
 #include "checkpoint.h"
 #include "level.h"
+#include "mesh.h"
+#include "model.h"
+#include "renderer.h"
+#include "transform.h"
 #include "path.h"
 
 namespace py = pybind11;
@@ -22,8 +29,6 @@ PYBIND11_MAKE_OPAQUE(std::vector<Checkpoint>);
 PYBIND11_MAKE_OPAQUE(std::vector<Path>);
 PYBIND11_MAKE_OPAQUE(std::vector<size_t>);
 
-namespace
-{
 std::string FormatVec2(const Vec2& v)
 {
 	std::ostringstream oss;
@@ -63,7 +68,28 @@ std::string FormatVertex(const Vertex& vertex)
 		<< " normal=" << FormatVec3(vertex.m_normal) << ">";
 	return oss.str();
 }
-} // namespace
+
+std::string FormatPoint(const Point& point)
+{
+	std::ostringstream oss;
+	oss << "<cte.Point pos=" << FormatVec3(point.pos)
+		<< " normal=" << FormatVec3(point.normal) << ">";
+	return oss.str();
+}
+
+std::array<float, 16> FormatMat4(const glm::mat4& matrix)
+{
+	std::array<float, 16> out = {};
+	size_t index = 0;
+	for (int col = 0; col < 4; ++col)
+	{
+		for (int row = 0; row < 4; ++row)
+		{
+			out[index++] = matrix[col][row];
+		}
+	}
+	return out;
+}
 
 void init_crashteameditor(py::module_& m)
 {
@@ -101,6 +127,59 @@ void init_crashteameditor(py::module_& m)
 		.def_readwrite("a", &Color::a)
 		.def("__repr__", [](const Color& c) { return FormatColor(c); });
 
+	py::class_<Point> point(m, "Point");
+	point.def(py::init<>())
+		.def(py::init<float, float, float>(), py::arg("x"), py::arg("y"), py::arg("z"))
+		.def(py::init<float, float, float, unsigned char, unsigned char, unsigned char>(),
+			py::arg("x"), py::arg("y"), py::arg("z"), py::arg("r"), py::arg("g"), py::arg("b"))
+		.def(py::init<const Vec3&, const Vec3&, const Color&>(), py::arg("pos"), py::arg("normal"), py::arg("color"))
+		.def_readwrite("pos", &Point::pos)
+		.def_readwrite("normal", &Point::normal)
+		.def_readwrite("color", &Point::color)
+		.def_readwrite("uv", &Point::uv)
+		.def("__repr__", [](const Point& p) { return FormatPoint(p); });
+
+	py::enum_<PrimitiveType>(m, "PrimitiveType")
+		.value("TRI", PrimitiveType::TRI)
+		.value("QUAD", PrimitiveType::QUAD)
+		.value("LINE", PrimitiveType::LINE)
+		.export_values();
+
+	py::class_<Primitive> primitive(m, "Primitive");
+	primitive
+		.def(py::init<PrimitiveType, unsigned>(), py::arg("type"), py::arg("point_count"))
+		.def_readwrite("type", &Primitive::type)
+		.def_readwrite("texture", &Primitive::texture)
+		.def_readwrite("point_count", &Primitive::pointCount)
+		.def_property("p0",
+			[](Primitive& prim) -> Point& { return prim.p[0]; },
+			[](Primitive& prim, const Point& value) { prim.p[0] = value; },
+			py::return_value_policy::reference_internal)
+		.def_property("p1",
+			[](Primitive& prim) -> Point& { return prim.p[1]; },
+			[](Primitive& prim, const Point& value) { prim.p[1] = value; },
+			py::return_value_policy::reference_internal)
+		.def_property("p2",
+			[](Primitive& prim) -> Point& { return prim.p[2]; },
+			[](Primitive& prim, const Point& value) { prim.p[2] = value; },
+			py::return_value_policy::reference_internal)
+		.def_property("p3",
+			[](Primitive& prim) -> Point& { return prim.p[3]; },
+			[](Primitive& prim, const Point& value) { prim.p[3] = value; },
+			py::return_value_policy::reference_internal);
+
+	py::class_<Tri, Primitive> tri(m, "Tri");
+	tri.def(py::init<>())
+		.def(py::init<const Point&, const Point&, const Point&>(), py::arg("p0"), py::arg("p1"), py::arg("p2"));
+
+	py::class_<Quad, Primitive> quad(m, "Quad");
+	quad.def(py::init<>())
+		.def(py::init<const Point&, const Point&, const Point&, const Point&>(), py::arg("p0"), py::arg("p1"), py::arg("p2"), py::arg("p3"));
+
+	py::class_<Line, Primitive> line(m, "Line");
+	line.def(py::init<>())
+		.def(py::init<const Point&, const Point&>(), py::arg("p0"), py::arg("p1"));
+
 	py::class_<BoundingBox> bbox(m, "BoundingBox");
 	bbox.def(py::init<>())
 		.def_readwrite("min", &BoundingBox::min)
@@ -109,6 +188,7 @@ void init_crashteameditor(py::module_& m)
 		.def("semi_perimeter", &BoundingBox::SemiPerimeter)
 		.def("axis_length", &BoundingBox::AxisLength)
 		.def("midpoint", &BoundingBox::Midpoint)
+		.def("to_geometry", &BoundingBox::ToGeometry)
 		.def("__repr__", [](const BoundingBox& b) { return FormatBoundingBox(b); });
 
 	py::class_<Vertex> vertex(m, "Vertex");
@@ -116,7 +196,84 @@ void init_crashteameditor(py::module_& m)
 		.def_readwrite("pos", &Vertex::m_pos)
 		.def_readwrite("normal", &Vertex::m_normal)
 		.def("get_color", &Vertex::GetColor, py::arg("high") = true)
+		.def("to_geometry", &Vertex::ToGeometry, py::arg("high_color") = true)
 		.def("__repr__", [](const Vertex& v) { return FormatVertex(v); });
+
+	py::class_<Transform> transform(m, "Transform");
+	transform.def(py::init<>())
+		.def("clear", &Transform::Clear)
+		.def("set_position", &Transform::SetPosition, py::arg("pos"))
+		.def("set_scale", py::overload_cast<const Vec3&>(&Transform::SetScale), py::arg("scale"))
+		.def("set_scale", py::overload_cast<float>(&Transform::SetScale), py::arg("scale"))
+		.def("mult_scale", &Transform::MultScale, py::arg("factor"))
+		.def("set_rotation", &Transform::SetRotation, py::arg("rotation"))
+		.def("get_position", &Transform::GetPosition)
+		.def("get_scale", &Transform::GetScale)
+		.def("get_rotation", &Transform::GetRotation)
+		.def("get_world_position", &Transform::GetWorldPosition)
+		.def("get_world_scale", &Transform::GetWorldScale)
+		.def("get_world_rotation", &Transform::GetWorldRotation)
+		.def("get_model_matrix", [](const Transform& t) { return FormatMat4(t.GetModelMatrix()); });
+
+	py::module_ text3d = m.def_submodule("text3d");
+	py::enum_<Text3D::Align>(text3d, "Align")
+		.value("LEFT", Text3D::Align::LEFT)
+		.value("CENTER", Text3D::Align::CENTER)
+		.value("RIGHT", Text3D::Align::RIGHT)
+		.export_values();
+	text3d.def("to_geometry", &Text3D::ToGeometry, py::arg("label"), py::arg("align"), py::arg("color"));
+
+	py::class_<Mesh::RenderFlags>(m, "MeshRenderFlags")
+		.def_readonly_static("NONE", &Mesh::RenderFlags::None)
+		.def_readonly_static("DRAW_WIREFRAME", &Mesh::RenderFlags::DrawWireframe)
+		.def_readonly_static("FORCE_DRAW_ON_TOP", &Mesh::RenderFlags::ForceDrawOnTop)
+		.def_readonly_static("DRAW_BACKFACES", &Mesh::RenderFlags::DrawBackfaces)
+		.def_readonly_static("DRAW_LINES_AA", &Mesh::RenderFlags::DrawLinesAA)
+		.def_readonly_static("DONT_OVERRIDE_RENDER_FLAGS", &Mesh::RenderFlags::DontOverrideRenderFlags)
+		.def_readonly_static("THICK_LINES", &Mesh::RenderFlags::ThickLines)
+		.def_readonly_static("ALLOW_POINT_RENDER", &Mesh::RenderFlags::AllowPointRender)
+		.def_readonly_static("DRAW_POINTS", &Mesh::RenderFlags::DrawPoints)
+		.def_readonly_static("QUADBLOCK_LOD", &Mesh::RenderFlags::QuadblockLod)
+		.def_readonly_static("FOLLOW_CAMERA", &Mesh::RenderFlags::FollowCamera);
+
+	py::class_<Mesh::ShaderFlags>(m, "MeshShaderFlags")
+		.def_readonly_static("NONE", &Mesh::ShaderFlags::None)
+		.def_readonly_static("BLINKY", &Mesh::ShaderFlags::Blinky)
+		.def_readonly_static("DISCARD_ZERO_COLOR", &Mesh::ShaderFlags::DiscardZeroColor);
+
+	py::class_<Mesh> mesh(m, "Mesh");
+	mesh.def(py::init<>())
+		.def("set_geometry", py::overload_cast<const std::vector<Primitive>&, unsigned, unsigned>(&Mesh::SetGeometry),
+			py::arg("primitives"), py::arg("render_flags") = Mesh::RenderFlags::None, py::arg("shader_flags") = Mesh::ShaderFlags::None)
+		.def("set_geometry", py::overload_cast<const std::string&, Text3D::Align, const Color&>(&Mesh::SetGeometry),
+			py::arg("label"), py::arg("align"), py::arg("color"))
+		.def("update_primitive", &Mesh::UpdatePrimitive, py::arg("primitive"), py::arg("index"))
+		.def("get_render_flags", &Mesh::GetRenderFlags)
+		.def("set_render_flags", &Mesh::SetRenderFlags, py::arg("render_flags"))
+		.def("get_shader_flags", &Mesh::GetShaderFlags)
+		.def("set_shader_flags", &Mesh::SetShaderFlags, py::arg("shader_flags"))
+		.def("clear", &Mesh::Clear)
+		.def("is_ready", &Mesh::IsReady);
+
+	py::class_<Model, Transform> model(m, "Model");
+	model.def(py::init<>())
+		.def("get_mesh", &Model::GetMesh, py::return_value_policy::reference_internal)
+		.def("set_render_condition", &Model::SetRenderCondition, py::arg("render_condition"))
+		.def("add_model", &Model::AddModel, py::return_value_policy::reference_internal)
+		.def("clear_models", &Model::ClearModels)
+		.def("remove_model", &Model::RemoveModel, py::arg("model"))
+		.def("clear", &Model::Clear, py::arg("models"))
+		.def("is_ready", &Model::IsReady);
+
+	py::class_<Renderer> renderer(m, "Renderer");
+	renderer
+		.def("create_model", &Renderer::CreateModel, py::return_value_policy::reference_internal)
+		.def("delete_model", &Renderer::DeleteModel, py::arg("model"))
+		.def("get_last_delta_time", &Renderer::GetLastDeltaTime)
+		.def("get_last_time", &Renderer::GetLastTime)
+		.def("get_width", &Renderer::GetWidth)
+		.def("get_height", &Renderer::GetHeight)
+		.def("set_camera_to_level_spawn", &Renderer::SetCameraToLevelSpawn, py::arg("pos"), py::arg("rot"));
 
 	py::class_<VertexFlags>(m, "VertexFlags")
 		.def_readonly_static("NONE", &VertexFlags::NONE);
@@ -204,6 +361,23 @@ void init_crashteameditor(py::module_& m)
 		.def_property_readonly("bounding_box", &Quadblock::GetBoundingBox, py::return_value_policy::copy)
 		.def_property_readonly("uvs", &Quadblock::GetUVs, py::return_value_policy::copy)
 		.def("is_quadblock", &Quadblock::IsQuadblock)
+		.def("to_geometry", [](const Quadblock& qb, bool filterTriangles, py::object overrideUvsObj, py::object overrideTextureObj) {
+			const std::array<QuadUV, NUM_FACES_QUADBLOCK + 1>* uvsPtr = nullptr;
+			const std::filesystem::path* texPtr = nullptr;
+			std::array<QuadUV, NUM_FACES_QUADBLOCK + 1> uvs = {};
+			std::filesystem::path texPath;
+			if (!overrideUvsObj.is_none())
+			{
+				uvs = overrideUvsObj.cast<std::array<QuadUV, NUM_FACES_QUADBLOCK + 1>>();
+				uvsPtr = &uvs;
+			}
+			if (!overrideTextureObj.is_none())
+			{
+				texPath = overrideTextureObj.cast<std::filesystem::path>();
+				texPtr = &texPath;
+			}
+			return qb.ToGeometry(filterTriangles, uvsPtr, texPtr);
+		}, py::arg("filter_triangles") = false, py::arg("override_uvs") = py::none(), py::arg("override_texture_path") = py::none())
 		.def("set_double_sided", &Quadblock::SetDrawDoubleSided)
 		.def("set_speed_impact", &Quadblock::SetSpeedImpact)
 		.def("translate", &Quadblock::Translate, py::arg("ratio"), py::arg("direction"))
@@ -369,6 +543,13 @@ void init_crashteameditor(py::module_& m)
 		.def_property_readonly("bsp", &Level::GetBSP, py::return_value_policy::reference_internal)
 		.def_property_readonly("checkpoints", &Level::GetCheckpoints, py::return_value_policy::reference_internal)
 		.def_property_readonly("checkpoint_paths", &Level::GetCheckpointPaths, py::return_value_policy::reference_internal)
+		.def_property_readonly("model_level", &Level::GetLevelModel, py::return_value_policy::reference_internal)
+		.def_property_readonly("model_bsp", &Level::GetBspModel, py::return_value_policy::reference_internal)
+		.def_property_readonly("model_spawn", &Level::GetSpawnModel, py::return_value_policy::reference_internal)
+		.def_property_readonly("model_checkpoint", &Level::GetCheckpointModel, py::return_value_policy::reference_internal)
+		.def_property_readonly("model_selected", &Level::GetSelectedModel, py::return_value_policy::reference_internal)
+		.def_property_readonly("model_multi_selected", &Level::GetMultiSelectedModel, py::return_value_policy::reference_internal)
+		.def_property_readonly("model_filter", &Level::GetFilterModel, py::return_value_policy::reference_internal)
 		.def_property_readonly("parent_path", &Level::GetParentPath, py::return_value_policy::copy)
 		.def("get_material_names", &Level::GetMaterialNames, py::return_value_policy::copy)
 		.def("get_material_quadblock_indexes", &Level::GetMaterialQuadblockIndexes, py::arg("material"), py::return_value_policy::copy)

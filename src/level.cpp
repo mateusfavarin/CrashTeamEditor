@@ -140,6 +140,41 @@ std::tuple<std::vector<Quadblock*>, Vec3> Level::GetRendererSelectedData()
 	return std::make_tuple(std::move(quadblocks), m_rendererQueryPoint);
 }
 
+Model* Level::GetLevelModel()
+{
+	return m_models[LevelModels::LEVEL];
+}
+
+Model* Level::GetBspModel()
+{
+	return m_models[LevelModels::BSP];
+}
+
+Model* Level::GetSpawnModel()
+{
+	return m_models[LevelModels::SPAWN];
+}
+
+Model* Level::GetCheckpointModel()
+{
+	return m_models[LevelModels::CHECKPOINT];
+}
+
+Model* Level::GetSelectedModel()
+{
+	return m_models[LevelModels::SELECTED];
+}
+
+Model* Level::GetMultiSelectedModel()
+{
+	return m_models[LevelModels::MULTI_SELECTED];
+}
+
+Model* Level::GetFilterModel()
+{
+	return m_models[LevelModels::FILTER];
+}
+
 bool Level::GenerateBSP()
 {
 	std::vector<size_t> quadIndexes;

@@ -312,7 +312,7 @@ bool MaterialProperty<T, M>::RenderUI(const std::string& material, const std::ve
 	return false;
 }
 
-void Level::RenderUI()
+void Level::RenderUI(Renderer& renderer)
 {
 	if (m_showLogWindow)
 	{
@@ -1105,7 +1105,7 @@ void Level::RenderUI()
 			{
 				m_saveScript = true;
 				m_pythonConsole.clear();
-				std::string result = Script::ExecutePythonScript(*this, m_pythonScript);
+				std::string result = Script::ExecutePythonScript(*this, renderer, m_pythonScript);
 				if (result.empty()) { result = "[No output]"; }
 				if (!m_pythonConsole.empty() && m_pythonConsole.back() != '\n')
 				{
