@@ -1,6 +1,7 @@
 #pragma once
 
 #include "lev.h"
+#include "utils.h"
 
 #include <cstdint>
 #include <cmath>
@@ -341,21 +342,30 @@ namespace PSX
 template<>
 struct std::hash<PSX::TextureLayout>
 {
-	inline std::size_t operator()(const PSX::TextureLayout& key) const
+	inline std::size_t operator()(const PSX::TextureLayout& key) const noexcept
 	{
 		uint32_t pos0 = key.u0 | (key.v0 << 8) | (key.u1 << 16) | (key.v1 << 24);
 		uint32_t pos1 = key.u2 | (key.v2 << 8) | (key.u3 << 16) | (key.v3 << 24);
 		uint32_t extra = key.clut.self | (key.texPage.self << 16);
-		return ((((std::hash<uint32_t>()(pos0) ^ (std::hash<uint32_t>()(pos1) << 1)) >> 1) ^ (std::hash<uint32_t>()(extra) << 1)) >> 2);
+		std::size_t seed = 0;
+		HashCombine(seed, pos0);
+		HashCombine(seed, pos1);
+		HashCombine(seed, extra);
+		return seed;
 	}
 };
 
 template<>
 struct std::hash<PSX::VisibleSet>
 {
-	inline std::size_t operator()(const PSX::VisibleSet& key) const
+	inline std::size_t operator()(const PSX::VisibleSet& key) const noexcept
 	{
-		return ((((std::hash<uint32_t>()(key.offVisibleBSPNodes) ^ (std::hash<uint32_t>()(key.offVisibleQuadblocks) << 1)) >> 1) ^ (std::hash<uint32_t>()(key.offVisibleInstances) << 1)) >> 2) ^ (std::hash<uint32_t>()(key.offVisibleExtra) << 2);
+		std::size_t seed = 0;
+		HashCombine(seed, key.offVisibleBSPNodes);
+		HashCombine(seed, key.offVisibleQuadblocks);
+		HashCombine(seed, key.offVisibleInstances);
+		HashCombine(seed, key.offVisibleExtra);
+		return seed;
 	}
 };
 

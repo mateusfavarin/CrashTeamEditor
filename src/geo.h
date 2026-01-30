@@ -33,9 +33,14 @@ struct Color
 template<>
 struct std::hash<Color>
 {
-	inline std::size_t operator()(const Color& key) const
+	inline std::size_t operator()(const Color& key) const noexcept
 	{
-		return ((((std::hash<float>()(key.Red()) ^ (std::hash<float>()(key.Green()) << 1)) >> 1) ^ (std::hash<float>()(key.Blue()) << 1)) >> 2) ^ (std::hash<float>()(key.Alpha()) << 2);
+		std::size_t seed = 0;
+		HashCombine(seed, key.r);
+		HashCombine(seed, key.g);
+		HashCombine(seed, key.b);
+		HashCombine(seed, key.a);
+		return seed;
 	}
 };
 
@@ -91,9 +96,13 @@ struct Vec3
 template<>
 struct std::hash<Vec3>
 {
-	inline std::size_t operator()(const Vec3& key) const
+	inline std::size_t operator()(const Vec3& key) const noexcept
 	{
-		return ((std::hash<float>()(key.x) ^ (std::hash<float>()(key.y) << 1)) >> 1) ^ (std::hash<float>()(key.z) << 1);
+		std::size_t seed = 0;
+		HashCombine(seed, key.x);
+		HashCombine(seed, key.y);
+		HashCombine(seed, key.z);
+		return seed;
 	}
 };
 

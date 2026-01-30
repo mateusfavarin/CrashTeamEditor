@@ -37,8 +37,13 @@ private:
 template<>
 struct std::hash<Vertex>
 {
-	inline std::size_t operator()(const Vertex& key) const
+	inline std::size_t operator()(const Vertex& key) const noexcept
 	{
-		return ((((std::hash<Vec3>()(key.m_pos) ^ (std::hash<uint16_t>()(key.m_flags) << 1)) >> 1) ^ (std::hash<Color>()(key.m_colorHigh) << 1)) >> 2) ^ (std::hash<Color>()(key.m_colorLow) << 2);
+		std::size_t seed = 0;
+		HashCombine(seed, key.m_pos);
+		HashCombine(seed, key.m_flags);
+		HashCombine(seed, key.m_colorHigh);
+		HashCombine(seed, key.m_colorLow);
+		return seed;
 	}
 };
