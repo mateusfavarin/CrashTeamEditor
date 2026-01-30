@@ -100,40 +100,6 @@ struct FaceDrawMode
 	static constexpr uint32_t DRAW_NONE = 3;
 };
 
-struct FaceIndexConstants
-{
-	static constexpr int quadHLODVertArrangements[][3] =
-	{
-		{ 3, 0, 1 },
-		{ 1, 4, 3 },
-		{ 4, 1, 2 },
-		{ 2, 5, 4 },
-		{ 6, 3, 4 },
-		{ 4, 7, 6 },
-		{ 7, 4, 5 },
-		{ 5, 8, 7 },
-	};
-
-	static constexpr int quadLLODVertArrangements[][3] =
-	{
-		{ 6, 0, 2 },
-		{ 2, 8, 6 },
-	};
-
-	static constexpr int triHLODVertArrangements[][3] =
-	{
-		{ 3, 0, 1 },
-		{ 1, 4, 3 },
-		{ 4, 1, 2 },
-		{ 6, 3, 4 },
-	};
-
-	static constexpr int triLLODVertArrangements[][3] =
-	{
-		{ 6, 0, 2 },
-	};
-};
-
 enum class QuadblockTrigger
 {
 	NONE, TURBO_PAD, SUPER_TURBO_PAD
@@ -166,17 +132,9 @@ public:
 	const QuadUV& GetQuadUV(size_t quad) const;
 	const std::filesystem::path& GetTexPath() const;
 	const std::array<QuadUV, NUM_FACES_QUADBLOCK + 1>& GetUVs() const;
-	size_t GetRenderHighLodPointIndex() const;
-	size_t GetRenderLowLodPointIndex() const;
-	size_t GetRenderHighLodUVIndex() const;
-	size_t GetRenderLowLodUVIndex() const;
-	size_t GetRenderHighLodOctoPointIndex() const;
-	size_t GetRenderLowLodOctoPointIndex() const;
-	size_t GetRenderFilterHighLodEdgeIndex() const;
-	size_t GetRenderFilterLowLodEdgeIndex() const;
+	size_t GetRenderPrimitiveIndex() const;
 	const std::string& GetMaterial() const;
-	void SetRenderIndices(size_t highPointIndex, size_t lowPointIndex, size_t highUvIndex, size_t lowUvIndex, size_t highOctoIndex, size_t lowOctoIndex);
-	void SetRenderFilterIndices(size_t highEdgeIndex, size_t lowEdgeIndex);
+	void SetRenderPrimitiveIndex(size_t triangleIndex);
 	void SetTerrain(uint8_t terrain);
 	void SetFlag(uint16_t flag);
 	void SetCheckpoint(int index);
@@ -198,6 +156,7 @@ public:
 	void SetSpeedImpact(int speed);
 	void Translate(float ratio, const Vec3& direction);
 	const BoundingBox& GetBoundingBox() const;
+	std::vector<Primitive> ToGeometry(bool filterTriangles = false, const std::array<QuadUV, NUM_FACES_QUADBLOCK + 1>* overrideUvs = nullptr, const std::filesystem::path* overrideTexturePath = nullptr) const;
 	std::vector<Vertex> GetVertices() const;
 	const Vertex* const GetUnswizzledVertices() const;
 	float DistanceClosestVertex(Vec3& out, const Vec3& v) const;
@@ -244,14 +203,7 @@ private:
 	std::array<size_t, NUM_FACES_QUADBLOCK + 1> m_textureIDs = { 0, 0, 0, 0, 0 };
 	std::array<size_t, NUM_FACES_QUADBLOCK + 1> m_animTexOffset = {0, 0, 0, 0, 0};
 	std::filesystem::path m_texPath;
-	size_t m_renderHighLodPointIndex = RENDER_INDEX_NONE;
-	size_t m_renderLowLodPointIndex = RENDER_INDEX_NONE;
-	size_t m_renderHighLodUVIndex = RENDER_INDEX_NONE;
-	size_t m_renderLowLodUVIndex = RENDER_INDEX_NONE;
-	size_t m_renderHighLodOctoPointIndex = RENDER_INDEX_NONE;
-	size_t m_renderLowLodOctoPointIndex = RENDER_INDEX_NONE;
-	size_t m_renderFilterHighLodEdgeIndex = RENDER_INDEX_NONE;
-	size_t m_renderFilterLowLodEdgeIndex = RENDER_INDEX_NONE;
+	size_t m_renderPrimitiveIndex = RENDER_INDEX_NONE;
 	UpdateFilterCallback m_filterCallback;
 };
 

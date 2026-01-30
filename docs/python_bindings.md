@@ -8,7 +8,9 @@ This document describes the Python bindings exposed by `python_bindings/cte_bind
 import crashteameditor as cte
 ```
 
-In the in-editor Python window, the editor also injects a global `m_lev` pointing at the currently loaded `Level` instance. You still need to `import crashteameditor` to access helper types/constants such as `cte.TerrainType`.
+In the in-editor Python window, the editor also injects globals `m_lev` (the currently loaded `Level`) and `m_rend` (the active `Renderer`). You still need to `import crashteameditor` to access helper types/constants such as `cte.TerrainType`.
+
+Most bindings that return C++ vectors can be wrapped with `list(...)` in Python to get a plain list.
 
 ## Module-level constants
 
@@ -113,6 +115,51 @@ Fields:
 - `b: int`
 - `a: int`
 
+### `cte.Point`
+
+Constructors:
+- `Point()`
+- `Point(x: float, y: float, z: float)`
+- `Point(x: float, y: float, z: float, r: int, g: int, b: int)`
+- `Point(pos: Vec3, normal: Vec3, color: Color)`
+
+Fields:
+- `pos: Vec3`
+- `normal: Vec3`
+- `color: Color`
+- `uv: Vec2`
+
+### `cte.PrimitiveType` (enum)
+
+- `TRI`
+- `QUAD`
+- `LINE`
+
+### `cte.Primitive`
+
+Constructors:
+- `Primitive(type: PrimitiveType, point_count: int)`
+
+Fields:
+- `type: PrimitiveType`
+- `texture: str`
+- `point_count: int`
+
+Methods:
+Properties:
+- `p0: Point` (live reference)
+- `p1: Point` (live reference)
+- `p2: Point` (live reference)
+- `p3: Point` (live reference)
+
+### `cte.Tri` / `cte.Quad` / `cte.Line`
+
+Constructors:
+- `Tri()`, `Quad()`, `Line()`
+- `Tri(p0: Point, p1: Point, p2: Point)`
+- `Quad(p0: Point, p1: Point, p2: Point, p3: Point)`
+- `Line(p0: Point, p1: Point)`
+
 ### `cte.BoundingBox`
 
 Constructors:
@@ -127,6 +174,7 @@ Methods:
 - `semi_perimeter() -> float`
 - `axis_length() -> Vec3`
 - `midpoint() -> Vec3`
+- `to_geometry() -> list[Primitive]`
 
 ### `cte.Vertex`
 
@@ -139,6 +187,89 @@ Fields:
 
 Methods:
 - `get_color(high: bool = True) -> Color`
+- `to_geometry(high_color: bool = True) -> list[Primitive]`
+
+## Rendering types
+
+### `cte.Transform`
+
+Methods:
+- `clear() -> None`
+- `set_position(pos: Vec3) -> None`
+- `set_scale(scale: Vec3) -> None`
+- `set_scale(scale: float) -> None`
+- `mult_scale(factor: float) -> None`
+- `set_rotation(rotation: Vec3) -> None`
+- `get_position() -> Vec3`
+- `get_scale() -> Vec3`
+- `get_rotation() -> Vec3`
+- `get_world_position() -> Vec3`
+- `get_world_scale() -> Vec3`
+- `get_world_rotation() -> Vec3`
+- `get_model_matrix() -> list[float]` (16 floats, column-major)
+
+### `cte.MeshRenderFlags`
+
+- `NONE`, `DRAW_WIREFRAME`, `FORCE_DRAW_ON_TOP`, `DRAW_BACKFACES`, `DRAW_LINES_AA`, `DONT_OVERRIDE_RENDER_FLAGS`, `THICK_LINES`, `ALLOW_POINT_RENDER`, `DRAW_POINTS`, `QUADBLOCK_LOD`, `FOLLOW_CAMERA`
+
+### `cte.MeshShaderFlags`
+
+- `NONE`, `BLINKY`, `DISCARD_ZERO_COLOR`
+
+### `cte.Mesh`
+
+Constructors:
+- `Mesh()`
+
+Methods:
+- `set_geometry(primitives: list[Primitive], render_flags: int = MeshRenderFlags.NONE, shader_flags: int = MeshShaderFlags.NONE) -> None`
+- `set_geometry(label: str, align: text3d.Align, color: Color, scale_mult: float = 1.0) -> None`
+- `update_primitive(primitive: Primitive, index: int) -> int`
+- `get_render_flags() -> int`
+- `set_render_flags(render_flags: int) -> None`
+- `get_shader_flags() -> int`
+- `set_shader_flags(shader_flags: int) -> None`
+- `clear() -> None`
+- `is_ready() -> bool`
+
+### `cte.Model` (inherits `Transform`)
+
+Constructors:
+- `Model()`
+
+Methods:
+- `get_mesh() -> Mesh` (live reference)
+- `set_render_condition(render_condition: callable) -> None`
+  - `render_condition` must be a callable with no args that returns `bool`.
+  - Python callables are converted to a C++ `std::function<bool()>` via pybind11.
+- `add_model() -> Model` (live reference)
+- `clear_models() -> None`
+- `remove_model(model: Model) -> bool`
+- `clear(models: bool) -> None`
+- `is_ready() -> bool`
+
+### `cte.Renderer`
+
+Methods:
+- `create_model() -> Model` (live reference)
+- `delete_model(model: Model) -> bool`
+- `get_last_delta_time() -> float`
+- `get_last_time() -> float`
+- `get_width() -> float`
+- `get_height() -> float`
+- `set_camera_to_level_spawn(pos: Vec3, rot: Vec3) -> None`
+
+## Text rendering
+
+### `cte.text3d.Align` (enum)
+
+- `LEFT`
+- `CENTER`
+- `RIGHT`
+
+### `cte.text3d.to_geometry`
+
+`to_geometry(label: str, align: text3d.Align, color: Color, scale_mult: float = 1.0) -> list[Primitive]`
 
 ## Editor domain types
 
@@ -166,6 +297,8 @@ Properties:
 
 Methods:
 - `is_quadblock() -> bool`
+- `to_geometry(filter_triangles: bool = False, override_uvs: list | None = None, override_texture_path: pathlib.Path | None = None) -> list[Primitive]`
+  - `override_uvs` should be a list of 5 items (quad 0-3 plus low LOD), each item a list of 4 `Vec2`.
 - `set_double_sided(active: bool) -> None`
 - `set_speed_impact(speed: int) -> None`
 - `translate(ratio: float, direction: Vec3) -> None`
@@ -280,4 +413,11 @@ Properties:
 - `bsp: BSP` (live reference)
 - `checkpoints: list[Checkpoint]` (live references)
 - `checkpoint_paths: list[Path]` (live references)
+- `model_level: Model` (live reference)
+- `model_bsp: Model` (live reference)
+- `model_spawn: Model` (live reference)
+- `model_checkpoint: Model` (live reference)
+- `model_selected: Model` (live reference)
+- `model_multi_selected: Model` (live reference)
+- `model_filter: Model` (live reference)
 - `parent_path: pathlib.Path` (copy)

@@ -15,28 +15,33 @@
 #include "camera.h"
 #include "geo.h"
 #include "lev.h"
-#include <vector>
+
+#include <list>
 #include <array>
-#include <map>
+#include <unordered_map>
 
 class Renderer
 {
 public:
 	Renderer(int width, int height);
-	void RescaleFramebuffer(float width, float height);
-	void Render(const std::vector<Model>& models, bool skyGradientEnabled, const std::array<ColorGradient, NUM_GRADIENT>& skyGradients);
-	void SetViewportSize(float width, float height);
-	void SetCameraToLevelSpawn(const Vec3& pos, const Vec3& rot);
+	~Renderer();
+	Model* CreateModel();
+	bool DeleteModel(Model* model);
 	float GetLastDeltaTime() const;
 	float GetLastTime() const;
+
+	void RescaleFramebuffer(float width, float height);
+	void Render(bool skyGradientEnabled, const std::array<ColorGradient, NUM_GRADIENT>& skyGradients);
+	void SetViewportSize(float width, float height);
+	void SetCameraToLevelSpawn(const Vec3& pos, const Vec3& rot);
 	float GetWidth() const;
 	float GetHeight() const;
-	GLuint GetTexBuffer() const;
 	std::tuple<glm::vec3, float> WorldspaceRayTriIntersection(glm::vec3 worldSpaceRay, const glm::vec3 tri[3]) const;
 	glm::vec3 ScreenspaceToWorldRay(int pixelX, int pixelY) const;
 
 private:
 	void RenderSkyGradient(const std::array<ColorGradient, NUM_GRADIENT>& skyGradients);
+	bool RenderModelRecursive(Model* model, const glm::mat4& parentMatrix, const glm::vec3& camPos, int& lastUsedShader);
 
 private:
 	int m_width;
@@ -44,7 +49,10 @@ private:
 	GLuint m_texturebuffer;
 	GLuint m_renderbuffer;
 	GLuint m_framebuffer;
-	std::map<int, Shader> m_shaderCache;
+	std::unordered_map<int, Shader> m_shaderCache;
+	Shader m_skyGradientShader;
+	GLuint m_skyGradientVAO = 0;
+	GLuint m_skyGradientVBO = 0;
 	float m_time = 0.0f;
 	float m_lastFrameTime = 0.0f;
 	float m_deltaTime = -1.0f;
@@ -52,4 +60,5 @@ private:
 	Camera m_camera;
 	bool m_skyGradientEnabled = false;
 	std::array<ColorGradient, NUM_GRADIENT> m_skyGradients;
+	std::list<Model*> m_modelList;
 };

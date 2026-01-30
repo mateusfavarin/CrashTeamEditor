@@ -36,8 +36,6 @@ void BitMatrix::Clear()
 
 static bool WorldspaceRayTriIntersection(const Vec3& worldSpaceRayOrigin, const Vec3& worldSpaceRayDir, const Vec3* tri, float& dist)
 {
-	constexpr float epsilon = 0.00001f;
-
 	//moller-trumbore intersection test
 	//https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
 
@@ -45,21 +43,21 @@ static bool WorldspaceRayTriIntersection(const Vec3& worldSpaceRayOrigin, const 
 	Vec3 ray_cross_e2 = worldSpaceRayDir.Cross(edge_2);
 	float det = edge_1.Dot(ray_cross_e2);
 
-	if (std::abs(det) < epsilon) { return false; } // ray is parallel to plane, couldn't possibly intersect with triangle.
+	if (std::abs(det) < EPSILON) { return false; } // ray is parallel to plane, couldn't possibly intersect with triangle.
 
 	float inv_det = 1.0f / det;
 	Vec3 s = worldSpaceRayOrigin - tri[0];
 	float u = inv_det * s.Dot(ray_cross_e2);
 
-	if ((u < 0 && std::abs(u) > epsilon) || (u > 1 && std::abs(u - 1.0f) > epsilon)) { return false; } //fails a barycentric test
+	if ((u < 0 && std::abs(u) > EPSILON) || (u > 1 && std::abs(u - 1.0f) > EPSILON)) { return false; } //fails a barycentric test
 
 	Vec3 s_cross_e1 = s.Cross(edge_1);
 	float v = inv_det * worldSpaceRayDir.Dot(s_cross_e1);
 
-	if ((v < 0 && std::abs(v) > epsilon) || (u + v > 1 && std::abs(u + v - 1) > epsilon)) { return false; } //fails a barycentric test
+	if ((v < 0 && std::abs(v) > EPSILON) || (u + v > 1 && std::abs(u + v - 1) > EPSILON)) { return false; } //fails a barycentric test
 
 	float t = inv_det * edge_2.Dot(s_cross_e1); // time value (interpolant)
-	if (t > epsilon) { dist = std::abs(t); return true; }
+	if (t > EPSILON) { dist = std::abs(t); return true; }
 	return false;
 }
 
@@ -69,6 +67,7 @@ static bool RayIntersectQuadblockTest(const Vec3& worldSpaceRayOrigin, const Vec
 	const Vertex* verts = qb.GetUnswizzledVertices();
 
 	Vec3 tris[3];
+	/*
 	if (isQuadblock)
 	{
 		for (int triIndex = 0; triIndex < 8; triIndex++)
@@ -89,6 +88,7 @@ static bool RayIntersectQuadblockTest(const Vec3& worldSpaceRayOrigin, const Vec
 			if (WorldspaceRayTriIntersection(worldSpaceRayOrigin, worldSpaceRayDir, tris, dist)) { return true; }
 		}
 	}
+	*/
 	return false;
 }
 

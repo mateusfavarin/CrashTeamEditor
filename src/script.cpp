@@ -314,7 +314,7 @@ namespace
 
 namespace Script
 {
-	std::string ExecutePythonScript(Level& level, const std::string& script)
+	std::string ExecutePythonScript(Level& level, Renderer& renderer, const std::string& script)
 	{
 		std::string initError;
 		if (!EnsurePythonInterpreter(initError))
@@ -337,6 +337,7 @@ namespace Script
 		py::module_ main = py::module_::import("__main__");
 		py::dict globals = main.attr("__dict__");
 		globals["m_lev"] = py::cast(&level);
+		globals["m_rend"] = py::cast(&renderer);
 
 		PythonStdRedirect redirect;
 		std::string output;
