@@ -27,7 +27,7 @@ Vertex::Vertex(const PSX::Vertex& vertex)
 	m_flags = vertex.flags;
 	m_colorHigh = ConvertColor(vertex.colorHi);
 	m_colorLow = ConvertColor(vertex.colorLo);
-	m_normal = { 0.0f, 1.0f, 0.0f };
+	m_normal = {0.0f, 1.0f, 0.0f};
 }
 
 std::vector<uint8_t> Vertex::Serialize() const
@@ -45,4 +45,33 @@ std::vector<uint8_t> Vertex::Serialize() const
 Color Vertex::GetColor(bool high) const
 {
 	return high ? m_colorHigh : m_colorLow;
+}
+
+std::vector<Primitive> Vertex::ToGeometry(bool highColor) const
+{
+	constexpr float radius = 0.5f;
+	constexpr float sqrtThree = 1.44224957031f;
+	constexpr size_t vertsPerOctopoint = 24;
+	constexpr size_t trisPerOctopoint = vertsPerOctopoint / 3;
+	const Vec3 radiusDirection[trisPerOctopoint] =
+	{
+		{1.0f, 1.0f, 1.0f}, {-1.0f, 1.0f, 1.0f}, {1.0f, -1.0f, 1.0f}, {1.0f, 1.0f, -1.0f},
+		{-1.0f, -1.0f, 1.0f}, {1.0f, -1.0f, -1.0f}, {-1.0f, 1.0f, -1.0f}, {-1.0f, -1.0f, -1.0f},
+	};
+
+	Vertex v(*this);
+	std::vector<Primitive> triangles;
+	triangles.reserve(trisPerOctopoint);
+
+	auto AppendTri = [&](const Vec3& dir)
+		{
+			v.m_normal = Vec3((1.f / sqrtThree) * dir.x, (1.f / sqrtThree) * dir.y, (1.f / sqrtThree) * dir.z);
+			v.m_pos.x += (radius * dir.x); Point p0(v.m_pos, v.m_normal, v.GetColor(highColor)); v.m_pos.x -= (radius * dir.x);
+			v.m_pos.y += (radius * dir.y); Point p1(v.m_pos, v.m_normal, v.GetColor(highColor)); v.m_pos.y -= (radius * dir.y);
+			v.m_pos.z += (radius * dir.z); Point p2(v.m_pos, v.m_normal, v.GetColor(highColor)); v.m_pos.z -= (radius * dir.z);
+			triangles.push_back(Tri(p0, p1, p2));
+		};
+
+	for (const Vec3& dir : radiusDirection) { AppendTri(dir); }
+	return triangles;
 }

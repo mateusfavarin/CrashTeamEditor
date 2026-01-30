@@ -1,50 +1,61 @@
 #include "model.h"
 
+#include <algorithm>
+
+#include "text3d.h"
+
 Model::Model()
 {
-	Clear();
+	Clear(true);
+	m_renderCondition = []() { return true; };
 }
 
-Model::Model(Mesh* mesh, const glm::vec3& position, const glm::vec3& scale, const glm::quat& rotation)
+Model::~Model()
 {
-  m_mesh = mesh;
-  m_position = position;
-  m_scale = scale;
-  m_rotation = rotation;
+	ClearModels();
 }
 
-void Model::Draw()
-{
-	if (m_mesh == nullptr) { return; }
-
-  m_mesh->Bind();
-	m_mesh->Draw();
-	m_mesh->Unbind();
-}
-
-Mesh* Model::GetMesh()
+Mesh& Model::GetMesh()
 {
   return m_mesh;
 }
 
-void Model::SetMesh(Mesh* newMesh)
+void Model::SetRenderCondition(const std::function<bool()>& renderCondition)
 {
-  m_mesh = newMesh;
+	m_renderCondition = renderCondition;
 }
 
-glm::mat4 Model::CalculateModelMatrix()
+Model* Model::AddModel()
 {
-  glm::mat4 model = glm::mat4(1.0f); // scale * rotate * translate
-  model = glm::translate(model, m_position);
-  model *= static_cast<glm::mat<4, 4, float, glm::packed_highp>>(m_rotation);
-  model = glm::scale(model, m_scale);
-  return model;
+	m_child.push_back(new Model());
+	return m_child.back();
 }
 
-void Model::Clear()
+void Model::ClearModels()
 {
-	m_mesh = nullptr;
-	m_position = glm::vec3(0.f, 0.f, 0.f);
-	m_scale = glm::vec3(1.f, 1.f, 1.f);
-	m_rotation = glm::quat(1.f, 0.f, 0.f, 0.f);
+	for (Model* model : m_child) { delete model; }
+	m_child.clear();
+}
+
+bool Model::RemoveModel(Model* model)
+{
+	if (!model) { return false; }
+
+	size_t count = std::erase(m_child, model);
+	if (count == 0) { return false; }
+
+	delete model;
+	return true;
+}
+
+void Model::Clear(bool models)
+{
+	if (models) { ClearModels(); }
+	m_mesh.Clear();
+	Transform::Clear();
+}
+
+bool Model::IsReady() const
+{
+	return m_mesh.IsReady() && m_renderCondition();
 }

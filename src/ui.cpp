@@ -26,12 +26,15 @@ bool Windows::w_ghost = false;
 bool Windows::w_python = false;
 std::string Windows::lastOpenedFolder = ".";
 
-UI::UI() : m_rend(Windows::w_width, Windows::w_height) {}
+UI::UI() : m_rend(Windows::w_width, Windows::w_height)
+{
+	m_lev.InitModels(m_rend);
+}
 
 void UI::Render()
 {
 	MainMenu();
-	m_lev.RenderUI();
+	m_lev.RenderUI(m_rend);
 	RenderWorld();
 }
 
@@ -116,11 +119,7 @@ void UI::RenderWorld()
 
 	if (m_lev.UpdateAnimTextures(m_rend.GetLastDeltaTime())) { m_lev.UpdateAnimationRenderData(); }
 
-	std::vector<Model> modelsToRender;
-	m_lev.BuildRenderModels(modelsToRender);
-
-	bool skyGradientEnabled = (m_lev.m_configFlags & LevConfigFlags::ENABLE_SKYBOX_GRADIENT) != 0;
-	m_rend.Render(modelsToRender, skyGradientEnabled, m_lev.m_skyGradient);
+	m_rend.Render(m_lev.m_configFlags & LevConfigFlags::ENABLE_SKYBOX_GRADIENT, m_lev.m_skyGradient);
 
 	static float rollingOneSecond = 0;
 	static int FPS = -1;

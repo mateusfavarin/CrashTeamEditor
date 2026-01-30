@@ -55,39 +55,24 @@ bool AnimTexture::AdvanceRender(float deltaTime)
 
 	const size_t frameCount = m_frames.size();
 	bool reset = false;
-	if (m_startAtFrame != m_renderStartAtFrame || static_cast<unsigned int>(m_duration) != m_renderDuration)
-	{
-		ResetRenderState();
-	}
-
 	if (m_renderDirty)
 	{
 		m_renderDirty = false;
 		reset = true;
 	}
 
-	const float frameDuration = static_cast<float>(m_renderDuration) / 30.0f;
+	const float frameDuration = static_cast<float>(m_duration + 1) / 30.0f;
 	if (frameCount <= 1) { return reset; }
-	if (frameDuration <= 0.0f)
-	{
-		if (deltaTime <= 0.0f) { return reset; }
-		m_renderFrameIndex++;
-		if (m_renderFrameIndex >= frameCount)
-		{
-			m_renderFrameIndex = m_renderStartAtFrame;
-		}
-		return true;
-	}
 
 	m_renderFrameTimer += deltaTime;
 	bool advanced = false;
-	while (m_renderFrameTimer >= frameDuration)
+	if (m_renderFrameTimer >= frameDuration)
 	{
-		m_renderFrameTimer -= frameDuration;
+		m_renderFrameTimer = 0.0f;
 		m_renderFrameIndex++;
 		if (m_renderFrameIndex >= frameCount)
 		{
-			m_renderFrameIndex = m_renderStartAtFrame;
+			m_renderFrameIndex = static_cast<size_t>(m_startAtFrame);
 		}
 		advanced = true;
 	}
@@ -318,8 +303,6 @@ void AnimTexture::RotateFrames(int targetRotation)
 void AnimTexture::ResetRenderState()
 {
 	m_renderFrameTimer = 0.0f;
-	m_renderStartAtFrame = static_cast<size_t>(m_startAtFrame);
-	m_renderDuration = static_cast<unsigned int>(m_duration);
-	m_renderFrameIndex = m_renderStartAtFrame;
+	m_renderFrameIndex = static_cast<size_t>(m_startAtFrame);
 	m_renderDirty = true;
 }

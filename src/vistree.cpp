@@ -39,7 +39,6 @@ void BitMatrix::Clear()
 
 static bool WorldspaceRayTriIntersection(const Vec3& worldSpaceRayOrigin, const Vec3& worldSpaceRayDir, const Vec3* tri, float& dist)
 {
-	constexpr float epsilon = 0.00001f;
 	constexpr float failsafe = 0.5f; 
 	constexpr float barycentricTolerance = 0.5f; 
 
@@ -50,7 +49,7 @@ static bool WorldspaceRayTriIntersection(const Vec3& worldSpaceRayOrigin, const 
 	Vec3 ray_cross_e2 = worldSpaceRayDir.Cross(edge_2);
 	float det = edge_1.Dot(ray_cross_e2);
 
-	if (std::abs(det) < epsilon) { return false; } // ray is parallel to plane
+	if (std::abs(det) < EPSILON) { return false; } // ray is parallel to plane
 
 	float inv_det = 1.0f / det;
 	Vec3 s = worldSpaceRayOrigin - tri[0];

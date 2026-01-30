@@ -11,7 +11,6 @@
 #include "renderer.h"
 #include "animtexture.h"
 #include "model.h"
-#include "mesh.h"
 #include "vistree.h"
 
 #include <nlohmann/json.hpp>
@@ -23,6 +22,18 @@
 #include <cstdint>
 
 static constexpr size_t REND_NO_SELECTED_QUADBLOCK = std::numeric_limits<size_t>::max();
+
+namespace LevelModels
+{
+	static constexpr size_t LEVEL = 0;
+	static constexpr size_t BSP = 1;
+	static constexpr size_t SPAWN = 2;
+	static constexpr size_t CHECKPOINT = 3;
+	static constexpr size_t SELECTED = 4;
+	static constexpr size_t MULTI_SELECTED = 5;
+	static constexpr size_t FILTER = 6;
+	static constexpr size_t COUNT = 7;
+};
 
 class Level
 {
@@ -40,11 +51,18 @@ public:
 	std::vector<std::string> GetMaterialNames() const;
 	std::vector<size_t> GetMaterialQuadblockIndexes(const std::string& material) const;
 	std::tuple<std::vector<Quadblock*>, Vec3> GetRendererSelectedData();
+	Model* GetLevelModel();
+	Model* GetBspModel();
+	Model* GetSpawnModel();
+	Model* GetCheckpointModel();
+	Model* GetSelectedModel();
+	Model* GetMultiSelectedModel();
+	Model* GetFilterModel();
 	bool LoadPreset(const std::filesystem::path& filename);
 	bool SavePreset(const std::filesystem::path& path);
 	void ResetFilter();
 	void ResetRendererSelection();
-	void UpdateRendererCheckpoints();
+	void UpdateRenderCheckpointData();
 
 private:
 	void ManageTurbopad(Quadblock& quadblock);
@@ -60,23 +78,16 @@ private:
 	bool GenerateBSP();
 
 	void OpenHotReloadWindow();
-	void BuildRenderModels(std::vector<Model>& models);
-	void RenderUI();
+	void RenderUI(Renderer& renderer);
 
-	int GetTextureIndex(const std::filesystem::path& texPath);
+	void InitModels(Renderer& renderer);
 	void GenerateRenderLevData();
 	void UpdateAnimationRenderData();
 	void UpdateFilterRenderData(const Quadblock& qb);
-	void GenerateRenderBspData(const BSP& bsp);
-	void GenerateRenderCheckpointData(std::vector<Checkpoint>&);
-	void GenerateRenderStartpointData(std::array<Spawn, NUM_DRIVERS>&);
+	void GenerateRenderBspData();
+	void GenerateRenderStartpointData();
 	void GenerateRenderSelectedBlockData(const Quadblock& quadblock, const Vec3& queryPoint);
-	void GenerateRenderMultipleQuadsData(const std::vector<Quadblock*>& quads);
 	bool UpdateAnimTextures(float deltaTime);
-	void GeomPoint(const Vertex* verts, int ind, std::vector<float>& data);
-	void GeomOctopoint(const Vertex* verts, int ind, std::vector<float>& data);
-	void GeomBoundingRect(const BSP* b, int depth, std::vector<float>& data);
-	void GeomUVs(const std::array<QuadUV, NUM_FACES_QUADBLOCK + 1>& uvs, int quadInd, int vertInd, std::vector<float>& data, int textureIndex);
 	void ViewportClickHandleBlockSelection(int pixelX, int pixelY, bool appendSelection, const Renderer& rend);
 
 	friend class UI;
@@ -129,21 +140,7 @@ private:
 	MaterialProperty<bool, MaterialType::CHECKPOINT_PATHABLE> m_propCheckpointPathable;
 	MaterialProperty<bool, MaterialType::VISTREE_TRANSPARENT> m_propVisTreeTransparent;
 
-	Mesh m_lowLODMesh;
-	Mesh m_highLODMesh;
-	Mesh m_vertexLowLODMesh;
-	Mesh m_vertexHighLODMesh;
-	Mesh m_filterEdgeLowLODMesh;
-	Mesh m_filterEdgeHighLODMesh;
-	std::unordered_map<std::filesystem::path, int> m_textureStorePaths;
-
-	Model m_levelModel;
-	Model m_bspModel;
-	Model m_spawnsModel;
-	Model m_checkModel;
-	Model m_selectedBlockModel;
-	Model m_multipleSelectedQuads;
-	Model m_filterEdgeModel;
+	std::array<Model*, LevelModels::COUNT> m_models;
 
 	Vec3 m_rendererQueryPoint;
 	std::vector<size_t> m_rendererSelectedQuadblockIndexes;

@@ -2,6 +2,7 @@
 
 #include "gui_render_settings.h"
 #include "utils.h"
+#include "geo.h"
 
 #include "gtc/matrix_transform.hpp"
 
@@ -9,6 +10,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include "transform.h"
 
 Camera::Camera()
 	: m_position(0.f, 0.f, 3.f)
@@ -125,4 +127,34 @@ const glm::mat4& Camera::GetViewMatrix() const
 float Camera::GetDistance() const
 {
 	return m_distance;
+}
+
+glm::mat4 Camera::BuildBillboardMatrix(const glm::vec3& position, const glm::vec3& scale) const
+{
+	glm::vec3 forward = m_position - position;
+	const float forwardLenSq = glm::dot(forward, forward);
+	if (forwardLenSq < EPSILON) { forward = glm::vec3(0.0f, 0.0f, 1.0f); }
+	else { forward = glm::normalize(forward); }
+
+	glm::vec3 up(0.0f, 1.0f, 0.0f);
+	glm::vec3 right = glm::cross(up, forward);
+	const float rightLenSq = glm::dot(right, right);
+	if (rightLenSq < EPSILON)
+	{
+		up = glm::vec3(0.0f, 0.0f, 1.0f);
+		right = glm::cross(up, forward);
+	}
+	right = glm::normalize(right);
+	up = glm::normalize(glm::cross(forward, right));
+
+	glm::mat4 billboardRotation(1.0f);
+	billboardRotation[0] = glm::vec4(right, 0.0f);
+	billboardRotation[1] = glm::vec4(up, 0.0f);
+	billboardRotation[2] = glm::vec4(forward, 0.0f);
+
+	glm::mat4 model(1.0f);
+	model = glm::translate(model, position);
+	model *= billboardRotation;
+	model = glm::scale(model, scale);
+	return model;
 }
