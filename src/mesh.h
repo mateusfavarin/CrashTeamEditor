@@ -14,6 +14,7 @@
 
 class Vertex;
 struct Vec2;
+struct Vec3;
 
 class Mesh
 {
@@ -46,6 +47,15 @@ public:
 		static constexpr unsigned UV = 1 << 0;
 	};
 
+	struct MeshData
+	{
+		Vec3 pos;
+		Vec3 color;
+		Vec3 normal;
+		Vec2 uv;
+		float texIndex;
+	};
+
 public:
 	Mesh();
 	void SetGeometry(const std::vector<Primitive>& primitives, unsigned renderFlags = RenderFlags::None, unsigned shaderFlags = ShaderFlags::None);
@@ -63,7 +73,7 @@ private:
 	void SetUseLowLOD(bool useLowLOD);
 	int GetDatas() const;
 	GLuint GetTextureStore() const;
-	void UpdateMesh(const std::vector<float>& data, unsigned includedDataFlags, unsigned renderFlags, unsigned shaderFlags);
+	void UpdateMesh(const std::vector<MeshData>& data, unsigned includedDataFlags, unsigned renderFlags, unsigned shaderFlags);
 	void UpdateIndexBuffer();
 	void AppendTextureStore(const std::filesystem::path& texturePath);
 	std::vector<unsigned char> LoadTextureData(const std::filesystem::path& path);
