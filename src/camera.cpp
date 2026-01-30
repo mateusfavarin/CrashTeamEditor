@@ -2,6 +2,7 @@
 
 #include "gui_render_settings.h"
 #include "utils.h"
+#include "geo.h"
 
 #include "gtc/matrix_transform.hpp"
 
@@ -132,13 +133,13 @@ glm::mat4 Camera::BuildBillboardMatrix(const glm::vec3& position, const glm::vec
 {
 	glm::vec3 forward = m_position - position;
 	const float forwardLenSq = glm::dot(forward, forward);
-	if (forwardLenSq < 0.000001f) { forward = glm::vec3(0.0f, 0.0f, 1.0f); }
+	if (forwardLenSq < EPSILON) { forward = glm::vec3(0.0f, 0.0f, 1.0f); }
 	else { forward = glm::normalize(forward); }
 
 	glm::vec3 up(0.0f, 1.0f, 0.0f);
 	glm::vec3 right = glm::cross(up, forward);
 	const float rightLenSq = glm::dot(right, right);
-	if (rightLenSq < 0.000001f)
+	if (rightLenSq < EPSILON)
 	{
 		up = glm::vec3(0.0f, 0.0f, 1.0f);
 		right = glm::cross(up, forward);

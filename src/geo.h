@@ -7,6 +7,8 @@
 #include <cmath>
 #include <string>
 
+static constexpr float EPSILON = 0.000001f;
+
 struct Color
 {
  	Color() : r(0u), g(0u), b(0u), a(255u) {};
