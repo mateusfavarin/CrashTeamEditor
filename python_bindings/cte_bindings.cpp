@@ -221,7 +221,7 @@ void init_crashteameditor(py::module_& m)
 		.value("CENTER", Text3D::Align::CENTER)
 		.value("RIGHT", Text3D::Align::RIGHT)
 		.export_values();
-	text3d.def("to_geometry", &Text3D::ToGeometry, py::arg("label"), py::arg("align"), py::arg("color"));
+	text3d.def("to_geometry", &Text3D::ToGeometry, py::arg("label"), py::arg("align"), py::arg("color"), py::arg("scale_mult") = 1.0f);
 
 	py::class_<Mesh::RenderFlags>(m, "MeshRenderFlags")
 		.def_readonly_static("NONE", &Mesh::RenderFlags::None)
@@ -245,8 +245,8 @@ void init_crashteameditor(py::module_& m)
 	mesh.def(py::init<>())
 		.def("set_geometry", py::overload_cast<const std::vector<Primitive>&, unsigned, unsigned>(&Mesh::SetGeometry),
 			py::arg("primitives"), py::arg("render_flags") = Mesh::RenderFlags::None, py::arg("shader_flags") = Mesh::ShaderFlags::None)
-		.def("set_geometry", py::overload_cast<const std::string&, Text3D::Align, const Color&>(&Mesh::SetGeometry),
-			py::arg("label"), py::arg("align"), py::arg("color"))
+		.def("set_geometry", py::overload_cast<const std::string&, Text3D::Align, const Color&, float>(&Mesh::SetGeometry),
+			py::arg("label"), py::arg("align"), py::arg("color"), py::arg("scale_mult") = 1.0f)
 		.def("update_primitive", &Mesh::UpdatePrimitive, py::arg("primitive"), py::arg("index"))
 		.def("get_render_flags", &Mesh::GetRenderFlags)
 		.def("set_render_flags", &Mesh::SetRenderFlags, py::arg("render_flags"))

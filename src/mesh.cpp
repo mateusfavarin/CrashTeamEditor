@@ -126,9 +126,9 @@ void Mesh::SetGeometry(const std::vector<Primitive>& primitives, unsigned render
 	UpdateMesh(data, includedDataFlags, renderFlags, shaderFlags);
 }
 
-void Mesh::SetGeometry(const std::string& label, Text3D::Align align, const Color& color)
+void Mesh::SetGeometry(const std::string& label, Text3D::Align align, const Color& color, float scaleMult)
 {
-	SetGeometry(Text3D::ToGeometry(label, align, color), Mesh::RenderFlags::DontOverrideRenderFlags | Mesh::RenderFlags::DrawBackfaces | Mesh::RenderFlags::FollowCamera);
+	SetGeometry(Text3D::ToGeometry(label, align, color, scaleMult), Mesh::RenderFlags::DontOverrideRenderFlags | Mesh::RenderFlags::DrawBackfaces | Mesh::RenderFlags::FollowCamera);
 }
 
 size_t Mesh::UpdatePrimitive(const Primitive& primitive, size_t index)

@@ -223,7 +223,7 @@ Constructors:
 
 Methods:
 - `set_geometry(primitives: list[Primitive], render_flags: int = MeshRenderFlags.NONE, shader_flags: int = MeshShaderFlags.NONE) -> None`
-- `set_geometry(label: str, align: text3d.Align, color: Color) -> None`
+- `set_geometry(label: str, align: text3d.Align, color: Color, scale_mult: float = 1.0) -> None`
 - `update_primitive(primitive: Primitive, index: int) -> int`
 - `get_render_flags() -> int`
 - `set_render_flags(render_flags: int) -> None`
@@ -269,7 +269,7 @@ Methods:
 
 ### `cte.text3d.to_geometry`
 
-`to_geometry(label: str, align: text3d.Align, color: Color) -> list[Primitive]`
+`to_geometry(label: str, align: text3d.Align, color: Color, scale_mult: float = 1.0) -> list[Primitive]`
 
 ## Editor domain types
 

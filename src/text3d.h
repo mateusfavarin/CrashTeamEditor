@@ -14,5 +14,5 @@ namespace Text3D
 		RIGHT
 	};
 
-	std::vector<Primitive> ToGeometry(const std::string& label, Align align, const Color& color);
+	std::vector<Primitive> ToGeometry(const std::string& label, Align align, const Color& color, float scaleMult = 1.0f);
 }

@@ -15,7 +15,7 @@ struct StbVertex
 
 constexpr float DEFAULT_FONT_SCALE = 0.1f;
 
-std::vector<Primitive> Text3D::ToGeometry(const std::string& label, Align align, const Color& color)
+std::vector<Primitive> Text3D::ToGeometry(const std::string& label, Align align, const Color& color, float scaleMult)
 {
 	std::vector<Primitive> primitives;
 	if (label.empty()) { return primitives; }
@@ -38,7 +38,7 @@ std::vector<Primitive> Text3D::ToGeometry(const std::string& label, Align align,
 	const size_t safeQuadCount = std::min(static_cast<size_t>(quadCount), vbuf.size() / 4u);
 	primitives.reserve(safeQuadCount);
 
-	constexpr float scale = DEFAULT_FONT_SCALE;
+	const float scale = DEFAULT_FONT_SCALE * scaleMult;
 	for (size_t quadIndex = 0; quadIndex < safeQuadCount; ++quadIndex)
 	{
 		const StbVertex& v0 = vbuf[quadIndex * 4u + 0u];
