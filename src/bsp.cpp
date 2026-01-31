@@ -315,7 +315,7 @@ std::vector<uint8_t> BSP::SerializeBranch() const
 		if (!m_right->IsBranch()) { branch.rightChild |= BSPID::LEAF; }
 	}
 	else { branch.rightChild = BSPID::EMPTY; }
-	branch.unk1 = 0xFF40;
+	branch.unk1 = 0x00;
 	switch (m_axis)
 	{
 	case AxisSplit::X: branch.unk1 = ConvertFloat((m_bbox.min.x + m_bbox.max.x) / 4, FP_ONE_GEO); break;
