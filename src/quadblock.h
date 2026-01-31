@@ -117,6 +117,8 @@ public:
 	const std::string& GetName() const;
 	Vec3 GetCenter() const;
 	Vec3 GetNormal() const;
+	std::vector<std::array<size_t, 3>> GetTriFacesIndexes() const;
+	std::array<Vec3, 3> GetTriFace(size_t id0, size_t id1, size_t id2) const;
 	uint8_t GetTerrain() const;
 	uint16_t GetFlags() const;
 	QuadblockTrigger GetTrigger() const;

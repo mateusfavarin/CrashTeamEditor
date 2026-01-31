@@ -449,6 +449,46 @@ Vec3 Quadblock::GetNormal() const
 	return normal;
 }
 
+std::vector<std::array<size_t, 3>> Quadblock::GetTriFacesIndexes() const
+{
+	// Return a list of (size_t, size_t, size_t) containing vertex ID
+	// of every triface composing the quad, ordered clockwise
+	std::vector<std::array<size_t, 3>> triFaces;
+
+	if (!m_triblock) 
+	{
+		triFaces = {
+			{0, 1, 3},
+			{1, 4, 3},
+			{1, 2, 4},
+			{2, 5, 4},
+			{3, 4, 6},
+			{4, 7, 6},
+			{4, 5, 7},
+			{5, 8, 7}
+		};
+	}
+	else 
+	{
+		triFaces = {
+			{0, 1, 3},
+			{1, 2, 4},
+			{1, 4, 3},
+			{4, 6, 3}
+		};
+	}
+	return triFaces;
+}
+
+std::array<Vec3, 3> Quadblock::GetTriFace(size_t id0, size_t id1, size_t id2) const
+{
+	return {
+		m_p[id0].m_pos,
+		m_p[id1].m_pos,
+		m_p[id2].m_pos
+	};
+}
+
 uint8_t Quadblock::GetTerrain() const
 {
 	return m_terrain;

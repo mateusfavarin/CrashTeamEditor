@@ -37,8 +37,9 @@ void BitMatrix::Clear()
 	m_data.clear();
 }
 
-static bool WorldspaceRayTriIntersection(const Vec3& worldSpaceRayOrigin, const Vec3& worldSpaceRayDir, const Vec3* tri, float& dist)
+static bool WorldspaceRayTriIntersection(const Vec3& worldSpaceRayOrigin, const Vec3& worldSpaceRayDir, const std::array<Vec3, 3>& tri, float& dist)
 {
+	//TODO : merge with renderer 
 	constexpr float failsafe = 0.5f; 
 	constexpr float barycentricTolerance = 0.5f; 
 
@@ -89,29 +90,10 @@ static bool WorldspaceRayTriIntersection(const Vec3& worldSpaceRayOrigin, const 
 
 static bool RayIntersectQuadblockTest(const Vec3& worldSpaceRayOrigin, const Vec3& worldSpaceRayDir, const Quadblock& qb, float& dist)
 {
-	bool isQuadblock = qb.IsQuadblock();
-	const Vertex* verts = qb.GetUnswizzledVertices();
-
-	Vec3 tris[3];
-	if (isQuadblock)
+	std::vector<std::array<size_t, 3>> triFacesID = qb.GetTriFacesIndexes();
+	for (std::array<size_t, 3> ids : triFacesID) 
 	{
-		for (int triIndex = 0; triIndex < 8; triIndex++)
-		{
-			tris[0] = Vec3(verts[FaceIndexConstants::quadHLODVertArrangements[triIndex][0]].m_pos.x, verts[FaceIndexConstants::quadHLODVertArrangements[triIndex][0]].m_pos.y, verts[FaceIndexConstants::quadHLODVertArrangements[triIndex][0]].m_pos.z);
-			tris[1] = Vec3(verts[FaceIndexConstants::quadHLODVertArrangements[triIndex][1]].m_pos.x, verts[FaceIndexConstants::quadHLODVertArrangements[triIndex][1]].m_pos.y, verts[FaceIndexConstants::quadHLODVertArrangements[triIndex][1]].m_pos.z);
-			tris[2] = Vec3(verts[FaceIndexConstants::quadHLODVertArrangements[triIndex][2]].m_pos.x, verts[FaceIndexConstants::quadHLODVertArrangements[triIndex][2]].m_pos.y, verts[FaceIndexConstants::quadHLODVertArrangements[triIndex][2]].m_pos.z);
-			if (WorldspaceRayTriIntersection(worldSpaceRayOrigin, worldSpaceRayDir, tris, dist)) { return true; }
-		}
-	}
-	else
-	{
-		for (int triIndex = 0; triIndex < 4; triIndex++)
-		{
-			tris[0] = Vec3(verts[FaceIndexConstants::triHLODVertArrangements[triIndex][0]].m_pos.x, verts[FaceIndexConstants::triHLODVertArrangements[triIndex][0]].m_pos.y, verts[FaceIndexConstants::triHLODVertArrangements[triIndex][0]].m_pos.z);
-			tris[1] = Vec3(verts[FaceIndexConstants::triHLODVertArrangements[triIndex][1]].m_pos.x, verts[FaceIndexConstants::triHLODVertArrangements[triIndex][1]].m_pos.y, verts[FaceIndexConstants::triHLODVertArrangements[triIndex][1]].m_pos.z);
-			tris[2] = Vec3(verts[FaceIndexConstants::triHLODVertArrangements[triIndex][2]].m_pos.x, verts[FaceIndexConstants::triHLODVertArrangements[triIndex][2]].m_pos.y, verts[FaceIndexConstants::triHLODVertArrangements[triIndex][2]].m_pos.z);
-			if (WorldspaceRayTriIntersection(worldSpaceRayOrigin, worldSpaceRayDir, tris, dist)) { return true; }
-		}
+		if (WorldspaceRayTriIntersection(worldSpaceRayOrigin, worldSpaceRayDir, qb.GetTriFace(ids[0], ids[1], ids[2]), dist)) { return true; }
 	}
 	return false;
 }
