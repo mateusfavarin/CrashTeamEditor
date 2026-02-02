@@ -1505,6 +1505,7 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 						m_propTurboPads.RegisterMaterial(this);
 						m_propSpeedImpact.RegisterMaterial(this);
 						m_propCheckpointPathable.RegisterMaterial(this);
+						m_propVisTreeTransparent.RegisterMaterial(this);
 					}
 				}
 				bool sameUVs = true;
