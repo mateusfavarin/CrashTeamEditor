@@ -174,77 +174,69 @@ void Mesh::Bind() const
 {
 	if (m_VAO != 0)
 	{
-		glBindVertexArray(m_VAO);
-		glEnableVertexAttribArray(POSITION_INDEX);
-		glEnableVertexAttribArray(COLOR_INDEX);
-		glEnableVertexAttribArray(NORMAL_INDEX);
+		GL_CHECK(glBindVertexArray(m_VAO));
+		GL_CHECK(glEnableVertexAttribArray(POSITION_INDEX));
+		GL_CHECK(glEnableVertexAttribArray(COLOR_INDEX));
+		GL_CHECK(glEnableVertexAttribArray(NORMAL_INDEX));
 		if (m_includedData & VBufDataType::UV)
 		{
-			glEnableVertexAttribArray(UV_INDEX);
-			glEnableVertexAttribArray(TEX_INDEX_INDEX);
+			GL_CHECK(glEnableVertexAttribArray(UV_INDEX));
+			GL_CHECK(glEnableVertexAttribArray(TEX_INDEX_INDEX));
 		}
 		if (m_textures)
 		{
-			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D_ARRAY, m_textures);
-		}
-		{
-			GLenum err = glGetError();
-			if (err != GL_NO_ERROR) { fprintf(stderr, "Error a! %d\n", err); }
+			GL_CHECK(glActiveTexture(GL_TEXTURE0));
+			GL_CHECK(glBindTexture(GL_TEXTURE_2D_ARRAY, m_textures));
 		}
 	}
 
 	if (m_renderFlags & Mesh::RenderFlags::DrawBackfaces)
 	{
-		glDisable(GL_CULL_FACE);
+		GL_CHECK(glDisable(GL_CULL_FACE));
 	}
 	else
 	{
-		glEnable(GL_CULL_FACE);
-		glCullFace(GL_FRONT);
+		GL_CHECK(glEnable(GL_CULL_FACE));
+		GL_CHECK(glCullFace(GL_FRONT));
 	}
 	if (m_renderFlags & Mesh::RenderFlags::DrawWireframe)
 	{
-		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-		glLineWidth((m_renderFlags & Mesh::RenderFlags::ThickLines) ? 2.5f : 1.0f);
+		GL_CHECK(glPolygonMode(GL_FRONT_AND_BACK, GL_LINE));
+		GL_CHECK(glLineWidth((m_renderFlags & Mesh::RenderFlags::ThickLines) ? 2.5f : 1.0f));
 	}
 	else
 	{
-		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-		glLineWidth(1.0f);
+		GL_CHECK(glPolygonMode(GL_FRONT_AND_BACK, GL_FILL));
+		GL_CHECK(glLineWidth(1.0f));
 	}
 	if (m_renderFlags & Mesh::RenderFlags::ForceDrawOnTop)
 	{
-		glDisable(GL_DEPTH_TEST);
+		GL_CHECK(glDisable(GL_DEPTH_TEST));
 	}
 	else
 	{
-		glEnable(GL_DEPTH_TEST);
+		GL_CHECK(glEnable(GL_DEPTH_TEST));
 	}
 	if (m_renderFlags & Mesh::RenderFlags::DrawLinesAA)
 	{
-		glEnable(GL_LINE_SMOOTH);
+		GL_CHECK(glEnable(GL_LINE_SMOOTH));
 	}
 	else
 	{
-		glDisable(GL_LINE_SMOOTH);
+		GL_CHECK(glDisable(GL_LINE_SMOOTH));
 	}
-	glPointSize(IsRenderingPoints() ? 5.0f : 1.0f);
+	GL_CHECK(glPointSize(IsRenderingPoints() ? 5.0f : 1.0f));
 }
 
 void Mesh::Unbind() const
 {
-	glBindVertexArray(0);
-	glDisableVertexAttribArray(POSITION_INDEX);
-	glDisableVertexAttribArray(COLOR_INDEX);
-	glDisableVertexAttribArray(NORMAL_INDEX);
-	glDisableVertexAttribArray(UV_INDEX);
-	glDisableVertexAttribArray(TEX_INDEX_INDEX);
-	glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
-	{
-		GLenum err = glGetError();
-		if (err != GL_NO_ERROR) { fprintf(stderr, "Error b! %d\n", err); }
-	}
+	GL_CHECK(glBindVertexArray(0));
+	GL_CHECK(glDisableVertexAttribArray(POSITION_INDEX));
+	GL_CHECK(glDisableVertexAttribArray(COLOR_INDEX));
+	GL_CHECK(glDisableVertexAttribArray(NORMAL_INDEX));
+	GL_CHECK(glDisableVertexAttribArray(UV_INDEX));
+	GL_CHECK(glDisableVertexAttribArray(TEX_INDEX_INDEX));
+	GL_CHECK(glBindTexture(GL_TEXTURE_2D_ARRAY, 0));
 }
 
 void Mesh::Draw() const
@@ -253,11 +245,11 @@ void Mesh::Draw() const
 	const GLenum drawMode = IsRenderingPoints() ? GL_POINTS : GL_TRIANGLES;
 	if (m_EBO != 0 && m_indexCount > 0)
 	{
-		glDrawElements(drawMode, static_cast<GLsizei>(m_indexCount), GL_UNSIGNED_INT, nullptr);
+		GL_CHECK(glDrawElements(drawMode, static_cast<GLsizei>(m_indexCount), GL_UNSIGNED_INT, nullptr));
 	}
 	else
 	{
-		glDrawArrays(drawMode, 0, m_vertexCount);
+		GL_CHECK(glDrawArrays(drawMode, 0, m_vertexCount));
 	}
 }
 
@@ -293,37 +285,37 @@ void Mesh::UpdateMesh(const std::vector<MeshData>& data, unsigned includedDataFl
 
 	if (reuseBuffers)
 	{
-		glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
-		glBufferData(GL_ARRAY_BUFFER, buffSize, data.data(), GL_STATIC_DRAW);
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, m_VBO));
+		GL_CHECK(glBufferData(GL_ARRAY_BUFFER, buffSize, data.data(), GL_STATIC_DRAW));
+		GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, 0));
 		UpdateIndexBuffer();
 		return;
 	}
 
-	glGenVertexArrays(1, &m_VAO);
-	glBindVertexArray(m_VAO);
+	GL_CHECK(glGenVertexArrays(1, &m_VAO));
+	GL_CHECK(glBindVertexArray(m_VAO));
 
-	glGenBuffers(1, &m_VBO);
-	glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
-	glBufferData(GL_ARRAY_BUFFER, buffSize, data.data(), GL_STATIC_DRAW);
+	GL_CHECK(glGenBuffers(1, &m_VBO));
+	GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, m_VBO));
+	GL_CHECK(glBufferData(GL_ARRAY_BUFFER, buffSize, data.data(), GL_STATIC_DRAW));
 
 	const GLsizei strideGL = static_cast<GLsizei>(strideBytes);
-	glVertexAttribPointer(POSITION_INDEX, POSITION_FLOAT_COUNT, GL_FLOAT, GL_FALSE, strideGL, reinterpret_cast<void*>(POSITION_OFFSET));
-	glEnableVertexAttribArray(POSITION_INDEX);
-	glVertexAttribPointer(COLOR_INDEX, COLOR_FLOAT_COUNT, GL_FLOAT, GL_FALSE, strideGL, reinterpret_cast<void*>(COLOR_OFFSET));
-	glEnableVertexAttribArray(COLOR_INDEX);
-	glVertexAttribPointer(NORMAL_INDEX, NORMAL_FLOAT_COUNT, GL_FLOAT, GL_FALSE, strideGL, reinterpret_cast<void*>(NORMAL_OFFSET));
-	glEnableVertexAttribArray(NORMAL_INDEX);
+	GL_CHECK(glVertexAttribPointer(POSITION_INDEX, POSITION_FLOAT_COUNT, GL_FLOAT, GL_FALSE, strideGL, reinterpret_cast<void*>(POSITION_OFFSET)));
+	GL_CHECK(glEnableVertexAttribArray(POSITION_INDEX));
+	GL_CHECK(glVertexAttribPointer(COLOR_INDEX, COLOR_FLOAT_COUNT, GL_FLOAT, GL_FALSE, strideGL, reinterpret_cast<void*>(COLOR_OFFSET)));
+	GL_CHECK(glEnableVertexAttribArray(COLOR_INDEX));
+	GL_CHECK(glVertexAttribPointer(NORMAL_INDEX, NORMAL_FLOAT_COUNT, GL_FLOAT, GL_FALSE, strideGL, reinterpret_cast<void*>(NORMAL_OFFSET)));
+	GL_CHECK(glEnableVertexAttribArray(NORMAL_INDEX));
 	if (hasUV)
 	{
-		glVertexAttribPointer(UV_INDEX, UV_FLOAT_COUNT, GL_FLOAT, GL_FALSE, strideGL, reinterpret_cast<void*>(UV_OFFSET));
-		glEnableVertexAttribArray(UV_INDEX);
-		glVertexAttribIPointer(TEX_INDEX_INDEX, TEX_INDEX_FLOAT_COUNT, GL_INT, strideGL, reinterpret_cast<void*>(TEX_INDEX_OFFSET));
-		glEnableVertexAttribArray(TEX_INDEX_INDEX);
+		GL_CHECK(glVertexAttribPointer(UV_INDEX, UV_FLOAT_COUNT, GL_FLOAT, GL_FALSE, strideGL, reinterpret_cast<void*>(UV_OFFSET)));
+		GL_CHECK(glEnableVertexAttribArray(UV_INDEX));
+		GL_CHECK(glVertexAttribIPointer(TEX_INDEX_INDEX, TEX_INDEX_FLOAT_COUNT, GL_INT, strideGL, reinterpret_cast<void*>(TEX_INDEX_OFFSET)));
+		GL_CHECK(glEnableVertexAttribArray(TEX_INDEX_INDEX));
 	}
 
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindVertexArray(0);
+	GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, 0));
+	GL_CHECK(glBindVertexArray(0));
 
 	UpdateIndexBuffer();
 }
@@ -334,7 +326,7 @@ void Mesh::UpdateIndexBuffer()
 	{
 		if (m_EBO != 0)
 		{
-			glDeleteBuffers(1, &m_EBO);
+			GL_CHECK(glDeleteBuffers(1, &m_EBO));
 			m_EBO = 0;
 		}
 		m_indexCount = 0;
@@ -344,13 +336,13 @@ void Mesh::UpdateIndexBuffer()
 	const std::vector<unsigned>& indices = (m_useLowLOD && !m_lowLODIndices.empty()) ? m_lowLODIndices : m_highLODIndices;
 	m_indexCount = indices.size();
 
-	if (m_EBO == 0) { glGenBuffers(1, &m_EBO); }
+	if (m_EBO == 0) { GL_CHECK(glGenBuffers(1, &m_EBO)); }
 
-	glBindVertexArray(m_VAO);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_EBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, static_cast<GLsizeiptr>(indices.size() * sizeof(unsigned)), indices.data(), GL_STATIC_DRAW);
-	glBindVertexArray(0);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+	GL_CHECK(glBindVertexArray(m_VAO));
+	GL_CHECK(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_EBO));
+	GL_CHECK(glBufferData(GL_ELEMENT_ARRAY_BUFFER, static_cast<GLsizeiptr>(indices.size() * sizeof(unsigned)), indices.data(), GL_STATIC_DRAW));
+	GL_CHECK(glBindVertexArray(0));
+	GL_CHECK(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0));
 }
 
 void Mesh::UpdateTriangle(const Tri& tri, size_t triangleIndex)
@@ -370,7 +362,7 @@ void Mesh::UpdateTriangle(const Tri& tri, size_t triangleIndex)
 	}
 
 	const float texIndexData = std::bit_cast<float>(texIndex);
-	glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
+	GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, m_VBO));
 	for (size_t i = 0; i < 3; i++)
 	{
 		const Point& point = tri.p[i];
@@ -383,9 +375,9 @@ void Mesh::UpdateTriangle(const Tri& tri, size_t triangleIndex)
 		vertex.texIndex = texIndexData;
 
 		const size_t vertexOffset = vertexIndex * MESH_STRIDE_BYTES;
-		glBufferSubData(GL_ARRAY_BUFFER, static_cast<GLintptr>(vertexOffset), sizeof(MeshData), &vertex);
+		GL_CHECK(glBufferSubData(GL_ARRAY_BUFFER, static_cast<GLintptr>(vertexOffset), sizeof(MeshData), &vertex));
 	}
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, 0));
 }
 
 int Mesh::GetDatas() const
@@ -449,19 +441,19 @@ void Mesh::RebuildTextureData()
 {
 	DeleteTextures();
 
-	glGenTextures(1, &m_textures);
-	glBindTexture(GL_TEXTURE_2D_ARRAY, m_textures);
+	GL_CHECK(glGenTextures(1, &m_textures));
+	GL_CHECK(glBindTexture(GL_TEXTURE_2D_ARRAY, m_textures));
 
-	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	GL_CHECK(glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
+	GL_CHECK(glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
+	GL_CHECK(glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
+	GL_CHECK(glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
 
-	glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA8, textureWidth, textureHeight, static_cast<GLsizei>(m_textureStoreData.size()), 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+	GL_CHECK(glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA8, textureWidth, textureHeight, static_cast<GLsizei>(m_textureStoreData.size()), 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr));
 
 	for (size_t i = 0; i < m_textureStoreData.size(); i++)
 	{
-		glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, static_cast<GLint>(i), textureWidth, textureHeight, 1, GL_RGBA, GL_UNSIGNED_BYTE, m_textureStoreData[i].data());
+		GL_CHECK(glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, static_cast<GLint>(i), textureWidth, textureHeight, 1, GL_RGBA, GL_UNSIGNED_BYTE, m_textureStoreData[i].data()));
 	}
 }
 
@@ -499,9 +491,9 @@ bool Mesh::IsReady() const
 
 void Mesh::Dispose()
 {
-	if (m_VAO != 0) { glDeleteVertexArrays(1, &m_VAO); m_VAO = 0; }
-	if (m_VBO != 0) { glDeleteBuffers(1, &m_VBO); m_VBO = 0; }
-	if (m_EBO != 0) { glDeleteBuffers(1, &m_EBO); m_EBO = 0; }
+	if (m_VAO != 0) { GL_CHECK(glDeleteVertexArrays(1, &m_VAO)); m_VAO = 0; }
+	if (m_VBO != 0) { GL_CHECK(glDeleteBuffers(1, &m_VBO)); m_VBO = 0; }
+	if (m_EBO != 0) { GL_CHECK(glDeleteBuffers(1, &m_EBO)); m_EBO = 0; }
 	m_vertexCount = 0;
 	m_indexCount = 0;
 }
@@ -509,7 +501,7 @@ void Mesh::Dispose()
 void Mesh::DeleteTextures()
 {
 	if (m_textures == 0) { return; }
-	glDeleteTextures(1, &m_textures);
+	GL_CHECK(glDeleteTextures(1, &m_textures));
 	m_textures = 0;
 }
 

@@ -34,10 +34,10 @@ void App::Run()
 
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
-		glClearColor(clearColor.x * clearColor.w, clearColor.y * clearColor.w, clearColor.z * clearColor.w, clearColor.w);
-		glClear(GL_COLOR_BUFFER_BIT);
+		GL_CHECK(glClearColor(clearColor.x * clearColor.w, clearColor.y * clearColor.w, clearColor.z * clearColor.w, clearColor.w));
+		GL_CHECK(glClear(GL_COLOR_BUFFER_BIT));
 		ImGui::NewFrame();
-		glViewport(0, 0, static_cast<int>(io.DisplaySize.x), static_cast<int>(io.DisplaySize.y));
+		GL_CHECK(glViewport(0, 0, static_cast<int>(io.DisplaySize.x), static_cast<int>(io.DisplaySize.y)));
 		glfwGetWindowSize(m_window, &Windows::w_width, &Windows::w_height);
 		ui.Render();
 		ImGui::Render();
