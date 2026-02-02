@@ -1162,11 +1162,11 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	extraHeader.offsets[PSX::LevelExtra::N_OXIDE_GHOST] = static_cast<uint32_t>(offOxideGhost);
 	extraHeader.offsets[PSX::LevelExtra::CREDITS] = 0;
 
-	// Determine count based on what's enabled
-	if (offOxideGhost > 0) { extraHeader.count = PSX::LevelExtra::COUNT; }
-	else if (offTropyGhost > 0) { extraHeader.count = PSX::LevelExtra::N_OXIDE_GHOST; }
-	else if (m_minimapConfig.IsReady()) { extraHeader.count = PSX::LevelExtra::COUNT; }
-	else { extraHeader.count = 0; }
+	// Determine count based on highest enabled entry index + 1
+	// Count represents the number of valid entries in the offsets array
+	if (offOxideGhost > 0) { extraHeader.count = PSX::LevelExtra::N_OXIDE_GHOST + 1; }
+	else if (offTropyGhost > 0) { extraHeader.count = PSX::LevelExtra::N_TROPY_GHOST + 1; }
+	// Note: minimap count will be set later if enabled and no ghosts present
 
 	const size_t offExtraHeader = currOffset;
 	currOffset += sizeof(extraHeader);
@@ -1198,39 +1198,20 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 
 	// Minimap data serialization
 	size_t offMinimapStruct = 0;
-	size_t offSpawnType1 = 0;
-	size_t offLevTexLookup = 0;
+	size_t offLevelIconHeader = 0;
 	size_t offMinimapIcons = 0;
 	std::vector<uint8_t> minimapData;
 	std::vector<size_t> minimapPtrMapOffsets;
 
 	if (m_minimapConfig.IsReady())
 	{
-		// Map struct
+		// Map struct - this is what extraHeader.offsets[MINIMAP] will point to
 		offMinimapStruct = currOffset;
 		PSX::Map mapStruct = m_minimapConfig.Serialize();
 		size_t mapStructOffset = minimapData.size();
 		minimapData.resize(minimapData.size() + sizeof(PSX::Map));
 		memcpy(&minimapData[mapStructOffset], &mapStruct, sizeof(PSX::Map));
 		currOffset += sizeof(PSX::Map);
-
-		// SpawnType1 header (count + pointer to map struct)
-		offSpawnType1 = currOffset;
-		PSX::SpawnType1 spawnType1Header = {};
-		spawnType1Header.count = PSX::LevelExtra::COUNT; // Must have all entries for minimap
-		size_t st1HeaderOffset = minimapData.size();
-		minimapData.resize(minimapData.size() + sizeof(PSX::SpawnType1));
-		memcpy(&minimapData[st1HeaderOffset], &spawnType1Header, sizeof(PSX::SpawnType1));
-		currOffset += sizeof(PSX::SpawnType1);
-
-		// SpawnType1 pointers array - pointer at index 0 points to Map struct
-		size_t st1PointersOffset = minimapData.size();
-		minimapData.resize(minimapData.size() + sizeof(uint32_t) * PSX::LevelExtra::COUNT);
-		uint32_t* st1Pointers = reinterpret_cast<uint32_t*>(&minimapData[st1PointersOffset]);
-		st1Pointers[PSX::LevelExtra::MINIMAP] = static_cast<uint32_t>(offMinimapStruct);
-		for (size_t i = 1; i < PSX::LevelExtra::COUNT; i++) { st1Pointers[i] = 0; }
-		minimapPtrMapOffsets.push_back(currOffset); // Pointer to map struct needs patching
-		currOffset += sizeof(uint32_t) * PSX::LevelExtra::COUNT;
 
 		// Icon structs (top and bottom minimap textures)
 		offMinimapIcons = currOffset;
@@ -1258,21 +1239,24 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 		memcpy(&minimapData[bottomIconOffset], &bottomIcon, sizeof(PSX::Icon));
 		currOffset += sizeof(PSX::Icon);
 
-		// LevTexLookup struct
-		offLevTexLookup = currOffset;
-		PSX::LevTexLookup levTexLookup = {};
-		levTexLookup.numIcon = 2;
-		levTexLookup.offFirstIcon = static_cast<uint32_t>(offMinimapIcons);
-		levTexLookup.numIconGroup = 0;
-		levTexLookup.offFirstIconGroupPtr = 0;
-		size_t levTexLookupOffset = minimapData.size();
-		minimapData.resize(minimapData.size() + sizeof(PSX::LevTexLookup));
-		memcpy(&minimapData[levTexLookupOffset], &levTexLookup, sizeof(PSX::LevTexLookup));
-		minimapPtrMapOffsets.push_back(currOffset + offsetof(PSX::LevTexLookup, offFirstIcon)); // Pointer to first icon
-		currOffset += sizeof(PSX::LevTexLookup);
+		// LevelIconHeader struct (pointed to by header.offIconsLookup)
+		offLevelIconHeader = currOffset;
+		PSX::LevelIconHeader levelIconHeader = {};
+		levelIconHeader.numIcon = 2;
+		levelIconHeader.offFirstIcon = static_cast<uint32_t>(offMinimapIcons);
+		levelIconHeader.numIconGroup = 0;
+		levelIconHeader.offFirstIconGroupPtr = 0;
+		size_t levelIconHeaderOffset = minimapData.size();
+		minimapData.resize(minimapData.size() + sizeof(PSX::LevelIconHeader));
+		memcpy(&minimapData[levelIconHeaderOffset], &levelIconHeader, sizeof(PSX::LevelIconHeader));
+		minimapPtrMapOffsets.push_back(currOffset + offsetof(PSX::LevelIconHeader, offFirstIcon)); // Pointer to first icon
+		currOffset += sizeof(PSX::LevelIconHeader);
 
-		// Update extraHeader to point to the minimap struct
+		// Update extraHeader to point to the minimap Map struct directly
 		extraHeader.offsets[PSX::LevelExtra::MINIMAP] = static_cast<uint32_t>(offMinimapStruct);
+		
+		// Set count if no ghosts are present (minimap is at index 0, so count = 1)
+		if (extraHeader.count == 0) { extraHeader.count = PSX::LevelExtra::MINIMAP + 1; }
 	}
 
 	const size_t offPointerMap = currOffset;
@@ -1302,7 +1286,7 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	// Set minimap pointers in header if enabled
 	if (m_minimapConfig.IsReady())
 	{
-		header.offIconsLookup = static_cast<uint32_t>(offLevTexLookup);
+		header.offIconsLookup = static_cast<uint32_t>(offLevelIconHeader);
 		header.offIcons = static_cast<uint32_t>(offMinimapIcons);
 	}
 
