@@ -50,7 +50,7 @@ PSX::Map MinimapConfig::Serialize() const
 	map.iconSizeY = hasTopTexture ? static_cast<int16_t>(topTexture.GetHeight()) : iconSizeY;
 	map.driverDotStartX = driverDotStartX;
 	map.driverDotStartY = driverDotStartY;
-	map.mode = orientationMode;
+	map.orientationMode = orientationMode;
 	map.unk = unk;
 	return map;
 }
@@ -65,7 +65,7 @@ void MinimapConfig::Deserialize(const PSX::Map& map)
 	iconSizeY = map.iconSizeY;
 	driverDotStartX = map.driverDotStartX;
 	driverDotStartY = map.driverDotStartY;
-	orientationMode = map.mode;
+	orientationMode = map.orientationMode;
 	unk = map.unk;
 }
 

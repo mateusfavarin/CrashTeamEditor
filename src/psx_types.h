@@ -238,7 +238,7 @@ namespace PSX
 		uint32_t offsets[LevelExtra::COUNT];
 	};
 
-	// Minimap struct - stored within SpawnType1[ST1_MAP]
+	// Minimap struct
 	struct Map
 	{
 		int16_t worldEndX;      // 0x0 - World coordinate bound
@@ -249,7 +249,7 @@ namespace PSX
 		int16_t iconSizeY;      // 0xA - Size in pixels of minimap icon (height)
 		int16_t driverDotStartX; // 0xC - Screen position for driver markers (512x252 screen)
 		int16_t driverDotStartY; // 0xE
-		int16_t mode;           // 0x10 - Orientation mode (0=0°, 1=90°, 2=180°, 3=270°)
+		int16_t orientationMode;           // 0x10 - Orientation mode (0=0°, 1=90°, 2=180°, 3=270°)
 		int16_t unk;            // 0x12 - Needed for some levels like Crash Cove (value different from 0 stops drawing top part)
 	};
 
@@ -261,20 +261,13 @@ namespace PSX
 		TextureLayout texLayout;          // 0x14 - UV and texture page info
 	};
 
-	// LevTexLookup - Icon pack header, pointed to by Level::levTexLookup
-	struct LevTexLookup
+	// LevelIconHeader - Icon pack header, pointed to by Level::levelIconHeader
+	struct LevelIconHeader
 	{
 		int32_t numIcon;                  // 0x0 - Number of icons (2 for minimap: top and bottom)
 		uint32_t offFirstIcon;            // 0x4 - Pointer to first Icon struct
 		int32_t numIconGroup;             // 0x8 - Number of icon groups
 		uint32_t offFirstIconGroupPtr;    // 0xC - Pointer to IconGroup pointer array
-	};
-
-	// SpawnType1 header - contains count and array of pointers
-	struct SpawnType1
-	{
-		uint32_t count;                   // 0x0 - Number of pointers in the array
-		// uint32_t offsets[count];       // Variable-length array of pointers follows
 	};
 
 	// Global icon array indices for minimap

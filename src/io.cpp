@@ -116,7 +116,6 @@ void from_json(const nlohmann::json& json, MinimapConfig& minimap)
 	if (json.contains("driverDotStartX")) { json.at("driverDotStartX").get_to(minimap.driverDotStartX); }
 	if (json.contains("driverDotStartY")) { json.at("driverDotStartY").get_to(minimap.driverDotStartY); }
 	if (json.contains("orientationMode")) { json.at("orientationMode").get_to(minimap.orientationMode); }
-	else if (json.contains("mode")) { json.at("mode").get_to(minimap.orientationMode); } // backwards compatibility
 	if (json.contains("unk")) { json.at("unk").get_to(minimap.unk); }
 
 	if (json.contains("topTexturePath"))
