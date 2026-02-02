@@ -689,7 +689,7 @@ std::vector<Primitive> Quadblock::ToGeometry(bool filterTriangles, const std::ar
 			{ 0, 1, 3 },
 			{ 1, 2, 4 },
 			{ 3, 4, 6 },
-			{ 1, 3, 4 },
+			{ 1, 4, 3 },
 		};
 		constexpr int triblockQuadIndex[triCount] = { 0, 1, 2, 0 };
 		for (int triIndex = 0; triIndex < triCount; triIndex++)

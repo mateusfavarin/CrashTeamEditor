@@ -111,7 +111,7 @@ void Mesh::SetGeometry(const std::vector<Primitive>& primitives, unsigned render
 			break;
 		case PrimitiveType::QUAD:
 			AppendTriangle(primitive.p[0], primitive.p[1], primitive.p[2], texturePath);
-			AppendTriangle(primitive.p[1], primitive.p[2], primitive.p[3], texturePath);
+			AppendTriangle(primitive.p[3], primitive.p[2], primitive.p[1], texturePath);
 			break;
 		case PrimitiveType::LINE:
 			AppendTriangle(primitive.p[0], primitive.p[1], primitive.p[1], texturePath);
@@ -146,7 +146,7 @@ size_t Mesh::UpdatePrimitive(const Primitive& primitive, size_t index)
 			Tri triA(primitive.p[0], primitive.p[1], primitive.p[2]);
 			triA.texture = primitive.texture;
 			UpdateTriangle(triA, index++);
-			Tri triB(primitive.p[1], primitive.p[2], primitive.p[3]);
+			Tri triB(primitive.p[3], primitive.p[2], primitive.p[1]);
 			triB.texture = primitive.texture;
 			UpdateTriangle(triB, index++);
 		}
