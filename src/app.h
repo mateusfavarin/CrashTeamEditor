@@ -15,7 +15,7 @@ private:
 	bool InitGLFW();
 	bool InitImGui();
 	void InitUISettings();
-	void SaveUISettings();
+	void SaveUISettings(bool useDefault);
 	void CloseImGui();
 
 private:
