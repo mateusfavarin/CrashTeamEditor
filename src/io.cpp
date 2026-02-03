@@ -99,8 +99,7 @@ void to_json(nlohmann::json& json, const MinimapConfig& minimap)
 		{"driverDotStartY", minimap.driverDotStartY},
 		{"orientationMode", minimap.orientationMode},
 		{"unk", minimap.unk},
-		{"topTexturePath", minimap.topTexturePath.string()},
-		{"bottomTexturePath", minimap.bottomTexturePath.string()}
+		{"sourceTexturePath", minimap.sourceTexturePath.string()}
 	};
 }
 
@@ -118,18 +117,19 @@ void from_json(const nlohmann::json& json, MinimapConfig& minimap)
 	if (json.contains("orientationMode")) { json.at("orientationMode").get_to(minimap.orientationMode); }
 	if (json.contains("unk")) { json.at("unk").get_to(minimap.unk); }
 
-	if (json.contains("topTexturePath"))
+	// New format: single source texture path
+	if (json.contains("sourceTexturePath"))
+	{
+		std::string path;
+		json.at("sourceTexturePath").get_to(path);
+		if (!path.empty()) { minimap.sourceTexturePath = path; }
+	}
+	// Old format backwards compatibility: if topTexturePath exists but sourceTexturePath doesn't, use topTexturePath
+	else if (json.contains("topTexturePath"))
 	{
 		std::string path;
 		json.at("topTexturePath").get_to(path);
-		if (!path.empty()) { minimap.topTexturePath = path; }
-	}
-
-	if (json.contains("bottomTexturePath"))
-	{
-		std::string path;
-		json.at("bottomTexturePath").get_to(path);
-		if (!path.empty()) { minimap.bottomTexturePath = path; }
+		if (!path.empty()) { minimap.sourceTexturePath = path; }
 	}
 
 	// Load textures after setting paths

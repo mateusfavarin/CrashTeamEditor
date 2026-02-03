@@ -21,6 +21,8 @@ public:
 	Texture() : m_width(0), m_height(0), m_imageX(0), m_imageY(0), m_clutX(0), m_clutY(0), m_blendMode(0) {};
 	Texture(const std::filesystem::path& path);
 	void UpdateTexture(const std::filesystem::path& path);
+	// Create texture from raw RGBA pixel data (for minimap processing)
+	static Texture CreateFromPixelData(const unsigned char* pixels, int width, int height);
 	Texture::BPP GetBPP() const;
 	int GetWidth() const;
 	int GetVRAMWidth() const;
