@@ -70,8 +70,11 @@ void Level::Clear(bool clearErrors)
 	m_rendererQueryPoint = Vec3();
 	m_rendererSelectedQuadblockIndexes.clear();
 	m_genVisTree = false;
+	m_simpleVisTree = false;
 	m_bspVis.Clear();
+	m_maxQuadPerLeaf = 31;
 	m_maxLeafAxisLength = 64.0f;
+	m_distanceNearClip = -1.0f;
 	m_distanceFarClip = 1000.0f;
 	m_pythonConsole.clear();
 	m_saveScript = false;
@@ -181,12 +184,11 @@ bool Level::GenerateBSP()
 	for (size_t i = 0; i < m_quadblocks.size(); i++) { quadIndexes.push_back(i); }
 	m_bsp.Clear();
 	m_bsp.SetQuadblockIndexes(quadIndexes);
-	m_bsp.Generate(m_quadblocks, MAX_QUADBLOCKS_LEAF, m_maxLeafAxisLength);
+	m_bsp.Generate(m_quadblocks, m_maxQuadPerLeaf, m_maxLeafAxisLength);
 	if (m_bsp.IsValid())
 	{
 		GenerateRenderBspData();
-		std::vector<const BSP*> bspLeaves = m_bsp.GetLeaves();
-		if (m_genVisTree) { m_bspVis = GenerateVisTree(m_quadblocks, bspLeaves, m_distanceFarClip * m_distanceFarClip); }
+		if (m_genVisTree) { m_bspVis = GenerateVisTree(m_quadblocks, &m_bsp, m_simpleVisTree, m_distanceNearClip, m_distanceFarClip); }
 		return true;
 	}
 	m_bsp.Clear();
@@ -483,6 +485,11 @@ bool Level::LoadPreset(const std::filesystem::path& filename)
 						m_propCheckpointPathable.SetPreview(material, json[material + "_checkpointPathable"]);
 						m_propCheckpointPathable.Apply(material, m_materialToQuadblocks[material], m_quadblocks);
 					}
+					if (json.contains(material + "_visTreeTransparent"))
+					{
+						m_propVisTreeTransparent.SetPreview(material, json[material + "_visTreeTransparent"]);
+						m_propVisTreeTransparent.Apply(material, m_materialToQuadblocks[material], m_quadblocks);
+					}
 				}
 			}
 		}
@@ -583,6 +590,7 @@ bool Level::SavePreset(const std::filesystem::path& path)
 			materialJson[key + "_drawflags"] = m_propDoubleSided.GetBackup(key);
 			materialJson[key + "_checkpoint"] = m_propCheckpoints.GetBackup(key);
 			materialJson[key + "_checkpointPathable"] = m_propCheckpointPathable.GetBackup(key);
+			materialJson[key + "_visTreeTransparent"] = m_propVisTreeTransparent.GetBackup(key);
 			materialJson[key + "_trigger"] = m_propTurboPads.GetBackup(key);
 			materialJson[key + "_speedImpact"] = m_propSpeedImpact.GetBackup(key);
 		}
@@ -660,6 +668,7 @@ void Level::ManageTurbopad(Quadblock& quadblock)
 		turboPad.Translate(TURBO_PAD_QUADBLOCK_TRANSLATION, up);
 		turboPad.SetCheckpoint(-1);
 		turboPad.SetCheckpointStatus(false);
+		turboPad.SetVisTreeTransparent(false);
 		turboPad.SetName(quadblock.GetName() + (stp ? "_stp" : "_tp"));
 		turboPad.SetFlag(QuadFlags::TRIGGER_SCRIPT | QuadFlags::INVISIBLE_TRIGGER | QuadFlags::WALL);
 		turboPad.SetTerrain(stp ? TerrainType::SUPER_TURBO_PAD : TerrainType::TURBO_PAD);
@@ -1488,6 +1497,7 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 						m_propCheckpoints.SetDefaultValue(material, false);
 						m_propTurboPads.SetDefaultValue(material, QuadblockTrigger::NONE);
 						m_propCheckpointPathable.SetDefaultValue(material, true);
+						m_propVisTreeTransparent.SetDefaultValue(material, false);
 						m_propTerrain.RegisterMaterial(this);
 						m_propQuadFlags.RegisterMaterial(this);
 						m_propDoubleSided.RegisterMaterial(this);
@@ -1495,6 +1505,7 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 						m_propTurboPads.RegisterMaterial(this);
 						m_propSpeedImpact.RegisterMaterial(this);
 						m_propCheckpointPathable.RegisterMaterial(this);
+						m_propVisTreeTransparent.RegisterMaterial(this);
 					}
 				}
 				bool sameUVs = true;

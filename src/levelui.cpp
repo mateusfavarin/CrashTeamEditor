@@ -309,6 +309,19 @@ bool MaterialProperty<T, M>::RenderUI(const std::string& material, const std::ve
 			return true;
 		}
 	}
+	else if constexpr (M == MaterialType::VISTREE_TRANSPARENT)
+	{
+		T& preview = GetPreview(material);
+		ImGui::Checkbox("VisTree Transparency", &preview);
+		ImGui::SameLine();
+
+		static ButtonUI visTreeTransparentApplyButton = ButtonUI();
+		if (visTreeTransparentApplyButton.Show(("Apply##transparent" + material).c_str(), "VisTree transparency successfully updated.", UnsavedChanges(material)))
+		{
+			Apply(material, quadblockIndexes, quadblocks);
+			return true;
+		}
+	}
 	return false;
 }
 
@@ -530,6 +543,7 @@ void Level::RenderUI(Renderer& renderer)
 					m_propDoubleSided.RenderUI(material, quadblockIndexes, m_quadblocks);
 					m_propCheckpoints.RenderUI(material, quadblockIndexes, m_quadblocks);
 					m_propCheckpointPathable.RenderUI(material, quadblockIndexes, m_quadblocks);
+					m_propVisTreeTransparent.RenderUI(material, quadblockIndexes, m_quadblocks);
 					if (m_propTurboPads.RenderUI(material, quadblockIndexes, m_quadblocks))
 					{
 						for (size_t index : quadblockIndexes) { ManageTurbopad(m_quadblocks[index]); }
@@ -735,10 +749,16 @@ void Level::RenderUI(Renderer& renderer)
 			static ButtonUI generateBSPButton = ButtonUI();
 			if (ImGui::TreeNode("Advanced"))
 			{
+				if (ImGui::InputInt("Max Quad Per Leaf", &m_maxQuadPerLeaf)) { m_maxQuadPerLeaf = std::max(m_maxQuadPerLeaf, 1); }
+				ImGui::SetItemTooltip("Lower values improve rendering performance, but increases file size and slows down vis tree generation.");
 				if (ImGui::InputFloat("Max Leaf Axis Length", &m_maxLeafAxisLength)) { m_maxLeafAxisLength = std::max(m_maxLeafAxisLength, 0.0f); }
 				ImGui::SetItemTooltip("Lower values improve rendering performance, but increases file size and slows down vis tree generation.");
+				if (ImGui::InputFloat("Near Clip Distance", &m_distanceNearClip)) { m_distanceNearClip = std::max(m_distanceNearClip, -1.0f); }
+				ImGui::SetItemTooltip("Minimum drawing distance. Higher values decrease performance and speed up the vis tree generation.");
 				if (ImGui::InputFloat("Far Clip Distance", &m_distanceFarClip)) { m_distanceFarClip = std::max(m_distanceFarClip, 0.0f); }
 				ImGui::SetItemTooltip("Maximum drawing distance. Lower values improve performance and speed up the vis tree generation.");
+				ImGui::Checkbox("Simple Vis Tree", &m_simpleVisTree);
+				ImGui::SetItemTooltip("The vis tree will be generated faster, but will be less precise");
 				ImGui::Checkbox("Generate Vis Tree", &m_genVisTree);
 				ImGui::SetItemTooltip("Generating the vis tree may take several minutes, but the gameplay will be more performant.");
 				ImGui::TreePop();
@@ -1413,6 +1433,7 @@ bool Quadblock::RenderUI(size_t checkpointCount, bool& resetBsp)
 		ImGui::Text("Checkpoint Index: ");
 		ImGui::SameLine();
 		if (ImGui::InputInt("##cp", &m_checkpointIndex)) { m_checkpointIndex = Clamp(m_checkpointIndex, -1, static_cast<int>(checkpointCount)); }
+		ImGui::Checkbox("VisTree Transparency", &m_visTreeTransparent);
 		ImGui::Text("Trigger:");
 		if (ImGui::RadioButton("None", m_trigger == QuadblockTrigger::NONE))
 		{

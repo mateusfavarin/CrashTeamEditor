@@ -115,8 +115,10 @@ public:
 	Quadblock(const std::string& name, Quad& q0, Quad& q1, Quad& q2, Quad& q3, const Vec3& normal, const std::string& material, bool hasUV, UpdateFilterCallback filterCallback);
 	Quadblock(const PSX::Quadblock& quadblock, const std::vector<PSX::Vertex>& vertices, UpdateFilterCallback filterCallback);
 	const std::string& GetName() const;
-	const Vec3& GetCenter() const;
+	Vec3 GetCenter() const;
 	Vec3 GetNormal() const;
+	std::vector<std::array<size_t, 3>> GetTriFacesIndexes() const;
+	std::array<Vec3, 3> GetTriFace(size_t id0, size_t id1, size_t id2) const;
 	uint8_t GetTerrain() const;
 	uint16_t GetFlags() const;
 	QuadblockTrigger GetTrigger() const;
@@ -127,8 +129,10 @@ public:
 	bool GetAnimated() const;
 	bool GetFilter() const;
 	const Color& GetFilterColor() const;
+	bool GetDrawDoubleSided() const;
 	bool GetCheckpointStatus() const;
 	bool GetCheckpointPathable() const;
+	bool GetVisTreeTransparent() const;
 	const QuadUV& GetQuadUV(size_t quad) const;
 	const std::filesystem::path& GetTexPath() const;
 	const std::array<QuadUV, NUM_FACES_QUADBLOCK + 1>& GetUVs() const;
@@ -142,6 +146,7 @@ public:
 	void SetDrawDoubleSided(bool active);
 	void SetCheckpointStatus(bool active);
 	void SetCheckpointPathable(bool pathable);
+	void SetVisTreeTransparent(bool transparent);
 	void SetName(const std::string& name);
 	void SetTurboPadIndex(size_t index);
 	void SetHide(bool active);
@@ -183,6 +188,7 @@ private:
 	bool m_filter;
 	bool m_checkpointPathable;
 	bool m_checkpointStatus;
+	bool m_visTreeTransparent;
 	bool m_hide;
 	Vertex m_p[NUM_VERTICES_QUADBLOCK];
 	BoundingBox m_bbox;

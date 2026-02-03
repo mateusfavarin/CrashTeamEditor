@@ -427,9 +427,19 @@ bool Quadblock::IsQuadblock() const
 	return !m_triblock;
 }
 
-const Vec3& Quadblock::GetCenter() const
+Vec3 Quadblock::GetCenter() const
 {
-	return m_p[4].m_pos;
+	if (m_triblock)
+	{
+		Vec3 v1 = m_p[1].m_pos;
+		Vec3 v2 = m_p[3].m_pos;
+		Vec3 v3 = m_p[4].m_pos;
+		return (v1 + v2 + v3) / (3.0f);
+	}
+	else
+	{
+		return m_p[4].m_pos;
+	}
 }
 
 Vec3 Quadblock::GetNormal() const
@@ -437,6 +447,46 @@ Vec3 Quadblock::GetNormal() const
 	Vec3 normal = ComputeNormalVector(0, 2, 6);
 	normal.Normalize();
 	return normal;
+}
+
+std::vector<std::array<size_t, 3>> Quadblock::GetTriFacesIndexes() const
+{
+	// Return a list of (size_t, size_t, size_t) containing vertex ID
+	// of every triface composing the quad, ordered clockwise
+	std::vector<std::array<size_t, 3>> triFaces;
+
+	if (!m_triblock) 
+	{
+		triFaces = {
+			{0, 1, 3},
+			{1, 4, 3},
+			{1, 2, 4},
+			{2, 5, 4},
+			{3, 4, 6},
+			{4, 7, 6},
+			{4, 5, 7},
+			{5, 8, 7}
+		};
+	}
+	else 
+	{
+		triFaces = {
+			{0, 1, 3},
+			{1, 2, 4},
+			{1, 4, 3},
+			{4, 6, 3}
+		};
+	}
+	return triFaces;
+}
+
+std::array<Vec3, 3> Quadblock::GetTriFace(size_t id0, size_t id1, size_t id2) const
+{
+	return {
+		m_p[id0].m_pos,
+		m_p[id1].m_pos,
+		m_p[id2].m_pos
+	};
 }
 
 uint8_t Quadblock::GetTerrain() const
@@ -489,6 +539,11 @@ const Color& Quadblock::GetFilterColor() const
 	return m_filterColor;
 }
 
+bool Quadblock::GetDrawDoubleSided() const
+{
+	return m_doubleSided;
+}
+
 bool Quadblock::GetCheckpointStatus() const
 {
 	return m_checkpointStatus;
@@ -497,6 +552,11 @@ bool Quadblock::GetCheckpointStatus() const
 bool Quadblock::GetCheckpointPathable() const
 {
 	return m_checkpointPathable;
+}
+
+bool Quadblock::GetVisTreeTransparent() const
+{
+	return m_visTreeTransparent;
 }
 
 const QuadUV& Quadblock::GetQuadUV(size_t quad) const
@@ -562,6 +622,11 @@ void Quadblock::SetCheckpointStatus(bool active)
 void Quadblock::SetCheckpointPathable(bool pathable)
 {
 	m_checkpointPathable = pathable;
+}
+
+void Quadblock::SetVisTreeTransparent(bool transparent)
+{
+	m_visTreeTransparent = transparent;
 }
 
 void Quadblock::SetName(const std::string& name)
@@ -832,6 +897,7 @@ void Quadblock::SetDefaultValues()
 	m_doubleSided = false;
 	m_checkpointPathable = true;
 	m_checkpointStatus = false;
+	m_visTreeTransparent = false;
 	m_trigger = QuadblockTrigger::NONE;
 	m_turboPadIndex = TURBO_PAD_INDEX_NONE;
 	m_hide = false;

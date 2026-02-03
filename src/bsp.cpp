@@ -258,15 +258,15 @@ float BSP::Split(std::vector<size_t>& left, std::vector<size_t>& right, const Ax
 		switch (axis)
 		{
 		case AxisSplit::X:
-			if (quad.GetCenter().x > midpoint) { right.push_back(index); }
+			if (quad.GetCenter().x < midpoint) { right.push_back(index); }
 			else { left.push_back(index); }
 			break;
 		case AxisSplit::Y:
-			if (quad.GetCenter().y > midpoint) { right.push_back(index); }
+			if (quad.GetCenter().y < midpoint) { right.push_back(index); }
 			else { left.push_back(index); }
 			break;
 		case AxisSplit::Z:
-			if (quad.GetCenter().z > midpoint) { right.push_back(index); }
+			if (quad.GetCenter().z < midpoint) { right.push_back(index); }
 			else { left.push_back(index); }
 			break;
 		}
@@ -279,11 +279,11 @@ float BSP::Split(std::vector<size_t>& left, std::vector<size_t>& right, const Ax
 
 void BSP::GenerateOffspring(std::vector<size_t>& left, std::vector<size_t>& right, const std::vector<Quadblock>& quadblocks, const size_t maxQuadsPerLeaf, const float maxAxisLength)
 {
-	if (left.size() < maxQuadsPerLeaf) { if (!left.empty()) { m_left = new BSP(BSPNode::LEAF, left, this, quadblocks); } }
+	if (left.size() <= maxQuadsPerLeaf) { if (!left.empty()) { m_left = new BSP(BSPNode::LEAF, left, this, quadblocks); } }
 	else { m_left = new BSP(BSPNode::BRANCH, left, this, quadblocks); }
 	if (m_left) { m_left->Generate(quadblocks, maxQuadsPerLeaf, maxAxisLength); }
 
-	if (right.size() < maxQuadsPerLeaf) { if (!right.empty()) { m_right = new BSP(BSPNode::LEAF, right, this, quadblocks); } }
+	if (right.size() <= maxQuadsPerLeaf) { if (!right.empty()) { m_right = new BSP(BSPNode::LEAF, right, this, quadblocks); } }
 	else { m_right = new BSP(BSPNode::BRANCH, right, this, quadblocks); }
 	if (m_right) { m_right->Generate(quadblocks, maxQuadsPerLeaf, maxAxisLength); }
 }
@@ -315,7 +315,13 @@ std::vector<uint8_t> BSP::SerializeBranch() const
 		if (!m_right->IsBranch()) { branch.rightChild |= BSPID::LEAF; }
 	}
 	else { branch.rightChild = BSPID::EMPTY; }
-	branch.unk1 = 0xFF40;
+	branch.unk1 = 0x00;
+	switch (m_axis)
+	{
+	case AxisSplit::X: branch.unk1 = ConvertFloat((m_bbox.min.x + m_bbox.max.x) / 4, FP_ONE_GEO); break;
+	case AxisSplit::Y: branch.unk1 = ConvertFloat((m_bbox.min.y + m_bbox.max.y) / 4, FP_ONE_GEO); break;
+	case AxisSplit::Z: branch.unk1 = ConvertFloat((m_bbox.min.z + m_bbox.max.z) / 4, FP_ONE_GEO); break;
+	}
 	branch.unk2 = 0;
 	branch.unk3 = 0;
 	std::memcpy(buffer.data(), &branch, sizeof(branch));
