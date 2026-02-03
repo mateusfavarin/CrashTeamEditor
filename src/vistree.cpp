@@ -5,75 +5,28 @@
 #include <chrono>
 #include <algorithm>
 
-BitMatrix::BitMatrix(const BitMatrix& other)
-{
-	std::lock_guard<std::mutex> lock(other.m_mutex);
-	m_width = other.m_width;
-	m_height = other.m_height;
-	m_data = other.m_data;
-}
-
-BitMatrix& BitMatrix::operator=(const BitMatrix& other)
-{
-	if (this == &other) { return *this; }
-	std::scoped_lock lock(m_mutex, other.m_mutex);
-	m_width = other.m_width;
-	m_height = other.m_height;
-	m_data = other.m_data;
-	return *this;
-}
-
-BitMatrix::BitMatrix(BitMatrix&& other) noexcept
-{
-	std::lock_guard<std::mutex> lock(other.m_mutex);
-	m_width = other.m_width;
-	m_height = other.m_height;
-	m_data = std::move(other.m_data);
-	other.m_width = 0;
-	other.m_height = 0;
-}
-
-BitMatrix& BitMatrix::operator=(BitMatrix&& other) noexcept
-{
-	if (this == &other) { return *this; }
-	std::scoped_lock lock(m_mutex, other.m_mutex);
-	m_width = other.m_width;
-	m_height = other.m_height;
-	m_data = std::move(other.m_data);
-	other.m_width = 0;
-	other.m_height = 0;
-	return *this;
-}
-
 bool BitMatrix::Get(size_t x, size_t y) const
 {
-	std::lock_guard<std::mutex> lock(m_mutex);
-	const size_t index = (y * m_width) + x;
-	return m_data[index] != 0;
+	return m_data[(y * m_width) + x] != 0;
 }
 
 size_t BitMatrix::GetWidth() const
 {
-	std::lock_guard<std::mutex> lock(m_mutex);
 	return m_width;
 }
 
 size_t BitMatrix::GetHeight() const
 {
-	std::lock_guard<std::mutex> lock(m_mutex);
 	return m_height;
 }
 
 void BitMatrix::Set(bool value, size_t x, size_t y)
 {
-	std::lock_guard<std::mutex> lock(m_mutex);
-	const size_t index = (y * m_width) + x;
-	m_data[index] = value ? 1 : 0;
+	m_data[(y * m_width) + x] = value ? 1 : 0;
 }
 
 void BitMatrix::SetRow(const std::vector<uint8_t>& rowData, size_t y)
 {
-	std::lock_guard<std::mutex> lock(m_mutex);
 	if (rowData.size() != m_width) { return; }
 	const size_t rowStart = y * m_width;
 	std::copy(rowData.begin(), rowData.end(), m_data.begin() + rowStart);
@@ -81,13 +34,11 @@ void BitMatrix::SetRow(const std::vector<uint8_t>& rowData, size_t y)
 
 bool BitMatrix::IsEmpty() const
 {
-	std::lock_guard<std::mutex> lock(m_mutex);
 	return m_data.empty();
 }
 
 void BitMatrix::Clear()
 {
-	std::lock_guard<std::mutex> lock(m_mutex);
 	m_width = 0;
 	m_height = 0;
 	m_data.clear();
@@ -123,20 +74,17 @@ static bool WorldspaceRayTriIntersection(const Vec3& worldSpaceRayOrigin, const 
 	float v = inv_det * worldSpaceRayDir.Dot(s_cross_e1);
 
 	// Allow v to be slightly outside [0, 1] range
-	if (v < -barycentricTolerance || v > 1.0f + barycentricTolerance) {
-		return false;
-	}
+	if (v < -barycentricTolerance || v > 1.0f + barycentricTolerance) { return false; }
 
 	// Check if u+v is within triangle (with tolerance)
 	// u+v > 1 means outside the triangle on the hypotenuse edge
-	if (u + v > 1.0f + barycentricTolerance) {
-		return false;
-	}
+	if (u + v > 1.0f + barycentricTolerance) { return false; }
 
 	float t = inv_det * edge_2.Dot(s_cross_e1); // time value (interpolant)
 
 	// Allow hits slightly behind the origin (for edge cases where ray starts on surface)
-	if (t > -failsafe) {
+	if (t > -failsafe)
+	{
 		dist = t;
 		return true;
 	}
@@ -147,7 +95,7 @@ static bool WorldspaceRayTriIntersection(const Vec3& worldSpaceRayOrigin, const 
 static bool RayIntersectQuadblockTest(const Vec3& worldSpaceRayOrigin, const Vec3& worldSpaceRayDir, const Quadblock& qb, float& dist)
 {
 	std::vector<std::array<size_t, 3>> triFacesID = qb.GetTriFacesIndexes();
-	for (std::array<size_t, 3> ids : triFacesID)
+	for (const std::array<size_t, 3>&ids : triFacesID)
 	{
 		if (WorldspaceRayTriIntersection(worldSpaceRayOrigin, worldSpaceRayDir, qb.GetTriFace(ids[0], ids[1], ids[2]), dist)) { return true; }
 	}
@@ -187,10 +135,7 @@ static bool RayIntersectBoundingBox(const Vec3& rayOrigin, const Vec3& rayDir, c
 		return true;
 	}
 	// No intersection if tmax < 0 (box is behind ray) or tmin > tmax (ray misses box)
-	if (tmax < 0.0f || tmin > tmax)
-	{
-		return false;
-	}
+	if (tmax < 0.0f || tmin > tmax) { return false; }
 	return true;
 }
 
@@ -220,7 +165,7 @@ static void GetPotentialLeavesRecursive(
 	// If this is a leaf node, add it's LeafWithDistance
 	if (!node->IsBranch())
 	{
-		result.push_back({ node->GetQuadblockIndexes(), tmax });
+		result.push_back({node->GetQuadblockIndexes(), tmax});
 		return;
 	}
 
@@ -254,7 +199,7 @@ static std::vector<size_t> GetPotentialQuadblockIndexes(
 		[](const LeafWithDistance& a, const LeafWithDistance& b) { return a.tmax < b.tmax; });
 
 	std::vector<size_t> result;
-	for (const auto& leaf : leavesWithDist)
+	for (const LeafWithDistance& leaf : leavesWithDist)
 	{
 		for (size_t quadID : leaf.quadIndexes)
 		{
@@ -284,12 +229,13 @@ static std::vector<Vec3> GenerateSamplePointLeaf(const std::vector<Quadblock>& q
 	const float dedupeThresholdSquared = dedupeThreshold * dedupeThreshold;
 
 	// Helper to check if a point already exists in samples
-	auto isDuplicate = [&samples, dedupeThresholdSquared](const Vec3& point) {
-		for (const Vec3& existing : samples)
+	auto isDuplicate = [&samples, dedupeThresholdSquared](const Vec3& point)
 		{
-			if ((existing - point).LengthSquared() < dedupeThresholdSquared) {return true;}
-		}
-		return false;
+			for (const Vec3& existing : samples)
+			{
+				if ((existing - point).LengthSquared() < dedupeThresholdSquared) { return true; }
+			}
+			return false;
 		};
 
 	// Helper to add point if not duplicate
@@ -298,7 +244,7 @@ static std::vector<Vec3> GenerateSamplePointLeaf(const std::vector<Quadblock>& q
 			if (!isDuplicate(point))
 			{
 				if (end) { samples.push_back(point); }
-				else { samples.insert(samples.begin(),point); }
+				else { samples.insert(samples.begin(), point); }
 			}
 		};
 
@@ -306,10 +252,8 @@ static std::vector<Vec3> GenerateSamplePointLeaf(const std::vector<Quadblock>& q
 	{
 		Quadblock quad = quadblocks[quadID];
 		float up_dist = 0.0f;
-		if (quad.GetFlags() & QuadFlags::GROUND)
-		{
-			up_dist = camera_raise;
-		}
+		if (quad.GetFlags() & QuadFlags::GROUND) { up_dist = camera_raise; }
+
 		addIfUnique(quad.GetCenter() + (up * up_dist), false);
 		if (!simpleVisTree)
 		{
@@ -340,10 +284,9 @@ static float GetLeafDistanceSquared(const BSP& leaf1, const BSP& leaf2)
 	const BoundingBox& a = leaf1.GetBoundingBox();
 	const BoundingBox& b = leaf2.GetBoundingBox();
 
-	float dx = std::max({ 0.0f, b.min.x - a.max.x, a.min.x - b.max.x });
-	float dy = std::max({ 0.0f, b.min.y - a.max.y, a.min.y - b.max.y });
-	float dz = std::max({ 0.0f, b.min.z - a.max.z, a.min.z - b.max.z });
-
+	float dx = std::max({0.0f, b.min.x - a.max.x, a.min.x - b.max.x});
+	float dy = std::max({0.0f, b.min.y - a.max.y, a.min.y - b.max.y});
+	float dz = std::max({0.0f, b.min.z - a.max.z, a.min.z - b.max.z});
 	return (dx * dx + dy * dy + dz * dz);
 }
 
@@ -477,10 +420,7 @@ BitMatrix GenerateVisTree(const std::vector<Quadblock>& quadblocks, const BSP* r
 	{
 		for (size_t leafB = 0; leafB < leaves.size(); leafB++)
 		{
-			if (vizMatrix.Get(leafA, leafB))
-			{
-				count++;
-			}
+			if (vizMatrix.Get(leafA, leafB)) { count++; }
 		}
 	}
 	int max = static_cast<int>(leaves.size() * leaves.size());
