@@ -1194,6 +1194,7 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	meshInfo.numVertices = static_cast<uint32_t>(serializedVertices.size());
 	meshInfo.offQuadblocks = static_cast<uint32_t>(offQuadblocks);
 	meshInfo.offVertices = static_cast<uint32_t>(offVertices);
+	meshInfo.unk1 = 0;
 	meshInfo.unk2 = 0;
 	meshInfo.offBSPNodes = static_cast<uint32_t>(offBSP);
 	meshInfo.numBSPNodes = static_cast<uint32_t>(serializedBSPs.size());
