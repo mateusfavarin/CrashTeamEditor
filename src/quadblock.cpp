@@ -961,7 +961,7 @@ bool Quadblock::HasRawQuadblock() const
 	return m_hasRawQuadblock; 
 }
 
-const PSX::Quadblock& GetRawQuadblock() const 
+const Quadblock::PSX::Quadblock& GetRawQuadblock() const
 {
 	return m_rawQuadblock; 
 }
