@@ -755,6 +755,45 @@ bool Level::LoadLEV(const std::filesystem::path& levFile)
 		m_materialToQuadblocks["default"].push_back(i);
 	}
 
+
+	m_bsp.Clear();
+	file.seekg(offLev + std::streampos(meshInfo.offBSPNodes));
+	std::vector<BSP*> bspArray;
+	for (uint32_t i = 0; i < meshInfo.numBSPNodes; i++)
+	{
+		bspArray.push_back(new BSP());
+	}
+
+	for (uint32_t i = 0; i < meshInfo.numBSPNodes; i++)
+	{
+		uint16_t flag;
+		std::streampos nodeStart = file.tellg();
+		Read(file, flag);
+		file.seekg(nodeStart);
+
+		if (flag & BSPFlags::LEAF)
+		{
+			PSX::BSPLeaf leaf = {};
+			Read(file, leaf);
+			bspArray[leaf.id]->PopulateLeaf(leaf, bspArray, m_quadblocks, meshInfo.offQuadblocks, meshInfo.offBSPNodes);
+		}
+		else
+		{
+			PSX::BSPBranch branch = {};
+			Read(file, branch);
+			bspArray[branch.id]->PopulateBranch(branch, bspArray, meshInfo.offBSPNodes);
+		}
+	}
+
+	if (bspArray.size())
+	{
+		m_bsp = *(bspArray[0]);
+		m_bsp.PopulateBranchQuadIndexes();
+		if (m_bsp.IsValid()) { GenerateRenderBspData(); }
+		else { m_bsp.Clear(); }
+	}
+	else { m_bsp.Clear(); }
+
 	file.seekg(offLev + std::streampos(header.offCheckpointNodes));
 	for (uint32_t i = 0; i < header.numCheckpointNodes; i++)
 	{
