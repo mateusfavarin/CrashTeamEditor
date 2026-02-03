@@ -1607,19 +1607,16 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 	{
 		for (const auto& [material, texture] : m_materialToTexture)
 		{
-			const std::filesystem::path& texPath = texture.GetPath();
-			const std::vector<size_t>& quadblockIndexes = m_materialToQuadblocks[material];
-			for (const size_t index : quadblockIndexes) { m_quadblocks[index].SetTexPath(texPath); }
-		}
-	}
+			const bool semiTransparent = texture.IsSemiTransparent();
+			m_propVisTreeTransparent.SetDefaultValue(material, semiTransparent);
 
-	if (ret)
-	{
-		for (const auto& [material, texture] : m_materialToTexture)
-		{
 			const std::filesystem::path& texPath = texture.GetPath();
 			const std::vector<size_t>& quadblockIndexes = m_materialToQuadblocks[material];
-			for (const size_t index : quadblockIndexes) { m_quadblocks[index].SetTexPath(texPath); }
+			for (const size_t index : quadblockIndexes)
+			{
+				m_quadblocks[index].SetTexPath(texPath);
+				m_quadblocks[index].SetVisTreeTransparent(semiTransparent);
+			}
 		}
 	}
 
@@ -1860,13 +1857,13 @@ void Level::GenerateRenderLevData()
 	size_t triangleOffset = 0;
 	for (Quadblock& qb : m_quadblocks)
 	{
-			qb.SetRenderPrimitiveIndex(triangleOffset);
-			std::vector<Primitive> qbTriangles = qb.ToGeometry(false);
-			std::vector<Primitive> qbFilterTriangles = qb.ToGeometry(true);
-			levTriangles.insert(levTriangles.end(), qbTriangles.begin(), qbTriangles.end());
-			filterTriangles.insert(filterTriangles.end(), qbFilterTriangles.begin(), qbFilterTriangles.end());
-			const size_t qbTriCount = CountPrimitiveTriangles(qbTriangles);
-			triangleOffset += qbTriCount;
+		qb.SetRenderPrimitiveIndex(triangleOffset);
+		std::vector<Primitive> qbTriangles = qb.ToGeometry(false);
+		std::vector<Primitive> qbFilterTriangles = qb.ToGeometry(true);
+		levTriangles.insert(levTriangles.end(), qbTriangles.begin(), qbTriangles.end());
+		filterTriangles.insert(filterTriangles.end(), qbFilterTriangles.begin(), qbFilterTriangles.end());
+		const size_t qbTriCount = CountPrimitiveTriangles(qbTriangles);
+		triangleOffset += qbTriCount;
 	}
 
 	m_models[LevelModels::LEVEL]->GetMesh().SetGeometry(levTriangles, Mesh::RenderFlags::AllowPointRender | Mesh::RenderFlags::QuadblockLod, Mesh::ShaderFlags::None);

@@ -103,6 +103,11 @@ size_t Texture::GetCLUTY() const
 	return m_clutY;
 }
 
+bool Texture::IsSemiTransparent() const
+{
+	return m_semiTransparent;
+}
+
 void Texture::SetImageCoords(size_t x, size_t y)
 {
 	m_imageX = x + 512;
@@ -232,6 +237,7 @@ void Texture::ClearTexture()
 	m_width = m_height = 0;
 	m_imageX = m_imageY = 0;
 	m_clutX = m_clutY = 0;
+	m_semiTransparent = false;
 	m_image.clear(); m_clut.clear();
 	m_path.clear(); m_shapes.clear();
 }
@@ -242,12 +248,14 @@ bool Texture::CreateTexture()
 	stbi_uc* image = stbi_load(m_path.string().c_str(), &m_width, &m_height, &channels, 0);
 	if (image == nullptr) { return false; }
 	bool alphaImage = channels == 4;
+	int semiTransparentPx = 0;
 	std::vector<size_t> colorIndexes;
-	for (int i = 0; i < m_width * m_height; i++)
+	const int pxCount = m_width * m_height;
+	for (int i = 0; i < pxCount; i++)
 	{
 		int px = i * channels;
-		uint16_t color = alphaImage ? ConvertColor(image[px + 0], image[px + 1], image[px + 2], image[px + 3]) :
-			ConvertColor(image[px + 0], image[px + 1], image[px + 2], 255);
+		uint16_t color = alphaImage ? ConvertColor(image[px + 0], image[px + 1], image[px + 2], image[px + 3]) : ConvertColor(image[px + 0], image[px + 1], image[px + 2], 255);
+		if (alphaImage && (image[px + 3] != 255)) { semiTransparentPx++; }
 		bool foundColor = false;
 		size_t clutIndex = m_clut.size();
 		for (size_t j = 0; j < m_clut.size(); j++)
@@ -257,6 +265,7 @@ bool Texture::CreateTexture()
 		if (!foundColor) { m_clut.push_back(color); }
 		colorIndexes.push_back(clutIndex);
 	}
+	m_semiTransparent = semiTransparentPx >= (pxCount / 2);
 	Texture::BPP bpp = GetBPP();
 	if (GetVRAMWidth() > TEXPAGE_WIDTH || GetHeight() > TEXPAGE_HEIGHT)
 	{

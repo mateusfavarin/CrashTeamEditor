@@ -18,7 +18,7 @@ public:
 	{
 		BPP_4, BPP_8, BPP_16
 	};
-	Texture() : m_width(0), m_height(0), m_imageX(0), m_imageY(0), m_clutX(0), m_clutY(0), m_blendMode(0) {};
+	Texture() : m_width(0), m_height(0), m_imageX(0), m_imageY(0), m_clutX(0), m_clutY(0), m_blendMode(0), m_semiTransparent(false) {};
 	Texture(const std::filesystem::path& path);
 	void UpdateTexture(const std::filesystem::path& path);
 	Texture::BPP GetBPP() const;
@@ -34,6 +34,7 @@ public:
 	size_t GetImageY() const;
 	size_t GetCLUTX() const;
 	size_t GetCLUTY() const;
+	bool IsSemiTransparent() const;
 	void SetImageCoords(size_t x, size_t y);
 	void SetCLUTCoords(size_t x, size_t y);
 	void SetBlendMode(uint16_t mode);
@@ -57,6 +58,7 @@ private:
 	uint16_t m_blendMode;
 	size_t m_imageX, m_imageY;
 	size_t m_clutX, m_clutY;
+	bool m_semiTransparent;
 	std::vector<uint16_t> m_image;
 	std::vector<uint16_t> m_clut;
 	std::vector<Shape> m_shapes;
