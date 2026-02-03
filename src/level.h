@@ -149,4 +149,7 @@ private:
 	std::vector<PSX::TextureGroup> m_rawTexGroups;
 	std::vector<uint8_t> m_rawAnimData;
 	bool m_hasRawTextureData;
+
+	std::vector<Vertex> m_originalVertices;
+	bool m_hasOriginalVertices;
 };

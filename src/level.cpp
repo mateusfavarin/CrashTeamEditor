@@ -776,9 +776,13 @@ bool Level::LoadLEV(const std::filesystem::path& levFile)
 		PSX::Quadblock quadblock = {};
 		Read(file, quadblock);
 		m_quadblocks.emplace_back(quadblock, vertices, [this](const Quadblock& qb) { UpdateFilterRenderData(qb); });
+		Quadblock& quad = m_quadblocks.back();
+		quad.SetRawQuadblock(quadblock);  
 		m_materialToQuadblocks["default"].push_back(i);
 	}
 
+	m_originalVertices = std::vector<Vertex>(vertices.begin(), vertices.end()); // Store the original PSX::Vertex array
+	m_hasOriginalVertices = true;
 
 	m_bsp.Clear();
 	file.seekg(offLev + std::streampos(meshInfo.offBSPNodes));
@@ -1075,11 +1079,21 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	currOffset += (sizeof(PSX::TextureGroup) * texGroups.size()) + animData.size();
 
 	const size_t offQuadblocks = currOffset;
+	std::unordered_map<Vertex, size_t> vertexMap;
+	std::vector<Vertex> orderedVertices;
+	if (m_hasOriginalVertices && m_hasRawTextureData)
+	{
+		orderedVertices = m_originalVertices;
+		for (size_t i = 0; i < orderedVertices.size(); i++)
+		{
+			vertexMap[orderedVertices[i]] = i;
+		}
+	}
+
 	std::vector<std::vector<uint8_t>> serializedBSPs;
 	std::vector<std::vector<uint8_t>> serializedQuads;
 	std::vector<const Quadblock*> orderedQuads;
-	std::unordered_map<Vertex, size_t> vertexMap;
-	std::vector<Vertex> orderedVertices;
+
 	size_t bspSize = 0;
 	for (const BSP* bsp : orderedBSPNodes)
 	{
@@ -1090,17 +1104,28 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 		for (const size_t index : quadIndexes)
 		{
 			const Quadblock& quadblock = m_quadblocks[index];
-			std::vector<Vertex> quadVertices = quadblock.GetVertices();
 			std::vector<size_t> verticesIndexes;
-			for (const Vertex& vertex : quadVertices)
+			if (quadblock.HasRawQuadblock() && m_hasOriginalVertices)
 			{
-				if (!vertexMap.contains(vertex))
+				const PSX::Quadblock& rawQuad = quadblock.GetRawQuadblock();
+				for (size_t i = 0; i < NUM_VERTICES_QUADBLOCK; i++)
 				{
-					size_t vertexIndex = orderedVertices.size();
-					orderedVertices.push_back(vertex);
-					vertexMap[vertex] = vertexIndex;
+					verticesIndexes.push_back(rawQuad.index[i]);
 				}
-				verticesIndexes.push_back(vertexMap[vertex]);
+			}
+			else
+			{
+				std::vector<Vertex> quadVertices = quadblock.GetVertices();
+				for (const Vertex& vertex : quadVertices)
+				{
+					if (!vertexMap.contains(vertex))
+					{
+						size_t vertexIndex = orderedVertices.size();
+						orderedVertices.push_back(vertex);
+						vertexMap[vertex] = vertexIndex;
+					}
+					verticesIndexes.push_back(vertexMap[vertex]);
+				}
 			}
 			size_t quadIndex = serializedQuads.size();
 			serializedQuads.push_back(quadblock.Serialize(quadIndex, offTexture, verticesIndexes));

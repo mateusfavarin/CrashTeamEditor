@@ -8,6 +8,7 @@
 
 Quadblock::Quadblock(const std::string& name, Tri& t0, Tri& t1, Tri& t2, Tri& t3, const Vec3& normal, const std::string& material, bool hasUV, UpdateFilterCallback filterCallback)
 {
+	m_hasRawQuadblock = false;
 	std::unordered_map<Vec3, unsigned> vRefCount;
 	for (size_t i = 0; i < 3; i++)
 	{
@@ -210,6 +211,7 @@ Quadblock::Quadblock(const std::string& name, Tri& t0, Tri& t1, Tri& t2, Tri& t3
 
 Quadblock::Quadblock(const std::string& name, Quad& q0, Quad& q1, Quad& q2, Quad& q3, const Vec3& normal, const std::string& material, bool hasUV, UpdateFilterCallback filterCallback)
 {
+	m_hasRawQuadblock = false;
 	std::unordered_map<Vec3, unsigned> vRefCount;
 	for (size_t i = 0; i < 4; i++)
 	{
@@ -390,6 +392,7 @@ Quadblock::Quadblock(const std::string& name, Quad& q0, Quad& q1, Quad& q2, Quad
 
 Quadblock::Quadblock(const PSX::Quadblock& quadblock, const std::vector<PSX::Vertex>& vertices, UpdateFilterCallback filterCallback)
 {
+	m_hasRawQuadblock = false;
 	uint16_t reverseIndexMapping[NUM_VERTICES_QUADBLOCK] = { 0, 2, 6, 8, 1, 3, 4, 5, 7 };
 	for (size_t i = 0; i < NUM_VERTICES_QUADBLOCK; i++)
 	{
@@ -415,6 +418,8 @@ Quadblock::Quadblock(const PSX::Quadblock& quadblock, const std::vector<PSX::Ver
 	m_material = "default";
 	m_triblock = false;
 	m_filterCallback = filterCallback;
+	m_bbox.min = ConvertPSXVec3(quadblock.bbox.min, FP_ONE_GEO);
+	m_bbox.max = ConvertPSXVec3(quadblock.bbox.max, FP_ONE_GEO);
 }
 
 const std::string& Quadblock::GetName() const
@@ -823,61 +828,68 @@ std::vector<uint8_t> Quadblock::Serialize(size_t id, size_t offTextures, const s
 {
 	PSX::Quadblock quadblock = {};
 	std::vector<uint8_t> buffer(sizeof(quadblock));
+
+	if (m_hasRawQuadblock) 
+	{ 
+		quadblock = m_rawQuadblock; 
+	}
+	else
+	{
+		quadblock.drawOrderLow = m_doubleSided ? (1 << 31) : 0;
+		for (size_t i = 0; i < NUM_FACES_QUADBLOCK; i++)
+		{
+			uint32_t packedFace = m_faceRotateFlip[i] | (m_faceDrawMode[i] << 3);
+			quadblock.drawOrderLow |= packedFace << (8 + i * 5);
+		}
+		quadblock.drawOrderHigh = 0;
+		if (m_animated)
+		{
+			quadblock.offMidTextures[0] = static_cast<uint32_t>(m_animTexOffset[0] | 1);
+			quadblock.offMidTextures[1] = static_cast<uint32_t>(m_animTexOffset[1] | 1);
+			quadblock.offMidTextures[2] = static_cast<uint32_t>(m_animTexOffset[2] | 1);
+			quadblock.offMidTextures[3] = static_cast<uint32_t>(m_animTexOffset[3] | 1);
+			quadblock.offLowTexture = static_cast<uint32_t>(offTextures + (m_textureIDs[4] * sizeof(PSX::TextureGroup)));
+		}
+		else
+		{
+			quadblock.offMidTextures[0] = static_cast<uint32_t>(offTextures + (m_textureIDs[0] * sizeof(PSX::TextureGroup)));
+			quadblock.offMidTextures[1] = static_cast<uint32_t>(offTextures + (m_textureIDs[1] * sizeof(PSX::TextureGroup)));
+			quadblock.offMidTextures[2] = static_cast<uint32_t>(offTextures + (m_textureIDs[2] * sizeof(PSX::TextureGroup)));
+			quadblock.offMidTextures[3] = static_cast<uint32_t>(offTextures + (m_textureIDs[3] * sizeof(PSX::TextureGroup)));
+			quadblock.offLowTexture = static_cast<uint32_t>(offTextures + (m_textureIDs[4] * sizeof(PSX::TextureGroup)));
+		}
+		quadblock.weatherIntensity = 0;
+		quadblock.weatherVanishRate = 0;	
+		const size_t idVis = id / 32;
+		quadblock.id = static_cast<uint16_t>((32 * idVis) + (31 - (id % 32)));
+		quadblock.triNormalVecBitshift = static_cast<uint8_t>(std::round(std::log2(std::max(ComputeNormalVector(0, 2, 6).Length(), ComputeNormalVector(2, 8, 6).Length()) * 512.0f)));
+		auto CalculateNormalDividend = [this](size_t id0, size_t id1, size_t id2, float scaler) -> int16_t
+			{
+				return static_cast<int16_t>(std::round(scaler / ComputeNormalVector(id0, id1, id2).Length()));
+			};
+		float scaler = static_cast<float>(1 << quadblock.triNormalVecBitshift);
+		quadblock.triNormalVecDividend[0] = CalculateNormalDividend(0, 1, 3, scaler);
+		quadblock.triNormalVecDividend[1] = CalculateNormalDividend(1, 4, 3, scaler);
+		quadblock.triNormalVecDividend[2] = CalculateNormalDividend(4, 1, 2, scaler);
+		quadblock.triNormalVecDividend[3] = CalculateNormalDividend(3, 4, 6, scaler);
+		quadblock.triNormalVecDividend[4] = CalculateNormalDividend(7, 4, 5, scaler);
+		quadblock.triNormalVecDividend[5] = CalculateNormalDividend(5, 8, 7, scaler);
+		quadblock.triNormalVecDividend[6] = CalculateNormalDividend(2, 5, 4, scaler);
+		quadblock.triNormalVecDividend[7] = CalculateNormalDividend(6, 4, 7, scaler);
+		quadblock.triNormalVecDividend[9] = CalculateNormalDividend(2, 8, 6, scaler);
+		quadblock.triNormalVecDividend[8] = CalculateNormalDividend(0, 2, 6, scaler);
+	}
+
 	for (size_t i = 0; i < NUM_VERTICES_QUADBLOCK; i++)
 	{
 		quadblock.index[i] = static_cast<uint16_t>(vertexIndexes[i]);
 	}
 	quadblock.flags = m_flags;
-	quadblock.drawOrderLow = m_doubleSided ? (1 << 31) : 0;
-	for (size_t i = 0; i < NUM_FACES_QUADBLOCK; i++)
-	{
-		uint32_t packedFace = m_faceRotateFlip[i] | (m_faceDrawMode[i] << 3);
-		quadblock.drawOrderLow |= packedFace << (8 + i * 5);
-	}
-	quadblock.drawOrderHigh = 0;
-	if (m_animated)
-	{
-		quadblock.offMidTextures[0] = static_cast<uint32_t>(m_animTexOffset[0] | 1);
-		quadblock.offMidTextures[1] = static_cast<uint32_t>(m_animTexOffset[1] | 1);
-		quadblock.offMidTextures[2] = static_cast<uint32_t>(m_animTexOffset[2] | 1);
-		quadblock.offMidTextures[3] = static_cast<uint32_t>(m_animTexOffset[3] | 1);
-		quadblock.offLowTexture = static_cast<uint32_t>(offTextures + (m_textureIDs[4] * sizeof(PSX::TextureGroup)));
-	}
-	else
-	{
-		quadblock.offMidTextures[0] = static_cast<uint32_t>(offTextures + (m_textureIDs[0] * sizeof(PSX::TextureGroup)));
-		quadblock.offMidTextures[1] = static_cast<uint32_t>(offTextures + (m_textureIDs[1] * sizeof(PSX::TextureGroup)));
-		quadblock.offMidTextures[2] = static_cast<uint32_t>(offTextures + (m_textureIDs[2] * sizeof(PSX::TextureGroup)));
-		quadblock.offMidTextures[3] = static_cast<uint32_t>(offTextures + (m_textureIDs[3] * sizeof(PSX::TextureGroup)));
-		quadblock.offLowTexture = static_cast<uint32_t>(offTextures + (m_textureIDs[4] * sizeof(PSX::TextureGroup)));
-	}
+	quadblock.speedImpact = static_cast<int8_t>(m_downforce);
+	quadblock.terrain = m_terrain;
+	quadblock.checkpointIndex = static_cast<uint8_t>(m_checkpointIndex);
 	quadblock.bbox.min = ConvertVec3(m_bbox.min, FP_ONE_GEO);
 	quadblock.bbox.max = ConvertVec3(m_bbox.max, FP_ONE_GEO);
-	quadblock.terrain = m_terrain;
-	quadblock.weatherIntensity = 0;
-	quadblock.weatherVanishRate = 0;
-	quadblock.speedImpact = static_cast<int8_t>(m_downforce);
-	const size_t idVis = id / 32;
-	quadblock.id = static_cast<uint16_t>((32 * idVis) + (31 - (id % 32)));
-	quadblock.checkpointIndex = static_cast<uint8_t>(m_checkpointIndex);
-	quadblock.triNormalVecBitshift = static_cast<uint8_t>(std::round(std::log2(std::max(ComputeNormalVector(0, 2, 6).Length(), ComputeNormalVector(2, 8, 6).Length()) * 512.0f)));
-
-	auto CalculateNormalDividend = [this](size_t id0, size_t id1, size_t id2, float scaler) -> int16_t
-		{
-			return static_cast<int16_t>(std::round(scaler / ComputeNormalVector(id0, id1, id2).Length()));
-		};
-
-	float scaler = static_cast<float>(1 << quadblock.triNormalVecBitshift);
-	quadblock.triNormalVecDividend[0] = CalculateNormalDividend(0, 1, 3, scaler);
-	quadblock.triNormalVecDividend[1] = CalculateNormalDividend(1, 4, 3, scaler);
-	quadblock.triNormalVecDividend[2] = CalculateNormalDividend(4, 1, 2, scaler);
-	quadblock.triNormalVecDividend[3] = CalculateNormalDividend(3, 4, 6, scaler);
-	quadblock.triNormalVecDividend[4] = CalculateNormalDividend(7, 4, 5, scaler);
-	quadblock.triNormalVecDividend[5] = CalculateNormalDividend(5, 8, 7, scaler);
-	quadblock.triNormalVecDividend[6] = CalculateNormalDividend(2, 5, 4, scaler);
-	quadblock.triNormalVecDividend[7] = CalculateNormalDividend(6, 4, 7, scaler);
-	quadblock.triNormalVecDividend[9] = CalculateNormalDividend(2, 8, 6, scaler); /* low LoD */
-	quadblock.triNormalVecDividend[8] = CalculateNormalDividend(0, 2, 6, scaler); /* low LoD */
 	std::memcpy(buffer.data(), &quadblock, sizeof(quadblock));
 	return buffer;
 }
@@ -936,4 +948,20 @@ void Quadblock::ComputeBoundingBox()
 	}
 	m_bbox.min = min;
 	m_bbox.max = max;
+}
+
+void Quadblock::SetRawQuadblock(const PSX::Quadblock& quadblock)
+{
+	m_rawQuadblock = quadblock;
+	m_hasRawQuadblock = true;
+}
+
+bool Quadblock::HasRawQuadblock() const 
+{
+	return m_hasRawQuadblock; 
+}
+
+const PSX::Quadblock& GetRawQuadblock() const 
+{
+	return m_rawQuadblock; 
 }
