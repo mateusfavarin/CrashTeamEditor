@@ -22,6 +22,44 @@ Texture::Texture(const std::filesystem::path& path)
 	if (!CreateTexture()) { ClearTexture(); }
 }
 
+Texture Texture::CreateFromPixelData(const unsigned char* pixels, int width, int height)
+{
+	Texture tex;
+	tex.m_width = width;
+	tex.m_height = height;
+	tex.m_blendMode = PSX::BlendMode::HALF_TRANSPARENT;
+
+	// Convert pixel data to texture format
+	std::vector<size_t> colorIndexes;
+	for (int i = 0; i < width * height; i++)
+	{
+		int px = i * 4; // RGBA format
+		uint16_t color = tex.ConvertColor(pixels[px + 0], pixels[px + 1], pixels[px + 2], pixels[px + 3]);
+		bool foundColor = false;
+		size_t clutIndex = tex.m_clut.size();
+		for (size_t j = 0; j < tex.m_clut.size(); j++)
+		{
+			if (color == tex.m_clut[j]) { clutIndex = j; foundColor = true; break; }
+		}
+		if (!foundColor) { tex.m_clut.push_back(color); }
+		colorIndexes.push_back(clutIndex);
+	}
+
+	Texture::BPP bpp = tex.GetBPP();
+	if (tex.GetVRAMWidth() > TEXPAGE_WIDTH || tex.GetHeight() > TEXPAGE_HEIGHT)
+	{
+		tex.ClearTexture();
+		return tex;
+	}
+
+	if (bpp == Texture::BPP::BPP_4) { tex.ConvertPixels(colorIndexes, 4); }
+	else if (bpp == Texture::BPP::BPP_8) { tex.ConvertPixels(colorIndexes, 2); }
+	else { tex.m_image = tex.m_clut; }
+
+	tex.FillShapes(colorIndexes);
+	return tex;
+}
+
 void Texture::UpdateTexture(const std::filesystem::path& path)
 {
 	uint16_t blendMode = m_blendMode;
