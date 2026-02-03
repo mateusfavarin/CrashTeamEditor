@@ -169,6 +169,9 @@ public:
 	std::vector<uint8_t> Serialize(size_t id, size_t offTextures, const std::vector<size_t>& vertexIndexes) const;
 	bool RenderUI(size_t checkpointCount, bool& resetBsp);
 	Vec3 ComputeNormalVector(size_t id0, size_t id1, size_t id2) const;
+	void SetRawQuadblock(const PSX::Quadblock& quadblock);
+	bool HasRawQuadblock() const;
+	const PSX::Quadblock& GetRawQuadblock() const;
 
 private:
 	void ResetUVs();
@@ -211,6 +214,9 @@ private:
 	std::filesystem::path m_texPath;
 	size_t m_renderPrimitiveIndex = RENDER_INDEX_NONE;
 	UpdateFilterCallback m_filterCallback;
+
+	PSX::Quadblock m_rawQuadblock;
+	bool m_hasRawQuadblock;
 };
 
 class QuadException : public std::exception
