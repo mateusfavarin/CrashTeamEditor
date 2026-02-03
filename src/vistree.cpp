@@ -5,33 +5,89 @@
 #include <chrono>
 #include <algorithm>
 
+BitMatrix::BitMatrix(const BitMatrix& other)
+{
+	std::lock_guard<std::mutex> lock(other.m_mutex);
+	m_width = other.m_width;
+	m_height = other.m_height;
+	m_data = other.m_data;
+}
+
+BitMatrix& BitMatrix::operator=(const BitMatrix& other)
+{
+	if (this == &other) { return *this; }
+	std::scoped_lock lock(m_mutex, other.m_mutex);
+	m_width = other.m_width;
+	m_height = other.m_height;
+	m_data = other.m_data;
+	return *this;
+}
+
+BitMatrix::BitMatrix(BitMatrix&& other) noexcept
+{
+	std::lock_guard<std::mutex> lock(other.m_mutex);
+	m_width = other.m_width;
+	m_height = other.m_height;
+	m_data = std::move(other.m_data);
+	other.m_width = 0;
+	other.m_height = 0;
+}
+
+BitMatrix& BitMatrix::operator=(BitMatrix&& other) noexcept
+{
+	if (this == &other) { return *this; }
+	std::scoped_lock lock(m_mutex, other.m_mutex);
+	m_width = other.m_width;
+	m_height = other.m_height;
+	m_data = std::move(other.m_data);
+	other.m_width = 0;
+	other.m_height = 0;
+	return *this;
+}
+
 bool BitMatrix::Get(size_t x, size_t y) const
 {
-	return m_data[(y * m_width) + x];
+	std::lock_guard<std::mutex> lock(m_mutex);
+	const size_t index = (y * m_width) + x;
+	return m_data[index] != 0;
 }
 
 size_t BitMatrix::GetWidth() const
 {
+	std::lock_guard<std::mutex> lock(m_mutex);
 	return m_width;
 }
 
 size_t BitMatrix::GetHeight() const
 {
+	std::lock_guard<std::mutex> lock(m_mutex);
 	return m_height;
 }
 
 void BitMatrix::Set(bool value, size_t x, size_t y)
 {
-	m_data[(y * m_width) + x] = value;
+	std::lock_guard<std::mutex> lock(m_mutex);
+	const size_t index = (y * m_width) + x;
+	m_data[index] = value ? 1 : 0;
+}
+
+void BitMatrix::SetRow(const std::vector<uint8_t>& rowData, size_t y)
+{
+	std::lock_guard<std::mutex> lock(m_mutex);
+	if (rowData.size() != m_width) { return; }
+	const size_t rowStart = y * m_width;
+	std::copy(rowData.begin(), rowData.end(), m_data.begin() + rowStart);
 }
 
 bool BitMatrix::IsEmpty() const
 {
+	std::lock_guard<std::mutex> lock(m_mutex);
 	return m_data.empty();
 }
 
 void BitMatrix::Clear()
 {
+	std::lock_guard<std::mutex> lock(m_mutex);
 	m_width = 0;
 	m_height = 0;
 	m_data.clear();
@@ -39,9 +95,9 @@ void BitMatrix::Clear()
 
 static bool WorldspaceRayTriIntersection(const Vec3& worldSpaceRayOrigin, const Vec3& worldSpaceRayDir, const std::array<Vec3, 3>& tri, float& dist)
 {
-	//TODO : merge with renderer 
-	constexpr float failsafe = 0.5f; 
-	constexpr float barycentricTolerance = 0.5f; 
+	//TODO : merge with renderer
+	constexpr float failsafe = 0.5f;
+	constexpr float barycentricTolerance = 0.5f;
 
 	//moller-trumbore intersection test
 	//https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
@@ -91,7 +147,7 @@ static bool WorldspaceRayTriIntersection(const Vec3& worldSpaceRayOrigin, const 
 static bool RayIntersectQuadblockTest(const Vec3& worldSpaceRayOrigin, const Vec3& worldSpaceRayDir, const Quadblock& qb, float& dist)
 {
 	std::vector<std::array<size_t, 3>> triFacesID = qb.GetTriFacesIndexes();
-	for (std::array<size_t, 3> ids : triFacesID) 
+	for (std::array<size_t, 3> ids : triFacesID)
 	{
 		if (WorldspaceRayTriIntersection(worldSpaceRayOrigin, worldSpaceRayDir, qb.GetTriFace(ids[0], ids[1], ids[2]), dist)) { return true; }
 	}
@@ -128,7 +184,7 @@ static bool RayIntersectBoundingBox(const Vec3& rayOrigin, const Vec3& rayDir, c
 		&& bbox.min.z - failsafe < rayOrigin.z && rayOrigin.z < bbox.max.z + failsafe)
 	{
 		tmin = -1.0f; // We fake tmin negative with a true return to say we are inside
-		return true; 
+		return true;
 	}
 	// No intersection if tmax < 0 (box is behind ray) or tmin > tmax (ray misses box)
 	if (tmax < 0.0f || tmin > tmax)
@@ -202,7 +258,7 @@ static std::vector<size_t> GetPotentialQuadblockIndexes(
 	{
 		for (size_t quadID : leaf.quadIndexes)
 		{
-			const Quadblock& quad = quadblocks[quadID]; 
+			const Quadblock& quad = quadblocks[quadID];
 			if (quad.GetBSPID() == leafBID || !quad.GetVisTreeTransparent())
 			{
 				// Ideally, a quad has 8 normal, but I just test 2
@@ -237,9 +293,9 @@ static std::vector<Vec3> GenerateSamplePointLeaf(const std::vector<Quadblock>& q
 		};
 
 	// Helper to add point if not duplicate
-	auto addIfUnique = [&samples, &isDuplicate](const Vec3& point, bool end) 
+	auto addIfUnique = [&samples, &isDuplicate](const Vec3& point, bool end)
 		{
-			if (!isDuplicate(point)) 
+			if (!isDuplicate(point))
 			{
 				if (end) { samples.push_back(point); }
 				else { samples.insert(samples.begin(),point); }
@@ -298,6 +354,7 @@ BitMatrix GenerateVisTree(const std::vector<Quadblock>& quadblocks, const BSP* r
 	const float maxDistanceSquared = maxDistance * maxDistance;
 	std::vector<const BSP*> leaves = root->GetLeaves();
 	BitMatrix vizMatrix = BitMatrix(leaves.size(), leaves.size());
+	const int leafCount = static_cast<int>(leaves.size());
 
 	const float cameraHeight = 5.0f;
 	const float failsafe = 0.5f;
@@ -310,19 +367,35 @@ BitMatrix GenerateVisTree(const std::vector<Quadblock>& quadblocks, const BSP* r
 		for (size_t index : quadIndexes) { quadIndexesToLeaves[index] = i; }
 	}
 
-	for (size_t leafA = 0; leafA < leaves.size(); leafA++)
+	std::vector<std::vector<Vec3>> sourceSamples(leaves.size());
+	std::vector<std::vector<Vec3>> targetSamples(leaves.size());
+	for (size_t i = 0; i < leaves.size(); i++)
 	{
-		printf("Prog: %d/%d\n", static_cast<int>(leafA + 1), static_cast<int>(leaves.size()));
-		vizMatrix.Set(true, leafA, leafA);
-		const std::vector<Vec3> sampleA = GenerateSamplePointLeaf(quadblocks, *leaves[leafA], cameraHeight, simpleVisTree);
+		sourceSamples[i] = GenerateSamplePointLeaf(quadblocks, *leaves[i], cameraHeight, simpleVisTree);
+		targetSamples[i] = GenerateSamplePointLeaf(quadblocks, *leaves[i], 0.0f, simpleVisTree);
+	}
+
+	int progress = 0;
+#pragma omp parallel for
+	for (int leafAIndex = 0; leafAIndex < leafCount; leafAIndex++)
+	{
+		const size_t leafA = static_cast<size_t>(leafAIndex);
+#pragma omp critical(vistree_progress)
+		{
+			progress++;
+			if (progress % 16 == 0 || progress == leafCount)
+			{
+				printf("Prog: %d/%d\n", progress, leafCount);
+			}
+		}
+
+		std::vector<uint8_t> rowVisibility(leaves.size(), 0);
+		rowVisibility[leafA] = 1;
+		const std::vector<Vec3>& sampleA = sourceSamples[leafA];
 		for (size_t leafB = 0; leafB < leaves.size(); leafB++)
 		{
 			bool foundLeafABHit = false;
-			const std::vector<Vec3> sampleB = GenerateSamplePointLeaf(quadblocks, *leaves[leafB], 0.0f, simpleVisTree);
-
-			// Pre-build sets of quadblock indices for leafA and leafB for quick lookup
-			const std::vector<size_t>& quadIndexesA = leaves[leafA]->GetQuadblockIndexes();
-			const std::vector<size_t>& quadIndexesB = leaves[leafB]->GetQuadblockIndexes();
+			const std::vector<Vec3>& sampleB = targetSamples[leafB];
 
 			float distBboxsquared = GetLeafDistanceSquared(*leaves[leafA], *leaves[leafB]);
 			// If minDistance is positive, and bigger than distBbox
@@ -353,7 +426,7 @@ BitMatrix GenerateVisTree(const std::vector<Quadblock>& quadblocks, const BSP* r
 					}
 					if (tmin < 0.0f)
 					{
-						// We are inside the Bbox. 
+						// We are inside the Bbox.
 						foundLeafABHit = true;
 						break;
 					}
@@ -409,9 +482,10 @@ BitMatrix GenerateVisTree(const std::vector<Quadblock>& quadblocks, const BSP* r
 			}
 			if (foundLeafABHit)
 			{
-				vizMatrix.Set(true, leafA, leafB);
+				rowVisibility[leafB] = 1;
 			}
 		}
+		vizMatrix.SetRow(rowVisibility, leafA);
 	}
 	int count = 0;
 	for (size_t leafA = 0; leafA < leaves.size(); leafA++)
