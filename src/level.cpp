@@ -803,6 +803,40 @@ bool Level::LoadLEV(const std::filesystem::path& levFile)
 	}
 	UpdateRenderCheckpointData();
 
+	m_tropyGhost.clear();
+	m_oxideGhost.clear();
+	if (header.offExtra > 0)
+	{
+		file.seekg(offLev + std::streampos(header.offExtra));
+		PSX::LevelExtraHeader extraHeader = {};
+		Read(file, extraHeader);
+		// Read N. Tropy Ghost
+		if (extraHeader.count >= PSX::LevelExtra::N_TROPY_GHOST + 1 &&
+			extraHeader.offsets[PSX::LevelExtra::N_TROPY_GHOST] > 0)
+		{
+			file.seekg(offLev + std::streampos(extraHeader.offsets[PSX::LevelExtra::N_TROPY_GHOST]));
+			size_t ghostSize = 0;
+			if (extraHeader.count > PSX::LevelExtra::N_OXIDE_GHOST && extraHeader.offsets[PSX::LevelExtra::N_OXIDE_GHOST] > 0)
+			{
+				ghostSize = extraHeader.offsets[PSX::LevelExtra::N_OXIDE_GHOST] - extraHeader.offsets[PSX::LevelExtra::N_TROPY_GHOST];
+			}
+			else
+			{
+				ghostSize = header.offLevNavTable - extraHeader.offsets[PSX::LevelExtra::N_TROPY_GHOST];
+			}
+			m_tropyGhost.resize(ghostSize);
+			file.read(reinterpret_cast<char*>(m_tropyGhost.data()), ghostSize);
+		}
+		// Read N. Oxide Ghost
+		if (extraHeader.count >= PSX::LevelExtra::N_OXIDE_GHOST + 1 && extraHeader.offsets[PSX::LevelExtra::N_OXIDE_GHOST] > 0)
+		{
+			file.seekg(offLev + std::streampos(extraHeader.offsets[PSX::LevelExtra::N_OXIDE_GHOST]));
+			size_t ghostSize = header.offLevNavTable - extraHeader.offsets[PSX::LevelExtra::N_OXIDE_GHOST];
+			m_oxideGhost.resize(ghostSize);
+			file.read(reinterpret_cast<char*>(m_oxideGhost.data()), ghostSize);
+		}
+	}
+
 	m_loaded = true;
 	file.close();
 	GenerateRenderLevData();
