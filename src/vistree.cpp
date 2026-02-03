@@ -333,7 +333,7 @@ static std::vector<Vec3> GenerateSamplePointLeaf(const std::vector<Quadblock>& q
 	return samples;
 }
 
-float GetLeafDistanceSquared(const BSP& leaf1, const BSP& leaf2)
+static float GetLeafDistanceSquared(const BSP& leaf1, const BSP& leaf2)
 {
 	// Return the closest distance between the BBox of leaf1 and leaf2.
 	// Return 0.0f if they are intersecting, or one is included in the other
@@ -375,118 +375,103 @@ BitMatrix GenerateVisTree(const std::vector<Quadblock>& quadblocks, const BSP* r
 		targetSamples[i] = GenerateSamplePointLeaf(quadblocks, *leaves[i], 0.0f, simpleVisTree);
 	}
 
-	int progress = 0;
+	std::vector<std::vector<uint8_t>> visibilityRows(leaves.size(), std::vector<uint8_t>(leaves.size(), 0));
+	const int64_t totalLeafPairs = static_cast<int64_t>(leafCount) * static_cast<int64_t>(leafCount);
 #pragma omp parallel for
-	for (int leafAIndex = 0; leafAIndex < leafCount; leafAIndex++)
+	for (int64_t pairIndex = 0; pairIndex < totalLeafPairs; pairIndex++)
 	{
-		const size_t leafA = static_cast<size_t>(leafAIndex);
-#pragma omp critical(vistree_progress)
+		const size_t leafA = static_cast<size_t>(pairIndex / leafCount);
+		const size_t leafB = static_cast<size_t>(pairIndex % leafCount);
+
+		bool foundLeafABHit = (leafA == leafB);
+		const std::vector<Vec3>& sampleA = sourceSamples[leafA];
+		const std::vector<Vec3>& sampleB = targetSamples[leafB];
+
+		float distBboxsquared = GetLeafDistanceSquared(*leaves[leafA], *leaves[leafB]);
+		// If minDistance is positive, and bigger than distBbox
+		if (minDistance > -0.0001f && minDistance * minDistance >= distBboxsquared)
 		{
-			progress++;
-			if (progress % 16 == 0 || progress == leafCount)
-			{
-				printf("Prog: %d/%d\n", progress, leafCount);
-			}
+			foundLeafABHit = true;
 		}
 
-		std::vector<uint8_t> rowVisibility(leaves.size(), 0);
-		rowVisibility[leafA] = 1;
-		const std::vector<Vec3>& sampleA = sourceSamples[leafA];
-		for (size_t leafB = 0; leafB < leaves.size(); leafB++)
+		for (const Vec3& pointA : sampleA)
 		{
-			bool foundLeafABHit = false;
-			const std::vector<Vec3>& sampleB = targetSamples[leafB];
+			if (foundLeafABHit) { break; }
 
-			float distBboxsquared = GetLeafDistanceSquared(*leaves[leafA], *leaves[leafB]);
-			// If minDistance is positive, and bigger than distBbox
-			if (minDistance > -0.0001f && minDistance * minDistance >= distBboxsquared)
-			{
-				foundLeafABHit = true;
-			}
-
-			for (const Vec3& pointA : sampleA)
+			for (const Vec3& pointB : sampleB)
 			{
 				if (foundLeafABHit) { break; }
+				Vec3 directionVector = pointB - pointA;
+				if (directionVector.LengthSquared() > maxDistanceSquared) { continue; }
+				directionVector.Normalize();
 
-				for (const Vec3& pointB : sampleB)
+				// Calculate distance range to leafB's bounding box
+				float tmin, tmax;
+				const BoundingBox& bboxB = leaves[leafB]->GetBoundingBox();
+				bool intersect = RayIntersectBoundingBox(pointA, directionVector, bboxB, tmin, tmax);
+				if (!intersect)
 				{
-					if (foundLeafABHit) { break; }
-					Vec3 directionVector = pointB - pointA;
-					if (directionVector.LengthSquared() > maxDistanceSquared) { continue; }
-					directionVector.Normalize();
+					// Weird edge case that shouldn't happen, but still does...
+					continue;
+				}
+				if (tmin < 0.0f)
+				{
+					// We are inside the Bbox.
+					foundLeafABHit = true;
+					break;
+				}
 
-					// Calculate distance range to leafB's bounding box
-					float tmin, tmax;
-					const BoundingBox& bboxB = leaves[leafB]->GetBoundingBox();
-					bool intersect = RayIntersectBoundingBox(pointA, directionVector, bboxB, tmin, tmax);
-					if (!intersect)
+				std::vector<size_t> potentialQuads = GetPotentialQuadblockIndexes(quadblocks, root, pointA, directionVector, leaves[leafB]->GetId(), tmax);
+
+				float closestDist = std::numeric_limits<float>::max();
+				size_t closestLeaf = leafA;
+				bool foundBlockingQuad = false;
+
+				// Single loop: test quads and check for blocking simultaneously
+				for (size_t i = 0; i < potentialQuads.size(); i++)
+				{
+					if (foundBlockingQuad) { break; }
+
+					size_t testQuadIndex = potentialQuads[i];
+					size_t quadLeaf = quadIndexesToLeaves[testQuadIndex];
+
+					float dist = 0.0f;
+					const Quadblock& testQuad = quadblocks[testQuadIndex];
+
+					if (RayIntersectQuadblockTest(pointA, directionVector, testQuad, dist))
 					{
-						// Weird edge case that shouldn't happen, but still does...
-						continue;
-					}
-					if (tmin < 0.0f)
-					{
-						// We are inside the Bbox.
-						foundLeafABHit = true;
-						break;
-					}
-
-					std::vector<size_t> potentialQuads = GetPotentialQuadblockIndexes(quadblocks, root, pointA, directionVector, leaves[leafB]->GetId() , tmax);
-
-					float closestDist = std::numeric_limits<float>::max();
-					size_t closestLeaf = leafA;
-					bool foundBlockingQuad = false;
-
-					// Single loop: test quads and check for blocking simultaneously
-					for (size_t i = 0; i < potentialQuads.size(); i++)
-					{
-						if (foundBlockingQuad)
+						// Early exit check: if quad hits before tmin and is not from leafB, it's blocking
+						if (quadLeaf != leafB && (dist + failsafe < tmin))
 						{
+							foundBlockingQuad = true;
 							break;
 						}
 
-						size_t testQuadIndex = potentialQuads[i];
-						size_t quadLeaf = quadIndexesToLeaves[testQuadIndex];
-
-						float dist = 0.0f;
-						const Quadblock& testQuad = quadblocks[testQuadIndex];
-
-						if (RayIntersectQuadblockTest(pointA, directionVector, testQuad, dist))
+						if (dist - (quadLeaf == leafB ? failsafe : 0.0f) < closestDist - (closestLeaf == leafB ? failsafe : 0.0f))
 						{
-							// Early exit check: if quad hits before tmin and is not from leafB, it's blocking
-							if (quadLeaf != leafB && (dist + failsafe < tmin))
-							{
-								foundBlockingQuad = true;
-								break;
-							}
-
-							if (dist - (quadLeaf == leafB ? failsafe : 0.0f) < closestDist - (closestLeaf == leafB ? failsafe : 0.0f))
-							{
-								closestDist = dist;
-								closestLeaf = quadLeaf;
-							}
+							closestDist = dist;
+							closestLeaf = quadLeaf;
 						}
 					}
-
-					// If we found a blocking quad, skip to next pointB
-					if (foundBlockingQuad)
-					{
-						continue;
-					}
-
-					if (closestLeaf == leafB)
-					{
-						foundLeafABHit = true;
-					}
 				}
-			}
-			if (foundLeafABHit)
-			{
-				rowVisibility[leafB] = 1;
+
+				// If we found a blocking quad, skip to next pointB
+				if (foundBlockingQuad) { continue; }
+
+				if (closestLeaf == leafB) { foundLeafABHit = true; }
 			}
 		}
-		vizMatrix.SetRow(rowVisibility, leafA);
+		if (foundLeafABHit)
+		{
+			visibilityRows[leafA][leafB] = 1;
+		}
 	}
+
+	for (size_t leafA = 0; leafA < leaves.size(); leafA++)
+	{
+		vizMatrix.SetRow(visibilityRows[leafA], leafA);
+	}
+
 	int count = 0;
 	for (size_t leafA = 0; leafA < leaves.size(); leafA++)
 	{
