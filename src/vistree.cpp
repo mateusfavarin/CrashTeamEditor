@@ -94,7 +94,7 @@ static bool WorldspaceRayTriIntersection(const Vec3& worldSpaceRayOrigin, const 
 
 static bool RayIntersectQuadblockTest(const Vec3& worldSpaceRayOrigin, const Vec3& worldSpaceRayDir, const Quadblock& qb, float& dist)
 {
-	std::vector<std::array<size_t, 3>> triFacesID = qb.GetCollTriFacesIndexes();
+	const std::vector<std::array<size_t, 3>>& triFacesID = qb.GetCollTriFacesIndexes();
 	for (const std::array<size_t, 3>&ids : triFacesID)
 	{
 		if (WorldspaceRayTriIntersection(worldSpaceRayOrigin, worldSpaceRayDir, qb.GetTriFace(ids[0], ids[1], ids[2]), dist)) { return true; }

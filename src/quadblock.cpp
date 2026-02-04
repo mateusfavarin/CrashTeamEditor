@@ -449,7 +449,7 @@ Vec3 Quadblock::GetNormal() const
 	return normal;
 }
 
-std::vector<std::array<size_t, 3>> Quadblock::GetCollTriFacesIndexes() const
+const std::vector<std::array<size_t, 3>>& Quadblock::GetCollTriFacesIndexes() const
 {
 	return m_collTriFaces;
 }
