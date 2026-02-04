@@ -775,13 +775,13 @@ bool Level::LoadLEV(const std::filesystem::path& levFile)
 		{
 			PSX::BSPLeaf leaf = {};
 			Read(file, leaf);
-			bspArray[leaf.id]->PopulateLeaf(leaf, bspArray, m_quadblocks, meshInfo.offQuadblocks, meshInfo.offBSPNodes);
+			bspArray[leaf.id]->PopulateLeaf(leaf, bspArray, m_quadblocks, meshInfo.offQuadblocks, meshInfo.numBSPNodes);
 		}
 		else
 		{
 			PSX::BSPBranch branch = {};
 			Read(file, branch);
-			bspArray[branch.id]->PopulateBranch(branch, bspArray, meshInfo.offBSPNodes);
+			bspArray[branch.id]->PopulateBranch(branch, bspArray, meshInfo.numBSPNodes);
 		}
 	}
 
