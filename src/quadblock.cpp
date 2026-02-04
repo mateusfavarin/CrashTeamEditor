@@ -27,7 +27,7 @@ Quadblock::Quadblock(const std::string& name, Tri& t0, Tri& t1, Tri& t2, Tri& t3
 	{
 		throw QuadException(
 			("Unique Vertices: " + std::to_string(uniqueCount) + "/3\n" +
-			 "Shared Vertices: " + std::to_string(sharedCount) + "/3\n")
+				"Shared Vertices: " + std::to_string(sharedCount) + "/3\n")
 		);
 	}
 
@@ -193,11 +193,11 @@ Quadblock::Quadblock(const std::string& name, Tri& t0, Tri& t1, Tri& t2, Tri& t3
 		const Tri* uvt1 = FindTri(m_p[2].m_pos, t0, t1, t2, t3);
 		const Tri* uvt2 = FindTri(m_p[6].m_pos, t0, t1, t2, t3);
 
-		m_uvs[0] = { GetUV(m_p[0].m_pos, *uvt0), GetUV(m_p[1].m_pos, *uvt0), GetUV(m_p[3].m_pos, *uvt0), GetUV(m_p[4].m_pos, *centerTri) };
-		m_uvs[1] = { GetUV(m_p[1].m_pos, *uvt1), GetUV(m_p[2].m_pos, *uvt1), GetUV(m_p[4].m_pos, *uvt1), Vec2() };
-		m_uvs[2] = { GetUV(m_p[3].m_pos, *uvt2), GetUV(m_p[4].m_pos, *uvt2), GetUV(m_p[6].m_pos, *uvt2), Vec2() };
-		m_uvs[3] = { Vec2(), Vec2(), Vec2(), Vec2() };
-		m_uvs[4] = { GetUV(m_p[0].m_pos, *uvt0), GetUV(m_p[2].m_pos, *uvt1), GetUV(m_p[6].m_pos, *uvt2), Vec2() };
+		m_uvs[0] = {GetUV(m_p[0].m_pos, *uvt0), GetUV(m_p[1].m_pos, *uvt0), GetUV(m_p[3].m_pos, *uvt0), GetUV(m_p[4].m_pos, *centerTri)};
+		m_uvs[1] = {GetUV(m_p[1].m_pos, *uvt1), GetUV(m_p[2].m_pos, *uvt1), GetUV(m_p[4].m_pos, *uvt1), Vec2()};
+		m_uvs[2] = {GetUV(m_p[3].m_pos, *uvt2), GetUV(m_p[4].m_pos, *uvt2), GetUV(m_p[6].m_pos, *uvt2), Vec2()};
+		m_uvs[3] = {Vec2(), Vec2(), Vec2(), Vec2()};
+		m_uvs[4] = {GetUV(m_p[0].m_pos, *uvt0), GetUV(m_p[2].m_pos, *uvt1), GetUV(m_p[6].m_pos, *uvt2), Vec2()};
 	}
 	else { ResetUVs(); }
 
@@ -233,8 +233,8 @@ Quadblock::Quadblock(const std::string& name, Quad& q0, Quad& q1, Quad& q2, Quad
 	{
 		throw QuadException(
 			("Unique Vertices: " + std::to_string(uniqueCount) + "/4\n" +
-			"Shared Vertices: " + std::to_string(sharedCount) + "/4\n" +
-			"Center Vertices: " + std::to_string(centerCount) + "/1\n")
+				"Shared Vertices: " + std::to_string(sharedCount) + "/4\n" +
+				"Center Vertices: " + std::to_string(centerCount) + "/1\n")
 		);
 	}
 
@@ -306,7 +306,7 @@ Quadblock::Quadblock(const std::string& name, Quad& q0, Quad& q1, Quad& q2, Quad
 
 	auto FindQuad = [](const Vec3& pos, const Quad& q0, const Quad& q1, const Quad& q2, const Quad& q3) -> const Quad*
 		{
-			const Quad* quads[] = { &q0, &q1, &q2, &q3 };
+			const Quad* quads[] = {&q0, &q1, &q2, &q3};
 			for (size_t i = 0; i < 4; i++)
 			{
 				const Quad* quad = quads[i];
@@ -334,10 +334,10 @@ Quadblock::Quadblock(const std::string& name, Quad& q0, Quad& q1, Quad& q2, Quad
 
 	if (hasUV)
 	{
-		m_uvs[0] = { GetUV(m_p[0].m_pos, *uvq0), GetUV(m_p[1].m_pos, *uvq0), GetUV(m_p[3].m_pos, *uvq0), GetUV(m_p[4].m_pos, *uvq0) };
-		m_uvs[1] = { GetUV(m_p[1].m_pos, *uvq1), GetUV(m_p[2].m_pos, *uvq1), GetUV(m_p[4].m_pos, *uvq1), GetUV(m_p[5].m_pos, *uvq1) };
-		m_uvs[2] = { GetUV(m_p[3].m_pos, *uvq2), GetUV(m_p[4].m_pos, *uvq2), GetUV(m_p[6].m_pos, *uvq2), GetUV(m_p[7].m_pos, *uvq2) };
-		m_uvs[3] = { GetUV(m_p[4].m_pos, *uvq3), GetUV(m_p[5].m_pos, *uvq3), GetUV(m_p[7].m_pos, *uvq3), GetUV(m_p[8].m_pos, *uvq3) };
+		m_uvs[0] = {GetUV(m_p[0].m_pos, *uvq0), GetUV(m_p[1].m_pos, *uvq0), GetUV(m_p[3].m_pos, *uvq0), GetUV(m_p[4].m_pos, *uvq0)};
+		m_uvs[1] = {GetUV(m_p[1].m_pos, *uvq1), GetUV(m_p[2].m_pos, *uvq1), GetUV(m_p[4].m_pos, *uvq1), GetUV(m_p[5].m_pos, *uvq1)};
+		m_uvs[2] = {GetUV(m_p[3].m_pos, *uvq2), GetUV(m_p[4].m_pos, *uvq2), GetUV(m_p[6].m_pos, *uvq2), GetUV(m_p[7].m_pos, *uvq2)};
+		m_uvs[3] = {GetUV(m_p[4].m_pos, *uvq3), GetUV(m_p[5].m_pos, *uvq3), GetUV(m_p[7].m_pos, *uvq3), GetUV(m_p[8].m_pos, *uvq3)};
 
 		float uMin = std::numeric_limits<float>::max(); float vMin = std::numeric_limits<float>::max();
 		float uMax = -std::numeric_limits<float>::max(); float vMax = -std::numeric_limits<float>::max();
@@ -352,7 +352,7 @@ Quadblock::Quadblock(const std::string& name, Quad& q0, Quad& q1, Quad& q2, Quad
 
 		bool indexPicked[4] = {false, false, false, false};
 		bool boundPicked[4] = {false, false, false, false};
-		const QuadUV uvBounds = { Vec2(uMin, vMin), Vec2(uMax, vMin), Vec2(uMin, vMax), Vec2(uMax, vMax)};
+		const QuadUV uvBounds = {Vec2(uMin, vMin), Vec2(uMax, vMin), Vec2(uMin, vMax), Vec2(uMax, vMax)};
 
 		for (size_t indexCount = 0; indexCount < 4; indexCount++)
 		{
@@ -390,7 +390,7 @@ Quadblock::Quadblock(const std::string& name, Quad& q0, Quad& q1, Quad& q2, Quad
 
 Quadblock::Quadblock(const PSX::Quadblock& quadblock, const std::vector<PSX::Vertex>& vertices, UpdateFilterCallback filterCallback)
 {
-	uint16_t reverseIndexMapping[NUM_VERTICES_QUADBLOCK] = { 0, 2, 6, 8, 1, 3, 4, 5, 7 };
+	uint16_t reverseIndexMapping[NUM_VERTICES_QUADBLOCK] = {0, 2, 6, 8, 1, 3, 4, 5, 7};
 	for (size_t i = 0; i < NUM_VERTICES_QUADBLOCK; i++)
 	{
 		uint16_t index = quadblock.index[i];
@@ -449,13 +449,18 @@ Vec3 Quadblock::GetNormal() const
 	return normal;
 }
 
+std::vector<std::array<size_t, 3>> Quadblock::GetCollTriFacesIndexes() const
+{
+	return m_collTriFaces;
+}
+
 std::vector<std::array<size_t, 3>> Quadblock::GetTriFacesIndexes() const
 {
 	// Return a list of (size_t, size_t, size_t) containing vertex ID
 	// of every triface composing the quad, ordered clockwise
 	std::vector<std::array<size_t, 3>> triFaces;
 
-	if (!m_triblock) 
+	if (!m_triblock)
 	{
 		triFaces = {
 			{0, 1, 3},
@@ -468,7 +473,7 @@ std::vector<std::array<size_t, 3>> Quadblock::GetTriFacesIndexes() const
 			{5, 8, 7}
 		};
 	}
-	else 
+	else
 	{
 		triFaces = {
 			{0, 1, 3},
@@ -756,7 +761,7 @@ std::vector<Primitive> Quadblock::ToGeometry(bool filterTriangles, const std::ar
 			{ 3, 4, 6 },
 			{ 1, 4, 3 },
 		};
-		constexpr int triblockQuadIndex[triCount] = { 0, 1, 2, 0 };
+		constexpr int triblockQuadIndex[triCount] = {0, 1, 2, 0};
 		for (int triIndex = 0; triIndex < triCount; triIndex++)
 		{
 			const int quadIndex = triblockQuadIndex[triIndex];
@@ -783,7 +788,7 @@ std::vector<Primitive> Quadblock::ToGeometry(bool filterTriangles, const std::ar
 std::vector<Vertex> Quadblock::GetVertices() const
 {
 	/*                                 0       1       2       3       4       5       6       7       8    */
-	std::vector<Vertex> vertices = { m_p[0], m_p[2], m_p[6], m_p[8], m_p[1], m_p[3], m_p[4], m_p[5], m_p[7] };
+	std::vector<Vertex> vertices = {m_p[0], m_p[2], m_p[6], m_p[8], m_p[1], m_p[3], m_p[4], m_p[5], m_p[7]};
 	return vertices;
 }
 
@@ -894,6 +899,45 @@ void Quadblock::SetDefaultValues()
 		m_faceDrawMode[i] = FaceDrawMode::DRAW_BOTH;
 		m_faceRotateFlip[i] = FaceRotateFlip::NONE;
 	}
+
+	const bool equivalentDiagonal = ((m_p[2].m_pos - m_p[6].m_pos).Length() - ((m_p[2].m_pos - m_p[4].m_pos).Length() + (m_p[4].m_pos - m_p[6].m_pos).Length())) <= EPSILON;
+	if (
+		equivalentDiagonal &&
+		(((m_p[0].m_pos - m_p[2].m_pos).Length() - ((m_p[0].m_pos - m_p[1].m_pos).Length() + (m_p[1].m_pos - m_p[2].m_pos).Length())) <= EPSILON) &&
+		(((m_p[0].m_pos - m_p[6].m_pos).Length() - ((m_p[0].m_pos - m_p[3].m_pos).Length() + (m_p[3].m_pos - m_p[6].m_pos).Length())) <= EPSILON)
+		)
+	{
+		m_collTriFaces = {{0, 2, 6}};
+	}
+	else
+	{
+		m_collTriFaces = {
+			{0, 1, 3},
+			{1, 2, 4},
+			{1, 4, 3},
+			{4, 6, 3}
+		};
+	}
+
+	if (!m_triblock)
+	{
+		if (
+			equivalentDiagonal &&
+			(((m_p[2].m_pos - m_p[8].m_pos).Length() - ((m_p[2].m_pos - m_p[5].m_pos).Length() + (m_p[5].m_pos - m_p[8].m_pos).Length())) <= EPSILON) &&
+			(((m_p[6].m_pos - m_p[8].m_pos).Length() - ((m_p[6].m_pos - m_p[7].m_pos).Length() + (m_p[7].m_pos - m_p[8].m_pos).Length())) <= EPSILON)
+			)
+		{
+			m_collTriFaces.push_back({2, 8, 6});
+		}
+		else
+		{
+			m_collTriFaces.push_back({2, 5, 4});
+			m_collTriFaces.push_back({4, 7, 6});
+			m_collTriFaces.push_back({4, 5, 7});
+			m_collTriFaces.push_back({5, 8, 7});
+		}
+	}
+
 	m_doubleSided = false;
 	m_checkpointPathable = true;
 	m_checkpointStatus = false;
