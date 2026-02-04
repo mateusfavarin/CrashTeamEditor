@@ -20,7 +20,14 @@ public:
 	std::vector<uint8_t> Serialize() const;
 	Color GetColor(bool high) const;
 	std::vector<Primitive> ToGeometry(bool highColor = true) const;
-	inline bool operator==(const Vertex& v) const { return (m_pos == v.m_pos) && (m_flags == v.m_flags) && (m_colorHigh == v.m_colorHigh) && (m_colorLow == v.m_colorLow); };
+	inline bool operator==(const Vertex& v) const {
+		PSX::Vec3 pos1 = ConvertVec3(m_pos, FP_ONE_GEO);
+		PSX::Vec3 pos2 = ConvertVec3(v.m_pos, FP_ONE_GEO);
+		return (pos1.x == pos2.x && pos1.y == pos2.y && pos1.z == pos2.z) &&
+			(m_flags == v.m_flags) &&
+			(m_colorHigh == v.m_colorHigh) &&
+			(m_colorLow == v.m_colorLow);
+	}
 
 public:
 	Vec3 m_pos;
@@ -39,8 +46,11 @@ struct std::hash<Vertex>
 {
 	inline std::size_t operator()(const Vertex& key) const noexcept
 	{
+		PSX::Vec3 pos = ConvertVec3(key.m_pos, FP_ONE_GEO);
 		std::size_t seed = 0;
-		HashCombine(seed, key.m_pos);
+		HashCombine(seed, pos.x);
+		HashCombine(seed, pos.y);
+		HashCombine(seed, pos.z);
 		HashCombine(seed, key.m_flags);
 		HashCombine(seed, key.m_colorHigh);
 		HashCombine(seed, key.m_colorLow);

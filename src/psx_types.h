@@ -373,8 +373,8 @@ static constexpr int16_t FP_ONE = 0x1000;
 static constexpr int16_t FP_ONE_GEO = 64;
 static constexpr int16_t FP_ONE_CP = 8;
 
-static inline int16_t ConvertFloat(float x, int16_t one = FP_ONE) { return static_cast<int16_t>(x * static_cast<float>(one)); };
-static inline int16_t ConvertAngle(float x) { return static_cast<int16_t>((x * static_cast<float>(FP_ONE)) / 360.0f); }
+static inline int16_t ConvertFloat(float x, int16_t one = FP_ONE) { return static_cast<int16_t>(std::round(x * static_cast<float>(one))); };
+static inline int16_t ConvertAngle(float x) { return static_cast<int16_t>(std::round((x * static_cast<float>(FP_ONE)) / 360.0f)); }
 static inline float ConvertFP(int16_t fp, int16_t one = FP_ONE) { return static_cast<float>(fp) / static_cast<float>(one); }
 static inline float ConvertFPAngle(int16_t fp) { return (static_cast<float>(fp) * 360.0f) / static_cast<float>(FP_ONE); }
 
