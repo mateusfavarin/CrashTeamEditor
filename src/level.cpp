@@ -755,6 +755,45 @@ bool Level::LoadLEV(const std::filesystem::path& levFile)
 		m_materialToQuadblocks["default"].push_back(i);
 	}
 
+
+	m_bsp.Clear();
+	file.seekg(offLev + std::streampos(meshInfo.offBSPNodes));
+	std::vector<BSP*> bspArray;
+	for (uint32_t i = 0; i < meshInfo.numBSPNodes; i++)
+	{
+		bspArray.push_back(new BSP());
+	}
+
+	for (uint32_t i = 0; i < meshInfo.numBSPNodes; i++)
+	{
+		uint16_t flag;
+		std::streampos nodeStart = file.tellg();
+		Read(file, flag);
+		file.seekg(nodeStart);
+
+		if (flag & BSPFlags::LEAF)
+		{
+			PSX::BSPLeaf leaf = {};
+			Read(file, leaf);
+			bspArray[leaf.id]->PopulateLeaf(leaf, bspArray, m_quadblocks, meshInfo.offQuadblocks, meshInfo.numBSPNodes);
+		}
+		else
+		{
+			PSX::BSPBranch branch = {};
+			Read(file, branch);
+			bspArray[branch.id]->PopulateBranch(branch, bspArray, meshInfo.numBSPNodes);
+		}
+	}
+
+	if (!bspArray.empty())
+	{
+		m_bsp = *(bspArray[0]);
+		m_bsp.PopulateBranchQuadIndexes();
+		if (m_bsp.IsValid()) { GenerateRenderBspData(); }
+		else { m_bsp.Clear(); }
+	}
+	else { m_bsp.Clear(); }
+
 	file.seekg(offLev + std::streampos(header.offCheckpointNodes));
 	for (uint32_t i = 0; i < header.numCheckpointNodes; i++)
 	{
@@ -763,6 +802,40 @@ bool Level::LoadLEV(const std::filesystem::path& levFile)
 		m_checkpoints.emplace_back(checkpoint, static_cast<int>(i));
 	}
 	UpdateRenderCheckpointData();
+
+	m_tropyGhost.clear();
+	m_oxideGhost.clear();
+	if (header.offExtra > 0)
+	{
+		file.seekg(offLev + std::streampos(header.offExtra));
+		PSX::LevelExtraHeader extraHeader = {};
+		Read(file, extraHeader);
+		// Read N. Tropy Ghost
+		if (extraHeader.count >= PSX::LevelExtra::N_TROPY_GHOST + 1 &&
+			extraHeader.offsets[PSX::LevelExtra::N_TROPY_GHOST] > 0)
+		{
+			file.seekg(offLev + std::streampos(extraHeader.offsets[PSX::LevelExtra::N_TROPY_GHOST]));
+			size_t ghostSize = 0;
+			if (extraHeader.count > PSX::LevelExtra::N_OXIDE_GHOST && extraHeader.offsets[PSX::LevelExtra::N_OXIDE_GHOST] > 0)
+			{
+				ghostSize = extraHeader.offsets[PSX::LevelExtra::N_OXIDE_GHOST] - extraHeader.offsets[PSX::LevelExtra::N_TROPY_GHOST];
+			}
+			else
+			{
+				ghostSize = header.offLevNavTable - extraHeader.offsets[PSX::LevelExtra::N_TROPY_GHOST];
+			}
+			m_tropyGhost.resize(ghostSize);
+			file.read(reinterpret_cast<char*>(m_tropyGhost.data()), ghostSize);
+		}
+		// Read N. Oxide Ghost
+		if (extraHeader.count >= PSX::LevelExtra::N_OXIDE_GHOST + 1 && extraHeader.offsets[PSX::LevelExtra::N_OXIDE_GHOST] > 0)
+		{
+			file.seekg(offLev + std::streampos(extraHeader.offsets[PSX::LevelExtra::N_OXIDE_GHOST]));
+			size_t ghostSize = header.offLevNavTable - extraHeader.offsets[PSX::LevelExtra::N_OXIDE_GHOST];
+			m_oxideGhost.resize(ghostSize);
+			file.read(reinterpret_cast<char*>(m_oxideGhost.data()), ghostSize);
+		}
+	}
 
 	m_loaded = true;
 	file.close();
@@ -1121,6 +1194,7 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	meshInfo.numVertices = static_cast<uint32_t>(serializedVertices.size());
 	meshInfo.offQuadblocks = static_cast<uint32_t>(offQuadblocks);
 	meshInfo.offVertices = static_cast<uint32_t>(offVertices);
+	meshInfo.unk1 = 0;
 	meshInfo.unk2 = 0;
 	meshInfo.offBSPNodes = static_cast<uint32_t>(offBSP);
 	meshInfo.numBSPNodes = static_cast<uint32_t>(serializedBSPs.size());
