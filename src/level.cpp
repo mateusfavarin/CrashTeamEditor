@@ -785,7 +785,7 @@ bool Level::LoadLEV(const std::filesystem::path& levFile)
 		}
 	}
 
-	if (bspArray.size())
+	if (!bspArray.empty())
 	{
 		m_bsp = *(bspArray[0]);
 		m_bsp.PopulateBranchQuadIndexes();
