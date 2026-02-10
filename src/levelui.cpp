@@ -514,6 +514,15 @@ void Level::RenderUI(Renderer& renderer)
 
 				ImGui::TreePop();
 			}
+
+			if (ImGui::TreeNode("Skybox"))
+			{
+				if (m_skyboxConfig.RenderUI())
+				{
+					GenerateRenderSkyboxData();
+				}
+				ImGui::TreePop();
+			}
 		}
 		ImGui::End();
 	}
@@ -943,6 +952,8 @@ void Level::RenderUI(Renderer& renderer)
 					unsigned cpStartPoints = checkboxPair("Show Checkpoints", &GuiRenderSettings::showCheckpoints, "Show Starting Positions", &GuiRenderSettings::showStartpoints);
 					if (cpStartPoints & REND_FLAGS_COLUMN_1) { GenerateRenderStartpointData(); }
 					checkboxPair("Show BSP", &GuiRenderSettings::showBspRectTree, "Show Vis Tree", &GuiRenderSettings::showVisTree);
+					unsigned skyboxRenderChanged = checkboxPair("Show Skybox", &GuiRenderSettings::showSkybox, "", nullptr);
+					if (skyboxRenderChanged & REND_FLAGS_COLUMN_1) { GenerateRenderSkyboxData(); }
 
 					ImGui::EndTable();
 				}

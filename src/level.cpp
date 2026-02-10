@@ -419,6 +419,18 @@ bool Level::LoadPreset(const std::filesystem::path& filename)
 		if (json.contains("skyGradient")) { m_skyGradient = json["skyGradient"]; }
 		if (json.contains("clearColor")) { m_clearColor = json["clearColor"]; }
 		if (json.contains("stars")) { json["stars"].get_to(m_stars); }
+		if (json.contains("skyboxObjPath"))
+		{
+			std::string skyboxPath = json["skyboxObjPath"];
+			if (!skyboxPath.empty())
+			{
+				m_skyboxConfig.enabled = true;
+				if (m_skyboxConfig.LoadOBJ(skyboxPath))
+				{
+					GenerateRenderSkyboxData();
+				}
+			}
+		}
 	}
 	else if (header == PresetHeader::PATH)
 	{
@@ -565,6 +577,7 @@ bool Level::SavePreset(const std::filesystem::path& path)
 	levelJson["skyGradient"] = m_skyGradient;
 	levelJson["clearColor"] = m_clearColor;
 	levelJson["stars"] = m_stars;
+	if (!m_skyboxConfig.objPath.empty()) { levelJson["skyboxObjPath"] = m_skyboxConfig.objPath.string(); }
 	SaveJSON(dirPath / "level.json", levelJson);
 
 	nlohmann::json pathJson = {};
@@ -1182,6 +1195,18 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	const size_t offVisMem = currOffset;
 	currOffset += sizeof(visMem);
 
+	// Skybox data serialization
+	size_t offSkyboxData = 0;
+	std::vector<uint8_t> skyboxData;
+	std::vector<size_t> skyboxPtrMapOffsets;
+
+	if (m_skyboxConfig.IsReady())
+	{
+		offSkyboxData = currOffset;
+		skyboxData = m_skyboxConfig.Serialize(offSkyboxData, skyboxPtrMapOffsets);
+		currOffset += skyboxData.size();
+	}
+
 	const size_t offPointerMap = currOffset;
 
 	header.offMeshInfo = static_cast<uint32_t>(offMeshInfo);
@@ -1206,6 +1231,12 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	header.offVisMem = static_cast<uint32_t>(offVisMem);
 	header.offLevNavTable = static_cast<uint32_t>(offNavHeaders);
 
+	// Set skybox pointer in header if enabled
+	if (m_skyboxConfig.IsReady())
+	{
+		header.offSkybox = static_cast<uint32_t>(offSkyboxData);
+	}
+
 #define CALCULATE_OFFSET(s, m, b) static_cast<uint32_t>(offsetof(s, m) + b)
 
 	std::vector<uint32_t> pointerMap =
@@ -1223,6 +1254,12 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 		CALCULATE_OFFSET(PSX::VisualMem, offQuads[0], offVisMem),
 		CALCULATE_OFFSET(PSX::VisualMem, offBSP[0], offVisMem),
 	};
+
+	// Add skybox header pointer to pointer map
+	if (m_skyboxConfig.IsReady())
+	{
+		pointerMap.push_back(CALCULATE_OFFSET(PSX::LevHeader, offSkybox, offHeader));
+	}
 
 	if (offTropyGhost != 0) { pointerMap.push_back(CALCULATE_OFFSET(PSX::LevelExtraHeader, offsets[PSX::LevelExtra::N_TROPY_GHOST], offExtraHeader)); }
 	if (offOxideGhost != 0) { pointerMap.push_back(CALCULATE_OFFSET(PSX::LevelExtraHeader, offsets[PSX::LevelExtra::N_OXIDE_GHOST], offExtraHeader)); }
@@ -1264,6 +1301,12 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 		offCurrVisibleSet += sizeof(PSX::VisibleSet);
 	}
 
+	// Add skybox internal pointers to pointer map
+	for (size_t offset : skyboxPtrMapOffsets)
+	{
+		pointerMap.push_back(static_cast<uint32_t>(offset));
+	}
+
 	const size_t pointerMapBytes = pointerMap.size() * sizeof(uint32_t);
 
 	Write(file, &offPointerMap, sizeof(uint32_t));
@@ -1299,6 +1342,8 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	Write(file, visMemQuadsP1.data(), visMemQuadsP1.size() * sizeof(uint32_t));
 	Write(file, visMemBSPP1.data(), visMemBSPP1.size() * sizeof(uint32_t));
 	Write(file, &visMem, sizeof(visMem));
+	// Write skybox data if present
+	if (!skyboxData.empty()) { Write(file, skyboxData.data(), skyboxData.size()); }
 	Write(file, &pointerMapBytes, sizeof(uint32_t));
 	Write(file, pointerMap.data(), pointerMapBytes);
 	file.close();
@@ -1836,6 +1881,9 @@ void Level::InitModels(Renderer& renderer)
 
 	m_models[LevelModels::FILTER] = m_models[LevelModels::LEVEL]->AddModel();
 	m_models[LevelModels::FILTER]->SetRenderCondition([]() { return GuiRenderSettings::filterActive; });
+	
+	m_models[LevelModels::SKYBOX] = m_models[LevelModels::LEVEL]->AddModel();
+	m_models[LevelModels::SKYBOX]->SetRenderCondition([]() { return GuiRenderSettings::showSkybox; });
 }
 
 void Level::GenerateRenderLevData()
@@ -2018,6 +2066,96 @@ void Level::GenerateRenderStartpointData()
 	}
 
 	m_models[LevelModels::SPAWN]->GetMesh().SetGeometry(spawnsTriangles, Mesh::RenderFlags::DrawBackfaces | Mesh::RenderFlags::DontOverrideRenderFlags);
+}
+
+void Level::GenerateRenderSkyboxData()
+{
+	if (!m_models[LevelModels::SKYBOX]) { return; }
+
+	if (!m_skyboxConfig.enabled || m_skyboxConfig.vertices.empty() || m_skyboxConfig.faces.empty())
+	{
+		m_models[LevelModels::SKYBOX]->GetMesh().Clear();
+		return;
+	}
+
+	// Calculate level bounds from quadblock bounding boxes
+	BoundingBox levelBounds = {};
+	bool hasBounds = false;
+	for (const Quadblock& qb : m_quadblocks)
+	{
+		const BoundingBox& qbBounds = qb.GetBoundingBox();
+		if (!hasBounds)
+		{
+			levelBounds = qbBounds;
+			hasBounds = true;
+			continue;
+		}
+		levelBounds.min.x = std::min(levelBounds.min.x, qbBounds.min.x);
+		levelBounds.min.y = std::min(levelBounds.min.y, qbBounds.min.y);
+		levelBounds.min.z = std::min(levelBounds.min.z, qbBounds.min.z);
+		levelBounds.max.x = std::max(levelBounds.max.x, qbBounds.max.x);
+		levelBounds.max.y = std::max(levelBounds.max.y, qbBounds.max.y);
+		levelBounds.max.z = std::max(levelBounds.max.z, qbBounds.max.z);
+	}
+
+	const Vec3 levelCenter = hasBounds ? levelBounds.Midpoint() : Vec3();
+	const Vec3 levelAxis = hasBounds ? levelBounds.AxisLength() : Vec3::One();
+	const float levelExtent = std::max(levelAxis.x, std::max(levelAxis.y, levelAxis.z));
+
+	// Calculate skybox local bounds (OBJ space)
+	BoundingBox skyboxBounds = {};
+	bool hasSkyboxBounds = false;
+	for (const SkyboxConfig::SkyboxVertex& v : m_skyboxConfig.vertices)
+	{
+		if (!hasSkyboxBounds)
+		{
+			skyboxBounds.min = v.pos;
+			skyboxBounds.max = v.pos;
+			hasSkyboxBounds = true;
+			continue;
+		}
+		skyboxBounds.min.x = std::min(skyboxBounds.min.x, v.pos.x);
+		skyboxBounds.min.y = std::min(skyboxBounds.min.y, v.pos.y);
+		skyboxBounds.min.z = std::min(skyboxBounds.min.z, v.pos.z);
+		skyboxBounds.max.x = std::max(skyboxBounds.max.x, v.pos.x);
+		skyboxBounds.max.y = std::max(skyboxBounds.max.y, v.pos.y);
+		skyboxBounds.max.z = std::max(skyboxBounds.max.z, v.pos.z);
+	}
+
+	const Vec3 skyboxAxis = hasSkyboxBounds ? (skyboxBounds.max - skyboxBounds.min) : Vec3::One();
+	const float skyboxExtent = std::max(skyboxAxis.x, std::max(skyboxAxis.y, skyboxAxis.z));
+	const float targetExtent = levelExtent * 3.0f;
+	const float skyboxScale = (skyboxExtent > 0.0f) ? (targetExtent / skyboxExtent) : 1.0f;
+
+	std::vector<Primitive> triangles;
+	triangles.reserve(m_skyboxConfig.faces.size());
+
+	for (const SkyboxConfig::SkyboxFace& face : m_skyboxConfig.faces)
+	{
+		if (face.a >= m_skyboxConfig.vertices.size() ||
+			face.b >= m_skyboxConfig.vertices.size() ||
+			face.c >= m_skyboxConfig.vertices.size()) { continue; }
+
+		const SkyboxConfig::SkyboxVertex& va = m_skyboxConfig.vertices[face.a];
+		const SkyboxConfig::SkyboxVertex& vb = m_skyboxConfig.vertices[face.b];
+		const SkyboxConfig::SkyboxVertex& vc = m_skyboxConfig.vertices[face.c];
+
+		// Scale vertex positions relative to level center
+		Vec3 posA = levelCenter + (va.pos * skyboxScale);
+		Vec3 posB = levelCenter + (vb.pos * skyboxScale);
+		Vec3 posC = levelCenter + (vc.pos * skyboxScale);
+
+		Tri tri(
+			Point(posA, Vec3(), va.color),
+			Point(posB, Vec3(), vb.color),
+			Point(posC, Vec3(), vc.color)
+		);
+		triangles.push_back(tri);
+	}
+
+	m_models[LevelModels::SKYBOX]->GetMesh().SetGeometry(triangles, Mesh::RenderFlags::DrawBackfaces | Mesh::RenderFlags::DontOverrideRenderFlags);
+	printf("[Skybox] Generated render data: %zu triangles (scale=%.3f, center=%.1f,%.1f,%.1f)\n",
+		triangles.size(), skyboxScale, levelCenter.x, levelCenter.y, levelCenter.z);
 }
 
 void Level::GenerateRenderSelectedBlockData(const Quadblock& quadblock, const Vec3& queryPoint)
