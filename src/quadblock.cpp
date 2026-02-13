@@ -398,6 +398,8 @@ Quadblock::Quadblock(const PSX::Quadblock& quadblock, const std::vector<PSX::Ver
 		m_p[reverseIndexMapping[i]] = Vertex(vertex);
 	}
 	SetDefaultValues();
+	m_bbox.max = ConvertPSXVec3(quadblock.bbox.max, FP_ONE_GEO);
+	m_bbox.min = ConvertPSXVec3(quadblock.bbox.min, FP_ONE_GEO);
 
 	m_name = "Quadblock " + std::to_string(quadblock.id);
 	m_flags = quadblock.flags;
