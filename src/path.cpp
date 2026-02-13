@@ -263,7 +263,7 @@ std::vector<Checkpoint> Path::GeneratePath(size_t pathStartIndex, std::vector<Qu
 			// Assign to currQuad the closest checkpoint (only if currQuad isn't pathable)
 			float closestDist = std::numeric_limits<float>::max();
 			Vec3 quadCenter = currQuad.GetCenter();
-			for (Checkpoint ckpt : checkpoints)
+			for (const Checkpoint& ckpt : checkpoints)
 			{
 				float dist = (ckpt.GetPos() - quadCenter).Length();
 				if (dist < closestDist)
