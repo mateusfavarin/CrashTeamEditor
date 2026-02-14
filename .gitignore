@@ -44,3 +44,5 @@ CMakeCache.txt
 python_bindings/build
 *.json
 *.ctrmodel
+/python
+/PythonEmbed.props

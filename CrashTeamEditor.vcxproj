@@ -150,9 +150,11 @@
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="PythonEmbed.props" Condition="Exists('PythonEmbed.props')" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+	<Import Project="PythonEmbed.props" Condition="Exists('PythonEmbed.props')" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -225,6 +227,11 @@ if exist "$(PYTHON_EMBED_HOME)\DLLs" xcopy "$(PYTHON_EMBED_HOME)\DLLs\*.dll" "%P
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />
+  <Target Name="PrintPythonPaths" BeforeTargets="ClCompile">
+    <Message Importance="high" Text="PYTHON_EMBED_HOME = '$(PYTHON_EMBED_HOME)'" />
+    <Message Importance="high" Text="PYTHON_HOME = '$(PYTHON_HOME)'" />
+	<Message Importance="high" Text="PYTHON_INCLUDE_DIR = '$(PYTHON_INCLUDE_DIR)'" />
+  </Target>
   <Target Name="AfterClean">
     <ItemGroup>
       <_PythonBundleDirs Include="$(OutDir)python;$(TargetDir)python" />
