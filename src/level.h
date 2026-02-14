@@ -42,6 +42,7 @@ public:
 	bool Save(const std::filesystem::path& path);
 	bool IsLoaded() const;
 	void Clear(bool clearErrors);
+	bool ImportModel(const std::filesystem::path& ctrmodelPath);
 	const std::string& GetName() const;
 	std::vector<Quadblock>& GetQuadblocks();
 	BSP& GetBSP();
@@ -78,6 +79,8 @@ private:
 	bool GenerateBSP();
 
 	void OpenHotReloadWindow();
+	void OpenModelExtractorWindow();
+	void OpenModelImporterWindow();
 	void RenderUI(Renderer& renderer);
 
 	void InitModels(Renderer& renderer);
@@ -96,6 +99,9 @@ private:
 	bool m_saveScript;
 	bool m_showLogWindow;
 	bool m_showHotReloadWindow;
+	bool m_showModelExtractorWindow;
+	bool m_showModelImporterWindow;
+	bool m_showExtractorLogWindow;
 	bool m_loaded;
 	bool m_simpleVisTree;
 	bool m_genVisTree;
@@ -106,11 +112,15 @@ private:
 
 	std::vector<std::tuple<std::string, std::string>> m_invalidQuadblocks;
 	std::string m_logMessage;
+	std::string m_extractorLog;
 	std::string m_name;
 
 	std::filesystem::path m_parentPath;
 	std::filesystem::path m_hotReloadLevPath;
 	std::filesystem::path m_hotReloadVRMPath;
+	std::filesystem::path m_modelExtractorLevPath;
+	std::filesystem::path m_modelExtractorVrmPath;
+	std::filesystem::path m_modelImporterPath;
 
 	std::array<Spawn, NUM_DRIVERS> m_spawn;
 	uint32_t m_configFlags;
@@ -141,8 +151,19 @@ private:
 	MaterialProperty<bool, MaterialType::VISTREE_TRANSPARENT> m_propVisTreeTransparent;
 
 	std::array<Model*, LevelModels::COUNT> m_models;
+	std::vector<Model> m_levelInstancesModels;
 
 	Vec3 m_rendererQueryPoint;
 	std::vector<size_t> m_rendererSelectedQuadblockIndexes;
 	size_t m_lastAnimTextureCount;
+
+	// Imported .ctrmodel data (name -> raw file binary)
+	std::unordered_map<std::string, std::vector<uint8_t>> m_importedModels;
+
+	// Model textures placed in VRAM (filled by UpdateVRM, used by SaveLEV)
+	std::vector<ModelTextureForVRM> m_modelTexturesInVRAM;
+
+	// Hardcoded instances for now (TODO: make dynamic)
+	std::vector<PSX::InstDef> m_modelInstances;
+	std::vector<std::string> m_modelInstanceNames;  // Parallel array: which model each instance uses
 };
