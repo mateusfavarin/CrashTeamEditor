@@ -16,8 +16,10 @@ bool SkyboxConfig::LoadOBJ(const std::filesystem::path& path)
 	std::ifstream file(path);
 	if (!file.is_open()) { return false; }
 
-	std::vector<SkyboxVertex> loadedVertices;
-	std::vector<SkyboxFace> loadedFaces;
+	Clear();
+
+	std::vector<Point> loadedVertices;
+	std::vector<uint16_t> loadedIndices;
 	std::string line;
 
 	while (std::getline(file, line))
@@ -32,7 +34,7 @@ bool SkyboxConfig::LoadOBJ(const std::filesystem::path& path)
 
 		if (prefix == "v")
 		{
-			SkyboxVertex vert;
+			Point vert;
 			iss >> vert.pos.x >> vert.pos.y >> vert.pos.z;
 
 			// OBJ vertex colors: "v x y z r g b" (0.0 - 1.0 float range)
@@ -50,71 +52,57 @@ bool SkyboxConfig::LoadOBJ(const std::filesystem::path& path)
 		else if (prefix == "f")
 		{
 			// Parse face - support "f v", "f v/vt", "f v/vt/vn", "f v//vn"
-			std::vector<uint16_t> faceIndices;
+			// Triangulate directly using fan triangulation (first vertex as pivot)
+			uint16_t firstOffset = 0, prevOffset = 0;
+			int vertexCount = 0;
 			std::string token;
 			while (iss >> token)
 			{
-				int vertexIndex = 0;
 				std::istringstream tokenStream(token);
 				std::string indexStr;
 				std::getline(tokenStream, indexStr, '/');
 				if (indexStr.empty()) { continue; }
-				vertexIndex = std::stoi(indexStr);
-				// OBJ indices are 1-based
-				if (vertexIndex > 0) { faceIndices.push_back(static_cast<uint16_t>(vertexIndex - 1)); }
-				else if (vertexIndex < 0) { faceIndices.push_back(static_cast<uint16_t>(loadedVertices.size() + vertexIndex)); }
-			}
-
-			// Triangulate the face (fan triangulation for polygons)
-			for (size_t i = 2; i < faceIndices.size(); i++)
-			{
-				SkyboxFace face;
-				face.a = faceIndices[0];
-				face.b = faceIndices[i - 1];
-				face.c = faceIndices[i];
-				loadedFaces.push_back(face);
+				int vertexIndex = std::stoi(indexStr);
+				// OBJ indices are 1-based, convert to byte offset
+				if (vertexIndex > 0)
+				{
+					uint16_t offset = static_cast<uint16_t>((vertexIndex - 1) * sizeof(PSX::SkyboxVertex));
+					if (vertexCount == 0) { firstOffset = offset; }
+					else if (vertexCount >= 2)
+					{
+						// Store 4 values per face: 3 byte offsets + padding (0)
+						loadedIndices.push_back(firstOffset);
+						loadedIndices.push_back(prevOffset);
+						loadedIndices.push_back(offset);
+						loadedIndices.push_back(0);
+					}
+					prevOffset = offset;
+					vertexCount++;
+				}
 			}
 		}
 	}
 
-	if (loadedVertices.empty() || loadedFaces.empty()) { return false; }
+	if (loadedVertices.empty() || loadedIndices.empty()) { return false; }
 
-	// Validate face indices
-	bool valid = true;
-	for (const auto& face : loadedFaces)
-	{
-		if (face.a >= loadedVertices.size() || face.b >= loadedVertices.size() || face.c >= loadedVertices.size())
-		{
-			valid = false;
-			break;
-		}
-	}
-	if (!valid)
-	{
-		printf("[Skybox] ERROR: OBJ has face indices out of range (max vertex: %zu)\n", loadedVertices.size());
-		return false;
-	}
-
-	vertices = std::move(loadedVertices);
-	faces = std::move(loadedFaces);
-	objPath = path;
-	printf("[Skybox] Loaded OBJ: %zu vertices, %zu faces from %s\n",
-		vertices.size(), faces.size(), path.filename().string().c_str());
+	m_vertices = std::move(loadedVertices);
+	m_indexBuffer = std::move(loadedIndices);
+	m_objPath = path;
 	return true;
 }
 
-void SkyboxConfig::DistributeFaces(std::vector<std::vector<SkyboxFace>>& segments) const
+void SkyboxConfig::DistributeFaces(std::vector<std::vector<uint16_t>>& segments) const
 {
 	segments.clear();
 	segments.resize(PSX::NUM_SKYBOX_SEGMENTS);
 
-	if (faces.empty() || vertices.empty()) { return; }
+	if (m_indexBuffer.empty() || m_vertices.empty()) { return; }
 
 	// Put all faces in segment 0 for now, basically always render the entire skybox
 	// TODO: implement actual segmentation based on vertex positions or other criteria if needed
 	for (size_t seg = 0; seg < PSX::NUM_SKYBOX_SEGMENTS; seg++)
 	{
-		segments[seg] = faces;
+		segments[seg] = m_indexBuffer;
 	}
 
 	// Distribute faces evenly across segments (this is not perfect)
@@ -134,44 +122,45 @@ void SkyboxConfig::DistributeFaces(std::vector<std::vector<SkyboxFace>>& segment
 
 std::vector<uint8_t> SkyboxConfig::Serialize(size_t baseOffset, std::vector<size_t>& ptrMapOffsets) const
 {
-	std::vector<std::vector<SkyboxFace>> segments;
+	std::vector<std::vector<uint16_t>> segments;
 	DistributeFaces(segments);
 
-	// Layout: [PSX::Skybox header] [SkyboxVertex array] [SkyboxFace arrays per segment]
+	// Layout: [PSX::Skybox header] [SkyboxVertex array] [Face index arrays per segment]
 	const size_t headerSize = sizeof(PSX::Skybox);
-	const size_t vertexDataSize = vertices.size() * sizeof(PSX::SkyboxVertex);
-	size_t totalFaces = 0;
-	for (const auto& seg : segments) { totalFaces += seg.size(); }
-	const size_t faceDataSize = totalFaces * sizeof(PSX::SkyboxFace);
+	const size_t vertexDataSize = m_vertices.size() * sizeof(PSX::SkyboxVertex);
+	size_t totalFaceIndices = 0;
+	for (const auto& seg : segments) { totalFaceIndices += seg.size(); }
+	const size_t faceDataSize = totalFaceIndices * sizeof(uint16_t);
 	const size_t totalSize = headerSize + vertexDataSize + faceDataSize;
 
 	std::vector<uint8_t> buffer(totalSize, 0);
 
 	// Fill header
 	PSX::Skybox header = {};
-	header.numVertex = static_cast<uint32_t>(vertices.size());
+	header.numVertex = static_cast<uint32_t>(m_vertices.size());
 
 	const size_t offVertexData = baseOffset + headerSize;
-	header.ptrVertex = static_cast<uint32_t>(offVertexData);
+	header.offVertex = static_cast<uint32_t>(offVertexData);
 
-	// Register ptrVertex in pointer map
-	ptrMapOffsets.push_back(baseOffset + offsetof(PSX::Skybox, ptrVertex));
+	// Register offVertex in pointer map
+	ptrMapOffsets.push_back(baseOffset + offsetof(PSX::Skybox, offVertex));
 
 	// Calculate face segment offsets
-	// Empty segments get NULL pointers and are NOT registered in the pointer map.
+	// Empty segments get NULL offsets and are NOT registered in the pointer map.
 	size_t offFaceData = offVertexData + vertexDataSize;
 	for (size_t seg = 0; seg < PSX::NUM_SKYBOX_SEGMENTS; seg++)
 	{
-		header.numFaces[seg] = static_cast<int16_t>(segments[seg].size());
-		if (segments[seg].size() > 0)
+		const size_t faceCount = segments[seg].size() / PSX::SKYBOX_FACE_STRIDE;
+		header.numFaces[seg] = static_cast<int16_t>(faceCount);
+		if (faceCount > 0)
 		{
-			header.ptrFaces[seg] = static_cast<uint32_t>(offFaceData);
-			ptrMapOffsets.push_back(baseOffset + offsetof(PSX::Skybox, ptrFaces) + seg * sizeof(uint32_t));
-			offFaceData += segments[seg].size() * sizeof(PSX::SkyboxFace);
+			header.offFaces[seg] = static_cast<uint32_t>(offFaceData);
+			ptrMapOffsets.push_back(baseOffset + offsetof(PSX::Skybox, offFaces) + seg * sizeof(uint32_t));
+			offFaceData += segments[seg].size() * sizeof(uint16_t);
 		}
 		else
 		{
-			header.ptrFaces[seg] = 0; // NULL for empty segments
+			header.offFaces[seg] = 0; // NULL for empty segments
 		}
 	}
 
@@ -180,11 +169,10 @@ std::vector<uint8_t> SkyboxConfig::Serialize(size_t baseOffset, std::vector<size
 
 	// Write vertex data
 	size_t writePos = headerSize;
-	for (const SkyboxVertex& vert : vertices)
+	for (const Point& vert : m_vertices)
 	{
 		PSX::SkyboxVertex psxVert = {};
 		psxVert.pos = ConvertVec3(vert.pos, FP_ONE_GEO);
-		psxVert.pad = 0;
 		psxVert.color.r = vert.color.r;
 		psxVert.color.g = vert.color.g;
 		psxVert.color.b = vert.color.b;
@@ -193,60 +181,98 @@ std::vector<uint8_t> SkyboxConfig::Serialize(size_t baseOffset, std::vector<size
 		writePos += sizeof(PSX::SkyboxVertex);
 	}
 
-	// Write face data per segment
+	// Write face data per segment (indices already contain byte offsets + padding)
 	for (size_t seg = 0; seg < PSX::NUM_SKYBOX_SEGMENTS; seg++)
 	{
-		for (const SkyboxFace& face : segments[seg])
+		const std::vector<uint16_t>& indices = segments[seg];
+		if (!indices.empty())
 		{
-			PSX::SkyboxFace psxFace = {};
-			// A, B, C are byte offsets into vertex array (index * sizeof(SkyboxVertex))
-			psxFace.a = static_cast<uint16_t>(face.a * sizeof(PSX::SkyboxVertex));
-			psxFace.b = static_cast<uint16_t>(face.b * sizeof(PSX::SkyboxVertex));
-			psxFace.c = static_cast<uint16_t>(face.c * sizeof(PSX::SkyboxVertex));
-			psxFace.d = 0;
-			memcpy(&buffer[writePos], &psxFace, sizeof(PSX::SkyboxFace));
-			writePos += sizeof(PSX::SkyboxFace);
+			memcpy(&buffer[writePos], indices.data(), indices.size() * sizeof(uint16_t));
+			writePos += indices.size() * sizeof(uint16_t);
 		}
-	}
-
-	// Diagnostic output
-	printf("[Skybox] Serialized: %zu vertices, %zu faces, %zu bytes at offset 0x%zX\n",
-		vertices.size(), totalFaces, totalSize, baseOffset);
-	printf("[Skybox] ptrVertex: 0x%X\n", header.ptrVertex);
-	for (size_t seg = 0; seg < PSX::NUM_SKYBOX_SEGMENTS; seg++)
-	{
-		printf("[Skybox] segment[%zu]: %d faces, ptrFaces=0x%X\n",
-			seg, header.numFaces[seg], header.ptrFaces[seg]);
 	}
 
 	return buffer;
 }
 
+std::vector<Primitive> SkyboxConfig::ToGeometry(const BoundingBox& levelBounds) const
+{
+	std::vector<Primitive> triangles;
+	if (!IsReady()) { return triangles; }
+
+	const Vec3 levelCenter = levelBounds.Midpoint();
+	const Vec3 levelAxis = levelBounds.AxisLength();
+	const float levelExtent = std::max(levelAxis.x, std::max(levelAxis.y, levelAxis.z));
+
+	// Calculate skybox local bounds (OBJ space)
+	BoundingBox skyboxBounds = {};
+	skyboxBounds.min = m_vertices[0].pos;
+	skyboxBounds.max = m_vertices[0].pos;
+	for (const Point& v : m_vertices)
+	{
+		skyboxBounds.min.x = std::min(skyboxBounds.min.x, v.pos.x);
+		skyboxBounds.min.y = std::min(skyboxBounds.min.y, v.pos.y);
+		skyboxBounds.min.z = std::min(skyboxBounds.min.z, v.pos.z);
+		skyboxBounds.max.x = std::max(skyboxBounds.max.x, v.pos.x);
+		skyboxBounds.max.y = std::max(skyboxBounds.max.y, v.pos.y);
+		skyboxBounds.max.z = std::max(skyboxBounds.max.z, v.pos.z);
+	}
+
+	const Vec3 skyboxAxis = skyboxBounds.max - skyboxBounds.min;
+	const float skyboxExtent = std::max(skyboxAxis.x, std::max(skyboxAxis.y, skyboxAxis.z));
+	const float targetExtent = levelExtent * 3.0f;
+	const float skyboxScale = (skyboxExtent > 0.0f) ? (targetExtent / skyboxExtent) : 1.0f;
+
+	const size_t faceCount = m_indexBuffer.size() / PSX::SKYBOX_FACE_STRIDE;
+	triangles.reserve(faceCount);
+
+	for (size_t i = 0; i < m_indexBuffer.size(); i += PSX::SKYBOX_FACE_STRIDE)
+	{
+		// Convert byte offsets back to vertex indices
+		const size_t idxA = m_indexBuffer[i] / sizeof(PSX::SkyboxVertex);
+		const size_t idxB = m_indexBuffer[i + 1] / sizeof(PSX::SkyboxVertex);
+		const size_t idxC = m_indexBuffer[i + 2] / sizeof(PSX::SkyboxVertex);
+
+		const Point& va = m_vertices[idxA];
+		const Point& vb = m_vertices[idxB];
+		const Point& vc = m_vertices[idxC];
+
+		// Scale vertex positions relative to level center
+		Vec3 posA = levelCenter + (va.pos * skyboxScale);
+		Vec3 posB = levelCenter + (vb.pos * skyboxScale);
+		Vec3 posC = levelCenter + (vc.pos * skyboxScale);
+
+		Tri tri(
+			Point(posA, Vec3(), va.color),
+			Point(posB, Vec3(), vb.color),
+			Point(posC, Vec3(), vc.color)
+		);
+		triangles.push_back(tri);
+	}
+
+	return triangles;
+}
+
 bool SkyboxConfig::IsReady() const
 {
-	return enabled && !vertices.empty() && !faces.empty();
+	return !m_vertices.empty() && !m_indexBuffer.empty();
 }
 
 void SkyboxConfig::Clear()
 {
-	objPath.clear();
-	vertices.clear();
-	faces.clear();
-	enabled = false;
+	m_objPath.clear();
+	m_vertices.clear();
+	m_indexBuffer.clear();
 }
 
 bool SkyboxConfig::RenderUI()
 {
-	bool geometryChanged = false;
-
-	ImGui::Checkbox("Enable Skybox", &enabled);
-
-	if (!enabled) { return false; }
+	bool stateChanged = false;
 
 	ImGui::Separator();
 
 	// OBJ file selection
-	std::string displayPath = objPath.empty() ? "(none)" : objPath.filename().string();
+	std::string displayPath = m_objPath.empty() ? "(none)" : m_objPath.filename().string();
 	ImGui::Text("OBJ File:"); ImGui::SameLine();
 	ImGui::SetNextItemWidth(200.0f);
 	ImGui::BeginDisabled();
@@ -259,47 +285,46 @@ bool SkyboxConfig::RenderUI()
 			{"OBJ Files", "*.obj", "All Files", "*"}).result();
 		if (!selection.empty())
 		{
-			if (LoadOBJ(selection.front())) { geometryChanged = true; }
+			if (LoadOBJ(selection.front()))
+			{
+				stateChanged = true;
+			}
 		}
 	}
 	ImGui::SameLine();
 	if (ImGui::Button("Clear##clearskybox"))
 	{
 		Clear();
-		enabled = true; // keep enabled state after clearing geometry
-		geometryChanged = true;
+		stateChanged = true;
 	}
 
 	// Status display
 	ImGui::Separator();
-	if (!vertices.empty() && !faces.empty())
+	if (IsReady())
 	{
-		ImGui::Text("Vertices: %zu", vertices.size());
-		ImGui::Text("Faces: %zu (triangles)", faces.size());
+		ImGui::Text("Vertices: %zu", m_vertices.size());
+		ImGui::Text("Faces: %zu (triangles)", m_indexBuffer.size() / PSX::SKYBOX_FACE_STRIDE);
 
 		// Show per-segment distribution
-		std::vector<std::vector<SkyboxFace>> segments;
+		std::vector<std::vector<uint16_t>> segments;
 		DistributeFaces(segments);
 		if (ImGui::TreeNode("Segment Distribution"))
 		{
 			for (size_t i = 0; i < PSX::NUM_SKYBOX_SEGMENTS; i++)
 			{
-				ImGui::Text("Segment %zu: %zu faces", i, segments[i].size());
+				ImGui::Text("Segment %zu: %zu faces", i, segments[i].size() / PSX::SKYBOX_FACE_STRIDE);
 			}
 			ImGui::TreePop();
 		}
 
-		if (IsReady())
-		{
-			ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "Skybox ready!");
-		}
+		ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "Skybox ready!");
 	}
-	else if (enabled)
+	else
 	{
 		ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.0f, 1.0f), "No skybox geometry loaded");
 	}
 
 	ImGui::SetItemTooltip("Skyboxes are untextured geometry with vertex colors.\nLoad an OBJ file with vertex colors (v x y z r g b).");
 
-	return geometryChanged;
+	return stateChanged;
 }

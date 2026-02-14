@@ -8,44 +8,34 @@
 #include <cstdint>
 #include <vector>
 
-struct SkyboxConfig
+class SkyboxConfig
 {
-	struct SkyboxVertex
-	{
-		Vec3 pos;
-		Color color;
-	};
-
-	struct SkyboxFace
-	{
-		uint16_t a;
-		uint16_t b;
-		uint16_t c;
-	};
-
+public:
 	// OBJ file path
-	std::filesystem::path objPath;
+	std::filesystem::path m_objPath;
 
 	// Loaded geometry
-	std::vector<SkyboxVertex> vertices;
-	std::vector<SkyboxFace> faces;
-
-	// State
-	bool enabled = false;
+	std::vector<Point> m_vertices;
+	std::vector<uint16_t> m_indexBuffer; // 4 uint16_t per face: 3 byte offsets + padding (0)
 
 	// Load skybox geometry from OBJ file (vertices with vertex colors, triangle faces)
 	bool LoadOBJ(const std::filesystem::path& path);
 
 	// Serialize skybox data to a binary buffer for .lev export
-	// Returns: serialized bytes (Skybox header + vertex array + face arrays)
+	// Returns: serialized bytes (Skybox header + vertex array + face index arrays)
 	// Fills ptrMapOffsets with the file offsets of all pointer fields that need pointer map entries
 	// baseOffset is the file offset where this data block will be written
 	std::vector<uint8_t> Serialize(size_t baseOffset, std::vector<size_t>& ptrMapOffsets) const;
+
+	// Generate render geometry for the skybox, scaled and centered relative to level bounds
+	std::vector<Primitive> ToGeometry(const BoundingBox& levelBounds) const;
 
 	bool IsReady() const;
 	bool RenderUI();
 	void Clear();
 
-	// Get the number of face segments and distribute faces into up to 8 segments
-	void DistributeFaces(std::vector<std::vector<SkyboxFace>>& segments) const;
+private:
+	// Get the number of face segments and distribute indices into up to 8 segments
+	// Each segment contains indices (4 uint16_t per face: 3 byte offsets + padding)
+	void DistributeFaces(std::vector<std::vector<uint16_t>>& segments) const;
 };

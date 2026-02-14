@@ -81,6 +81,7 @@ void Level::Clear(bool clearErrors)
 	m_vrm.clear();
 	m_lastAnimTextureCount = 0;
 	DeleteMaterials(this);
+	m_skyboxConfig.Clear();
 
 	for (Model* model : m_models)
 	{
@@ -424,7 +425,6 @@ bool Level::LoadPreset(const std::filesystem::path& filename)
 			std::string skyboxPath = json["skyboxObjPath"];
 			if (!skyboxPath.empty())
 			{
-				m_skyboxConfig.enabled = true;
 				if (m_skyboxConfig.LoadOBJ(skyboxPath))
 				{
 					GenerateRenderSkyboxData();
@@ -577,7 +577,7 @@ bool Level::SavePreset(const std::filesystem::path& path)
 	levelJson["skyGradient"] = m_skyGradient;
 	levelJson["clearColor"] = m_clearColor;
 	levelJson["stars"] = m_stars;
-	if (!m_skyboxConfig.objPath.empty()) { levelJson["skyboxObjPath"] = m_skyboxConfig.objPath.string(); }
+	if (!m_skyboxConfig.m_objPath.empty()) { levelJson["skyboxObjPath"] = m_skyboxConfig.m_objPath.string(); }
 	SaveJSON(dirPath / "level.json", levelJson);
 
 	nlohmann::json pathJson = {};
@@ -2072,90 +2072,14 @@ void Level::GenerateRenderSkyboxData()
 {
 	if (!m_models[LevelModels::SKYBOX]) { return; }
 
-	if (!m_skyboxConfig.enabled || m_skyboxConfig.vertices.empty() || m_skyboxConfig.faces.empty())
+	if (!m_skyboxConfig.IsReady())
 	{
 		m_models[LevelModels::SKYBOX]->GetMesh().Clear();
 		return;
 	}
 
-	// Calculate level bounds from quadblock bounding boxes
-	BoundingBox levelBounds = {};
-	bool hasBounds = false;
-	for (const Quadblock& qb : m_quadblocks)
-	{
-		const BoundingBox& qbBounds = qb.GetBoundingBox();
-		if (!hasBounds)
-		{
-			levelBounds = qbBounds;
-			hasBounds = true;
-			continue;
-		}
-		levelBounds.min.x = std::min(levelBounds.min.x, qbBounds.min.x);
-		levelBounds.min.y = std::min(levelBounds.min.y, qbBounds.min.y);
-		levelBounds.min.z = std::min(levelBounds.min.z, qbBounds.min.z);
-		levelBounds.max.x = std::max(levelBounds.max.x, qbBounds.max.x);
-		levelBounds.max.y = std::max(levelBounds.max.y, qbBounds.max.y);
-		levelBounds.max.z = std::max(levelBounds.max.z, qbBounds.max.z);
-	}
-
-	const Vec3 levelCenter = hasBounds ? levelBounds.Midpoint() : Vec3();
-	const Vec3 levelAxis = hasBounds ? levelBounds.AxisLength() : Vec3::One();
-	const float levelExtent = std::max(levelAxis.x, std::max(levelAxis.y, levelAxis.z));
-
-	// Calculate skybox local bounds (OBJ space)
-	BoundingBox skyboxBounds = {};
-	bool hasSkyboxBounds = false;
-	for (const SkyboxConfig::SkyboxVertex& v : m_skyboxConfig.vertices)
-	{
-		if (!hasSkyboxBounds)
-		{
-			skyboxBounds.min = v.pos;
-			skyboxBounds.max = v.pos;
-			hasSkyboxBounds = true;
-			continue;
-		}
-		skyboxBounds.min.x = std::min(skyboxBounds.min.x, v.pos.x);
-		skyboxBounds.min.y = std::min(skyboxBounds.min.y, v.pos.y);
-		skyboxBounds.min.z = std::min(skyboxBounds.min.z, v.pos.z);
-		skyboxBounds.max.x = std::max(skyboxBounds.max.x, v.pos.x);
-		skyboxBounds.max.y = std::max(skyboxBounds.max.y, v.pos.y);
-		skyboxBounds.max.z = std::max(skyboxBounds.max.z, v.pos.z);
-	}
-
-	const Vec3 skyboxAxis = hasSkyboxBounds ? (skyboxBounds.max - skyboxBounds.min) : Vec3::One();
-	const float skyboxExtent = std::max(skyboxAxis.x, std::max(skyboxAxis.y, skyboxAxis.z));
-	const float targetExtent = levelExtent * 3.0f;
-	const float skyboxScale = (skyboxExtent > 0.0f) ? (targetExtent / skyboxExtent) : 1.0f;
-
-	std::vector<Primitive> triangles;
-	triangles.reserve(m_skyboxConfig.faces.size());
-
-	for (const SkyboxConfig::SkyboxFace& face : m_skyboxConfig.faces)
-	{
-		if (face.a >= m_skyboxConfig.vertices.size() ||
-			face.b >= m_skyboxConfig.vertices.size() ||
-			face.c >= m_skyboxConfig.vertices.size()) { continue; }
-
-		const SkyboxConfig::SkyboxVertex& va = m_skyboxConfig.vertices[face.a];
-		const SkyboxConfig::SkyboxVertex& vb = m_skyboxConfig.vertices[face.b];
-		const SkyboxConfig::SkyboxVertex& vc = m_skyboxConfig.vertices[face.c];
-
-		// Scale vertex positions relative to level center
-		Vec3 posA = levelCenter + (va.pos * skyboxScale);
-		Vec3 posB = levelCenter + (vb.pos * skyboxScale);
-		Vec3 posC = levelCenter + (vc.pos * skyboxScale);
-
-		Tri tri(
-			Point(posA, Vec3(), va.color),
-			Point(posB, Vec3(), vb.color),
-			Point(posC, Vec3(), vc.color)
-		);
-		triangles.push_back(tri);
-	}
-
+	std::vector<Primitive> triangles = m_skyboxConfig.ToGeometry(m_bsp.GetBoundingBox());
 	m_models[LevelModels::SKYBOX]->GetMesh().SetGeometry(triangles, Mesh::RenderFlags::DrawBackfaces | Mesh::RenderFlags::DontOverrideRenderFlags);
-	printf("[Skybox] Generated render data: %zu triangles (scale=%.3f, center=%.1f,%.1f,%.1f)\n",
-		triangles.size(), skyboxScale, levelCenter.x, levelCenter.y, levelCenter.z);
 }
 
 void Level::GenerateRenderSelectedBlockData(const Quadblock& quadblock, const Vec3& queryPoint)
