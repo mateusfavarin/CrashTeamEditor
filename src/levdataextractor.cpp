@@ -309,6 +309,20 @@ void LevDataExtractor::ExtractModels(void)
 	const uint32_t* modelArray = reinterpret_cast<const uint32_t*>(Deref(levHeader.offModels));
 	Log("\nFound %u models in LEV file\n\n", levHeader.numModels);
 
+	// Build map from model offset -> list of InstDefs that reference that model
+	std::unordered_map<uint32_t, std::vector<const PSX::InstDef*>> modelOffsetToInstances;
+	if (levHeader.numInstances > 0 && levHeader.offModelInstances != 0)
+	{
+		const uint32_t* instPtrArray = reinterpret_cast<const uint32_t*>(Deref(levHeader.offModelInstances));
+		for (uint32_t i = 0; i < levHeader.numInstances; i++)
+		{
+			if (instPtrArray[i] == 0) { break; }
+			const PSX::InstDef* inst = reinterpret_cast<const PSX::InstDef*>(Deref(instPtrArray[i]));
+			modelOffsetToInstances[inst->offModel].push_back(inst);
+		}
+		Log("Found %u instances referencing %zu unique models\n\n", levHeader.numInstances, modelOffsetToInstances.size());
+	}
+
 	for (size_t modelIndex = 0; modelIndex < levHeader.numModels; modelIndex++)
 	{
 		const PSX::Model& model = *reinterpret_cast<const PSX::Model*>(Deref(modelArray[modelIndex]));
@@ -886,6 +900,46 @@ void LevDataExtractor::ExtractModels(void)
 		}
 
 		Log("  [OK] Successfully wrote: %s\n", outputFilePath.string().c_str());
+
+		// Write example InstDef files for this model
+		uint32_t thisModelOffset = modelArray[modelIndex];
+		auto instIt = modelOffsetToInstances.find(thisModelOffset);
+		if (instIt != modelOffsetToInstances.end())
+		{
+			std::string modelName(model.name, strnlen(model.name, sizeof(model.name)));
+			std::filesystem::path examplesDir = outputDir / "examples" / ("example_" + modelName);
+			std::filesystem::create_directories(examplesDir);
+
+			const auto& instances = instIt->second;
+			Log("  Writing %zu example InstDef files\n", instances.size());
+
+			for (size_t i = 0; i < instances.size(); i++)
+			{
+				const PSX::InstDef* inst = instances[i];
+				std::string instName(inst->name, strnlen(inst->name, sizeof(inst->name)));
+				std::string filename = "example_" + instName + "-" + std::to_string(i) + ".txt";
+				std::filesystem::path txtPath = examplesDir / filename;
+
+				std::ofstream txt(txtPath);
+				if (txt)
+				{
+					txt << "InstDef Example: " << instName << "\n";
+					txt << "Model: " << modelName << "\n";
+					txt << "========================================\n";
+					txt << "name            = " << instName << "\n";
+					txt << "modelID         = " << inst->modelID << "\n";
+					txt << "flags           = 0x" << std::hex << inst->flags << std::dec << "\n";
+					txt << "pos             = (" << inst->pos.x << ", " << inst->pos.y << ", " << inst->pos.z << ")\n";
+					txt << "rot             = (" << inst->rot.x << ", " << inst->rot.y << ", " << inst->rot.z << ")\n";
+					txt << "scale           = (" << inst->scale.x << ", " << inst->scale.y << ", " << inst->scale.z << ")\n";
+					txt << "colorRGBA       = 0x" << std::hex << inst->colorRGBA << std::dec << "\n";
+					txt << "unk24           = 0x" << std::hex << inst->unk24 << std::dec << "\n";
+					txt << "unk28           = 0x" << std::hex << inst->unk28 << std::dec << "\n";
+					txt << "maybeScaleMaybePadding = " << inst->maybeScaleMaybePadding << "\n";
+				}
+			}
+		}
+
 		Log("========================================\n\n");
 	}
 
