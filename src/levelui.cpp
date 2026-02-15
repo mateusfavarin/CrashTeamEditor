@@ -357,94 +357,7 @@ void Level::RenderUI(Renderer& renderer)
 		{
 			if (!m_extractorLog.empty())
 			{
-				// Parse and render ANSI color codes line by line
-				const char* text = m_extractorLog.c_str();
-				const char* textEnd = text + m_extractorLog.size();
-
-				while (text < textEnd)
-				{
-					// Find the end of the current line
-					const char* lineEnd = text;
-					while (lineEnd < textEnd && *lineEnd != '\n')
-					{
-						lineEnd++;
-					}
-
-					// Process this line for color codes
-					const char* lineStart = text;
-					ImVec4 currentColor = ImGui::GetStyleColorVec4(ImGuiCol_Text);
-					bool hasColoredText = false;
-
-					while (lineStart < lineEnd)
-					{
-						// Look for ANSI escape sequence
-						const char* escapeStart = lineStart;
-						while (escapeStart < lineEnd && !(escapeStart[0] == '\x1b' && escapeStart + 1 < lineEnd && escapeStart[1] == '['))
-						{
-							escapeStart++;
-						}
-
-						// Print text before escape sequence
-						if (escapeStart > lineStart)
-						{
-							if (hasColoredText)
-							{
-								ImGui::SameLine(0, 0);
-							}
-							ImGui::PushStyleColor(ImGuiCol_Text, currentColor);
-							ImGui::TextUnformatted(lineStart, escapeStart);
-							ImGui::PopStyleColor();
-							hasColoredText = true;
-						}
-
-						if (escapeStart >= lineEnd)
-						{
-							break;
-						}
-
-						// Parse color code
-						const char* colorCode = escapeStart + 2; // Skip "\x1b["
-						if (colorCode < lineEnd)
-						{
-							if (strncmp(colorCode, "32m", 3) == 0) // Green
-							{
-								currentColor = ImVec4(0.0f, 1.0f, 0.0f, 1.0f);
-								lineStart = colorCode + 3;
-							}
-							else if (strncmp(colorCode, "33m", 3) == 0) // Yellow
-							{
-								currentColor = ImVec4(1.0f, 1.0f, 0.0f, 1.0f);
-								lineStart = colorCode + 3;
-							}
-							else if (strncmp(colorCode, "31m", 3) == 0) // Red
-							{
-								currentColor = ImVec4(1.0f, 0.0f, 0.0f, 1.0f);
-								lineStart = colorCode + 3;
-							}
-							else if (strncmp(colorCode, "0m", 2) == 0) // Reset
-							{
-								currentColor = ImGui::GetStyleColorVec4(ImGuiCol_Text);
-								lineStart = colorCode + 2;
-							}
-							else
-							{
-								// Unknown escape sequence, skip it
-								lineStart = escapeStart + 1;
-							}
-						}
-						else
-						{
-							break;
-						}
-					}
-
-					// Move to next line
-					text = lineEnd;
-					if (text < textEnd && *text == '\n')
-					{
-						text++;
-					}
-				}
+				ImGui::TextUnformatted(m_extractorLog.c_str());
 			}
 		}
 		ImGui::End();
@@ -681,31 +594,18 @@ void Level::RenderUI(Renderer& renderer)
 						memcpy(inst.name, nameBuffer, sizeof(inst.name));
 					}
 
-					// Model ID
 					ImGui::InputScalar("Model ID", ImGuiDataType_U32, &inst.modelID, nullptr, nullptr, "%08X", ImGuiInputTextFlags_CharsHexadecimal);
-
-					// Position
 					ImGui::Text("Position"); ImGui::SameLine();
 					ImGui::InputScalarN("##pos", ImGuiDataType_S16, &inst.pos, 3);
-
-					// Rotation
 					ImGui::Text("Rotation"); ImGui::SameLine();
 					ImGui::InputScalarN("##rot", ImGuiDataType_S16, &inst.rot, 3);
-
-					// Scale
 					ImGui::Text("Scale"); ImGui::SameLine();
 					ImGui::InputScalarN("##scale", ImGuiDataType_S16, &inst.scale, 3);
-
-					// Advanced properties
-					if (ImGui::TreeNode("Advanced"))
-					{
-						ImGui::InputScalar("Flags", ImGuiDataType_U32, &inst.flags, nullptr, nullptr, "%08X", ImGuiInputTextFlags_CharsHexadecimal);
-						ImGui::InputScalar("Color RGBA", ImGuiDataType_U32, &inst.colorRGBA, nullptr, nullptr, "%08X", ImGuiInputTextFlags_CharsHexadecimal);
-						ImGui::InputScalar("Maybe Scale/Padding", ImGuiDataType_U16, &inst.maybeScaleMaybePadding);
-						ImGui::InputScalar("Unk24", ImGuiDataType_U32, &inst.unk24);
-						ImGui::InputScalar("Unk28", ImGuiDataType_U32, &inst.unk28);
-						ImGui::TreePop();
-					}
+					ImGui::InputScalar("Flags", ImGuiDataType_U32, &inst.flags, nullptr, nullptr, "%08X", ImGuiInputTextFlags_CharsHexadecimal);
+					ImGui::InputScalar("Color RGBA", ImGuiDataType_U32, &inst.colorRGBA, nullptr, nullptr, "%08X", ImGuiInputTextFlags_CharsHexadecimal);
+					ImGui::InputScalar("Maybe Scale/Padding", ImGuiDataType_U16, &inst.maybeScaleMaybePadding);
+					ImGui::InputScalar("Unk24", ImGuiDataType_U32, &inst.unk24);
+					ImGui::InputScalar("Unk28", ImGuiDataType_U32, &inst.unk28);
 
 					// Delete button
 					if (ImGui::Button("Delete Instance"))

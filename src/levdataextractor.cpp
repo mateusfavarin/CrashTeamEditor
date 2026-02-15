@@ -12,9 +12,6 @@
 #include <stdarg.h>
 #include <algorithm>
 
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "../third_party/stb/stb_image_write.h"
-
 void LevDataExtractor::Log(const char* format, ...)
 {
 	char buffer[4096];
@@ -25,38 +22,11 @@ void LevDataExtractor::Log(const char* format, ...)
 	m_log += buffer;
 }
 
-// PSX color conversion (Duckstation formula)
-uint8_t LevDataExtractor::Convert5To8(uint8_t value)
-{
-	return static_cast<uint8_t>(((value * 527u) + 23u) >> 6);
-}
-
-LevDataExtractor::RGBA8 LevDataExtractor::Convert16ToRGBA(uint16_t color)
-{
-	RGBA8 result;
-	result.r = Convert5To8((color >> 0) & 0x1F);
-	result.g = Convert5To8((color >> 5) & 0x1F);
-	result.b = Convert5To8((color >> 10) & 0x1F);
-
-	// Alpha handling: color 0 is transparent, STP bit affects alpha
-	if (color == 0)
-	{
-		result.a = 0;
-	}
-	else
-	{
-		uint8_t stp = (color >> 15) & 0x1;
-		result.a = stp ? 127 : 255;
-	}
-
-	return result;
-}
-
 void LevDataExtractor::ParseVrmIntoVram(VramBuffer& vram)
 {
 	if (m_vrmData.empty())
 	{
-		Log("%sWARNING%s: VRM data is empty, cannot parse textures\n", ANSI_YELLOW, ANSI_RESET);
+		Log("WARNING: VRM data is empty, cannot parse textures\n");
 		return;
 	}
 
@@ -78,7 +48,7 @@ void LevDataExtractor::ParseVrmIntoVram(VramBuffer& vram)
 
 			if (offset + timSize > m_vrmData.size())
 			{
-				Log("%sWARNING%s: TIM size exceeds VRM file bounds\n", ANSI_YELLOW, ANSI_RESET);
+				Log("WARNING: TIM size exceeds VRM file bounds\n");
 				break;
 			}
 
@@ -87,7 +57,7 @@ void LevDataExtractor::ParseVrmIntoVram(VramBuffer& vram)
 			uint32_t timMagic = *reinterpret_cast<const uint32_t*>(m_vrmData.data() + offset);
 			if (timMagic != 0x10)
 			{
-				Log("%sWARNING%s: Invalid TIM magic: 0x%08X\n", ANSI_YELLOW, ANSI_RESET, timMagic);
+				Log("WARNING: Invalid TIM magic: 0x%08X\n", timMagic);
 				offset += timSize - 4;
 				continue;
 			}
@@ -143,198 +113,7 @@ void LevDataExtractor::ParseVrmIntoVram(VramBuffer& vram)
 	}
 	else
 	{
-		Log("%sWARNING%s: VRM format not recognized (magic: 0x%08X)\n", ANSI_YELLOW, ANSI_RESET, magic);
-	}
-}
-
-void LevDataExtractor::ExtractTexture(const VramBuffer& vram, const PSX::TextureLayout& layout,
-                                      int width, int height, std::vector<RGBA8>& outPixels)
-{
-	// Calculate texture position in VRAM
-	int pageX = layout.texPage.x;
-	int pageY = layout.texPage.y;
-	int bpp = layout.texPage.texpageColors;
-					int blendMode = layout.texPage.blendMode; // 0=4bit, 1=8bit, 2=16bit
-
-	// Determine stretch factor based on bit depth
-	int stretch = (bpp == 0) ? 4 : (bpp == 1) ? 2 : 1;
-
-	// Get UV bounds
-	int minU = std::min({layout.u0, layout.u1, layout.u2, layout.u3});
-	int minV = std::min({layout.v0, layout.v1, layout.v2, layout.v3});
-
-	// Calculate real position in VRAM
-	int realX = pageX * 64 + minU / stretch;
-	int realY = pageY * 256 + minV;
-
-	outPixels.resize(width * height);
-
-	if (bpp == 2) // 16-bit direct color
-	{
-		for (int y = 0; y < height; y++)
-		{
-			for (int x = 0; x < width; x++)
-			{
-				int vramX = realX + x;
-				int vramY = realY + y;
-
-				if (vramX < VRAM_WIDTH && vramY < VRAM_HEIGHT)
-				{
-					uint16_t color = vram.data[vramY * VRAM_WIDTH + vramX];
-					outPixels[y * width + x] = Convert16ToRGBA(color);
-				}
-			}
-		}
-	}
-	else // Indexed color (4-bit or 8-bit)
-	{
-		// Get palette position
-		int palX = layout.clut.x * 16;
-		int palY = layout.clut.y;
-		int palSize = (bpp == 0) ? 16 : 256;
-
-		// Extract palette
-		std::vector<uint16_t> palette(palSize);
-		for (int i = 0; i < palSize; i++)
-		{
-			int px = palX + i;
-			if (px < VRAM_WIDTH && palY < VRAM_HEIGHT)
-			{
-				palette[i] = vram.data[palY * VRAM_WIDTH + px];
-			}
-		}
-
-		// Extract and decode pixels
-		if (bpp == 0) // 4-bit
-		{
-			for (int y = 0; y < height; y++)
-			{
-				for (int x = 0; x < width; x++)
-				{
-					int vramX = realX + x / 4;
-					int vramY = realY + y;
-
-					if (vramX < VRAM_WIDTH && vramY < VRAM_HEIGHT)
-					{
-						uint16_t packed = vram.data[vramY * VRAM_WIDTH + vramX];
-						int shift = (x % 4) * 4;
-						int index = (packed >> shift) & 0xF;
-						outPixels[y * width + x] = Convert16ToRGBA(palette[index]);
-					}
-				}
-			}
-		}
-		else if (bpp == 1) // 8-bit
-		{
-			for (int y = 0; y < height; y++)
-			{
-				for (int x = 0; x < width; x++)
-				{
-					int vramX = realX + x / 2;
-					int vramY = realY + y;
-
-					if (vramX < VRAM_WIDTH && vramY < VRAM_HEIGHT)
-					{
-						uint16_t packed = vram.data[vramY * VRAM_WIDTH + vramX];
-						int shift = (x % 2) * 8;
-						int index = (packed >> shift) & 0xFF;
-						outPixels[y * width + x] = Convert16ToRGBA(palette[index]);
-					}
-				}
-			}
-		}
-	}
-}
-
-void LevDataExtractor::ExtractTextureFromOrigin(const VramBuffer& vram, const PSX::TextureLayout& layout,
-                                                int width, int height, std::vector<RGBA8>& outPixels)
-{
-	// Calculate texture position in VRAM (from origin 0,0 of the texpage)
-	int pageX = layout.texPage.x;
-	int pageY = layout.texPage.y;
-	int bpp = layout.texPage.texpageColors;
-					int blendMode = layout.texPage.blendMode; // 0=4bit, 1=8bit, 2=16bit
-
-	// Real position is just the texpage origin
-	int realX = pageX * 64;
-	int realY = pageY * 256;
-
-	outPixels.resize(width * height);
-
-	if (bpp == 2) // 16-bit direct color
-	{
-		for (int y = 0; y < height; y++)
-		{
-			for (int x = 0; x < width; x++)
-			{
-				int vramX = realX + x;
-				int vramY = realY + y;
-
-				if (vramX >= 0 && vramX < (int)VRAM_WIDTH && vramY >= 0 && vramY < (int)VRAM_HEIGHT)
-				{
-					uint16_t color = vram.data[vramY * VRAM_WIDTH + vramX];
-					outPixels[y * width + x] = Convert16ToRGBA(color);
-				}
-			}
-		}
-	}
-	else // Indexed color (4-bit or 8-bit)
-	{
-		// Get palette position
-		int palX = layout.clut.x * 16;
-		int palY = layout.clut.y;
-		int palSize = (bpp == 0) ? 16 : 256;
-
-		// Extract palette
-		std::vector<uint16_t> palette(palSize);
-		for (int i = 0; i < palSize; i++)
-		{
-			int px = palX + i;
-			if (px >= 0 && px < (int)VRAM_WIDTH && palY >= 0 && palY < (int)VRAM_HEIGHT)
-			{
-				palette[i] = vram.data[palY * VRAM_WIDTH + px];
-			}
-		}
-
-		// Extract and decode pixels
-		if (bpp == 0) // 4-bit
-		{
-			for (int y = 0; y < height; y++)
-			{
-				for (int x = 0; x < width; x++)
-				{
-					int vramX = realX + x / 4;
-					int vramY = realY + y;
-
-					if (vramX >= 0 && vramX < (int)VRAM_WIDTH && vramY >= 0 && vramY < (int)VRAM_HEIGHT)
-					{
-						uint16_t packed = vram.data[vramY * VRAM_WIDTH + vramX];
-						int shift = (x % 4) * 4;
-						int index = (packed >> shift) & 0xF;
-						outPixels[y * width + x] = Convert16ToRGBA(palette[index]);
-					}
-				}
-			}
-		}
-		else if (bpp == 1) // 8-bit
-		{
-			for (int y = 0; y < height; y++)
-			{
-				for (int x = 0; x < width; x++)
-				{
-					int vramX = realX + x / 2;
-					int vramY = realY + y;
-
-					if (vramX >= 0 && vramX < (int)VRAM_WIDTH && vramY >= 0 && vramY < (int)VRAM_HEIGHT)
-					{
-						uint16_t packed = vram.data[vramY * VRAM_WIDTH + vramX];
-						int shift = (x % 2) * 8;
-						int index = (packed >> shift) & 0xFF;
-						outPixels[y * width + x] = Convert16ToRGBA(palette[index]);
-					}
-				}
-			}
-		}
+		Log("WARNING: VRM format not recognized (magic: 0x%08X)\n", magic);
 	}
 }
 
@@ -553,7 +332,7 @@ void LevDataExtractor::ExtractModels(void)
 		std::ofstream outputModelFile(outputFilePath, std::ios::binary);
 		if (!outputModelFile)
 		{
-			Log("  %sERROR%s: Failed to create output file: %s\n", ANSI_RED, ANSI_RESET, outputFilePath.string().c_str());
+			Log("  ERROR: Failed to create output file: %s\n", outputFilePath.string().c_str());
 			continue;
 		}
 
@@ -619,7 +398,7 @@ void LevDataExtractor::ExtractModels(void)
 					modelHeader.offAnimtex != (uint32_t)nullptr
 				 )
 			{
-				Log("    %s[!] SKIPPING:%s Unsupported features detected\n", ANSI_YELLOW, ANSI_RESET);
+				Log("    [!] SKIPPING: Unsupported features detected\n");
 				if (modelHeader.offFrameData == (uint32_t)nullptr) Log("      - No frame data\n");
 				if (modelHeader.numAnimations != 0) Log("      - Has animations (%u)\n", modelHeader.numAnimations);
 				if (modelHeader.offAnimations != (uint32_t)nullptr) Log("      - Has animation data\n");
@@ -632,7 +411,7 @@ void LevDataExtractor::ExtractModels(void)
 				  modelHeader.maybeScaleMaybePadding != 0 ||
 				  modelHeader.unk3 != 0)
 			{
-				Log("    %s[!] SKIPPING:%s Unexpected non-zero fields\n", ANSI_YELLOW, ANSI_RESET);
+				Log("    [!] SKIPPING: Unexpected non-zero fields\n");
 				if (modelHeader.unk1 != 0) Log("      - unk1 = 0x%08X\n", modelHeader.unk1);
 				if (modelHeader.maybeScaleMaybePadding != 0) Log("      - maybeScaleMaybePadding = 0x%04X\n", modelHeader.maybeScaleMaybePadding);
 				if (modelHeader.unk3 != 0) Log("      - unk3 = 0x%08X\n", modelHeader.unk3);
@@ -791,13 +570,9 @@ void LevDataExtractor::ExtractModels(void)
 				currentOffset += texLayoutsSize;
 				modelDataChunks.push_back({ texLayoutsSize, output_TextureLayouts });
 
-				// Extract textures as PNG files (deduplicated by CLUT)
-				std::filesystem::path texOutputDir = outputDir / (std::string(model.name) + "_textures");
-				std::filesystem::create_directories(texOutputDir);
-
 				// Group TextureLayouts using ctr-tools GroupByPalette approach
 				// Groups by PageX_PageY_PalX_PalY, then finds max bounding rect
-				std::unordered_map<std::string, SH::TextureGroup> textureGroups;
+				std::unordered_map<std::string, SH::TextureExtractionGroup> textureGroups;
 
 				for (size_t i = 0; i < numTexLayouts; i++)
 				{
@@ -822,7 +597,6 @@ void LevDataExtractor::ExtractModels(void)
 
 					if (textureGroups.find(key) == textureGroups.end())
 					{
-						textureGroups[key].representativeLayout = layout;
 						textureGroups[key].pageX = pageX;
 						textureGroups[key].pageY = pageY;
 						textureGroups[key].palX = palX;
@@ -880,22 +654,10 @@ void LevDataExtractor::ExtractModels(void)
 
 						Log("      Texture %zu: %dx%d at VRAM(%d,%d), CLUT(%d,%d), %s (from %zu layouts)\n",
 						    textureIndex, width, height, realX, realY, group.palX * 16, group.palY, bppStr, group.layoutIndices.size());
-
-						// Also save as PNG for debugging
-						std::vector<RGBA8> pixels;
-						PSX::TextureLayout combinedLayout = group.representativeLayout;
-						combinedLayout.u0 = group.minU; combinedLayout.v0 = group.minV;
-						combinedLayout.u1 = group.maxU; combinedLayout.v1 = group.minV;
-						combinedLayout.u2 = group.minU; combinedLayout.v2 = group.maxV;
-						combinedLayout.u3 = group.maxU; combinedLayout.v3 = group.maxV;
-						ExtractTexture(vram, combinedLayout, width, height, pixels);
-						std::string texFilename = "tex_" + key + ".png";
-						std::filesystem::path texPath = texOutputDir / texFilename;
-						stbi_write_png(texPath.string().c_str(), width, height, 4, pixels.data(), width * 4);
 					}
 					else
 					{
-						Log("      %sWARNING%s: Invalid texture dimensions %dx%d, skipping\n", ANSI_YELLOW, ANSI_RESET, width, height);
+						Log("      WARNING: Invalid texture dimensions %dx%d, skipping\n", width, height);
 						continue;
 					}
 
@@ -1090,7 +852,7 @@ void LevDataExtractor::ExtractModels(void)
 		if (!isSupportedByCurrentTechnology)
 		{
 			// All model headers were unsupported, clean up and skip file creation
-			Log("\n  %s[SKIPPED]%s All model headers are unsupported, file not created\n", ANSI_YELLOW, ANSI_RESET);
+			Log("\n  [SKIPPED] All model headers are unsupported, file not created\n");
 
 			// Free all allocated memory
 			for (const SH::WriteableObject& chunk : modelDataChunks)
@@ -1106,15 +868,15 @@ void LevDataExtractor::ExtractModels(void)
 			continue;
 		}
 
-		Log("\n  %s[OK]%s Extraction complete\n", ANSI_GREEN, ANSI_RESET);
+		Log("\n  [OK] Extraction complete\n");
 		Log("  Final file size: 0x%zx (%zu bytes)\n", currentOffset, currentOffset);
 		if (currentOffset % 4 == 0)
 		{
-			Log("  Alignment: %s[OK]%s 4-byte aligned\n", ANSI_GREEN, ANSI_RESET);
+			Log("  Alignment: [OK] 4-byte aligned\n");
 		}
 		else
 		{
-			Log("  Alignment: %s[X]%s NOT 4-byte aligned\n", ANSI_RED, ANSI_RESET);
+			Log("  Alignment: [X] NOT 4-byte aligned\n");
 		}
 
 		for (const SH::WriteableObject& chunk : modelDataChunks)
@@ -1123,7 +885,7 @@ void LevDataExtractor::ExtractModels(void)
 			free(chunk.data);
 		}
 
-		Log("  %s[OK]%s Successfully wrote: %s\n", ANSI_GREEN, ANSI_RESET, outputFilePath.string().c_str());
+		Log("  [OK] Successfully wrote: %s\n", outputFilePath.string().c_str());
 		Log("========================================\n\n");
 	}
 

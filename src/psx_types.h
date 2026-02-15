@@ -166,13 +166,13 @@ namespace PSX
 		uint32_t offMeshInfo; // 0x0
 		uint32_t offSkybox; // 0x4
 		uint32_t offAnimTex; // 0x8
-		uint32_t numInstances; // 0xC ////////////0x42
-		uint32_t offInstances; // 0x10 ////////////0x690 ~~~~~PATCH_ME~~~~~ //ptr to an actual instdef
-		uint32_t numModels; // 0x14 ////////////0xF
-		uint32_t offModels; // 0x18 ////////////0x1710 ~~~~~PATCH_ME~~~~~ //ptr to an array of ptrs to models
+		uint32_t numInstances; // 0xC
+		uint32_t offInstances; // 0x10
+		uint32_t numModels; // 0x14
+		uint32_t offModels; // 0x18
 		uint32_t offUnk_0x1C; // 0x1C //ptr to a region of 160 0xff's
 		uint32_t offUnk_0x20; // 0x20 //ptr to a region of 68 0xff's
-		uint32_t offModelInstances; // 0x24 ////////////0x5A90C ~~~~~PATCH_ME~~~~~ //ptr to an array of pts to instdefs
+		uint32_t offModelInstances; // 0x24
 		uint32_t offUnk_0x28; // 0x28
 		uint32_t null_0x2C; // 0x2C
 		uint32_t null_0x30; // 0x30
@@ -203,7 +203,7 @@ namespace PSX
 		uint8_t unk_0x150[0x10]; // 0x150 // 0x10 0x0's
 		PSX::Color gradientClear[3]; // 0x160
 		uint32_t unk_0x16C; // 0x16C // 0x0
-		uint32_t unk_0x170; // 0x170 //ptr to a region of unknown length (probably 0x4) of 0xff's
+		uint32_t unk_0x170; // 0x170 //ptr to a region of 4 0xff's
 		uint32_t numSCVertices; // 0x174
 		uint32_t offSCVertices; // 0x178
 		Stars stars; // 0x17C
@@ -217,36 +217,36 @@ namespace PSX
 	struct InstDef
 	{
 		// 0
-		char name[0x10]; //cactus_saguro#2
+		char name[0x10];
 
 		// 0x10 (0x18 - 8)
-		uint32_t offModel; //offset 0x00064534 ~~~~~PATCH_ME~~~~~ (struct Model*)
+		uint32_t offModel;
 
 		// 0x14 (0x1c - 8)
-		Vec3 scale; //0x1000 0x1000 0x1000
+		Vec3 scale;
 
-		int16_t maybeScaleMaybePadding; //0x0
+		int16_t maybeScaleMaybePadding;
 
 		// 0x1c (0x24 - 8)
-		uint32_t colorRGBA; //0x0
+		uint32_t colorRGBA;
 
 		// 0x20 (0x28 - 8)
-		uint32_t flags; //0x0000000B
+		uint32_t flags;
 
-		uint32_t unk24; //0x0
-		uint32_t unk28; //0x0
+		uint32_t unk24;
+		uint32_t unk28;
 
 		// 0x2c
-		uint32_t offInstance; //0x0 (filled in at runtime)
+		uint32_t offInstance;
 
 		// 0x30
-		Vec3 pos; //0x0C2D 0x0900 0xED86
+		Vec3 pos;
 
 		// 0x36
-		Vec3 rot; //0x0000 0xFF94 0x0000
+		Vec3 rot;
 
 		// 0x3c
-		int32_t modelID; //0xFFFFFFFF
+		int32_t modelID;
 
 		// 0x40 -- struct size
 	};
@@ -256,17 +256,17 @@ namespace PSX
 		// name of model group
 		// "oxide" for example
 		// 0x0
-		char name[0x10]; //cactus_saguro
+		char name[0x10];
 
 		// index of 2160 array
 		// 0x10
-		int16_t id; //0xFFFF
+		int16_t id;
 
 		// 0x12
-		uint16_t numHeaders; //0x0001
+		uint16_t numHeaders;
 
 		// 0x14
-		uint32_t offHeaders; //0x0006454C ~~~~~PATCH_ME~~~~~ (struct ModelHeader)
+		uint32_t offHeaders;
 	};
 
 	struct ModelHeader
@@ -274,55 +274,54 @@ namespace PSX
 		// name of individual model LOD,
 		// "oxide_hi" for example
 		// 0x0
-		char name[0x10]; //cactus_saguro_h
+		char name[0x10];
 
 		// 0x10
-		uint32_t unk1; //0x0
+		uint32_t unk1;
 
 		// 0x14
-		uint16_t maxDistanceLOD; //0x2000
+		uint16_t maxDistanceLOD;
 
 		// 0x16
 		// 0x0 - normal 3D model
 		// 0x1 - always point north
-		// 0x2 - always point to camera (warppad numbers)
-		uint16_t flags; //0x0000
+		// 0x2 - always point to camera (a.k.a. billboarding) (warppad numbers)
+		uint16_t flags;
 
 		// 0x18
-		Vec3 scale; //0x271E 0x2B3B 0x0E5E
+		Vec3 scale;
 
-		int16_t maybeScaleMaybePadding; //0x0
+		int16_t maybeScaleMaybePadding; // usually 0x0
 
 		// 0x20
-		uint32_t offCommandList; //0x000645AC ~~~~~PATCH_ME~~~~~
+		uint32_t offCommandList;
 
 		// 0x24
 		// null if there are animations
-		uint32_t offFrameData; //0x0006470C ~~~~~PATCH_ME~~~~~ (struct ModelFrame)
+		uint32_t offFrameData;
 
 		// 0x28
-		uint32_t offTexLayout; // same as LEV ~~~~~PATCH_ME~~~~~ //0x000647AC
+		uint32_t offTexLayout; // usually same as LEV in vanilla
 
 		// 0x2C
-		uint32_t offColors; // CLUT = color lookup table ~~~~~PATCH_ME~~~~~ //0x000648CC
+		uint32_t offColors; // CLUT = color lookup table
 
 		// 0x30
 		// same as anim->0x14
-		uint32_t unk3; //0x0
+		uint32_t unk3;
 
 		// 0x34
-		uint32_t numAnimations; //0x0
+		uint32_t numAnimations;
 
 		// 0x38
-		uint32_t offAnimations; //0x0
+		uint32_t offAnimations;
 
 		// 0x3C
-		uint32_t offAnimtex; //0x0
+		uint32_t offAnimtex;
 	};
 
 	//see https://github.com/CTR-tools/CTR-tools/blob/master/formats/txt_ctr.txt
 	// Format: slndkv?? iiiiiiii ccccccct tttttttt (bits 31->0, MSB->LSB)
-	// On little-endian (x86/x64), bitfields pack from bit 0 upward, so declare in REVERSE order:
 	struct InstDrawCommand
 	{
 		union {
@@ -330,11 +329,11 @@ namespace PSX
 			struct {
 				uint32_t texCoordIndex : 9;                      // bits 0-8   (t: tex coord index, 0=no texture)
 				uint32_t colorCoordIndex : 7;                    // bits 9-15  (c: color coord index)
-				uint32_t stackWriteLocationIndex : 8;           // bits 16-23 (i: stack index)
+				uint32_t stackWriteLocationIndex : 8;            // bits 16-23 (i: stack index)
 				uint32_t unk2 : 1;                               // bit 24     (?: unknown)
 				uint32_t unk1 : 1;                               // bit 25     (?: unknown)
-				uint32_t readNextVertFromStackIndexFlag : 1;    // bit 26     (v: read from stack vs array)
-				uint32_t colorFromScratchpadOrRamFlag : 1;      // bit 27     (k: scratchpad vs ram)
+				uint32_t readNextVertFromStackIndexFlag : 1;     // bit 26     (v: read from stack vs array)
+				uint32_t colorFromScratchpadOrRamFlag : 1;       // bit 27     (k: scratchpad vs ram)
 				uint32_t noBackfaceFlag : 1;                     // bit 28     (d: cull backface)
 				uint32_t normalFlipFlag : 1;                     // bit 29     (n: flip normal)
 				uint32_t swapFlag : 1;                           // bit 30     (l: swap 1st vertex)
@@ -346,12 +345,10 @@ namespace PSX
 	struct ModelFrame
 	{
 		// origin
-		Vec3 pos; //0xFF65 0x0000 0xFF7E
-		int16_t maybePosMaybePadding; //0x0
-		char unk16[16]; //sixteen 0x0
-		int vertexOffset; // always 0x1C //0x0000001C
-
-		//char verts[0];
+		Vec3 pos;
+		int16_t maybePosMaybePadding; // usually 0x0
+		char unk16[16]; // sixteen 0x0
+		int vertexOffset; // usually 0x1C
 	};
 
 	struct MeshInfo
