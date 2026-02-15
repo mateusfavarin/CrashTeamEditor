@@ -117,6 +117,7 @@ public:
 	const std::string& GetName() const;
 	Vec3 GetCenter() const;
 	Vec3 GetNormal() const;
+	const std::vector<std::array<size_t, 3>>& GetCollTriFacesIndexes() const;
 	std::vector<std::array<size_t, 3>> GetTriFacesIndexes() const;
 	std::array<Vec3, 3> GetTriFace(size_t id0, size_t id1, size_t id2) const;
 	uint8_t GetTerrain() const;
@@ -205,6 +206,7 @@ private:
 	size_t m_turboPadIndex;
 	Color m_filterColor;
 	mutable size_t m_bspID;
+	std::vector<std::array<size_t, 3>> m_collTriFaces;
 	std::array<QuadUV, NUM_FACES_QUADBLOCK + 1> m_uvs; /* Last id is reserved for low tex */
 	std::array<size_t, NUM_FACES_QUADBLOCK + 1> m_textureIDs = { 0, 0, 0, 0, 0 };
 	std::array<size_t, NUM_FACES_QUADBLOCK + 1> m_animTexOffset = {0, 0, 0, 0, 0};
