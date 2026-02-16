@@ -1107,6 +1107,11 @@ void Level::RenderUI(Renderer& renderer)
 				if (!selection.empty())
 				{
 					Windows::lastOpenedScriptFolder = std::filesystem::path(selection.front()).parent_path().string();
+					std::string pathError;
+					if (!Script::AppendPythonPath(std::filesystem::path(selection.front()).parent_path(), pathError))
+					{
+						printf(pathError.c_str());
+					}
 					std::ifstream input(selection.front(), std::ios::binary);
 					if (input)
 					{
