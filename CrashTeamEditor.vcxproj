@@ -31,6 +31,7 @@
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\simple_level_instances.cpp" />
     <ClCompile Include="src\animtexture.cpp" />
     <ClCompile Include="src\shader_templates.cpp" />
     <ClCompile Include="src\gui_render_settings.cpp" />
@@ -47,6 +48,7 @@
     <ClCompile Include="src\geo.cpp" />
     <ClCompile Include="src\io.cpp" />
     <ClCompile Include="src\level.cpp" />
+    <ClCompile Include="src\levdataextractor.cpp" />
     <ClCompile Include="src\levelui.cpp" />
     <ClCompile Include="src\script.cpp" />
     <ClCompile Include="src\main.cpp" />
@@ -72,6 +74,7 @@
     <ClCompile Include="src\manual_third_party\glad.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\simple_level_instances.h" />
     <ClInclude Include="src\animtexture.h" />
     <ClInclude Include="src\script.h" />
     <ClInclude Include="src\shader_templates.h" />
@@ -91,6 +94,7 @@
     <ClInclude Include="src\io.h" />
     <ClInclude Include="src\lev.h" />
     <ClInclude Include="src\level.h" />
+    <ClInclude Include="src\levdataextractor.h" />
     <ClInclude Include="src\material.h" />
     <ClInclude Include="src\path.h" />
     <ClInclude Include="src\process.h" />
@@ -103,6 +107,11 @@
     <ClInclude Include="src\vistree.h" />
     <ClCompile Include="src\manual_third_party\khrplatform.h" />
     <ClCompile Include="src\manual_third_party\glad.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <CopyFileToFolders Include="level_instances_assets\**">
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
+    </CopyFileToFolders>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
@@ -141,9 +150,11 @@
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="PythonEmbed.props" Condition="Exists('PythonEmbed.props')" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+	<Import Project="PythonEmbed.props" Condition="Exists('PythonEmbed.props')" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -216,6 +227,11 @@ if exist "$(PYTHON_EMBED_HOME)\DLLs" xcopy "$(PYTHON_EMBED_HOME)\DLLs\*.dll" "%P
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />
+  <Target Name="PrintPythonPaths" BeforeTargets="ClCompile">
+    <Message Importance="high" Text="PYTHON_EMBED_HOME = '$(PYTHON_EMBED_HOME)'" />
+    <Message Importance="high" Text="PYTHON_HOME = '$(PYTHON_HOME)'" />
+	<Message Importance="high" Text="PYTHON_INCLUDE_DIR = '$(PYTHON_INCLUDE_DIR)'" />
+  </Target>
   <Target Name="AfterClean">
     <ItemGroup>
       <_PythonBundleDirs Include="$(OutDir)python;$(TargetDir)python" />
