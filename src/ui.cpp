@@ -25,6 +25,7 @@ bool Windows::w_renderer = false;
 bool Windows::w_ghost = false;
 bool Windows::w_python = false;
 std::string Windows::lastOpenedFolder = ".";
+std::string Windows::lastOpenedScriptFolder = ".";
 
 UI::UI() : m_rend(Windows::w_width, Windows::w_height)
 {

@@ -22,6 +22,7 @@ struct Windows
 	static bool w_ghost;
 	static bool w_python;
 	static std::string lastOpenedFolder;
+	static std::string lastOpenedScriptFolder;
 };
 
 class UI
