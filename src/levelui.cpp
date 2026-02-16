@@ -1102,8 +1102,7 @@ void Level::RenderUI(Renderer& renderer)
 			ImGui::SameLine();
 			if (ImGui::Button("Open .py"))
 			{
-				std::string initialPath = Windows::lastOpenedScriptFolder.empty() ? m_parentPath.string() : Windows::lastOpenedScriptFolder;
-				auto selection = pfd::open_file("Open Python Script", initialPath, {"Python Files", "*.py"}, pfd::opt::force_path).result();
+				auto selection = pfd::open_file("Open Python Script", Windows::lastOpenedScriptFolder, {"Python Files", "*.py"}, pfd::opt::force_path).result();
 				if (!selection.empty())
 				{
 					Windows::lastOpenedScriptFolder = std::filesystem::path(selection.front()).parent_path().string();
