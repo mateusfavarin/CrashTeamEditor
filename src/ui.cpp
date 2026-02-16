@@ -9,24 +9,25 @@
 #include <cmath>
 #include <filesystem>
 
-int Windows::w_width = 1024;
-int Windows::w_height = 768;
-int Windows::w_x = 50;
-int Windows::w_y = 50;
-bool Windows::w_maximized = false;
-bool Windows::w_spawn = false;
-bool Windows::w_level = false;
-bool Windows::w_material = false;
-bool Windows::w_animtex = false;
-bool Windows::w_quadblocks = false;
-bool Windows::w_checkpoints = false;
-bool Windows::w_bsp = false;
-bool Windows::w_renderer = false;
-bool Windows::w_ghost = false;
-bool Windows::w_python = false;
-std::string Windows::lastOpenedFolder = ".";
+int Settings::w_width = 1024;
+int Settings::w_height = 768;
+int Settings::w_x = 50;
+int Settings::w_y = 50;
+bool Settings::w_maximized = false;
+bool Settings::w_spawn = false;
+bool Settings::w_level = false;
+bool Settings::w_material = false;
+bool Settings::w_animtex = false;
+bool Settings::w_quadblocks = false;
+bool Settings::w_checkpoints = false;
+bool Settings::w_bsp = false;
+bool Settings::w_renderer = false;
+bool Settings::w_ghost = false;
+bool Settings::w_python = false;
+std::string Settings::m_lastOpenedFolder = ".";
+std::string Settings::m_lastOpenedScriptFolder = ".";
 
-UI::UI() : m_rend(Windows::w_width, Windows::w_height)
+UI::UI() : m_rend(Settings::w_width, Settings::w_height)
 {
 	m_lev.InitModels(m_rend);
 }
@@ -46,11 +47,11 @@ void UI::MainMenu()
 		{
 			if (ImGui::MenuItem("Open"))
 			{
-				auto selection = pfd::open_file("Level File", Windows::lastOpenedFolder, {"Level Files", "*.obj *.lev"}, pfd::opt::force_path).result();
+				auto selection = pfd::open_file("Level File", Settings::m_lastOpenedFolder, {"Level Files", "*.obj *.lev"}, pfd::opt::force_path).result();
 				if (!selection.empty())
 				{
 					const std::filesystem::path levPath = selection.front();
-					Windows::lastOpenedFolder = levPath.string();
+					Settings::m_lastOpenedFolder = levPath.string();
 					if (!m_lev.Load(levPath)) { m_lev.Clear(false); }
 					else { m_rend.SetCameraToLevelSpawn(m_lev.m_spawn[1].pos, m_lev.m_spawn[1].rot); }
 				}

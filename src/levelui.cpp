@@ -408,22 +408,22 @@ void Level::RenderUI(Renderer& renderer)
 
 	if (ImGui::BeginMainMenuBar())
 	{
-		if (ImGui::MenuItem("Spawn")) { Windows::w_spawn = !Windows::w_spawn; }
-		if (ImGui::MenuItem("Level")) { Windows::w_level = !Windows::w_level; }
-		if (!m_materialToQuadblocks.empty() && ImGui::MenuItem("Material")) { Windows::w_material = !Windows::w_material; }
-		if (ImGui::MenuItem("Anim Tex")) { Windows::w_animtex = !Windows::w_animtex; }
-		if (ImGui::MenuItem("Quadblocks")) { Windows::w_quadblocks = !Windows::w_quadblocks; }
-		if (ImGui::MenuItem("Checkpoints")) { Windows::w_checkpoints = !Windows::w_checkpoints; }
-		if (ImGui::MenuItem("BSP Tree")) { Windows::w_bsp = !Windows::w_bsp; }
-		if (ImGui::MenuItem("Renderer")) { Windows::w_renderer = !Windows::w_renderer; }
-		if (ImGui::MenuItem("Ghosts")) { Windows::w_ghost = !Windows::w_ghost; }
-		if (ImGui::MenuItem("Python")) { Windows::w_python = !Windows::w_python; }
+		if (ImGui::MenuItem("Spawn")) { Settings::w_spawn = !Settings::w_spawn; }
+		if (ImGui::MenuItem("Level")) { Settings::w_level = !Settings::w_level; }
+		if (!m_materialToQuadblocks.empty() && ImGui::MenuItem("Material")) { Settings::w_material = !Settings::w_material; }
+		if (ImGui::MenuItem("Anim Tex")) { Settings::w_animtex = !Settings::w_animtex; }
+		if (ImGui::MenuItem("Quadblocks")) { Settings::w_quadblocks = !Settings::w_quadblocks; }
+		if (ImGui::MenuItem("Checkpoints")) { Settings::w_checkpoints = !Settings::w_checkpoints; }
+		if (ImGui::MenuItem("BSP Tree")) { Settings::w_bsp = !Settings::w_bsp; }
+		if (ImGui::MenuItem("Renderer")) { Settings::w_renderer = !Settings::w_renderer; }
+		if (ImGui::MenuItem("Ghosts")) { Settings::w_ghost = !Settings::w_ghost; }
+		if (ImGui::MenuItem("Python")) { Settings::w_python = !Settings::w_python; }
 		ImGui::EndMainMenuBar();
 	}
 
-	if (Windows::w_spawn)
+	if (Settings::w_spawn)
 	{
-		if (ImGui::Begin("Spawn", &Windows::w_spawn))
+		if (ImGui::Begin("Spawn", &Settings::w_spawn))
 		{
 			for (size_t i = 0; i < NUM_DRIVERS; i++)
 			{
@@ -453,9 +453,9 @@ void Level::RenderUI(Renderer& renderer)
 		ImGui::End();
 	}
 
-	if (Windows::w_level)
+	if (Settings::w_level)
 	{
-		if (ImGui::Begin("Level", &Windows::w_level))
+		if (ImGui::Begin("Level", &Settings::w_level))
 		{
 			if (ImGui::TreeNode("Flags"))
 			{
@@ -518,9 +518,9 @@ void Level::RenderUI(Renderer& renderer)
 		ImGui::End();
 	}
 
-	if (Windows::w_material)
+	if (Settings::w_material)
 	{
-		if (ImGui::Begin("Material", &Windows::w_material))
+		if (ImGui::Begin("Material", &Settings::w_material))
 		{
 			for (const auto& [material, quadblockIndexes] : m_materialToQuadblocks)
 			{
@@ -567,11 +567,11 @@ void Level::RenderUI(Renderer& renderer)
 		ImGui::End();
 	}
 
-	if (!Windows::w_material) { RestoreMaterials(this); }
+	if (!Settings::w_material) { RestoreMaterials(this); }
 
-	if (Windows::w_animtex)
+	if (Settings::w_animtex)
 	{
-		if (ImGui::Begin("Animated Textures", &Windows::w_animtex))
+		if (ImGui::Begin("Animated Textures", &Settings::w_animtex))
 		{
 			static std::string animTexQuerry;
 			std::vector<std::string> animTexNames;
@@ -628,10 +628,10 @@ void Level::RenderUI(Renderer& renderer)
 	}
 
 	static std::string quadblockQuery;
-	if (Windows::w_quadblocks)
+	if (Settings::w_quadblocks)
 	{
 		bool resetBsp = false;
-		if (ImGui::Begin("Quadblocks", &Windows::w_quadblocks))
+		if (ImGui::Begin("Quadblocks", &Settings::w_quadblocks))
 		{
 			ImGui::InputTextWithHint("Search", "Search Quadblocks...", &quadblockQuery);
 			for (Quadblock& quadblock : m_quadblocks)
@@ -653,12 +653,12 @@ void Level::RenderUI(Renderer& renderer)
 		}
 	}
 
-	if (!quadblockQuery.empty() && !Windows::w_quadblocks) { quadblockQuery.clear(); }
+	if (!quadblockQuery.empty() && !Settings::w_quadblocks) { quadblockQuery.clear(); }
 
 	static std::string checkpointQuery;
-	if (Windows::w_checkpoints)
+	if (Settings::w_checkpoints)
 	{
-		if (ImGui::Begin("Checkpoints", &Windows::w_checkpoints))
+		if (ImGui::Begin("Checkpoints", &Settings::w_checkpoints))
 		{
 			ImGui::InputTextWithHint("Search##", "Search Quadblocks...", &checkpointQuery);
 			if (ImGui::TreeNode("Checkpoints"))
@@ -737,11 +737,11 @@ void Level::RenderUI(Renderer& renderer)
 		ImGui::End();
 	}
 
-	if (!checkpointQuery.empty() && !Windows::w_checkpoints) { checkpointQuery.clear(); }
+	if (!checkpointQuery.empty() && !Settings::w_checkpoints) { checkpointQuery.clear(); }
 
-	if (Windows::w_bsp)
+	if (Settings::w_bsp)
 	{
-		if (ImGui::Begin("BSP Tree", &Windows::w_bsp))
+		if (ImGui::Begin("BSP Tree", &Settings::w_bsp))
 		{
 			if (!m_bsp.IsEmpty()) { m_bsp.RenderUI(m_quadblocks); }
 
@@ -772,9 +772,9 @@ void Level::RenderUI(Renderer& renderer)
 		ImGui::End();
 	}
 
-	if (Windows::w_ghost)
+	if (Settings::w_ghost)
 	{
-		if (ImGui::Begin("Ghost", &Windows::w_ghost))
+		if (ImGui::Begin("Ghost", &Settings::w_ghost))
 		{
 			static ButtonUI saveGhostButton(20);
 			static std::string saveGhostFeedback;
@@ -877,9 +877,9 @@ void Level::RenderUI(Renderer& renderer)
 		ImGui::End();
 	}
 
-	if (Windows::w_renderer)
+	if (Settings::w_renderer)
 	{
-		if (ImGui::Begin("Renderer", &Windows::w_renderer))
+		if (ImGui::Begin("Renderer", &Settings::w_renderer))
 		{
 			static std::unordered_map<ImGuiKey, std::string> keyOptions;
 			if (keyOptions.empty())
@@ -1093,18 +1093,24 @@ void Level::RenderUI(Renderer& renderer)
 		ImGui::End();
 	}
 
-	if (Windows::w_python)
+	if (Settings::w_python)
 	{
 		ImGui::SetNextWindowSize(ImVec2(600.0f, 320.0f), ImGuiCond_FirstUseEver);
-		if (ImGui::Begin("Python", &Windows::w_python))
+		if (ImGui::Begin("Python", &Settings::w_python))
 		{
 			ImGui::Text("Script Editor");
 			ImGui::SameLine();
 			if (ImGui::Button("Open .py"))
 			{
-				auto selection = pfd::open_file("Open Python Script", m_parentPath.string(), {"Python Files", "*.py"}, pfd::opt::force_path).result();
+				auto selection = pfd::open_file("Open Python Script", Settings::m_lastOpenedScriptFolder, {"Python Files", "*.py"}, pfd::opt::force_path).result();
 				if (!selection.empty())
 				{
+					Settings::m_lastOpenedScriptFolder = std::filesystem::path(selection.front()).parent_path().string();
+					std::string pathError;
+					if (!Script::AppendPythonPath(std::filesystem::path(selection.front()).parent_path(), pathError))
+					{
+						printf(pathError.c_str());
+					}
 					std::ifstream input(selection.front(), std::ios::binary);
 					if (input)
 					{
