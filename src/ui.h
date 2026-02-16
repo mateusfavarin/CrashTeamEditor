@@ -4,7 +4,7 @@
 
 #include <string>
 
-struct Windows
+struct Settings
 {
 	static int w_width;
 	static int w_height;
@@ -21,8 +21,8 @@ struct Windows
 	static bool w_renderer;
 	static bool w_ghost;
 	static bool w_python;
-	static std::string lastOpenedFolder;
-	static std::string lastOpenedScriptFolder;
+	static std::string m_lastOpenedFolder;
+	static std::string m_lastOpenedScriptFolder;
 };
 
 class UI
