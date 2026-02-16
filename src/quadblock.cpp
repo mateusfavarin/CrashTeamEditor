@@ -704,6 +704,8 @@ const BoundingBox& Quadblock::GetBoundingBox() const
 
 std::vector<Primitive> Quadblock::ToGeometry(bool filterTriangles, const std::array<QuadUV, NUM_FACES_QUADBLOCK + 1>* overrideUvs, const std::filesystem::path* overrideTexturePath) const
 {
+	if (GetHide()) { return std::vector<Primitive>(); } /* Turbo Pads */
+
 	constexpr int NUM_VERTICES_QUAD = 4;
 	constexpr int uvVertInd[NUM_FACES_QUADBLOCK][NUM_VERTICES_QUAD] =
 	{

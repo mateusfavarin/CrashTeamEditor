@@ -1855,8 +1855,10 @@ void Level::GenerateRenderLevData()
 	size_t triangleOffset = 0;
 	for (Quadblock& qb : m_quadblocks)
 	{
-		qb.SetRenderPrimitiveIndex(triangleOffset);
 		std::vector<Primitive> qbTriangles = qb.ToGeometry(false);
+		if (qbTriangles.empty()) { continue; }
+
+		qb.SetRenderPrimitiveIndex(triangleOffset);
 		std::vector<Primitive> qbFilterTriangles = qb.ToGeometry(true);
 		levTriangles.insert(levTriangles.end(), qbTriangles.begin(), qbTriangles.end());
 		filterTriangles.insert(filterTriangles.end(), qbFilterTriangles.begin(), qbFilterTriangles.end());
