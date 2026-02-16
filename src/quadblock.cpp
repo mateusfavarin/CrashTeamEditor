@@ -457,7 +457,7 @@ std::vector<std::array<size_t, 3>> Quadblock::GetTriFacesIndexes() const
 	// of every triface composing the quad, ordered clockwise
 	std::vector<std::array<size_t, 3>> triFaces;
 
-	if (!m_triblock) 
+	if (!m_triblock)
 	{
 		triFaces = {
 			{0, 1, 3},
@@ -470,7 +470,7 @@ std::vector<std::array<size_t, 3>> Quadblock::GetTriFacesIndexes() const
 			{5, 8, 7}
 		};
 	}
-	else 
+	else
 	{
 		triFaces = {
 			{0, 1, 3},
@@ -701,6 +701,8 @@ const BoundingBox& Quadblock::GetBoundingBox() const
 
 std::vector<Primitive> Quadblock::ToGeometry(bool filterTriangles, const std::array<QuadUV, NUM_FACES_QUADBLOCK + 1>* overrideUvs, const std::filesystem::path* overrideTexturePath) const
 {
+	if (GetHide()) { return std::vector<Primitive>(); } /* Turbo Pads */
+
 	constexpr int NUM_VERTICES_QUAD = 4;
 	constexpr int uvVertInd[NUM_FACES_QUADBLOCK][NUM_VERTICES_QUAD] =
 	{
