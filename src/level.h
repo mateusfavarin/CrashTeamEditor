@@ -12,6 +12,7 @@
 #include "animtexture.h"
 #include "model.h"
 #include "vistree.h"
+#include "minimap.h"
 
 #include <nlohmann/json.hpp>
 #include <vector>
@@ -32,7 +33,8 @@ namespace LevelModels
 	static constexpr size_t SELECTED = 4;
 	static constexpr size_t MULTI_SELECTED = 5;
 	static constexpr size_t FILTER = 6;
-	static constexpr size_t COUNT = 7;
+	static constexpr size_t MINIMAP_BOUNDS = 7;
+	static constexpr size_t COUNT = 8;
 };
 
 class Level
@@ -63,6 +65,7 @@ public:
 	void ResetFilter();
 	void ResetRendererSelection();
 	void UpdateRenderCheckpointData();
+	MinimapConfig& GetMinimapConfig();
 
 private:
 	void ManageTurbopad(Quadblock& quadblock);
@@ -86,6 +89,7 @@ private:
 	void UpdateFilterRenderData(const Quadblock& qb);
 	void GenerateRenderBspData();
 	void GenerateRenderStartpointData();
+	void GenerateRenderMinimapBoundsData();
 	void GenerateRenderSelectedBlockData(const Quadblock& quadblock, const Vec3& queryPoint);
 	bool UpdateAnimTextures(float deltaTime);
 	void ViewportClickHandleBlockSelection(int pixelX, int pixelY, bool appendSelection, const Renderer& rend);
@@ -128,6 +132,7 @@ private:
 	std::vector<AnimTexture> m_animTextures;
 	BitMatrix m_bspVis;
 	std::vector<uint8_t> m_vrm;
+	MinimapConfig m_minimapConfig;
 
 	std::unordered_map<std::string, std::vector<size_t>> m_materialToQuadblocks;
 	std::unordered_map<std::string, Texture> m_materialToTexture;
