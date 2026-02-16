@@ -337,6 +337,28 @@ namespace PSX
 		uint32_t offLastPoint;
 		uint16_t physUnk[0x20];
 	};
+
+	static constexpr size_t NUM_SKYBOX_SEGMENTS = 8;
+	static constexpr size_t SKYBOX_FACE_STRIDE = 4; // 3 vertex offsets + 1 padding per face
+
+	// Skybox vertex: short position + vertex color (12 bytes total)
+	struct SkyboxVertex
+	{
+		PSX::Vec3 pos;    // 0x0 - SVECTOR (6 bytes)
+		PSX::Color color; // 0x8 - CVECTOR (4 bytes)
+	};
+
+	// Skybox header struct (0x38 bytes)
+	struct Skybox
+	{
+		uint32_t numVertex;                              // 0x00
+		uint32_t offVertex;                              // 0x04 - offset to SkyboxVertex array
+		int16_t numFaces[NUM_SKYBOX_SEGMENTS];           // 0x08 - face count per segment
+		uint32_t offFaces[NUM_SKYBOX_SEGMENTS];          // 0x18 - offset to face index array per segment
+	};
+
+	static_assert(sizeof(SkyboxVertex) == 0xc, "SkyboxVertex must be 0xc bytes");
+	static_assert(sizeof(Skybox) == 0x38, "Skybox header must be 0x38 bytes");
 }
 
 template<>
