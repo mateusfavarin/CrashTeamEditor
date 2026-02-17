@@ -109,7 +109,7 @@ void Renderer::Render(bool skyGradientEnabled, const std::array<ColorGradient, N
 
 	const glm::vec3& camPos = m_camera.GetPosition();
 
-	m_perspective = glm::perspective<float>(glm::radians(GuiRenderSettings::camFovDeg), (static_cast<float>(m_width) / static_cast<float>(m_height)), 0.1f, 1000.0f);
+	m_perspective = glm::perspective<float>(glm::radians(GuiRenderSettings::camFovDeg), (static_cast<float>(m_width) / static_cast<float>(m_height)), 0.1f, 10000.0f);
 	int lastUsedShader = -1;
 
 	const glm::mat4 rootParentMatrix(1.0f);
