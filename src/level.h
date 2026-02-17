@@ -17,6 +17,7 @@
 #include <vector>
 #include <array>
 #include <unordered_map>
+#include <map>
 #include <filesystem>
 #include <tuple>
 #include <cstdint>
@@ -129,7 +130,7 @@ private:
 	BitMatrix m_bspVis;
 	std::vector<uint8_t> m_vrm;
 
-	std::unordered_map<std::string, std::vector<size_t>> m_materialToQuadblocks;
+	std::map<std::string, std::vector<size_t>> m_materialToQuadblocks;
 	std::unordered_map<std::string, Texture> m_materialToTexture;
 	MaterialProperty<std::string, MaterialType::TERRAIN> m_propTerrain;
 	MaterialProperty<uint16_t, MaterialType::QUAD_FLAGS> m_propQuadFlags;
