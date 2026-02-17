@@ -150,9 +150,6 @@
     <ClCompile Include="python_bindings\cte_bindings.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\simple_level_instances.cpp">
-      <Filter>Renderer</Filter>
-    </ClCompile>
     <ClCompile Include="src\levdataextractor.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -244,9 +241,6 @@
     </ClInclude>
     <ClInclude Include="src\vistree.h">
       <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\simple_level_instances.h">
-      <Filter>Renderer</Filter>
     </ClInclude>
     <ClInclude Include="src\levdataextractor.h">
       <Filter>Header Files</Filter>
