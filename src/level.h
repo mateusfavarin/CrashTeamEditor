@@ -18,6 +18,7 @@
 #include <vector>
 #include <array>
 #include <unordered_map>
+#include <map>
 #include <filesystem>
 #include <tuple>
 #include <cstdint>
@@ -133,7 +134,7 @@ private:
 	std::vector<uint8_t> m_vrm;
 	SkyboxConfig m_skyboxConfig;
 
-	std::unordered_map<std::string, std::vector<size_t>> m_materialToQuadblocks;
+	std::map<std::string, std::vector<size_t>> m_materialToQuadblocks;
 	std::unordered_map<std::string, Texture> m_materialToTexture;
 	MaterialProperty<std::string, MaterialType::TERRAIN> m_propTerrain;
 	MaterialProperty<uint16_t, MaterialType::QUAD_FLAGS> m_propQuadFlags;

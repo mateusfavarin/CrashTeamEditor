@@ -34,7 +34,7 @@ public:
 	void FromJson(const nlohmann::json& json, std::vector<Quadblock>& quadblocks, const std::filesystem::path& parentPath);
 	void ToJson(nlohmann::json& json, const std::vector<Quadblock>& quadblocks) const;
 	bool IsEquivalent(const AnimTexture& animTex) const;
-	bool RenderUI(std::vector<std::string>& animTexNames, std::vector<Quadblock>& quadblocks, const std::unordered_map<std::string, std::vector<size_t>>& materialMap, const std::string& query, std::vector<AnimTexture>& newTextures);
+	bool RenderUI(std::vector<std::string>& animTexNames, std::vector<Quadblock>& quadblocks, const std::map<std::string, std::vector<size_t>>& materialMap, const std::string& query, std::vector<AnimTexture>& newTextures);
 
 private:
 	bool ReadAnimation(const std::filesystem::path& path);
