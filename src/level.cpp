@@ -1,4 +1,5 @@
 #include "level.h"
+#include "ui.h"
 #include "psx_types.h"
 #include "io.h"
 #include "utils.h"
@@ -8,7 +9,6 @@
 #include "renderer.h"
 #include "vistree.h"
 #include "text3d.h"
-#include "simple_level_instances.h"
 #include "levdataextractor.h"
 
 #include <fstream>
@@ -48,7 +48,7 @@ void Level::OpenModelExtractorWindow()
 
 void Level::OpenModelImporterWindow()
 {
-	m_showModelImporterWindow = true;
+	Windows::w_modelImporter = true;
 }
 
 void Level::Clear(bool clearErrors)
@@ -56,7 +56,7 @@ void Level::Clear(bool clearErrors)
 	m_loaded = false;
 	m_showHotReloadWindow = false;
 	m_showModelExtractorWindow = false;
-	m_showModelImporterWindow = false;
+	Windows::w_modelImporter = false;
 	m_showExtractorLogWindow = false;
 	for (size_t i = 0; i < NUM_DRIVERS; i++) { m_spawn[i] = Spawn(); }
 	for (size_t i = 0; i < NUM_GRADIENT; i++) { m_skyGradient[i] = ColorGradient(); }
@@ -882,7 +882,6 @@ bool Level::LoadLEV(const std::filesystem::path& levFile)
 
 bool Level::SaveLEV(const std::filesystem::path& path)
 {
-	#define nameof(x) #x
 	/*
 	*	Serialization order:
 	*		- offMap
@@ -1402,8 +1401,6 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	currOffset += (uniqueModelNames.size() + 1) * sizeof(uint32_t);
 	header.offModels = static_cast<uint32_t>(offModelList_ptrArray);
 
-#define CALCULATE_OFFSET(s, m, b) static_cast<uint32_t>(offsetof(s, m) + b)
-
 	size_t paddingSizeForMultOfFour = (4 - (currOffset % 4)) % 4;
 	printf(nameof(paddingSizeForMultOfFour) " = %zx\n", paddingSizeForMultOfFour);
 	currOffset += paddingSizeForMultOfFour;
@@ -1509,8 +1506,6 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 		pointerMap.push_back(CALCULATE_OFFSET(PSX::VisibleSet, offVisibleInstances, offCurrVisibleSet));
 		offCurrVisibleSet += sizeof(PSX::VisibleSet);
 	}
-
-	#undef CALCULATE_OFFSET
 
 	const size_t pointerMapBytes = pointerMap.size() * sizeof(uint32_t);
 

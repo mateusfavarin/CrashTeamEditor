@@ -100,7 +100,6 @@ private:
 	bool m_showLogWindow;
 	bool m_showHotReloadWindow;
 	bool m_showModelExtractorWindow;
-	bool m_showModelImporterWindow;
 	bool m_showExtractorLogWindow;
 	bool m_loaded;
 	bool m_simpleVisTree;
@@ -151,7 +150,6 @@ private:
 	MaterialProperty<bool, MaterialType::VISTREE_TRANSPARENT> m_propVisTreeTransparent;
 
 	std::array<Model*, LevelModels::COUNT> m_models;
-	std::vector<Model> m_levelInstancesModels;
 
 	Vec3 m_rendererQueryPoint;
 	std::vector<size_t> m_rendererSelectedQuadblockIndexes;
@@ -162,8 +160,6 @@ private:
 
 	// Model textures placed in VRAM (filled by UpdateVRM, used by SaveLEV)
 	std::vector<ModelTextureForVRM> m_modelTexturesInVRAM;
-
-	// Hardcoded instances for now (TODO: make dynamic)
 	std::vector<PSX::InstDef> m_modelInstances;
 	std::vector<std::string> m_modelInstanceNames;  // Parallel array: which model each instance uses
 };

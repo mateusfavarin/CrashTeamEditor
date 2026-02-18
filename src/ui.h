@@ -21,6 +21,7 @@ struct Windows
 	static bool w_renderer;
 	static bool w_ghost;
 	static bool w_python;
+	static bool w_modelImporter;
 	static std::string lastOpenedFolder;
 };
 

@@ -456,9 +456,9 @@ void Level::RenderUI(Renderer& renderer)
 		ImGui::End();
 	}
 
-	if (m_showModelImporterWindow)
+	if (Windows::w_modelImporter)
 	{
-		if (ImGui::Begin("Model Importer", &m_showModelImporterWindow))
+		if (ImGui::Begin("Model Importer", &Windows::w_modelImporter))
 		{
 			std::string modelPath = m_modelImporterPath.string();
 			ImGui::Text("Model Path"); ImGui::SameLine();
@@ -646,7 +646,7 @@ void Level::RenderUI(Renderer& renderer)
 		if (ImGui::MenuItem("Renderer")) { Windows::w_renderer = !Windows::w_renderer; }
 		if (ImGui::MenuItem("Ghosts")) { Windows::w_ghost = !Windows::w_ghost; }
 		if (ImGui::MenuItem("Python")) { Windows::w_python = !Windows::w_python; }
-		if (ImGui::MenuItem("Model Importer")) { m_showModelImporterWindow = !m_showModelImporterWindow; }
+		if (ImGui::MenuItem("Model Importer")) { Windows::w_modelImporter = !Windows::w_modelImporter; }
 		ImGui::EndMainMenuBar();
 	}
 

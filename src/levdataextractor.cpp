@@ -1,6 +1,8 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include "levdataextractor.h"
 #include "psx_types.h"
+#include "texture.h"
+#include "utils.h"
 #include <fstream>
 #include <iterator>
 #include <cstring>
@@ -116,24 +118,6 @@ void LevDataExtractor::ParseVrmIntoVram(VramBuffer& vram)
 		Log("WARNING: VRM format not recognized (magic: 0x%08X)\n", magic);
 	}
 }
-
-// Helper struct for collecting raw texture data
-struct RawTextureData {
-	std::vector<uint8_t> pixelData;   // Raw PSX format pixel indices
-	std::vector<uint16_t> palette;    // Raw PSX 16-bit palette (empty for 16-bit textures)
-	uint16_t width;
-	uint16_t height;
-	uint8_t bpp;        // 0=4bit, 1=8bit, 2=16bit
-	uint8_t blendMode;
-	uint8_t originU;    // minU of combined texture
-	uint8_t originV;    // minV of combined texture
-	// Original VRAM coordinates for matching at import
-	uint8_t origPageX;
-	uint8_t origPageY;
-	uint8_t origPalX;
-	uint16_t origPalY;
-	std::string key;    // Grouping key for mapping TextureLayouts to this texture
-};
 
 // Extract raw PSX texture data (pixel indices + palette) without converting to RGBA
 static void ExtractRawPSXTexture(const LevDataExtractor::VramBuffer& vram,
@@ -286,8 +270,6 @@ LevDataExtractor::LevDataExtractor(const std::filesystem::path& levPath, const s
 
 void LevDataExtractor::ExtractModels(void)
 {
-	#define nameof(x) #x
-
 	Log("Extracting models from LEV: %s\n", m_levPath.string().c_str());
 
 	// Create output directory for extracted models
@@ -389,8 +371,6 @@ void LevDataExtractor::ExtractModels(void)
 		modelDataChunks.push_back({ allHeadersSize, output_AllModelHeaders });
 
 		// Generate patch table - track all pointer offsets for SaveLEV to patch when embedding
-		#define CALCULATE_OFFSET(s, m, b) static_cast<uint32_t>(offsetof(s, m) + b)
-
 		std::vector<uint32_t> patchTable;
 
 		// Add offset of Model.offHeaders field
@@ -660,7 +640,6 @@ void LevDataExtractor::ExtractModels(void)
 						RawTextureData rawTex;
 						ExtractRawPSXTexture(vram, group.pageX, group.pageY, group.palX, group.palY,
 						                     bpp, group.blendMode, group.minU, group.minV, width, height, rawTex);
-						rawTex.key = key;
 
 						textureIndex = modelTextures.size();
 						modelTextures.push_back(std::move(rawTex));
@@ -755,7 +734,7 @@ void LevDataExtractor::ExtractModels(void)
 
 		output_Model->offHeaders = allHeadersOffset;
 
-		#undef CALCULATE_OFFSET
+
 
 		// Write patch table: count followed by array
 		const size_t patchTableOffset = currentOffset;
@@ -943,5 +922,4 @@ void LevDataExtractor::ExtractModels(void)
 		Log("========================================\n\n");
 	}
 
-	#undef nameof
 }

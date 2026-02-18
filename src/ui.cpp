@@ -24,6 +24,7 @@ bool Windows::w_bsp = false;
 bool Windows::w_renderer = false;
 bool Windows::w_ghost = false;
 bool Windows::w_python = false;
+bool Windows::w_modelImporter = false;
 std::string Windows::lastOpenedFolder = ".";
 
 UI::UI() : m_rend(Windows::w_width, Windows::w_height)
