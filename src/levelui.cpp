@@ -517,7 +517,7 @@ void Level::RenderUI(Renderer& renderer)
 
 			if (ImGui::TreeNode("Skybox"))
 			{
-				if (m_skyboxConfig.RenderUI())
+				if (m_skybox.RenderUI())
 				{
 					GenerateRenderSkyboxData();
 				}

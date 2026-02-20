@@ -81,7 +81,7 @@ void Level::Clear(bool clearErrors)
 	m_vrm.clear();
 	m_lastAnimTextureCount = 0;
 	DeleteMaterials(this);
-	m_skyboxConfig.Clear();
+	m_skybox.Clear();
 
 	for (Model* model : m_models)
 	{
@@ -425,7 +425,7 @@ bool Level::LoadPreset(const std::filesystem::path& filename)
 			std::string skyboxPath = json["skyboxObjPath"];
 			if (!skyboxPath.empty())
 			{
-				if (m_skyboxConfig.LoadOBJ(skyboxPath))
+				if (m_skybox.LoadOBJ(skyboxPath))
 				{
 					GenerateRenderSkyboxData();
 				}
@@ -577,7 +577,7 @@ bool Level::SavePreset(const std::filesystem::path& path)
 	levelJson["skyGradient"] = m_skyGradient;
 	levelJson["clearColor"] = m_clearColor;
 	levelJson["stars"] = m_stars;
-	if (!m_skyboxConfig.m_objPath.empty()) { levelJson["skyboxObjPath"] = m_skyboxConfig.m_objPath.string(); }
+	if (!m_skybox.m_objPath.empty()) { levelJson["skyboxObjPath"] = m_skybox.m_objPath.string(); }
 	SaveJSON(dirPath / "level.json", levelJson);
 
 	nlohmann::json pathJson = {};
@@ -1274,10 +1274,10 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	std::vector<uint8_t> skyboxData;
 	std::vector<size_t> skyboxPtrMapOffsets;
 
-	if (m_skyboxConfig.IsReady())
+	if (m_skybox.IsReady())
 	{
 		offSkyboxData = currOffset;
-		skyboxData = m_skyboxConfig.Serialize(offSkyboxData, skyboxPtrMapOffsets);
+		skyboxData = m_skybox.Serialize(offSkyboxData, skyboxPtrMapOffsets);
 		currOffset += skyboxData.size();
 	}
 
@@ -1306,7 +1306,7 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	header.offLevNavTable = static_cast<uint32_t>(offNavHeaders);
 
 	// Set skybox pointer in header if enabled
-	if (m_skyboxConfig.IsReady())
+	if (m_skybox.IsReady())
 	{
 		header.offSkybox = static_cast<uint32_t>(offSkyboxData);
 	}
@@ -1330,7 +1330,7 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	};
 
 	// Add skybox header pointer to pointer map
-	if (m_skyboxConfig.IsReady())
+	if (m_skybox.IsReady())
 	{
 		pointerMap.push_back(CALCULATE_OFFSET(PSX::LevHeader, offSkybox, offHeader));
 	}
@@ -1955,7 +1955,7 @@ void Level::InitModels(Renderer& renderer)
 
 	m_models[LevelModels::FILTER] = m_models[LevelModels::LEVEL]->AddModel();
 	m_models[LevelModels::FILTER]->SetRenderCondition([]() { return GuiRenderSettings::filterActive; });
-	
+
 	m_models[LevelModels::SKYBOX] = m_models[LevelModels::LEVEL]->AddModel();
 	m_models[LevelModels::SKYBOX]->SetRenderCondition([]() { return GuiRenderSettings::showSkybox; });
 }
@@ -2148,13 +2148,7 @@ void Level::GenerateRenderSkyboxData()
 {
 	if (!m_models[LevelModels::SKYBOX]) { return; }
 
-	if (!m_skyboxConfig.IsReady())
-	{
-		m_models[LevelModels::SKYBOX]->GetMesh().Clear();
-		return;
-	}
-
-	std::vector<Primitive> triangles = m_skyboxConfig.ToGeometry(m_bsp.GetBoundingBox());
+	std::vector<Primitive> triangles = m_skybox.ToGeometry(m_bsp.GetBoundingBox());
 	m_models[LevelModels::SKYBOX]->GetMesh().SetGeometry(triangles, Mesh::RenderFlags::DrawBackfaces | Mesh::RenderFlags::DontOverrideRenderFlags);
 }
 

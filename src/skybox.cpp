@@ -11,7 +11,7 @@
 #include <cmath>
 #include <cstdio>
 
-bool SkyboxConfig::LoadOBJ(const std::filesystem::path& path)
+bool Skybox::LoadOBJ(const std::filesystem::path& path)
 {
 	std::ifstream file(path);
 	if (!file.is_open()) { return false; }
@@ -91,7 +91,7 @@ bool SkyboxConfig::LoadOBJ(const std::filesystem::path& path)
 	return true;
 }
 
-void SkyboxConfig::DistributeFaces(std::vector<std::vector<uint16_t>>& segments) const
+void Skybox::DistributeFaces(std::vector<std::vector<uint16_t>>& segments) const
 {
 	segments.clear();
 	segments.resize(PSX::NUM_SKYBOX_SEGMENTS);
@@ -120,7 +120,7 @@ void SkyboxConfig::DistributeFaces(std::vector<std::vector<uint16_t>>& segments)
 	// }
 }
 
-std::vector<uint8_t> SkyboxConfig::Serialize(size_t baseOffset, std::vector<size_t>& ptrMapOffsets) const
+std::vector<uint8_t> Skybox::Serialize(size_t baseOffset, std::vector<size_t>& ptrMapOffsets) const
 {
 	std::vector<std::vector<uint16_t>> segments;
 	DistributeFaces(segments);
@@ -195,7 +195,7 @@ std::vector<uint8_t> SkyboxConfig::Serialize(size_t baseOffset, std::vector<size
 	return buffer;
 }
 
-std::vector<Primitive> SkyboxConfig::ToGeometry(const BoundingBox& levelBounds) const
+std::vector<Primitive> Skybox::ToGeometry(const BoundingBox& levelBounds) const
 {
 	std::vector<Primitive> triangles;
 	if (!IsReady()) { return triangles; }
@@ -253,19 +253,19 @@ std::vector<Primitive> SkyboxConfig::ToGeometry(const BoundingBox& levelBounds) 
 	return triangles;
 }
 
-bool SkyboxConfig::IsReady() const
+bool Skybox::IsReady() const
 {
 	return !m_vertices.empty() && !m_indexBuffer.empty();
 }
 
-void SkyboxConfig::Clear()
+void Skybox::Clear()
 {
 	m_objPath.clear();
 	m_vertices.clear();
 	m_indexBuffer.clear();
 }
 
-bool SkyboxConfig::RenderUI()
+bool Skybox::RenderUI()
 {
 	bool stateChanged = false;
 

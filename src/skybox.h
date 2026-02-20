@@ -8,7 +8,7 @@
 #include <cstdint>
 #include <vector>
 
-class SkyboxConfig
+class Skybox
 {
 public:
 	// OBJ file path
