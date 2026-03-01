@@ -11,6 +11,7 @@
 #include "texture.h"
 #include "ui.h"
 #include "script.h"
+#include "minimap.h"
 
 #include <imgui.h>
 #include <misc/cpp/imgui_stdlib.h>
@@ -515,6 +516,15 @@ void Level::RenderUI(Renderer& renderer)
 				ImGui::TreePop();
 			}
 
+			if (ImGui::TreeNode("Minimap"))
+			{
+				if (m_minimapConfig.RenderUI(m_quadblocks) && GuiRenderSettings::showMinimapBounds)
+				{
+					GenerateRenderMinimapBoundsData();
+				}
+				ImGui::TreePop();
+			}
+
 			if (ImGui::TreeNode("Skybox"))
 			{
 				if (m_skybox.RenderUI())
@@ -952,8 +962,9 @@ void Level::RenderUI(Renderer& renderer)
 					unsigned cpStartPoints = checkboxPair("Show Checkpoints", &GuiRenderSettings::showCheckpoints, "Show Starting Positions", &GuiRenderSettings::showStartpoints);
 					if (cpStartPoints & REND_FLAGS_COLUMN_1) { GenerateRenderStartpointData(); }
 					checkboxPair("Show BSP", &GuiRenderSettings::showBspRectTree, "Show Vis Tree", &GuiRenderSettings::showVisTree);
-					unsigned skyboxRenderChanged = checkboxPair("Show Skybox", &GuiRenderSettings::showSkybox, "", nullptr);
-					if (skyboxRenderChanged & REND_FLAGS_COLUMN_0) { GenerateRenderSkyboxData(); }
+					unsigned minimapBoundsChanged = checkboxPair("Show Minimap Bounds", &GuiRenderSettings::showMinimapBounds, "Show Skybox", &GuiRenderSettings::showSkybox);
+					if (minimapBoundsChanged & REND_FLAGS_COLUMN_0) { GenerateRenderMinimapBoundsData(); }
+					if (minimapBoundsChanged & REND_FLAGS_COLUMN_1) { GenerateRenderSkyboxData(); }
 
 					ImGui::EndTable();
 				}
