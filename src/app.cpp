@@ -34,11 +34,11 @@ void App::Run()
 
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
-		glClearColor(clearColor.x * clearColor.w, clearColor.y * clearColor.w, clearColor.z * clearColor.w, clearColor.w);
-		glClear(GL_COLOR_BUFFER_BIT);
+		GL_CHECK(glClearColor(clearColor.x * clearColor.w, clearColor.y * clearColor.w, clearColor.z * clearColor.w, clearColor.w));
+		GL_CHECK(glClear(GL_COLOR_BUFFER_BIT));
 		ImGui::NewFrame();
-		glViewport(0, 0, static_cast<int>(io.DisplaySize.x), static_cast<int>(io.DisplaySize.y));
-		glfwGetWindowSize(m_window, &Windows::w_width, &Windows::w_height);
+		GL_CHECK(glViewport(0, 0, static_cast<int>(io.DisplaySize.x), static_cast<int>(io.DisplaySize.y)));
+		glfwGetWindowSize(m_window, &Settings::w_width, &Settings::w_height);
 		ui.Render();
 		ImGui::Render();
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -48,7 +48,7 @@ void App::Run()
 
 void App::Close()
 {
-	SaveUISettings();
+	SaveUISettings(false);
 	CloseImGui();
 }
 
@@ -95,11 +95,11 @@ bool App::InitGLFW()
 	const std::string title = "Crash Team Editor " + m_version;
 	glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE); //resizeable window
 	glfwWindowHint(GLFW_SCALE_TO_MONITOR, GLFW_TRUE); //high dpi
-	m_window = glfwCreateWindow(Windows::w_width, Windows::w_height, title.c_str(), nullptr, nullptr);
+	m_window = glfwCreateWindow(Settings::w_width, Settings::w_height, title.c_str(), nullptr, nullptr);
 	if (m_window == nullptr) { return false; }
-	glfwSetWindowSize(m_window, Windows::w_width, Windows::w_height);
-	glfwSetWindowPos(m_window, Windows::w_x, Windows::w_y);
-	if (Windows::w_maximized) { glfwMaximizeWindow(m_window); }
+	glfwSetWindowSize(m_window, Settings::w_width, Settings::w_height);
+	glfwSetWindowPos(m_window, Settings::w_x, Settings::w_y);
+	if (Settings::w_maximized) { glfwMaximizeWindow(m_window); }
 	glfwMakeContextCurrent(m_window);
 	glfwSwapInterval(1); // Enable vsync
 
@@ -135,26 +135,27 @@ void App::InitUISettings()
 {
 	if (!std::filesystem::exists(m_configFile))
 	{
-		SaveUISettings();
+		SaveUISettings(true);
 		return;
 	}
 	nlohmann::json json = nlohmann::json::parse(std::ifstream(m_configFile));
-	if (json.contains("Width")) { Windows::w_width = json["Width"]; }
-	if (json.contains("Height")) { Windows::w_height = json["Height"]; }
-	if (json.contains("WindowX")) { Windows::w_x = json["WindowX"]; }
-	if (json.contains("WindowY")) { Windows::w_y = json["WindowY"]; }
-	if (json.contains("Maximized")) { Windows::w_maximized = json["Maximized"]; }
-	if (json.contains("AnimTex")) { Windows::w_animtex = json["AnimTex"]; }
-	if (json.contains("BSP")) { Windows::w_bsp = json["BSP"]; }
-	if (json.contains("Checkpoints")) { Windows::w_checkpoints = json["Checkpoints"]; }
-	if (json.contains("Ghost")) { Windows::w_ghost = json["Ghost"]; }
-	if (json.contains("Level")) { Windows::w_level = json["Level"]; }
-	if (json.contains("Material")) { Windows::w_material = json["Material"]; }
-	if (json.contains("Quadblocks")) { Windows::w_quadblocks = json["Quadblocks"]; }
-	if (json.contains("Renderer")) { Windows::w_renderer = json["Renderer"]; }
-	if (json.contains("Spawn")) { Windows::w_spawn = json["Spawn"]; }
-	if (json.contains("LastOpenedFolder")) { Windows::lastOpenedFolder = json["LastOpenedFolder"]; }
-	if (json.contains("Script")) { Windows::w_python = json["Script"]; }
+	if (json.contains("Width")) { Settings::w_width = json["Width"]; }
+	if (json.contains("Height")) { Settings::w_height = json["Height"]; }
+	if (json.contains("WindowX")) { Settings::w_x = json["WindowX"]; }
+	if (json.contains("WindowY")) { Settings::w_y = json["WindowY"]; }
+	if (json.contains("Maximized")) { Settings::w_maximized = json["Maximized"]; }
+	if (json.contains("AnimTex")) { Settings::w_animtex = json["AnimTex"]; }
+	if (json.contains("BSP")) { Settings::w_bsp = json["BSP"]; }
+	if (json.contains("Checkpoints")) { Settings::w_checkpoints = json["Checkpoints"]; }
+	if (json.contains("Ghost")) { Settings::w_ghost = json["Ghost"]; }
+	if (json.contains("Level")) { Settings::w_level = json["Level"]; }
+	if (json.contains("Material")) { Settings::w_material = json["Material"]; }
+	if (json.contains("Quadblocks")) { Settings::w_quadblocks = json["Quadblocks"]; }
+	if (json.contains("Renderer")) { Settings::w_renderer = json["Renderer"]; }
+	if (json.contains("Spawn")) { Settings::w_spawn = json["Spawn"]; }
+	if (json.contains("LastOpenedFolder")) { Settings::m_lastOpenedFolder = json["LastOpenedFolder"]; }
+	if (json.contains("LastOpenedScriptFolder")) { Settings::m_lastOpenedScriptFolder = json["LastOpenedScriptFolder"]; }
+	if (json.contains("Script")) { Settings::w_python = json["Script"]; }
 	if (json.contains("CameraBindings"))
 	{
 		const nlohmann::json& bindings = json["CameraBindings"];
@@ -182,11 +183,21 @@ void App::InitUISettings()
 	}
 }
 	
-void App::SaveUISettings()
+void App::SaveUISettings(bool useDefault)
 {
 	int width, height, xpos, ypos;
-	glfwGetWindowSize(m_window, &width, &height);
-	glfwGetWindowPos(m_window, &xpos, &ypos);
+	if (useDefault)
+	{
+		width = 600;
+		height = 400;
+		ypos = 50;
+		xpos = 50;
+	}
+	else
+	{
+		glfwGetWindowSize(m_window, &width, &height);
+		glfwGetWindowPos(m_window, &xpos, &ypos);
+	}
 	bool maximized = glfwGetWindowAttrib(m_window, GLFW_MAXIMIZED);
 	nlohmann::json json;
 	json["Width"] = width;
@@ -194,17 +205,18 @@ void App::SaveUISettings()
 	json["WindowX"] = xpos;
 	json["WindowY"] = ypos;
 	json["Maximized"] = maximized;
-	json["AnimTex"] = Windows::w_animtex;
-	json["BSP"] = Windows::w_bsp;
-	json["Checkpoints"] = Windows::w_checkpoints;
-	json["Ghost"] = Windows::w_ghost;
-	json["Level"] = Windows::w_level;
-	json["Material"] = Windows::w_material;
-	json["Quadblocks"] = Windows::w_quadblocks;
-	json["Renderer"] = Windows::w_renderer;
-	json["Spawn"] = Windows::w_spawn;
-	json["LastOpenedFolder"] = Windows::lastOpenedFolder;
-	json["Script"] = Windows::w_python;
+	json["AnimTex"] = Settings::w_animtex;
+	json["BSP"] = Settings::w_bsp;
+	json["Checkpoints"] = Settings::w_checkpoints;
+	json["Ghost"] = Settings::w_ghost;
+	json["Level"] = Settings::w_level;
+	json["Material"] = Settings::w_material;
+	json["Quadblocks"] = Settings::w_quadblocks;
+	json["Renderer"] = Settings::w_renderer;
+	json["Spawn"] = Settings::w_spawn;
+	json["LastOpenedFolder"] = Settings::m_lastOpenedFolder;
+	json["LastOpenedScriptFolder"] = Settings::m_lastOpenedScriptFolder;
+	json["Script"] = Settings::w_python;
 	json["CameraBindings"] = {
 		{"Forward", GuiRenderSettings::camKeyForward},
 		{"Back", GuiRenderSettings::camKeyBack},

@@ -398,6 +398,8 @@ Quadblock::Quadblock(const PSX::Quadblock& quadblock, const std::vector<PSX::Ver
 		m_p[reverseIndexMapping[i]] = Vertex(vertex);
 	}
 	SetDefaultValues();
+	m_bbox.max = ConvertPSXVec3(quadblock.bbox.max, FP_ONE_GEO);
+	m_bbox.min = ConvertPSXVec3(quadblock.bbox.min, FP_ONE_GEO);
 
 	m_name = "Quadblock " + std::to_string(quadblock.id);
 	m_flags = quadblock.flags;
@@ -427,9 +429,19 @@ bool Quadblock::IsQuadblock() const
 	return !m_triblock;
 }
 
-const Vec3& Quadblock::GetCenter() const
+Vec3 Quadblock::GetCenter() const
 {
-	return m_p[4].m_pos;
+	if (m_triblock)
+	{
+		Vec3 v1 = m_p[1].m_pos;
+		Vec3 v2 = m_p[3].m_pos;
+		Vec3 v3 = m_p[4].m_pos;
+		return (v1 + v2 + v3) / (3.0f);
+	}
+	else
+	{
+		return m_p[4].m_pos;
+	}
 }
 
 Vec3 Quadblock::GetNormal() const
@@ -437,6 +449,46 @@ Vec3 Quadblock::GetNormal() const
 	Vec3 normal = ComputeNormalVector(0, 2, 6);
 	normal.Normalize();
 	return normal;
+}
+
+std::vector<std::array<size_t, 3>> Quadblock::GetTriFacesIndexes() const
+{
+	// Return a list of (size_t, size_t, size_t) containing vertex ID
+	// of every triface composing the quad, ordered clockwise
+	std::vector<std::array<size_t, 3>> triFaces;
+
+	if (!m_triblock)
+	{
+		triFaces = {
+			{0, 1, 3},
+			{1, 4, 3},
+			{1, 2, 4},
+			{2, 5, 4},
+			{3, 4, 6},
+			{4, 7, 6},
+			{4, 5, 7},
+			{5, 8, 7}
+		};
+	}
+	else
+	{
+		triFaces = {
+			{0, 1, 3},
+			{1, 2, 4},
+			{1, 4, 3},
+			{4, 6, 3}
+		};
+	}
+	return triFaces;
+}
+
+std::array<Vec3, 3> Quadblock::GetTriFace(size_t id0, size_t id1, size_t id2) const
+{
+	return {
+		m_p[id0].m_pos,
+		m_p[id1].m_pos,
+		m_p[id2].m_pos
+	};
 }
 
 uint8_t Quadblock::GetTerrain() const
@@ -489,6 +541,11 @@ const Color& Quadblock::GetFilterColor() const
 	return m_filterColor;
 }
 
+bool Quadblock::GetDrawDoubleSided() const
+{
+	return m_doubleSided;
+}
+
 bool Quadblock::GetCheckpointStatus() const
 {
 	return m_checkpointStatus;
@@ -497,6 +554,11 @@ bool Quadblock::GetCheckpointStatus() const
 bool Quadblock::GetCheckpointPathable() const
 {
 	return m_checkpointPathable;
+}
+
+bool Quadblock::GetVisTreeTransparent() const
+{
+	return m_visTreeTransparent;
 }
 
 const QuadUV& Quadblock::GetQuadUV(size_t quad) const
@@ -562,6 +624,11 @@ void Quadblock::SetCheckpointStatus(bool active)
 void Quadblock::SetCheckpointPathable(bool pathable)
 {
 	m_checkpointPathable = pathable;
+}
+
+void Quadblock::SetVisTreeTransparent(bool transparent)
+{
+	m_visTreeTransparent = transparent;
 }
 
 void Quadblock::SetName(const std::string& name)
@@ -634,6 +701,8 @@ const BoundingBox& Quadblock::GetBoundingBox() const
 
 std::vector<Primitive> Quadblock::ToGeometry(bool filterTriangles, const std::array<QuadUV, NUM_FACES_QUADBLOCK + 1>* overrideUvs, const std::filesystem::path* overrideTexturePath) const
 {
+	if (GetHide()) { return std::vector<Primitive>(); } /* Turbo Pads */
+
 	constexpr int NUM_VERTICES_QUAD = 4;
 	constexpr int uvVertInd[NUM_FACES_QUADBLOCK][NUM_VERTICES_QUAD] =
 	{
@@ -689,7 +758,7 @@ std::vector<Primitive> Quadblock::ToGeometry(bool filterTriangles, const std::ar
 			{ 0, 1, 3 },
 			{ 1, 2, 4 },
 			{ 3, 4, 6 },
-			{ 1, 3, 4 },
+			{ 1, 4, 3 },
 		};
 		constexpr int triblockQuadIndex[triCount] = { 0, 1, 2, 0 };
 		for (int triIndex = 0; triIndex < triCount; triIndex++)
@@ -832,6 +901,7 @@ void Quadblock::SetDefaultValues()
 	m_doubleSided = false;
 	m_checkpointPathable = true;
 	m_checkpointStatus = false;
+	m_visTreeTransparent = false;
 	m_trigger = QuadblockTrigger::NONE;
 	m_turboPadIndex = TURBO_PAD_INDEX_NONE;
 	m_hide = false;

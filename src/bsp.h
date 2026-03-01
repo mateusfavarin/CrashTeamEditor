@@ -33,13 +33,14 @@ struct BSPID
 	static constexpr uint16_t EMPTY = 0xFFFF;
 };
 
-static constexpr size_t MAX_QUADBLOCKS_LEAF = 32;
-
 class BSP
 {
 public:
 	BSP();
 	BSP(BSPNode type, const std::vector<size_t>& quadblockIndexes, BSP* parent, const std::vector<Quadblock>& quadblocks);
+	void PopulateLeaf(PSX::BSPLeaf& leaf, std::vector<BSP*>& bspArray, const std::vector<Quadblock>& quadblocks, uint32_t offQuadblocks, size_t global_id);
+	void PopulateBranch(PSX::BSPBranch& branch, std::vector<BSP*>& bspArray, size_t global_id);
+	void PopulateBranchQuadIndexes();
 	size_t GetId() const;
 	bool IsEmpty() const;
 	bool IsValid() const;
@@ -55,6 +56,7 @@ public:
 	const std::vector<const BSP*> GetTree() const;
 	std::vector<const BSP*> GetLeaves() const;
 	void SetQuadblockIndexes(const std::vector<size_t>& quadblockIndexes);
+	void SetParent(BSP* parent);
 	void Clear();
 	void Generate(const std::vector<Quadblock>& quadblocks, const size_t maxQuadsPerLeaf, const float maxAxisLength);
 	std::vector<uint8_t> Serialize(size_t offQuads) const;

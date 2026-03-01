@@ -322,7 +322,7 @@ namespace PSX
 		uint16_t id;
 		PSX::BoundingBox bbox;
 		PSX::Vec3 axis;
-		uint16_t unk1;
+		int16_t unk1;
 		uint16_t leftChild;
 		uint16_t rightChild;
 		uint16_t unk2;
@@ -377,6 +377,28 @@ namespace PSX
 		uint32_t offLastPoint;
 		uint16_t physUnk[0x20];
 	};
+
+	static constexpr size_t NUM_SKYBOX_SEGMENTS = 8;
+	static constexpr size_t SKYBOX_FACE_STRIDE = 4; // 3 vertex offsets + 1 padding per face
+
+	// Skybox vertex: short position + vertex color (12 bytes total)
+	struct SkyboxVertex
+	{
+		PSX::Vec3 pos;    // 0x0 - SVECTOR (6 bytes)
+		PSX::Color color; // 0x8 - CVECTOR (4 bytes)
+	};
+
+	// Skybox header struct (0x38 bytes)
+	struct Skybox
+	{
+		uint32_t numVertex;                              // 0x00
+		uint32_t offVertex;                              // 0x04 - offset to SkyboxVertex array
+		int16_t numFaces[NUM_SKYBOX_SEGMENTS];           // 0x08 - face count per segment
+		uint32_t offFaces[NUM_SKYBOX_SEGMENTS];          // 0x18 - offset to face index array per segment
+	};
+
+	static_assert(sizeof(SkyboxVertex) == 0xc, "SkyboxVertex must be 0xc bytes");
+	static_assert(sizeof(Skybox) == 0x38, "Skybox header must be 0x38 bytes");
 }
 
 template<>
@@ -413,8 +435,8 @@ static constexpr int16_t FP_ONE = 0x1000;
 static constexpr int16_t FP_ONE_GEO = 64;
 static constexpr int16_t FP_ONE_CP = 8;
 
-static inline int16_t ConvertFloat(float x, int16_t one = FP_ONE) { return static_cast<int16_t>(x * static_cast<float>(one)); };
-static inline int16_t ConvertAngle(float x) { return static_cast<int16_t>((x * static_cast<float>(FP_ONE)) / 360.0f); }
+static inline int16_t ConvertFloat(float x, int16_t one = FP_ONE) { return static_cast<int16_t>(std::round(x * static_cast<float>(one))); };
+static inline int16_t ConvertAngle(float x) { return static_cast<int16_t>(std::round((x * static_cast<float>(FP_ONE)) / 360.0f)); }
 static inline float ConvertFP(int16_t fp, int16_t one = FP_ONE) { return static_cast<float>(fp) / static_cast<float>(one); }
 static inline float ConvertFPAngle(int16_t fp) { return (static_cast<float>(fp) * 360.0f) / static_cast<float>(FP_ONE); }
 

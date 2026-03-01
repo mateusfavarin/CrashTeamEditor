@@ -358,4 +358,47 @@ namespace Script
 		}
 		return output;
 	}
+
+	bool AppendPythonPath(const std::filesystem::path& path, std::string& error)
+	{
+		std::string initError;
+		if (!EnsurePythonInterpreter(initError))
+		{
+			error = initError.empty() ? "[Failed to initialize Python interpreter]" : initError;
+			return false;
+		}
+		if (!Py_IsInitialized())
+		{
+			error = "[Python interpreter not initialized]";
+			return false;
+		}
+		std::error_code ec;
+		if (!std::filesystem::exists(path, ec))
+		{
+			error = "Path does not exist: " + path.string();
+			return false;
+		}
+		try
+		{
+			py::gil_scoped_acquire gil;
+			py::module_ sys = py::module_::import("sys");
+			py::list sys_path = sys.attr("path");
+
+			std::string pathStr = path.string();
+			for (const auto& existing : sys_path)
+			{
+				if (existing.cast<std::string>() == pathStr)
+				{
+					return true; 
+				}
+			}
+			sys_path.append(pathStr);
+			return true;
+		}
+		catch (const py::error_already_set& ex)
+		{
+			error = ex.what();
+			return false;
+		}
+	}
 }

@@ -71,8 +71,11 @@ void Level::Clear(bool clearErrors)
 	m_rendererQueryPoint = Vec3();
 	m_rendererSelectedQuadblockIndexes.clear();
 	m_genVisTree = false;
+	m_simpleVisTree = false;
 	m_bspVis.Clear();
+	m_maxQuadPerLeaf = 31;
 	m_maxLeafAxisLength = 64.0f;
+	m_distanceNearClip = -1.0f;
 	m_distanceFarClip = 1000.0f;
 	m_pythonConsole.clear();
 	m_saveScript = false;
@@ -80,6 +83,7 @@ void Level::Clear(bool clearErrors)
 	m_lastAnimTextureCount = 0;
 	m_minimapConfig.Clear();
 	DeleteMaterials(this);
+	m_skybox.Clear();
 
 	for (Model* model : m_models)
 	{
@@ -188,12 +192,11 @@ bool Level::GenerateBSP()
 	for (size_t i = 0; i < m_quadblocks.size(); i++) { quadIndexes.push_back(i); }
 	m_bsp.Clear();
 	m_bsp.SetQuadblockIndexes(quadIndexes);
-	m_bsp.Generate(m_quadblocks, MAX_QUADBLOCKS_LEAF, m_maxLeafAxisLength);
+	m_bsp.Generate(m_quadblocks, m_maxQuadPerLeaf, m_maxLeafAxisLength);
 	if (m_bsp.IsValid())
 	{
 		GenerateRenderBspData();
-		std::vector<const BSP*> bspLeaves = m_bsp.GetLeaves();
-		if (m_genVisTree) { m_bspVis = GenerateVisTree(m_quadblocks, bspLeaves, m_distanceFarClip * m_distanceFarClip); }
+		if (m_genVisTree) { m_bspVis = GenerateVisTree(m_quadblocks, &m_bsp, m_simpleVisTree, m_distanceNearClip, m_distanceFarClip); }
 		return true;
 	}
 	m_bsp.Clear();
@@ -424,6 +427,17 @@ bool Level::LoadPreset(const std::filesystem::path& filename)
 		if (json.contains("skyGradient")) { m_skyGradient = json["skyGradient"]; }
 		if (json.contains("clearColor")) { m_clearColor = json["clearColor"]; }
 		if (json.contains("stars")) { json["stars"].get_to(m_stars); }
+		if (json.contains("skyboxObjPath"))
+		{
+			std::string skyboxPath = json["skyboxObjPath"];
+			if (!skyboxPath.empty())
+			{
+				if (m_skybox.LoadOBJ(skyboxPath))
+				{
+					GenerateRenderSkyboxData();
+				}
+			}
+		}
 	}
 	else if (header == PresetHeader::PATH)
 	{
@@ -489,6 +503,11 @@ bool Level::LoadPreset(const std::filesystem::path& filename)
 					{
 						m_propCheckpointPathable.SetPreview(material, json[material + "_checkpointPathable"]);
 						m_propCheckpointPathable.Apply(material, m_materialToQuadblocks[material], m_quadblocks);
+					}
+					if (json.contains(material + "_visTreeTransparent"))
+					{
+						m_propVisTreeTransparent.SetPreview(material, json[material + "_visTreeTransparent"]);
+						m_propVisTreeTransparent.Apply(material, m_materialToQuadblocks[material], m_quadblocks);
 					}
 				}
 			}
@@ -572,6 +591,7 @@ bool Level::SavePreset(const std::filesystem::path& path)
 	levelJson["skyGradient"] = m_skyGradient;
 	levelJson["clearColor"] = m_clearColor;
 	levelJson["stars"] = m_stars;
+	if (!m_skybox.m_objPath.empty()) { levelJson["skyboxObjPath"] = m_skybox.m_objPath.string(); }
 	SaveJSON(dirPath / "level.json", levelJson);
 
 	nlohmann::json pathJson = {};
@@ -597,6 +617,7 @@ bool Level::SavePreset(const std::filesystem::path& path)
 			materialJson[key + "_drawflags"] = m_propDoubleSided.GetBackup(key);
 			materialJson[key + "_checkpoint"] = m_propCheckpoints.GetBackup(key);
 			materialJson[key + "_checkpointPathable"] = m_propCheckpointPathable.GetBackup(key);
+			materialJson[key + "_visTreeTransparent"] = m_propVisTreeTransparent.GetBackup(key);
 			materialJson[key + "_trigger"] = m_propTurboPads.GetBackup(key);
 			materialJson[key + "_speedImpact"] = m_propSpeedImpact.GetBackup(key);
 		}
@@ -682,6 +703,7 @@ void Level::ManageTurbopad(Quadblock& quadblock)
 		turboPad.Translate(TURBO_PAD_QUADBLOCK_TRANSLATION, up);
 		turboPad.SetCheckpoint(-1);
 		turboPad.SetCheckpointStatus(false);
+		turboPad.SetVisTreeTransparent(false);
 		turboPad.SetName(quadblock.GetName() + (stp ? "_stp" : "_tp"));
 		turboPad.SetFlag(QuadFlags::TRIGGER_SCRIPT | QuadFlags::INVISIBLE_TRIGGER | QuadFlags::WALL);
 		turboPad.SetTerrain(stp ? TerrainType::SUPER_TURBO_PAD : TerrainType::TURBO_PAD);
@@ -768,6 +790,45 @@ bool Level::LoadLEV(const std::filesystem::path& levFile)
 		m_materialToQuadblocks["default"].push_back(i);
 	}
 
+
+	m_bsp.Clear();
+	file.seekg(offLev + std::streampos(meshInfo.offBSPNodes));
+	std::vector<BSP*> bspArray;
+	for (uint32_t i = 0; i < meshInfo.numBSPNodes; i++)
+	{
+		bspArray.push_back(new BSP());
+	}
+
+	for (uint32_t i = 0; i < meshInfo.numBSPNodes; i++)
+	{
+		uint16_t flag;
+		std::streampos nodeStart = file.tellg();
+		Read(file, flag);
+		file.seekg(nodeStart);
+
+		if (flag & BSPFlags::LEAF)
+		{
+			PSX::BSPLeaf leaf = {};
+			Read(file, leaf);
+			bspArray[leaf.id]->PopulateLeaf(leaf, bspArray, m_quadblocks, meshInfo.offQuadblocks, meshInfo.numBSPNodes);
+		}
+		else
+		{
+			PSX::BSPBranch branch = {};
+			Read(file, branch);
+			bspArray[branch.id]->PopulateBranch(branch, bspArray, meshInfo.numBSPNodes);
+		}
+	}
+
+	if (!bspArray.empty())
+	{
+		m_bsp = *(bspArray[0]);
+		m_bsp.PopulateBranchQuadIndexes();
+		if (m_bsp.IsValid()) { GenerateRenderBspData(); }
+		else { m_bsp.Clear(); }
+	}
+	else { m_bsp.Clear(); }
+
 	file.seekg(offLev + std::streampos(header.offCheckpointNodes));
 	for (uint32_t i = 0; i < header.numCheckpointNodes; i++)
 	{
@@ -776,6 +837,40 @@ bool Level::LoadLEV(const std::filesystem::path& levFile)
 		m_checkpoints.emplace_back(checkpoint, static_cast<int>(i));
 	}
 	UpdateRenderCheckpointData();
+
+	m_tropyGhost.clear();
+	m_oxideGhost.clear();
+	if (header.offExtra > 0)
+	{
+		file.seekg(offLev + std::streampos(header.offExtra));
+		PSX::LevelExtraHeader extraHeader = {};
+		Read(file, extraHeader);
+		// Read N. Tropy Ghost
+		if (extraHeader.count >= PSX::LevelExtra::N_TROPY_GHOST + 1 &&
+			extraHeader.offsets[PSX::LevelExtra::N_TROPY_GHOST] > 0)
+		{
+			file.seekg(offLev + std::streampos(extraHeader.offsets[PSX::LevelExtra::N_TROPY_GHOST]));
+			size_t ghostSize = 0;
+			if (extraHeader.count > PSX::LevelExtra::N_OXIDE_GHOST && extraHeader.offsets[PSX::LevelExtra::N_OXIDE_GHOST] > 0)
+			{
+				ghostSize = extraHeader.offsets[PSX::LevelExtra::N_OXIDE_GHOST] - extraHeader.offsets[PSX::LevelExtra::N_TROPY_GHOST];
+			}
+			else
+			{
+				ghostSize = header.offLevNavTable - extraHeader.offsets[PSX::LevelExtra::N_TROPY_GHOST];
+			}
+			m_tropyGhost.resize(ghostSize);
+			file.read(reinterpret_cast<char*>(m_tropyGhost.data()), ghostSize);
+		}
+		// Read N. Oxide Ghost
+		if (extraHeader.count >= PSX::LevelExtra::N_OXIDE_GHOST + 1 && extraHeader.offsets[PSX::LevelExtra::N_OXIDE_GHOST] > 0)
+		{
+			file.seekg(offLev + std::streampos(extraHeader.offsets[PSX::LevelExtra::N_OXIDE_GHOST]));
+			size_t ghostSize = header.offLevNavTable - extraHeader.offsets[PSX::LevelExtra::N_OXIDE_GHOST];
+			m_oxideGhost.resize(ghostSize);
+			file.read(reinterpret_cast<char*>(m_oxideGhost.data()), ghostSize);
+		}
+	}
 
 	m_loaded = true;
 	file.close();
@@ -1134,6 +1229,7 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	meshInfo.numVertices = static_cast<uint32_t>(serializedVertices.size());
 	meshInfo.offQuadblocks = static_cast<uint32_t>(offQuadblocks);
 	meshInfo.offVertices = static_cast<uint32_t>(offVertices);
+	meshInfo.unk1 = 0;
 	meshInfo.unk2 = 0;
 	meshInfo.offBSPNodes = static_cast<uint32_t>(offBSP);
 	meshInfo.numBSPNodes = static_cast<uint32_t>(serializedBSPs.size());
@@ -1258,6 +1354,18 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 		// Set count if no ghosts are present (minimap is at index 0, so count = 1)
 		if (extraHeader.count == 0) { extraHeader.count = PSX::LevelExtra::MINIMAP + 1; }
 	}
+	
+	// Skybox data serialization
+	size_t offSkyboxData = 0;
+	std::vector<uint8_t> skyboxData;
+	std::vector<size_t> skyboxPtrMapOffsets;
+
+	if (m_skybox.IsReady())
+	{
+		offSkyboxData = currOffset;
+		skyboxData = m_skybox.Serialize(offSkyboxData, skyboxPtrMapOffsets);
+		currOffset += skyboxData.size();
+	}
 
 	const size_t offPointerMap = currOffset;
 
@@ -1289,6 +1397,12 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 		header.offIconsLookup = static_cast<uint32_t>(offLevelIconHeader);
 		header.offIcons = static_cast<uint32_t>(offMinimapIcons);
 	}
+	
+	// Set skybox pointer in header if enabled
+	if (m_skybox.IsReady())
+	{
+		header.offSkybox = static_cast<uint32_t>(offSkyboxData);
+	}
 
 #define CALCULATE_OFFSET(s, m, b) static_cast<uint32_t>(offsetof(s, m) + b)
 
@@ -1313,6 +1427,12 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	{
 		pointerMap.push_back(CALCULATE_OFFSET(PSX::LevHeader, offIconsLookup, offHeader));
 		pointerMap.push_back(CALCULATE_OFFSET(PSX::LevHeader, offIcons, offHeader));
+	}
+
+	// Add skybox header pointer to pointer map
+	if (m_skybox.IsReady())
+	{
+		pointerMap.push_back(CALCULATE_OFFSET(PSX::LevHeader, offSkybox, offHeader));
 	}
 
 	if (offTropyGhost != 0) { pointerMap.push_back(CALCULATE_OFFSET(PSX::LevelExtraHeader, offsets[PSX::LevelExtra::N_TROPY_GHOST], offExtraHeader)); }
@@ -1361,6 +1481,12 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	{
 		pointerMap.push_back(static_cast<uint32_t>(offset));
 	}
+	
+	// Add skybox internal pointers to pointer map
+	for (size_t offset : skyboxPtrMapOffsets)
+	{
+		pointerMap.push_back(static_cast<uint32_t>(offset));
+	}
 
 	const size_t pointerMapBytes = pointerMap.size() * sizeof(uint32_t);
 
@@ -1399,6 +1525,8 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	Write(file, &visMem, sizeof(visMem));
 	// Write minimap data if present
 	if (!minimapData.empty()) { Write(file, minimapData.data(), minimapData.size()); }
+	// Write skybox data if present
+	if (!skyboxData.empty()) { Write(file, skyboxData.data(), skyboxData.size()); }
 	Write(file, &pointerMapBytes, sizeof(uint32_t));
 	Write(file, pointerMap.data(), pointerMapBytes);
 	file.close();
@@ -1597,6 +1725,7 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 						m_propCheckpoints.SetDefaultValue(material, false);
 						m_propTurboPads.SetDefaultValue(material, QuadblockTrigger::NONE);
 						m_propCheckpointPathable.SetDefaultValue(material, true);
+						m_propVisTreeTransparent.SetDefaultValue(material, false);
 						m_propTerrain.RegisterMaterial(this);
 						m_propQuadFlags.RegisterMaterial(this);
 						m_propDoubleSided.RegisterMaterial(this);
@@ -1604,6 +1733,7 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 						m_propTurboPads.RegisterMaterial(this);
 						m_propSpeedImpact.RegisterMaterial(this);
 						m_propCheckpointPathable.RegisterMaterial(this);
+						m_propVisTreeTransparent.RegisterMaterial(this);
 					}
 				}
 				bool sameUVs = true;
@@ -1705,19 +1835,16 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 	{
 		for (const auto& [material, texture] : m_materialToTexture)
 		{
-			const std::filesystem::path& texPath = texture.GetPath();
-			const std::vector<size_t>& quadblockIndexes = m_materialToQuadblocks[material];
-			for (const size_t index : quadblockIndexes) { m_quadblocks[index].SetTexPath(texPath); }
-		}
-	}
+			const bool semiTransparent = texture.IsSemiTransparent();
+			m_propVisTreeTransparent.SetDefaultValue(material, semiTransparent);
 
-	if (ret)
-	{
-		for (const auto& [material, texture] : m_materialToTexture)
-		{
 			const std::filesystem::path& texPath = texture.GetPath();
 			const std::vector<size_t>& quadblockIndexes = m_materialToQuadblocks[material];
-			for (const size_t index : quadblockIndexes) { m_quadblocks[index].SetTexPath(texPath); }
+			for (const size_t index : quadblockIndexes)
+			{
+				m_quadblocks[index].SetTexPath(texPath);
+				m_quadblocks[index].SetVisTreeTransparent(semiTransparent);
+			}
 		}
 	}
 
@@ -1961,6 +2088,8 @@ void Level::InitModels(Renderer& renderer)
 
 	m_models[LevelModels::MINIMAP_BOUNDS] = m_models[LevelModels::LEVEL]->AddModel();
 	m_models[LevelModels::MINIMAP_BOUNDS]->SetRenderCondition([]() { return GuiRenderSettings::showMinimapBounds; });
+	m_models[LevelModels::SKYBOX] = m_models[LevelModels::LEVEL]->AddModel();
+	m_models[LevelModels::SKYBOX]->SetRenderCondition([]() { return GuiRenderSettings::showSkybox; });
 }
 
 void Level::GenerateRenderLevData()
@@ -1982,13 +2111,15 @@ void Level::GenerateRenderLevData()
 	size_t triangleOffset = 0;
 	for (Quadblock& qb : m_quadblocks)
 	{
-			qb.SetRenderPrimitiveIndex(triangleOffset);
-			std::vector<Primitive> qbTriangles = qb.ToGeometry(false);
-			std::vector<Primitive> qbFilterTriangles = qb.ToGeometry(true);
-			levTriangles.insert(levTriangles.end(), qbTriangles.begin(), qbTriangles.end());
-			filterTriangles.insert(filterTriangles.end(), qbFilterTriangles.begin(), qbFilterTriangles.end());
-			const size_t qbTriCount = CountPrimitiveTriangles(qbTriangles);
-			triangleOffset += qbTriCount;
+		std::vector<Primitive> qbTriangles = qb.ToGeometry(false);
+		if (qbTriangles.empty()) { continue; }
+
+		qb.SetRenderPrimitiveIndex(triangleOffset);
+		std::vector<Primitive> qbFilterTriangles = qb.ToGeometry(true);
+		levTriangles.insert(levTriangles.end(), qbTriangles.begin(), qbTriangles.end());
+		filterTriangles.insert(filterTriangles.end(), qbFilterTriangles.begin(), qbFilterTriangles.end());
+		const size_t qbTriCount = CountPrimitiveTriangles(qbTriangles);
+		triangleOffset += qbTriCount;
 	}
 
 	m_models[LevelModels::LEVEL]->GetMesh().SetGeometry(levTriangles, Mesh::RenderFlags::AllowPointRender | Mesh::RenderFlags::QuadblockLod, Mesh::ShaderFlags::None);
@@ -2180,6 +2311,14 @@ void Level::GenerateRenderMinimapBoundsData()
 	}
 
 	m_models[LevelModels::MINIMAP_BOUNDS]->GetMesh().SetGeometry(triangles, Mesh::RenderFlags::DrawWireframe | Mesh::RenderFlags::DontOverrideRenderFlags);
+}
+
+	void Level::GenerateRenderSkyboxData()
+{
+	if (!m_models[LevelModels::SKYBOX]) { return; }
+
+	std::vector<Primitive> triangles = m_skybox.ToGeometry(m_bsp.GetBoundingBox());
+	m_models[LevelModels::SKYBOX]->GetMesh().SetGeometry(triangles, Mesh::RenderFlags::DrawBackfaces | Mesh::RenderFlags::DontOverrideRenderFlags);
 }
 
 void Level::GenerateRenderSelectedBlockData(const Quadblock& quadblock, const Vec3& queryPoint)

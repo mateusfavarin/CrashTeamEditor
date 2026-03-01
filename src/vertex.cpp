@@ -35,7 +35,7 @@ std::vector<uint8_t> Vertex::Serialize() const
 	PSX::Vertex v = {};
 	std::vector<uint8_t> buffer(sizeof(v));
 	v.pos = ConvertVec3(m_pos, FP_ONE_GEO);
-	v.flags = VertexFlags::NONE;
+	v.flags = m_flags;
 	v.colorHi = ConvertColor(m_colorHigh);
 	v.colorLo = ConvertColor(m_colorLow);
 	std::memcpy(buffer.data(), &v, sizeof(v));

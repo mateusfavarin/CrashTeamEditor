@@ -13,11 +13,13 @@
 #include "model.h"
 #include "vistree.h"
 #include "minimap.h"
+#include "skybox.h"
 
 #include <nlohmann/json.hpp>
 #include <vector>
 #include <array>
 #include <unordered_map>
+#include <map>
 #include <filesystem>
 #include <tuple>
 #include <cstdint>
@@ -33,8 +35,9 @@ namespace LevelModels
 	static constexpr size_t SELECTED = 4;
 	static constexpr size_t MULTI_SELECTED = 5;
 	static constexpr size_t FILTER = 6;
-	static constexpr size_t MINIMAP_BOUNDS = 7;
-	static constexpr size_t COUNT = 8;
+	static constexpr size_t SKYBOX = 7;
+	static constexpr size_t MINIMAP_BOUNDS = 8;
+	static constexpr size_t COUNT = 9;
 };
 
 class Level
@@ -90,6 +93,7 @@ private:
 	void GenerateRenderBspData();
 	void GenerateRenderStartpointData();
 	void GenerateRenderMinimapBoundsData();
+	void GenerateRenderSkyboxData();
 	void GenerateRenderSelectedBlockData(const Quadblock& quadblock, const Vec3& queryPoint);
 	bool UpdateAnimTextures(float deltaTime);
 	void ViewportClickHandleBlockSelection(int pixelX, int pixelY, bool appendSelection, const Renderer& rend);
@@ -101,9 +105,13 @@ private:
 	bool m_showLogWindow;
 	bool m_showHotReloadWindow;
 	bool m_loaded;
+	bool m_simpleVisTree;
 	bool m_genVisTree;
+	int m_maxQuadPerLeaf;
 	float m_maxLeafAxisLength;
+	float m_distanceNearClip;
 	float m_distanceFarClip;
+
 	std::vector<std::tuple<std::string, std::string>> m_invalidQuadblocks;
 	std::string m_logMessage;
 	std::string m_name;
@@ -129,8 +137,9 @@ private:
 	BitMatrix m_bspVis;
 	std::vector<uint8_t> m_vrm;
 	MinimapConfig m_minimapConfig;
+	Skybox m_skybox;
 
-	std::unordered_map<std::string, std::vector<size_t>> m_materialToQuadblocks;
+	std::map<std::string, std::vector<size_t>> m_materialToQuadblocks;
 	std::unordered_map<std::string, Texture> m_materialToTexture;
 	MaterialProperty<std::string, MaterialType::TERRAIN> m_propTerrain;
 	MaterialProperty<uint16_t, MaterialType::QUAD_FLAGS> m_propQuadFlags;
@@ -139,6 +148,7 @@ private:
 	MaterialProperty<QuadblockTrigger, MaterialType::TURBO_PAD> m_propTurboPads;
 	MaterialProperty<int, MaterialType::SPEED_IMPACT> m_propSpeedImpact;
 	MaterialProperty<bool, MaterialType::CHECKPOINT_PATHABLE> m_propCheckpointPathable;
+	MaterialProperty<bool, MaterialType::VISTREE_TRANSPARENT> m_propVisTreeTransparent;
 
 	std::array<Model*, LevelModels::COUNT> m_models;
 

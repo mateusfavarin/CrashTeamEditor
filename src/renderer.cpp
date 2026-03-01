@@ -15,31 +15,31 @@ Renderer::Renderer(int width, int height)
 	m_width = width;
 	m_height = height;
 
-	glGenFramebuffers(1, &m_framebuffer);
-	glBindFramebuffer(GL_FRAMEBUFFER, m_framebuffer);
+	GL_CHECK(glGenFramebuffers(1, &m_framebuffer));
+	GL_CHECK(glBindFramebuffer(GL_FRAMEBUFFER, m_framebuffer));
 
 	// Create a texture to store color attachment
-	glGenTextures(1, &m_texturebuffer);
-	glBindTexture(GL_TEXTURE_2D, m_texturebuffer);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_width, m_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	GL_CHECK(glGenTextures(1, &m_texturebuffer));
+	GL_CHECK(glBindTexture(GL_TEXTURE_2D, m_texturebuffer));
+	GL_CHECK(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_width, m_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL));
+	GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
+	GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
 	//glBindTexture(GL_TEXTURE_2D, 0);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_texturebuffer, 0);
+	GL_CHECK(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_texturebuffer, 0));
 
 	// Create a renderbuffer for depth and stencil
-	glGenRenderbuffers(1, &m_renderbuffer);
-	glBindRenderbuffer(GL_RENDERBUFFER, m_renderbuffer);
-	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, m_width, m_height);
+	GL_CHECK(glGenRenderbuffers(1, &m_renderbuffer));
+	GL_CHECK(glBindRenderbuffer(GL_RENDERBUFFER, m_renderbuffer));
+	GL_CHECK(glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, m_width, m_height));
 	//glBindRenderbuffer(GL_RENDERBUFFER, 0);
-	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_renderbuffer);
+	GL_CHECK(glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_renderbuffer));
 
 	// Check if framebuffer is complete
-	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) { fprintf(stderr, "Framebuffer is not complete\n"); }
+	GL_CHECK_RET(glCheckFramebufferStatus(GL_FRAMEBUFFER));
 
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	glBindTexture(GL_TEXTURE_2D, 0);
-	glBindRenderbuffer(GL_RENDERBUFFER, 0);
+	GL_CHECK(glBindFramebuffer(GL_FRAMEBUFFER, 0));
+	GL_CHECK(glBindTexture(GL_TEXTURE_2D, 0));
+	GL_CHECK(glBindRenderbuffer(GL_RENDERBUFFER, 0));
 
 	m_shaderCache.reserve(ShaderTemplates::datasToShaderSourceMap.size());
 	for (const auto& [datas, sources] : ShaderTemplates::datasToShaderSourceMap)
@@ -48,8 +48,8 @@ Renderer::Renderer(int width, int height)
 	}
 
 	m_skyGradientShader = Shader(ShaderTemplates::vert_skygradient.c_str(), ShaderTemplates::frag_skygradient.c_str());
-	glGenVertexArrays(1, &m_skyGradientVAO);
-	glGenBuffers(1, &m_skyGradientVBO);
+	GL_CHECK(glGenVertexArrays(1, &m_skyGradientVAO));
+	GL_CHECK(glGenBuffers(1, &m_skyGradientVBO));
 }
 
 Renderer::~Renderer()
@@ -78,20 +78,20 @@ void Renderer::Render(bool skyGradientEnabled, const std::array<ColorGradient, N
 {
 	if (m_width <= 0 || m_height <= 0) { return; }
 
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	GL_CHECK(glBindFramebuffer(GL_FRAMEBUFFER, 0));
 
 	//clear screen with sky gradient or dark blue
-	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	GL_CHECK(glEnable(GL_DEPTH_TEST));
+	GL_CHECK(glEnable(GL_BLEND));
+	GL_CHECK(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
 
-	glViewport(0, 0, m_width, m_height);
+	GL_CHECK(glViewport(0, 0, m_width, m_height));
 
 	if (skyGradientEnabled) { RenderSkyGradient(skyGradients); }
 	else
 	{
-		glClearColor(0.0f, 0.05f, 0.1f, 1.0f); // Default dark blue background
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		GL_CHECK(glClearColor(0.0f, 0.05f, 0.1f, 1.0f)); // Default dark blue background
+		GL_CHECK(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 	}
 
 	//time
@@ -109,8 +109,8 @@ void Renderer::Render(bool skyGradientEnabled, const std::array<ColorGradient, N
 
 	const glm::vec3& camPos = m_camera.GetPosition();
 
-	m_perspective = glm::perspective<float>(glm::radians(GuiRenderSettings::camFovDeg), (static_cast<float>(m_width) / static_cast<float>(m_height)), 0.1f, 1000.0f);
-	static int lastUsedShader = -1;
+	m_perspective = glm::perspective<float>(glm::radians(GuiRenderSettings::camFovDeg), (static_cast<float>(m_width) / static_cast<float>(m_height)), 0.1f, 10000.0f);
+	int lastUsedShader = -1;
 
 	const glm::mat4 rootParentMatrix(1.0f);
 	for (Model* m : m_modelList)
@@ -118,7 +118,7 @@ void Renderer::Render(bool skyGradientEnabled, const std::array<ColorGradient, N
 		RenderModelRecursive(m, rootParentMatrix, camPos, lastUsedShader);
 	}
 
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	GL_CHECK(glBindFramebuffer(GL_FRAMEBUFFER, 0));
 }
 
 bool Renderer::RenderModelRecursive(Model* model, const glm::mat4& parentMatrix, const glm::vec3& camPos, int& lastUsedShader)
@@ -231,20 +231,20 @@ void Renderer::RescaleFramebuffer(float width, float height)
 	m_width = tempWidth;
 	m_height = tempHeight;
 
-	glBindFramebuffer(GL_FRAMEBUFFER, m_framebuffer);
-	glBindTexture(GL_TEXTURE_2D, m_texturebuffer);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_width, m_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_texturebuffer, 0);
+	GL_CHECK(glBindFramebuffer(GL_FRAMEBUFFER, m_framebuffer));
+	GL_CHECK(glBindTexture(GL_TEXTURE_2D, m_texturebuffer));
+	GL_CHECK(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_width, m_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL));
+	GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
+	GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+	GL_CHECK(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_texturebuffer, 0));
 
-	glBindRenderbuffer(GL_RENDERBUFFER, m_renderbuffer);
-	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, m_width, m_height);
-	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_renderbuffer);
+	GL_CHECK(glBindRenderbuffer(GL_RENDERBUFFER, m_renderbuffer));
+	GL_CHECK(glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, m_width, m_height));
+	GL_CHECK(glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_renderbuffer));
 
-	glBindTexture(GL_TEXTURE_2D, 0);
-	glBindRenderbuffer(GL_RENDERBUFFER, 0);
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	GL_CHECK(glBindTexture(GL_TEXTURE_2D, 0));
+	GL_CHECK(glBindRenderbuffer(GL_RENDERBUFFER, 0));
+	GL_CHECK(glBindFramebuffer(GL_FRAMEBUFFER, 0));
 }
 
 void Renderer::SetViewportSize(float width, float height)
@@ -332,19 +332,19 @@ void Renderer::RenderSkyGradient(const std::array<ColorGradient, NUM_GRADIENT>& 
 
 	// Clear with black background first
 	// TODO: should use level "clear color" but it doesnt work on the editor atm
-	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	GL_CHECK(glClearColor(0.0f, 0.0f, 0.0f, 1.0f));
+	GL_CHECK(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 
-	GLboolean depthTestEnabled = glIsEnabled(GL_DEPTH_TEST);
-	GLboolean blendEnabled = glIsEnabled(GL_BLEND);
-	GLboolean cullFaceEnabled = glIsEnabled(GL_CULL_FACE);
+	GLboolean depthTestEnabled = GL_CHECK_RET(glIsEnabled(GL_DEPTH_TEST));
+	GLboolean blendEnabled = GL_CHECK_RET(glIsEnabled(GL_BLEND));
+	GLboolean cullFaceEnabled = GL_CHECK_RET(glIsEnabled(GL_CULL_FACE));
 	GLint polygonMode[2];
-	glGetIntegerv(GL_POLYGON_MODE, polygonMode);
+	GL_CHECK(glGetIntegerv(GL_POLYGON_MODE, polygonMode));
 
-	glDisable(GL_DEPTH_TEST);
-	glDisable(GL_BLEND);
-	glDisable(GL_CULL_FACE);
-	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	GL_CHECK(glDisable(GL_DEPTH_TEST));
+	GL_CHECK(glDisable(GL_BLEND));
+	GL_CHECK(glDisable(GL_CULL_FACE));
+	GL_CHECK(glPolygonMode(GL_FRONT_AND_BACK, GL_FILL));
 
 	if (m_skyGradientVAO == 0 || m_skyGradientVBO == 0) { return; }
 
@@ -386,25 +386,25 @@ void Renderer::RenderSkyGradient(const std::array<ColorGradient, NUM_GRADIENT>& 
 		quadData.push_back(topColor.Red()); quadData.push_back(topColor.Green()); quadData.push_back(topColor.Blue());
 	}
 
-	glBindVertexArray(m_skyGradientVAO);
-	glBindBuffer(GL_ARRAY_BUFFER, m_skyGradientVBO);
-	glBufferData(GL_ARRAY_BUFFER, quadData.size() * sizeof(float), quadData.data(), GL_DYNAMIC_DRAW);
+	GL_CHECK(glBindVertexArray(m_skyGradientVAO));
+	GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, m_skyGradientVBO));
+	GL_CHECK(glBufferData(GL_ARRAY_BUFFER, quadData.size() * sizeof(float), quadData.data(), GL_DYNAMIC_DRAW));
 
-	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, SKY_GRADIENT_VERTEX_STRIDE, (void*) SKY_GRADIENT_POS_OFFSET);
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, SKY_GRADIENT_VERTEX_STRIDE, (void*) (SKY_GRADIENT_COLOR_OFFSET * sizeof(float)));
-	glEnableVertexAttribArray(1);
+	GL_CHECK(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, SKY_GRADIENT_VERTEX_STRIDE, (void*) SKY_GRADIENT_POS_OFFSET));
+	GL_CHECK(glEnableVertexAttribArray(0));
+	GL_CHECK(glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, SKY_GRADIENT_VERTEX_STRIDE, (void*) (SKY_GRADIENT_COLOR_OFFSET * sizeof(float))));
+	GL_CHECK(glEnableVertexAttribArray(1));
 
 	m_skyGradientShader.Use();
-	glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(quadData.size() / SKY_GRADIENT_FLOATS_PER_VERTEX));
+	GL_CHECK(glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(quadData.size() / SKY_GRADIENT_FLOATS_PER_VERTEX)));
 
-	glBindVertexArray(0);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	GL_CHECK(glBindVertexArray(0));
+	GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, 0));
 	m_skyGradientShader.Unuse();
 
 	// Restore state
-	if (depthTestEnabled) { glEnable(GL_DEPTH_TEST); }
-	if (blendEnabled) { glEnable(GL_BLEND); }
-	if (cullFaceEnabled) { glEnable(GL_CULL_FACE); }
-	glPolygonMode(GL_FRONT_AND_BACK, polygonMode[0]);  // Restore polygon mode
+	if (depthTestEnabled) { GL_CHECK(glEnable(GL_DEPTH_TEST)); }
+	if (blendEnabled) { GL_CHECK(glEnable(GL_BLEND)); }
+	if (cullFaceEnabled) { GL_CHECK(glEnable(GL_CULL_FACE)); }
+	GL_CHECK(glPolygonMode(GL_FRONT_AND_BACK, polygonMode[0]));  // Restore polygon mode
 }
