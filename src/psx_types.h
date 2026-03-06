@@ -200,7 +200,7 @@ namespace PSX
 		uint32_t numSCVertices; // 0x174
 		uint32_t offSCVertices; // 0x178
 		Stars stars; // 0x17C
-		uint8_t splitLines[4]; // 0x184
+		int16_t splitLines[2]; // 0x184
 		uint32_t offLevNavTable; // 0x188
 		uint32_t unk_0x18C; // 0x18C
 		uint32_t offVisMem; // 0x190

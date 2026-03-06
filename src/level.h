@@ -121,6 +121,7 @@ private:
 	std::array<ColorGradient, NUM_GRADIENT> m_skyGradient;
 	Color m_clearColor;
 	Stars m_stars;
+	float m_splitLines[2];
 	std::vector<uint8_t> m_tropyGhost;
 	std::vector<uint8_t> m_oxideGhost;
 	std::vector<Quadblock> m_quadblocks;

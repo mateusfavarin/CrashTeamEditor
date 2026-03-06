@@ -82,6 +82,8 @@ void Level::Clear(bool clearErrors)
 	m_lastAnimTextureCount = 0;
 	DeleteMaterials(this);
 	m_skybox.Clear();
+	m_splitLines[0] = 0.0;
+	m_splitLines[1] = 0.0;
 
 	for (Model* model : m_models)
 	{
@@ -420,6 +422,11 @@ bool Level::LoadPreset(const std::filesystem::path& filename)
 		if (json.contains("skyGradient")) { m_skyGradient = json["skyGradient"]; }
 		if (json.contains("clearColor")) { m_clearColor = json["clearColor"]; }
 		if (json.contains("stars")) { json["stars"].get_to(m_stars); }
+		if (json.contains("splitLines"))
+		{
+			m_splitLines[0] = json["splitLines"][0];
+			m_splitLines[1] = json["splitLines"][1];
+		}
 		if (json.contains("skyboxObjPath"))
 		{
 			std::string skyboxPath = json["skyboxObjPath"];
@@ -577,6 +584,7 @@ bool Level::SavePreset(const std::filesystem::path& path)
 	levelJson["skyGradient"] = m_skyGradient;
 	levelJson["clearColor"] = m_clearColor;
 	levelJson["stars"] = m_stars;
+	levelJson["splitLines"] = { m_splitLines[0], m_splitLines[1] };
 	if (!m_skybox.m_objPath.empty()) { levelJson["skyboxObjPath"] = m_skybox.m_objPath.string(); }
 	SaveJSON(dirPath / "level.json", levelJson);
 
@@ -732,6 +740,8 @@ bool Level::LoadLEV(const std::filesystem::path& levFile)
 	m_configFlags = header.config;
 	m_clearColor = ConvertColor(header.clear);
 	m_stars = ConvertStars(header.stars);
+	m_splitLines[0] = ConvertFP(header.splitLines[0], FP_ONE_GEO);
+	m_splitLines[1] = ConvertFP(header.splitLines[1], FP_ONE_GEO);
 	for (size_t i = 0; i < m_spawn.size(); i++)
 	{
 		m_spawn[i].pos = ConvertPSXVec3(header.driverSpawn[i].pos, FP_ONE_GEO);
@@ -1123,7 +1133,7 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 	for (size_t i = 0; i < bspLeaves.size(); i++) { leafToMatrix[bspLeaves[i]] = i; }
 	for (const Quadblock* quad : orderedQuads)
 	{
-		if (quad->GetFlags() & (QuadFlags::INVISIBLE | QuadFlags::INVISIBLE_TRIGGER))
+		if (quad->GetFlags() & QuadFlags::INVISIBLE_TRIGGER)
 		{
 			visibleQuadsAll[quadIndex / BITS_PER_SLOT] &= ~(1 << (quadIndex % BITS_PER_SLOT));
 		}
@@ -1299,6 +1309,8 @@ bool Level::SaveLEV(const std::filesystem::path& path)
 		header.skyGradient[i].colorTo = ConvertColor(m_skyGradient[i].colorTo);
 	}
 	header.stars = ConvertStars(m_stars);
+	header.splitLines[0] = ConvertFloat(m_splitLines[0], FP_ONE_GEO);
+	header.splitLines[1] = ConvertFloat(m_splitLines[1], FP_ONE_GEO);
 	header.offExtra = static_cast<uint32_t>(offExtraHeader);
 	header.numCheckpointNodes = static_cast<uint32_t>(m_checkpoints.size());
 	header.offCheckpointNodes = static_cast<uint32_t>(offCheckpoints);

@@ -515,6 +515,31 @@ void Level::RenderUI(Renderer& renderer)
 				ImGui::TreePop();
 			}
 
+			if (ImGui::TreeNode("SplitLines"))
+			{
+				ImGui::Text("SplitLine 1:"); 
+				ImGui::SameLine(); 
+				ImGui::InputFloat("##sl1", &m_splitLines[0]);
+				ImGui::SetItemTooltip("Reflection 1 flag\n");
+				ImGui::SameLine();
+				if (ImGui::Button(("Set from selection##1")))
+				{
+					m_splitLines[0] = m_rendererQueryPoint.y;
+				}
+
+				ImGui::Text("SplitLine 2:");
+				ImGui::SameLine();
+				ImGui::InputFloat("##sl2", &m_splitLines[1]);
+				ImGui::SetItemTooltip("Reflection 2 flag\n");
+				ImGui::SameLine();
+				if (ImGui::Button(("Set from selection##2")))
+				{
+					m_splitLines[1] = m_rendererQueryPoint.y;
+				}
+
+				ImGui::TreePop();
+			}
+
 			if (ImGui::TreeNode("Skybox"))
 			{
 				if (m_skybox.RenderUI())
