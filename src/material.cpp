@@ -12,6 +12,7 @@ template class MaterialProperty<QuadblockTrigger, MaterialType::TURBO_PAD>;
 template class MaterialProperty<int, MaterialType::SPEED_IMPACT>;
 template class MaterialProperty<bool, MaterialType::CHECKPOINT_PATHABLE>;
 template class MaterialProperty<bool, MaterialType::VISTREE_TRANSPARENT>;
+template class MaterialProperty<int, MaterialType::DRAW_ORDER_HIGH>;
 
 static std::unordered_map<Level*, std::vector<MaterialBase*>> g_materials;
 
@@ -119,6 +120,7 @@ void MaterialProperty<T, M>::Apply(const std::string& material, const std::vecto
 			else if constexpr (M == MaterialType::SPEED_IMPACT) { quadblock.SetSpeedImpact(preview); }
 			else if constexpr (M == MaterialType::CHECKPOINT_PATHABLE) { quadblock.SetCheckpointPathable(preview); }
 			else if constexpr (M == MaterialType::VISTREE_TRANSPARENT) { quadblock.SetVisTreeTransparent(preview); }
+			else if constexpr (M == MaterialType::DRAW_ORDER_HIGH) { quadblock.SetDrawOrderHigh(preview); }
 		}
 	}
 	m_backup[material] = preview;

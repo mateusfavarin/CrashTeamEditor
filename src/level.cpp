@@ -502,6 +502,11 @@ bool Level::LoadPreset(const std::filesystem::path& filename)
 						m_propVisTreeTransparent.SetPreview(material, json[material + "_visTreeTransparent"]);
 						m_propVisTreeTransparent.Apply(material, m_materialToQuadblocks[material], m_quadblocks);
 					}
+					if (json.contains(material + "_drawOrderHigh"))
+					{
+						m_propDrawOrderHigh.SetPreview(material, json[material + "_drawOrderHigh"]);
+						m_propDrawOrderHigh.Apply(material, m_materialToQuadblocks[material], m_quadblocks);
+					}
 				}
 			}
 		}
@@ -606,6 +611,7 @@ bool Level::SavePreset(const std::filesystem::path& path)
 			materialJson[key + "_visTreeTransparent"] = m_propVisTreeTransparent.GetBackup(key);
 			materialJson[key + "_trigger"] = m_propTurboPads.GetBackup(key);
 			materialJson[key + "_speedImpact"] = m_propSpeedImpact.GetBackup(key);
+			materialJson[key + "_drawOrderHigh"] = m_propDrawOrderHigh.GetBackup(key);
 		}
 		materialJson["materials"] = materials;
 		SaveJSON(dirPath / "material.json", materialJson);
@@ -688,6 +694,7 @@ void Level::ManageTurbopad(Quadblock& quadblock)
 		turboPad.SetTurboPadIndex(TURBO_PAD_INDEX_NONE);
 		turboPad.SetHide(true);
 		turboPad.SetAnimated(false);
+		turboPad.SetDrawOrderHigh(0);
 
 		size_t index = m_quadblocks.size();
 		turboPadIndex = quadblock.GetTurboPadIndex();
@@ -1617,6 +1624,7 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 						m_propTurboPads.SetDefaultValue(material, QuadblockTrigger::NONE);
 						m_propCheckpointPathable.SetDefaultValue(material, true);
 						m_propVisTreeTransparent.SetDefaultValue(material, false);
+						m_propDrawOrderHigh.SetDefaultValue(material, static_cast<int>(0));
 						m_propTerrain.RegisterMaterial(this);
 						m_propQuadFlags.RegisterMaterial(this);
 						m_propDoubleSided.RegisterMaterial(this);
@@ -1625,6 +1633,7 @@ bool Level::LoadOBJ(const std::filesystem::path& objFile)
 						m_propSpeedImpact.RegisterMaterial(this);
 						m_propCheckpointPathable.RegisterMaterial(this);
 						m_propVisTreeTransparent.RegisterMaterial(this);
+						m_propDrawOrderHigh.RegisterMaterial(this);
 					}
 				}
 				bool sameUVs = true;

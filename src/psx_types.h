@@ -251,7 +251,7 @@ namespace PSX
 		uint16_t index[NUM_VERTICES_QUADBLOCK]; // 0x0
 		uint16_t flags; // 0x12
 		uint32_t drawOrderLow; // 0x14
-		uint32_t drawOrderHigh; // 0x18
+		int8_t drawOrderHigh[4]; // 0x18
 		uint32_t offMidTextures[4]; // 0x1C
 		PSX::BoundingBox bbox; // 0x2C
 		uint8_t terrain; // 0x38
