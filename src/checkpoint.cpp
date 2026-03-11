@@ -107,6 +107,12 @@ int Checkpoint::GetRight() const
 	return m_right;
 }
 
+
+void Checkpoint::UpdatePos(Vec3 pos)
+{
+	m_pos = pos;
+}
+
 void Checkpoint::UpdateDistFinish(float dist)
 {
 	m_distToFinish = dist;

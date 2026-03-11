@@ -26,6 +26,7 @@ public:
 	int GetRight() const;
 	const Color& GetColor() const;
 	void SetColor(const Color& color);
+	void UpdatePos(Vec3 pos);
 	void UpdateDistFinish(float dist);
 	void UpdateUp(int up);
 	void UpdateDown(int down);

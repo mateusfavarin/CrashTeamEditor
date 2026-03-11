@@ -421,6 +421,7 @@ void init_crashteameditor(py::module_& m)
 		.def_property("color",
 			[](const Checkpoint& cp) { return cp.GetColor(); },
 			[](Checkpoint& cp, const Color& color) { cp.SetColor(color); })
+		.def("update_pos", &Checkpoint::UpdatePos)
 		.def("update_dist_finish", &Checkpoint::UpdateDistFinish)
 		.def("update_up", &Checkpoint::UpdateUp)
 		.def("update_down", &Checkpoint::UpdateDown)
