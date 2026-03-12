@@ -724,10 +724,12 @@ void Level::RenderUI(Renderer& renderer)
 				m_checkpointPaths.push_back(Path(m_checkpointPaths.size()));
 			}
 			ImGui::SameLine();
+			ImGui::BeginDisabled(m_checkpointPaths.empty());
 			if (ImGui::Button("Delete Path"))
 			{
 				m_checkpointPaths.pop_back();
 			}
+			ImGui::EndDisabled();
 
 			bool ready = !m_checkpointPaths.empty();
 			for (const Path& path : m_checkpointPaths)
@@ -736,9 +738,23 @@ void Level::RenderUI(Renderer& renderer)
 			}
 			ImGui::BeginDisabled(!ready);
 			static ButtonUI generateButton;
+			static bool showWarning = false;
+			static std::chrono::time_point<std::chrono::steady_clock> warningStart;
 			if (generateButton.Show("Generate", "Checkpoints successfully generated.", false))
 			{
-				GenerateCheckpoints();
+				if (!GenerateCheckpoints())
+				{
+					showWarning = true;
+					warningStart = std::chrono::steady_clock::now();
+				}
+			}
+			if (showWarning)
+			{
+				auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - warningStart).count();
+				if (elapsed < 5) 
+					ImGui::TextColored(ImVec4(1.0f, 0.3f, 0.3f, 1.0f), "Warning: some paths are overlapping.\nCheck console for details.");
+				else
+					showWarning = false;
 			}
 			ImGui::EndDisabled();
 			ImGui::TreePop();

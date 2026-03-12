@@ -202,12 +202,18 @@ bool Level::GenerateCheckpoints()
 
 	for (const Path& path : m_checkpointPaths) { if (!path.IsReady()) { return false; } }
 
+	ResetFilter();
+	for (size_t i = 0; i < m_quadblocks.size(); i++)
+	{
+		m_quadblocks[i].SetCheckpoint(-1);
+	}
 	size_t checkpointIndex = 0;
 	std::vector<size_t> linkNodeIndexes;
 	std::vector<std::vector<Checkpoint>> pathCheckpoints;
+	bool overlap = false;
 	for (Path& path : m_checkpointPaths)
 	{
-		pathCheckpoints.push_back(path.GeneratePath(checkpointIndex, m_quadblocks));
+		pathCheckpoints.push_back(path.GeneratePath(checkpointIndex, m_quadblocks, overlap));
 		checkpointIndex += pathCheckpoints.back().size();
 		linkNodeIndexes.push_back(path.GetStart());
 		linkNodeIndexes.push_back(path.GetEnd());
@@ -243,6 +249,20 @@ bool Level::GenerateCheckpoints()
 		{
 			size_t linkUp = (i + 1) % linkNodeIndexes.size();
 			node.UpdateUp(static_cast<int>(linkNodeIndexes[linkUp]));
+		}
+	}
+
+	for (Path& path : m_checkpointPaths)
+	{
+		const Checkpoint& middleStart = m_checkpoints[path.GetStart()];
+		const Checkpoint& middleEnd = m_checkpoints[path.GetEnd()];
+
+		Path* sides[2] = { path.GetLeft(), path.GetRight() };
+		for (Path* side : sides)
+		{
+			if (!side) { continue; }
+			m_checkpoints[side->GetStart()].UpdateDown(middleStart.GetDown());
+			m_checkpoints[side->GetEnd()].UpdateUp(middleEnd.GetUp());
 		}
 	}
 
@@ -390,7 +410,7 @@ bool Level::GenerateCheckpoints()
 	}
 
 	UpdateRenderCheckpointData();
-	return true;
+	return !overlap;
 }
 
 

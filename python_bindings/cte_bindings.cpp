@@ -446,7 +446,7 @@ void init_crashteameditor(py::module_& m)
 		.def("is_ready", &Path::IsReady)
 		.def("set_index", &Path::SetIndex)
 		.def("update_dist", &Path::UpdateDist, py::arg("dist"), py::arg("ref_point"), py::arg("checkpoints"))
-		.def("generate_path", &Path::GeneratePath, py::arg("path_start_index"), py::arg("quadblocks"))
+		.def("generate_path", &Path::GeneratePath, py::arg("path_start_index"), py::arg("quadblocks"), py::arg("overlap"))
 		.def_property("color",
 			[](const Path& p) { return p.GetColor(); },
 			[](Path& p, const Color& color) { p.SetColor(color); })

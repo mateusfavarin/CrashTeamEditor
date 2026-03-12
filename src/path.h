@@ -17,6 +17,8 @@ public:
 	size_t GetIndex() const;
 	size_t GetStart() const;
 	size_t GetEnd() const;
+	Path* GetLeft();
+	Path* GetRight();
 	std::vector<size_t>& GetStartIndexes();
 	std::vector<size_t>& GetEndIndexes();
 	std::vector<size_t>& GetIgnoreIndexes();
@@ -25,7 +27,7 @@ public:
 	void SetColor(const Color& color);
 	void SetIndex(size_t index);
 	void UpdateDist(float dist, const Vec3& refPoint, std::vector<Checkpoint>& checkpoints);
-	std::vector<Checkpoint> GeneratePath(size_t pathStartIndex, std::vector<Quadblock>& quadblocks);
+	std::vector<Checkpoint> GeneratePath(size_t pathStartIndex, std::vector<Quadblock>& quadblocks, bool& overlap);
 	void RenderUI(const std::string& title, const std::vector<Quadblock>& quadblocks, const std::string& searchQuery, bool& insertAbove, bool& removePath, const std::vector<size_t>& selectedIndexes, bool mainPath);
 	void ToJson(nlohmann::json& json, const std::vector<Quadblock>& quadblocks) const;
 	void FromJson(const nlohmann::json& json, const std::vector<Quadblock>& quadblocks);
