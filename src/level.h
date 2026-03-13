@@ -101,12 +101,10 @@ private:
 	bool m_showLogWindow;
 	bool m_showHotReloadWindow;
 	bool m_loaded;
-	bool m_simpleVisTree;
 	bool m_genVisTree;
 	int m_maxQuadPerLeaf;
 	float m_maxLeafAxisLength;
-	float m_distanceNearClip;
-	float m_distanceFarClip;
+	VisTreeSettings m_visTreeSettings;
 
 	std::vector<std::tuple<std::string, std::string>> m_invalidQuadblocks;
 	std::string m_logMessage;
