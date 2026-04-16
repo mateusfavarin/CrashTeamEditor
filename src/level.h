@@ -77,6 +77,7 @@ private:
 	bool SaveGhostData(const std::string& emulator, const std::filesystem::path& path);
 	bool SetGhostData(const std::filesystem::path& path, bool tropy);
 	bool UpdateVRM();
+	std::vector<uint16_t> ReadRawVRAM(std::filesystem::path vrmPath);
 	bool GenerateCheckpoints();
 	bool GenerateBSP();
 

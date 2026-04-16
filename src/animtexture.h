@@ -19,6 +19,10 @@ class AnimTexture
 public:
 	AnimTexture() {};
 	AnimTexture(const std::filesystem::path& path, const std::vector<std::string>& usedNames);
+	AnimTexture(const std::string& animName, const std::filesystem::path& tempDir, const std::array<std::vector<PSX::TextureLayout>, 4>& faceFrameLayouts,
+		const std::array<std::vector<std::string>, 4>& faceFrameMaterials, const std::vector<size_t>& quadIndices, const std::vector<Quadblock>& quadblocks,
+		const std::unordered_map<LayoutKey, PixelBounds>& textureToPixelBounds, const std::unordered_map<std::string, Texture>& materialToTexture, const PSX::AnimTex& firstAnimData,
+		const std::vector<AnimTexture>& animTextures);
 	bool IsEmpty() const;
 	bool IsTriblock() const;
 	const std::vector<AnimTextureFrame>& GetFrames() const;
@@ -34,6 +38,8 @@ public:
 	void FromJson(const nlohmann::json& json, std::vector<Quadblock>& quadblocks, const std::filesystem::path& parentPath);
 	void ToJson(nlohmann::json& json, const std::vector<Quadblock>& quadblocks) const;
 	bool IsEquivalent(const AnimTexture& animTex) const;
+	void SetStartFrame(int frame);
+	void SetDuration(int duration);
 	bool RenderUI(std::vector<std::string>& animTexNames, std::vector<Quadblock>& quadblocks, const std::map<std::string, std::vector<size_t>>& materialMap, const std::string& query, std::vector<AnimTexture>& newTextures);
 
 private:

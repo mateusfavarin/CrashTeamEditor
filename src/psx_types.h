@@ -475,3 +475,24 @@ static inline Stars ConvertStars(const PSX::Stars& stars)
     out.zDepth = stars.zDepth;
     return out;
 }
+
+static inline void ConvertVRAMColorToRGBA(uint16_t vramColor, uint8_t* rgba)
+{
+	uint8_t r = (vramColor >> 0) & 0x1F;
+	uint8_t g = (vramColor >> 5) & 0x1F;
+	uint8_t b = (vramColor >> 10) & 0x1F;
+	bool stp = (vramColor >> 15) != 0;
+
+	rgba[0] = (r << 3) | (r >> 2);
+	rgba[1] = (g << 3) | (g >> 2);
+	rgba[2] = (b << 3) | (b >> 2);
+
+	if (r == 0 && g == 0 && b == 0)
+	{
+		rgba[3] = stp ? 255 : 0;
+	}
+	else
+	{
+		rgba[3] = stp ? 128 : 255;
+	}
+}

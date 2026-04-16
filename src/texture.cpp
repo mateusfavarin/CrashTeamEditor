@@ -1,7 +1,12 @@
 #include "texture.h"
 
 #define STB_IMAGE_IMPLEMENTATION
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#pragma warning(push)
+#pragma warning(disable: 4996) 
 #include <stb_image.h>
+#include <stb_image_write.h>
+#pragma warning(pop)
 
 static constexpr size_t MIN_CLUT_WIDTH = 16;
 static constexpr size_t TEXPAGE_WIDTH = 64;
@@ -21,6 +26,93 @@ Texture::Texture(const std::filesystem::path& path)
 	m_blendMode = PSX::BlendMode::HALF_TRANSPARENT;
 	if (!CreateTexture()) { ClearTexture(); }
 }
+
+
+Texture::Texture(const LayoutKey& key, const PixelBounds& bounds, const std::vector<uint16_t>& vram, const std::string& newMatName, const std::filesystem::path& tempDir, bool crop)
+	: m_width(0), m_height(0), m_imageX(0), m_imageY(0), m_clutX(0), m_clutY(0), m_blendMode(0), m_semiTransparent(false)
+// Constructor that create the PNG file from vram
+{
+	int bppMode = key.bpp;
+	int bppMult = (bppMode == 0) ? 4 : (bppMode == 1 ? 2 : 1);
+	int fullWidth = 64 * bppMult;
+	int fullHeight = 256;
+
+	int minU = crop ? bounds.minU : 0;
+	int maxU = crop ? bounds.maxU +1: fullWidth;
+	int minV = crop ? bounds.minV : 0;
+	int maxV = crop ? bounds.maxV +1: fullHeight;
+
+	// Boundary check and clamping
+	if (maxU > fullWidth || maxV > fullHeight) {
+		maxU = std::min(maxU, fullWidth);
+		maxV = std::min(maxV, fullHeight);
+	}
+
+	int croppedWidth = maxU - minU;
+	int croppedHeight = maxV - minV;
+
+	if (croppedWidth <= 0 || croppedHeight <= 0) return;
+
+	// CLUT Coordinate Mapping
+	size_t clutX = key.clutX * 16;
+	size_t clutY = key.clutY;
+	if (clutX < 512) clutX += 512;
+
+	size_t basePageX = key.pageX;
+	if (basePageX < 8) basePageX += 8;
+
+	size_t imageXReal = (basePageX % 16) * 64;
+	size_t imageY = key.pageY * 256;
+
+	// Extract VRAM to RGBA buffer
+	std::vector<uint8_t> rgba(croppedWidth * croppedHeight * 4);
+	for (int y = 0; y < croppedHeight; y++) {
+		int srcY = imageY + minV + y;
+		size_t vramLine = srcY * 1024;
+
+		for (int x = 0; x < croppedWidth; x++) {
+			int srcU = minU + x;
+			uint16_t color = 0;
+
+			if (bppMode == 2) {
+				color = vram[vramLine + imageXReal + srcU];
+			}
+			else {
+				size_t hOffset = imageXReal + (srcU / bppMult);
+				uint16_t word = vram[vramLine + hOffset];
+				int bits = (bppMode == 0) ? 4 : 8;
+				int val = (word >> (bits * (srcU % bppMult))) & ((1 << bits) - 1);
+
+				size_t pIdx = clutY * 1024 + clutX + val;
+				color = (pIdx < vram.size()) ? vram[pIdx] : 0;
+			}
+			ConvertVRAMColorToRGBA(color, &rgba[(y * croppedWidth + x) * 4]);
+		}
+	}
+
+	// Save to temporary file
+	m_path = tempDir / (newMatName + ".png");
+	if (stbi_write_png(m_path.string().c_str(), croppedWidth, croppedHeight, 4, rgba.data(), croppedWidth * 4)) {
+		// Initialize the rest of the VRAM metadata
+		m_imageX = imageXReal - 512;
+		m_imageY = imageY;
+		if (bppMode < 2) {
+			m_clutX = clutX - 512;
+			m_clutY = clutY;
+		}
+		m_blendMode = key.blendMode;
+
+		// Load the PNG back into the class buffers (m_image, m_width, m_height, etc.)
+		if (!CreateTexture()) {
+			ClearTexture();
+		}
+	}
+	else {
+		printf("ERROR: Failed to write PNG for %s\n", newMatName.c_str());
+		ClearTexture();
+	}
+}
+
 
 void Texture::UpdateTexture(const std::filesystem::path& path)
 {

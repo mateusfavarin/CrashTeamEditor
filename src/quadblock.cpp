@@ -688,6 +688,27 @@ void Quadblock::SetSpeedImpact(int speed)
 	m_downforce = speed;
 }
 
+void Quadblock::SetUVs(const QuadUV& uvs)
+{
+	for (size_t i = 0; i < NUM_FACES_QUADBLOCK + 1; i++)
+	{
+		m_uvs[i] = uvs;
+	}
+}
+
+void Quadblock::SetFaceUVs(size_t faceIndex, const QuadUV& uvs)
+{
+	if (faceIndex < m_uvs.size())
+	{
+		m_uvs[faceIndex] = uvs;
+	}
+}
+
+void Quadblock::SetMaterial(const std::string& material) 
+{ 
+	m_material = material; 
+}
+
 void Quadblock::Translate(float ratio, const Vec3& direction)
 {
 	for (size_t i = 0; i < NUM_VERTICES_QUADBLOCK; i++) { m_p[i].m_pos += direction * ratio; }
