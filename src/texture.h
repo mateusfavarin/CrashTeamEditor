@@ -8,8 +8,36 @@
 #include <filesystem>
 #include <unordered_set>
 #include <functional>
+#include <string>
 
 typedef std::unordered_set<size_t> Shape;
+
+// Raw PSX texture data: pixel indices + palette + VRAM metadata
+struct RawTextureData
+{
+	std::vector<uint8_t> pixelData;   // Raw PSX format pixel indices
+	std::vector<uint16_t> palette;    // Raw PSX 16-bit palette (empty for 16-bit textures)
+	uint16_t width, height;
+	uint8_t bpp;                      // 0=4bit, 1=8bit, 2=16bit
+	uint8_t blendMode;
+	uint8_t originU, originV;         // UV origin of combined texture
+	// Original VRAM coordinates (for matching TextureLayouts)
+	uint8_t origPageX, origPageY;
+	uint8_t origPalX;
+	uint16_t origPalY;
+};
+
+// Extended texture data for VRAM placement (from .ctrmodel)
+struct ModelTextureForVRM : RawTextureData
+{
+	std::string modelName;            // Which model this belongs to
+	size_t textureIndex;              // Index within that model's texture section
+
+	// Output: filled by PackVRM after placement
+	size_t imageX = 0, imageY = 0;
+	size_t clutX = 0, clutY = 0;
+	bool placed = false;
+};
 
 class Texture
 {
@@ -65,4 +93,4 @@ private:
 	std::filesystem::path m_path;
 };
 
-std::vector<uint8_t> PackVRM(std::vector<Texture*>& textures);
+std::vector<uint8_t> PackVRM(std::vector<Texture*>& textures, std::vector<ModelTextureForVRM>* modelTextures = nullptr);

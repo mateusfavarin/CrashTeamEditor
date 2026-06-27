@@ -5,6 +5,9 @@
 #include <cstddef>
 #include <functional>
 
+#define nameof(x) #x
+#define CALCULATE_OFFSET(s, m, b) static_cast<uint32_t>(offsetof(s, m) + b)
+
 std::vector<std::string> Split(const std::string& str, char sep = ' ');
 std::string Lower(const std::string& s);
 bool Matches(const std::string& a, const std::string& b);

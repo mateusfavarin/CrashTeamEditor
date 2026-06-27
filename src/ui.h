@@ -21,6 +21,7 @@ struct Settings
 	static bool w_renderer;
 	static bool w_ghost;
 	static bool w_python;
+	static bool w_modelImporter;
 	static std::string m_lastOpenedFolder;
 	static std::string m_lastOpenedScriptFolder;
 };

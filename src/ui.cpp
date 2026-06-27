@@ -24,6 +24,7 @@ bool Settings::w_bsp = false;
 bool Settings::w_renderer = false;
 bool Settings::w_ghost = false;
 bool Settings::w_python = false;
+bool Settings::w_modelImporter = false;
 std::string Settings::m_lastOpenedFolder = ".";
 std::string Settings::m_lastOpenedScriptFolder = ".";
 
@@ -67,6 +68,7 @@ void UI::MainMenu()
 			}
 
 			if (ImGui::MenuItem("Hot Reload")) { m_lev.OpenHotReloadWindow(); }
+			if (ImGui::MenuItem("Model Extractor")) { m_lev.OpenModelExtractorWindow(); }
 
 			ImGui::BeginDisabled(!m_lev.IsLoaded());
 			if (ImGui::BeginMenu("Preset"))
