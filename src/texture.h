@@ -38,6 +38,7 @@ public:
 	void SetImageCoords(size_t x, size_t y);
 	void SetCLUTCoords(size_t x, size_t y);
 	void SetBlendMode(uint16_t mode);
+	void EnableColorKeyTransparency();
 	PSX::TextureLayout Serialize(const QuadUV& uvs) const;
 	bool CompareEquivalency(const Texture& tex);
 	void CopyVRAMAttributes(const Texture& tex);

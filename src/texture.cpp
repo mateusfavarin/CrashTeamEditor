@@ -125,6 +125,35 @@ void Texture::SetBlendMode(uint16_t mode)
 	m_blendMode = mode;
 }
 
+void Texture::EnableColorKeyTransparency()
+{
+	// PSX 16-bit color format: STP:1 | B:5 | G:5 | R:5
+	// - Bit 15 (STP): Semi-transparency bit - must be 1 for blending to work
+	// - Pure black (0x0000) is treated as transparent via color-keying
+	//
+	// For minimap semi-transparency to work correctly:
+	// 1. Black pixels must be 0x0000 (color-key transparent)
+	// 2. All other pixels must have STP bit (bit 15) set to 1
+	for (uint16_t& color : m_clut)
+	{
+		// Extract RGB channels (5 bits each)
+		uint16_t r = color & 0x1F;
+		uint16_t g = (color >> 5) & 0x1F;
+		uint16_t b = (color >> 10) & 0x1F;
+		
+		// Check if color is black/near-black (all RGB channels <= 1)
+		if (r <= 1 && g <= 1 && b <= 1)
+		{
+			color = 0x0000; // True transparent black (color-key)
+		}
+		else
+		{
+			// Set STP bit (bit 15) to enable semi-transparency for this pixel
+			color |= 0x8000;
+		}
+	}
+}
+
 PSX::TextureLayout Texture::Serialize(const QuadUV& uvs) const
 {
 	PSX::TextureLayout layout = {};

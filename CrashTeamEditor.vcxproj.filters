@@ -78,6 +78,7 @@
     <ClCompile Include="src\levelui.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\minimap.cpp">
     <ClCompile Include="src\skybox.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -200,6 +201,7 @@
     <ClInclude Include="src\material.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\minimap.h">
     <ClInclude Include="src\skybox.h">
       <Filter>Header Files</Filter>
     </ClInclude>
